@@ -42,8 +42,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
+        # Version comes from packageManager in package.json — do NOT set
+        # `with: version:` here (pnpm/action-setup refuses dual sources).
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
