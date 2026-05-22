@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Wireframe: Home Feed</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #efefef; padding: 20px; margin: 0; color: #222; }
+    .wireframe-nav { text-align: center; margin-bottom: 20px; font-size: 13px; }
+    .wireframe-nav a { margin: 0 8px; color: #0066cc; }
+    .screen { max-width: 390px; margin: 0 auto; background: white; border: 2px solid #333; min-height: 844px; position: relative; padding-bottom: 80px; }
+    .top-status { background: #ddd; padding: 6px 10px; text-align: center; font-size: 12px; color: #666; }
+    .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border-bottom: 1px solid #eee; }
+    .brand { font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
+    .icon-row { display: flex; gap: 16px; }
+    .icon-btn { width: 28px; height: 28px; background: #f0f0f0; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #555; }
+    .feed-header { padding: 12px 16px; display: flex; gap: 16px; border-bottom: 1px solid #eee; }
+    .tab { font-size: 13px; color: #777; padding-bottom: 4px; }
+    .tab.active { color: #222; font-weight: 600; border-bottom: 2px solid #222; }
+    .entry { padding: 14px 16px; border-bottom: 1px solid #f3f3f3; display: grid; grid-template-columns: 36px 1fr; gap: 12px; }
+    .avatar { width: 36px; height: 36px; background: #ccc; border-radius: 999px; }
+    .entry-body { font-size: 14px; }
+    .actor { font-weight: 600; }
+    .actor-meta { color: #888; font-size: 12px; margin-left: 4px; }
+    .stars { font-size: 14px; letter-spacing: 1px; color: #222; }
+    .stars .empty { color: #ddd; }
+    .award { margin-left: 6px; font-size: 13px; }
+    .album-row { display: grid; grid-template-columns: 56px 1fr; gap: 12px; align-items: center; margin: 8px 0 6px 0; }
+    .album-cover { width: 56px; height: 56px; background: #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 10px; }
+    .album-meta strong { display: block; font-size: 14px; }
+    .album-meta span { color: #777; font-size: 12px; }
+    .review-snippet { color: #444; font-size: 13px; line-height: 1.4; }
+    .review-snippet .more { color: #0066cc; }
+    .action-row { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: #888; }
+    .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; display: flex; justify-content: space-around; padding: 10px 0 14px 0; border-top: 1px solid #eee; background: white; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: #888; }
+    .nav-item.active { color: #222; }
+    .nav-icon { width: 22px; height: 22px; background: #eee; border-radius: 4px; margin-bottom: 2px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+    .nav-item.active .nav-icon { background: #222; color: white; }
+    .fab { position: absolute; bottom: 80px; right: 16px; width: 56px; height: 56px; background: #222; color: white; border-radius: 999px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 200; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+  </style>
+</head>
+<body>
+  <div class="wireframe-nav">
+    <strong>Screens:</strong>
+    <a href="./index.html">← Index</a> ·
+    <a href="./01-onboarding.html">1. Onboarding</a> ·
+    <a href="./02-home-feed.html">2. Home Feed</a> ·
+    <a href="./03-log-sheet.html">3. Log Sheet</a> ·
+    <a href="./04-album-detail.html">4. Album Detail</a>
+  </div>
+
+  <div class="screen">
+    <div class="top-status">9:41 · 100% · Wi-Fi</div>
+
+    <div class="top-bar">
+      <div class="brand">spinz</div>
+      <div class="icon-row">
+        <div class="icon-btn">🔍</div>
+        <div class="icon-btn">🔔</div>
+      </div>
+    </div>
+
+    <div class="feed-header">
+      <div class="tab active">For you</div>
+      <div class="tab">Latest</div>
+      <div class="tab">Critics</div>
+    </div>
+
+    <!-- Entry 1: review with stars -->
+    <div class="entry">
+      <div class="avatar"></div>
+      <div class="entry-body">
+        <span class="actor">Jamie Hsu</span><span class="actor-meta">@jamie · 2h</span>
+        <div class="stars">★★★★★ <span class="award">🏅</span></div>
+        <div class="album-row">
+          <div class="album-cover">cover</div>
+          <div class="album-meta">
+            <strong>The Predatory Wasp of the Palisades…</strong>
+            <span>Sufjan Stevens · 2005</span>
+          </div>
+        </div>
+        <div class="review-snippet">
+          Comes back to me every spring. The horn section on the bridge is the most quietly devastating <span class="more">… more</span>
+        </div>
+        <div class="action-row">
+          <span>👍 8</span><span>💬 2</span><span>Listen on Spotify ↗</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entry 2: rating only -->
+    <div class="entry">
+      <div class="avatar"></div>
+      <div class="entry-body">
+        <span class="actor">Maya Reed</span><span class="actor-meta">@mreed · 5h</span>
+        <div class="stars">★★★★<span class="empty">★</span></div>
+        <div class="album-row">
+          <div class="album-cover">cover</div>
+          <div class="album-meta">
+            <strong>Two Star &amp; The Dream Police</strong>
+            <span>Mk.gee · 2024</span>
+          </div>
+        </div>
+        <div class="action-row">
+          <span>👍 3</span><span>💬 0</span><span>Listen on Spotify ↗</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entry 3: long review -->
+    <div class="entry">
+      <div class="avatar"></div>
+      <div class="entry-body">
+        <span class="actor">Sasha Frere</span><span class="actor-meta">@sasha · 8h · Critic</span>
+        <div class="stars">★★★★★</div>
+        <div class="album-row">
+          <div class="album-cover">cover</div>
+          <div class="album-meta">
+            <strong>GNX</strong>
+            <span>Kendrick Lamar · 2024</span>
+          </div>
+        </div>
+        <div class="review-snippet">
+          The case for GNX as a major work hinges on its refusal to do the work of legacy positioning <span class="more">… more</span>
+        </div>
+        <div class="action-row">
+          <span>👍 47</span><span>💬 12</span><span>Listen on Spotify ↗</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Entry 4: friend logged from backlog -->
+    <div class="entry">
+      <div class="avatar"></div>
+      <div class="entry-body">
+        <span class="actor">Devon</span><span class="actor-meta">@devon · 1d · logged from Up Next</span>
+        <div class="stars">★★★<span class="empty">★</span><span class="empty">★</span></div>
+        <div class="album-row">
+          <div class="album-cover">cover</div>
+          <div class="album-meta">
+            <strong>Brat</strong>
+            <span>Charli XCX · 2024</span>
+          </div>
+        </div>
+        <div class="action-row">
+          <span>👍 0</span><span>💬 0</span><span>Listen on Spotify ↗</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="fab">+</div>
+
+    <div class="bottom-nav">
+      <div class="nav-item active"><div class="nav-icon">H</div>Home</div>
+      <div class="nav-item"><div class="nav-icon">U</div>Up Next</div>
+      <div class="nav-item"><div class="nav-icon">D</div>Discover</div>
+      <div class="nav-item"><div class="nav-icon">P</div>Profile</div>
+    </div>
+  </div>
+</body>
+</html>

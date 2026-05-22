@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Wireframe: Onboarding — Confirm Last 30 Days</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #efefef; padding: 20px; margin: 0; color: #222; }
+    .wireframe-nav { text-align: center; margin-bottom: 20px; font-size: 13px; }
+    .wireframe-nav a { margin: 0 8px; color: #0066cc; }
+    .screen { max-width: 390px; margin: 0 auto; background: white; border: 2px solid #333; min-height: 844px; padding: 16px; position: relative; }
+    .top-status { background: #ddd; padding: 6px 10px; text-align: center; font-size: 12px; color: #666; margin: -16px -16px 16px -16px; }
+    .nav-pill { background: #eee; padding: 8px 12px; border-radius: 999px; display: inline-block; font-size: 12px; color: #555; margin-bottom: 16px; }
+    .step-indicator { display: flex; gap: 4px; margin-bottom: 24px; }
+    .step-indicator span { flex: 1; height: 3px; background: #ddd; border-radius: 2px; }
+    .step-indicator span.active { background: #222; }
+    .step-indicator span.done { background: #888; }
+    h2 { margin: 0 0 8px 0; font-size: 22px; }
+    p.intro { color: #666; font-size: 14px; margin: 0 0 24px 0; line-height: 1.5; }
+    .album-card { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .album-cover { width: 56px; height: 56px; background: #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 10px; }
+    .album-meta { font-size: 14px; }
+    .album-meta strong { display: block; }
+    .album-meta span { color: #777; font-size: 12px; }
+    .star-row { font-size: 18px; letter-spacing: 2px; cursor: pointer; user-select: none; }
+    .star { color: #ddd; }
+    .star.filled { color: #222; }
+    .star.half { background: linear-gradient(90deg, #222 50%, #ddd 50%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .footer { position: absolute; bottom: 16px; left: 16px; right: 16px; display: flex; gap: 8px; }
+    .btn { flex: 1; padding: 14px; border-radius: 8px; font-size: 15px; text-align: center; cursor: pointer; border: none; }
+    .btn-primary { background: #222; color: white; }
+    .btn-secondary { background: #eee; color: #444; }
+    .note { font-size: 11px; color: #999; text-align: center; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wireframe-nav">
+    <strong>Screens:</strong>
+    <a href="./index.html">← Index</a> ·
+    <a href="./01-onboarding.html">1. Onboarding</a> ·
+    <a href="./02-home-feed.html">2. Home Feed</a> ·
+    <a href="./03-log-sheet.html">3. Log Sheet</a> ·
+    <a href="./04-album-detail.html">4. Album Detail</a>
+  </div>
+
+  <div class="screen">
+    <div class="top-status">9:41 · 100% · Wi-Fi</div>
+
+    <div class="nav-pill">← Back</div>
+
+    <div class="step-indicator">
+      <span class="done"></span>
+      <span class="done"></span>
+      <span class="active"></span>
+      <span></span>
+      <span></span>
+    </div>
+
+    <h2>Your last 30 days</h2>
+    <p class="intro">We pulled 28 albums from your Spotify history. Rate your standouts — we'll build your feed from here.</p>
+
+    <div class="album-card">
+      <div class="album-cover">cover</div>
+      <div class="album-meta">
+        <strong>GNX</strong>
+        <span>Kendrick Lamar · 2024</span>
+      </div>
+      <div class="star-row">
+        <span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star half">★</span>
+      </div>
+    </div>
+
+    <div class="album-card">
+      <div class="album-cover">cover</div>
+      <div class="album-meta">
+        <strong>Brat</strong>
+        <span>Charli XCX · 2024</span>
+      </div>
+      <div class="star-row">
+        <span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star">★</span><span class="star">★</span>
+      </div>
+    </div>
+
+    <div class="album-card">
+      <div class="album-cover">cover</div>
+      <div class="album-meta">
+        <strong>Cowboy Carter</strong>
+        <span>Beyoncé · 2024</span>
+      </div>
+      <div class="star-row">
+        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+      </div>
+    </div>
+
+    <div class="album-card">
+      <div class="album-cover">cover</div>
+      <div class="album-meta">
+        <strong>Hit Me Hard and Soft</strong>
+        <span>Billie Eilish · 2024</span>
+      </div>
+      <div class="star-row">
+        <span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star">★</span>
+      </div>
+    </div>
+
+    <div class="album-card">
+      <div class="album-cover">cover</div>
+      <div class="album-meta">
+        <strong>Two Star &amp; The Dream Police</strong>
+        <span>Mk.gee · 2024</span>
+      </div>
+      <div class="star-row">
+        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
+      </div>
+    </div>
+
+    <p class="note">Tap a star to rate. You can skip and rate later from your diary.</p>
+
+    <div class="footer">
+      <button class="btn btn-secondary">Skip</button>
+      <button class="btn btn-primary">Continue →</button>
+    </div>
+  </div>
+</body>
+</html>
