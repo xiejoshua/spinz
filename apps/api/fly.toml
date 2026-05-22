@@ -1,0 +1,55 @@
+# Fly.io config — auxd-api backend
+#
+# Single-process layout for now (the FastAPI app only). When T013 lands the
+# arq worker, we'll switch this file to use [processes] + [[services]] to
+# run api + worker on the same VM under the Hobby-plan $5/mo minimum.
+#
+# Deploy:    fly deploy
+# Logs:      fly logs
+# SSH:       fly ssh console
+# Region:    iad  (Ashburn, VA — colocates with Atlas + Upstash + R2 on US-East)
+
+app = "auxd-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+# Non-secret runtime env. Anything sensitive goes through `fly secrets set`
+# (or `fly secrets import < apps/api/.env`).
+[env]
+  ENVIRONMENT = "staging"
+  LOG_LEVEL = "INFO"
+  POSTHOG_HOST = "https://us.i.posthog.com"
+  R2_BUCKET_NAME = "auxd-backups-prod"
+  SPOTIFY_INTEGRATION_ENABLED = "false"
+
+# HTTP service routing. force_https redirects 80 → 443.
+# min_machines_running=1 keeps one VM warm so /healthz responds without
+# cold-start latency — that's the entire wedge of the <500ms p95 NFR.
+# Hobby plan's $5/mo allowance covers a single shared-cpu-1x VM running 24/7.
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 300
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    timeout = "5s"
+    path = "/healthz"
+
+# VM sizing — shared-cpu-1x with 512MB is enough for FastAPI + observability
+# overhead at MVP. Bump to 1x/1GB if memory pressure shows up under load.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
