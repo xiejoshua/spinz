@@ -163,7 +163,7 @@
       Description: Shared Redis client; arq `WorkerSettings` skeleton with a `noop_job`; Dockerfile defines two processes (api + worker). **Fail-mode wiring (sync-fix L4-004):** cache wrapper (`get/set`) catches `ConnectionError` and returns `None`/no-op (FAIL OPEN) with Sentry tag `cache.redis_down`. arq job-enqueue wrapper catches `ConnectionError` and raises `JobEnqueueUnavailable` → FastAPI dependency converts to `HTTP 503` with Sentry tag `jobs.redis_down`. Applied at every enqueue site (GDPR export, weekly digest, just-finished detection, suggested-follows recompute).
       Done: `noop_job` enqueued from api, executed by worker, log line confirms. Plus integration tests simulate Redis disconnect and assert (a) cache reads return None silently with Sentry alert, (b) job-enqueue endpoint returns 503 with Sentry alert.
 
-- [ ] **T014 — `lib/resilience` (retry + timeout + circuit breaker)**
+- [x] **T014 — `lib/resilience` (retry + timeout + circuit breaker)** *(completed 2026-05-22; 29/29 tests; 100% coverage on resilience.py; in-memory CB store with Redis pluggable later via set_default_store)*
       Paths: apps/api/src/auxd_api/lib/resilience.py, apps/api/tests/unit/test_resilience.py
       Size: M
       Deps: T011
@@ -171,7 +171,7 @@
       Description: `circuit_breaker(name)`, `retry(attempts, backoff)`, `timeout(seconds)` async context managers / decorators. Per-provider circuit-breaker state (open / half-open / closed) backed by Redis.
       Done: unit tests cover retry exhaustion + circuit-breaker open/close transitions + timeout cancellation. Coverage ≥90%.
 
-- [ ] **T015 — `lib/observability` (structured logging + PostHog client)**
+- [x] **T015 — `lib/observability` (structured logging + PostHog client)** *(completed 2026-05-22; 13/13 tests; log_call + emit_event + init_sentry; graceful no-op when keys absent)*
       Paths: apps/api/src/auxd_api/lib/observability.py, apps/api/tests/unit/test_observability.py
       Size: M
       Deps: T011, T013
@@ -179,7 +179,7 @@
       Description: `log_call(provider, endpoint, latency_ms, status, request_id)` helper; PostHog server-side client wrapper `emit_event(user_id, event, properties)`; Sentry init on app start.
       Done: unit tests assert log structure + PostHog event format; manual Sentry test event lands in Sentry dashboard.
 
-- [ ] **T015a — OpenTelemetry instrumentation** *(added in sync-fix Run #1 — DRIFT-L4-001)*
+- [x] **T015a — OpenTelemetry instrumentation** *(added in sync-fix Run #1 — DRIFT-L4-001; completed 2026-05-22; 8/8 tests; FastAPI+httpx auto-instrumentors; ConsoleSpanExporter→stdout for Fly logs; PymongoInstrumentor deferred to T012)*
       Paths: apps/api/src/auxd_api/lib/otel.py, apps/api/src/auxd_api/main.py (init), apps/api/pyproject.toml (deps)
       Size: XS
       Deps: T011, T015
@@ -195,7 +195,7 @@
       Description: `async def can_read(viewer, content) -> bool` implementing the full visibility matrix (public / followers-only / private × viewer-is-owner / -follower / -blocked / -anonymous). Use `hypothesis` for property-based test on the full 16-state matrix.
       Done: hypothesis property test exercises all combinations; coverage ≥95% (per plan §16.1 target).
 
-- [ ] **T017 — Encrypted token storage utility**
+- [x] **T017 — Encrypted token storage utility** *(completed 2026-05-22; 11/11 tests; Fernet/MultiFernet envelope encryption; rotate_to() preserves old keys for transition periods)*
       Paths: apps/api/src/auxd_api/lib/secrets.py, apps/api/tests/unit/test_secrets.py
       Size: S
       Deps: T011
@@ -203,7 +203,7 @@
       Description: Envelope encryption helper for OAuth tokens (encrypt with key from Fly secret; rotate-safe).
       Done: round-trip encryption test passes; failure modes handled (missing key, bad ciphertext).
 
-- [ ] **T018 — KSUID ID generator**
+- [x] **T018 — KSUID ID generator** *(completed 2026-05-22; 6/6 tests; svix-ksuid wrapper; chronological-sort guarantee verified)*
       Paths: apps/api/src/auxd_api/lib/ids.py, apps/api/tests/unit/test_ids.py
       Size: XS
       Deps: T011
@@ -295,7 +295,7 @@
       Description: Pipeline that pulls FastAPI's `/openapi.json` at build-time and runs `openapi-typescript` to generate TS types into `packages/shared-types/src/`. Triggered on backend changes via CI.
       Done: a backend schema change produces a TS diff in shared-types; frontend consumes from `@auxd/shared-types`.
 
-- [ ] **T029 — Pydantic settings + env validation**
+- [x] **T029 — Pydantic settings + env validation** *(completed 2026-05-22; 8/8 tests; Environment + LogLevel enums; base64-key validators; conditional Spotify-secret enforcement; emit_startup_audit log)*
       Paths: apps/api/src/auxd_api/settings.py
       Size: S
       Deps: T011

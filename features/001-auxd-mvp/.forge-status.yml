@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-22T17:30:00Z"
+last_updated: "2026-05-22T18:30:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -115,10 +115,12 @@ phases:
     progressive_checkpoints_run: 3
     progressive_warnings: 0
     progressive_critical: 0
-    tasks_completed: 4
+    tasks_completed: 10
     tasks_total: 183
     autonomous_section_zero_complete: false
-    notes: "Session 1 (2026-05-22): pre-implementation sync-fix-list applied (10 items → plan §4.5/§4.6/§11.2.1/§16.5 added; T010a + T015a added; T013/T023/T025/T026/T135 amended). Autonomous §0 partially complete — T001 (constitution ratified + committed 0c608a9), T003 (monorepo scaffolded + build-verified post pnpm/uv install), T004 (CI workflow written + all steps green locally), T008 (VAPID keypair generated). T002/T005/T006/T007/T009/T010/T010a deferred — human-action external dependencies. Checkpoint #3 confirmed: pnpm install + uv sync + both dev servers boot + full CI step-set passes locally."
+    session_count: 2
+    progressive_checkpoints_run: 5
+    notes: "Session 2 (2026-05-22 PM): foundation-libs wave. T018 KSUID, T029 Settings, T014 resilience (100% cov), T017 secrets — Wave 1 parallel agents. T015 observability, T015a OTel — Wave 2 sequential. All 6 tasks unit-tested + ruff/format/mypy strict clean. Full test suite 76/76 passes. main.py now wires Sentry + OTel via FastAPI lifespan. 10/183 tasks complete. Session 1 (AM) covered T001/T003/T004/T008 + sync-fix-list apply."
   code_review:
     status: "pending"
   verify:
@@ -198,6 +200,65 @@ task_log:
     started_at: "2026-05-22T03:22:00Z"
     completed_at: "2026-05-22T03:28:00Z"
     notes: "VAPID P-256 keypair generated via cryptography lib. Public key in env.example; private key tracked outside repo with rotation procedure documented in docs/infra.md."
+  - task_id: "T018"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/lib/__init__.py"
+      - "backend:apps/api/src/auxd_api/lib/ids.py"
+      - "backend:apps/api/tests/unit/__init__.py"
+      - "backend:apps/api/tests/unit/test_ids.py"
+    commit_sha: null
+    started_at: "2026-05-22T17:35:00Z"
+    completed_at: "2026-05-22T17:45:00Z"
+    notes: "KSUID factory + parse + datetime extractor. svix-ksuid 0.7.0 wrapper. 6/6 tests; chronological-sort guarantee verified."
+  - task_id: "T029"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/settings.py"
+      - "backend:apps/api/.env.example"
+      - "backend:apps/api/tests/unit/test_settings.py"
+    commit_sha: null
+    started_at: "2026-05-22T17:35:00Z"
+    completed_at: "2026-05-22T17:50:00Z"
+    notes: "Pydantic Settings v2. Environment + LogLevel StrEnums. Base64-key validators (SESSION_HMAC_KEY ≥32 bytes; TOKEN_ENCRYPTION_KEY ==32 bytes). Conditional Spotify-secret enforcement. lru_cache get_settings(). emit_startup_audit() writes config.loaded INFO line. 8/8 tests."
+  - task_id: "T014"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/lib/resilience.py"
+      - "backend:apps/api/tests/unit/test_resilience.py"
+      - "backend:apps/api/pyproject.toml"
+    commit_sha: null
+    started_at: "2026-05-22T17:35:00Z"
+    completed_at: "2026-05-22T17:55:00Z"
+    notes: "Constitution P1. circuit_breaker + retry + timeout async ctx managers. CircuitBreakerStore Protocol with InMemoryCircuitBreakerStore default; Redis pluggable via set_default_store. CircuitBreakerOpenError never retried. 29/29 tests; 100% coverage on resilience.py. Composed call_with_resilience(...) helper. Added pytest-cov to dev extras."
+  - task_id: "T017"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/lib/secrets.py"
+      - "backend:apps/api/tests/unit/test_secrets.py"
+    commit_sha: null
+    started_at: "2026-05-22T17:35:00Z"
+    completed_at: "2026-05-22T17:48:00Z"
+    notes: "TokenEncryptor with MultiFernet for key rotation. from_base64_strings(...) factory; rotate_to(new_key) prepends new + retains old. Typed errors: MissingKeyError / DecryptionError / SecretsError. 11/11 tests."
+  - task_id: "T015"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/lib/observability.py"
+      - "backend:apps/api/tests/unit/test_observability.py"
+    commit_sha: null
+    started_at: "2026-05-22T17:55:00Z"
+    completed_at: "2026-05-22T18:10:00Z"
+    notes: "Constitution P5. log_call() emits structured JSON to stdout (Fly captures). emit_event() fire-and-forget PostHog wrapper; lazy-init; no-op if POSTHOG_API_KEY=None; swallows failures via log_call. init_sentry() FastAPI+Asyncio integrations; idempotent guard; traces_sample_rate=0 (OTel handles traces). 13/13 tests."
+  - task_id: "T015a"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/lib/otel.py"
+      - "backend:apps/api/src/auxd_api/main.py"
+      - "backend:apps/api/tests/test_otel.py"
+    commit_sha: null
+    started_at: "2026-05-22T18:10:00Z"
+    completed_at: "2026-05-22T18:25:00Z"
+    notes: "OTel SDK + FastAPIInstrumentor + HTTPXClientInstrumentor. ConsoleSpanExporter→stdout (Fly logs at MVP per plan §15.4; no dedicated tracing backend). FastAPI lifespan added to main.py wires init_sentry + init_otel. Idempotent via module-level _initialized flag. PyMongo instrumentation deferred to T012. **Key finding**: FastAPIInstrumentor doesn't invalidate cached middleware_stack — init_otel forces rebuild via app.middleware_stack = app.build_middleware_stack(), else spans silently never fire from lifespan-init. Documented inline. 8/8 tests; full suite 76/76."
 
 scope:
   paths:

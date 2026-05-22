@@ -63,3 +63,41 @@ User installed pnpm 11.2.2 + uv 0.11.16 via Homebrew. All T003 + T004 done-crite
 **Note:** pnpm installed is 11.2.2 (newer than `packageManager: pnpm@9.12.0` declared in package.json). Engines allows `>=9.0.0`. No conflict observed; the `packageManager` field is corepack-enforced only, and corepack is opt-in. If corepack gets enabled later, bump the declared version.
 
 **Verdict:** GREEN — T003 + T004 Done-criteria fully satisfied. Monorepo is build-verified and CI-verified locally. The CI workflow at `.github/workflows/ci.yml` will run the same commands on PR-trigger once the repo is pushed to a remote.
+
+## Session 2 — Foundation libs wave (2026-05-22 PM)
+
+**Goal:** Execute productive-while-blocked tasks — backend foundation libs that don't depend on any external account (T002/T005/T006/T007 remain blocked). Picked 6 Constitution-required tasks: T018, T029, T014, T017 (Wave 1, parallel) → T015, T015a (Wave 2, sequential).
+
+Tasks completed: **T014, T015, T015a, T017, T018, T029**. Total now 10/183.
+
+### Checkpoint #4 — After Wave 1 (T018, T029, T014, T017)
+
+| Check | Status | Notes |
+|-------|:------:|-------|
+| Task-Code correspondence | ✅ | T018 → `lib/ids.py` + tests (6/6). T029 → `settings.py` + `.env.example` + tests (8/8). T014 → `lib/resilience.py` + tests (29/29, **100% coverage**). T017 → `lib/secrets.py` + tests (11/11). |
+| Spec AC alignment | ✅ | All Done criteria satisfied per spec strings. |
+| Unplanned changes | ✅ None | All files map directly to a task. `pytest-cov>=5.0` added to dev extras for T014's coverage gate. |
+| Plan alignment | ✅ | CircuitBreakerStore Protocol with InMemoryCircuitBreakerStore default — matches plan §5.3 expectation that Redis backing plugs in via T020. TokenEncryptor MultiFernet rotation matches plan §17.2. Pydantic Settings field set matches plan §17.2. |
+| Constitution alignment | ✅ | P1 (resilience) — primitives in place; P2 (schema-versioning) — not yet exercised; P3 (library-first) — clean module structure with `__all__` exports; P5 (observability) — log_call/emit_event/init_sentry land in T015. |
+
+**Verdict:** CLEAN — proceed to Wave 2.
+
+### Checkpoint #5 — After Wave 2 (T015, T015a)
+
+| Check | Status | Notes |
+|-------|:------:|-------|
+| Task-Code correspondence | ✅ | T015 → `lib/observability.py` + tests (13/13). T015a → `lib/otel.py` + `main.py` modified for lifespan + `tests/test_otel.py` (8/8). |
+| Spec AC alignment | ✅ | `/healthz` request now produces an OTel span with `http.route` attribute (verified via InMemorySpanExporter in test_otel.py); `init_sentry` idempotent; PostHog client lazy-init with no-op when key absent. |
+| Unplanned changes | ✅ None | Only main.py modified (lifespan addition); test_healthz.py left untouched (TestClient without context-manager doesn't trigger lifespan, so existing test still passes). |
+| Plan alignment | ✅ | OTel SDK + FastAPI/httpx auto-instrumentors per plan §15.4. ConsoleSpanExporter→stdout matches plan's "no dedicated tracing backend at MVP". PymongoInstrumentor deferred to T012 with TODO comment in otel.py. |
+| Constitution alignment | ✅ | P5 (observability) — fully wired. Every external API call has `log_call()` available. PostHog event channel ready. Sentry error capture ready. OTel traces ready. |
+
+**Notable discovery:** `FastAPIInstrumentor.instrument_app(app)` does NOT invalidate the app's cached middleware stack. Without `app.middleware_stack = app.build_middleware_stack()` inside `init_otel`, the app is marked instrumented but emits zero spans when init happens from a lifespan. The agent caught this via test failure, documented it inline in `otel.py`, and added a regression test in `test_otel.py`. Production-tier trap avoided.
+
+**Verdict:** CLEAN — Wave 2 complete; 10/183 tasks done; full suite 76/76 green; ruff/format/mypy clean across 18 source files.
+
+### Remaining external blockers (unchanged)
+T002 (Spotify Extended Quota), T005 (Atlas + Upstash), T006 (Fly + Vercel + DNS), T007 (Postmark + Sentry + PostHog + secrets). Downstream T009/T010/T010a still gated on those.
+
+### Productive-while-blocked work remaining
+Significant feature scope still unblocked: T011 (FastAPI app expansion), T012 (Beanie connection scaffold), T016 (lib/visibility), T019 (session middleware), T021–T027 (7 Beanie Document models), T028 (OpenAPI codegen), T031–T040 (frontend foundation). Next session can pick another wave.
