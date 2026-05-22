@@ -19,6 +19,7 @@ from pymongo import ASCENDING
 from pymongo.operations import IndexModel
 
 from auxd_api.lib.ids import new_ksuid
+from auxd_api.lib.visibility import Visibility
 
 
 class Backlog(Document):
@@ -53,9 +54,18 @@ class BacklogItem(Document):
     """A single album in a user's backlog ('Up Next' queue).
 
     ``position`` is 1-indexed and user-defined; defaults to insertion order
-    at the service layer. Indexes match plan §3.1:
-      * ``(backlog_id, position)`` — list-in-order reads
-      * ``(album_id, backlog_id)`` — "is this album in any backlog?" lookups
+    at the service layer. ``per_item_visibility`` is the per-album override
+    described in plan §3.1: ``None`` means "inherit from the parent Backlog's
+    default visibility"; an explicit :class:`Visibility` overrides it.
+
+    Indexes:
+
+    * ``(backlog_id, album_id)`` **unique** — enforces the "one row per album
+      in any backlog" invariant; also serves backlog→items reads via the
+      leading key.
+    * ``(backlog_id, position)`` — list-in-order reads for the backlog UI.
+    * ``(album_id, backlog_id)`` — "is this album in any backlog?" reverse
+      lookups (e.g. "remove from all backlogs on hard-delete").
     """
 
     _schema_version: int = 1
@@ -68,12 +78,14 @@ class BacklogItem(Document):
     backlog_id: str  # FK → Backlog.id
     album_id: str  # FK → Album.id
     position: int  # 1-indexed user-defined order; default == added order
+    per_item_visibility: Visibility | None = None  # None = inherit from Backlog default
     added_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
-    note: str | None = None  # optional per-item private note (future UX surface)
+    notes: str | None = None  # optional per-item private note (future UX surface)
 
     class Settings:
         name = "backlog_items"
         indexes = [  # noqa: RUF012 — Beanie Settings expects a plain list
+            IndexModel([("backlog_id", ASCENDING), ("album_id", ASCENDING)], unique=True),
             IndexModel([("backlog_id", ASCENDING), ("position", ASCENDING)]),
             IndexModel([("album_id", ASCENDING), ("backlog_id", ASCENDING)]),
         ]

@@ -152,7 +152,7 @@ All carry TBD.app / Postmark / S3 references as time-of-writing record. Future r
 
 ---
 
-## Session 3 — 2026-05-22 evening — §0 closeout + backend data layer (Wave A + Wave B)
+## Session 4 — 2026-05-22 evening — §0 closeout + backend data layer (Wave A + Wave B)
 
 Blockers (MongoDB Atlas, Upstash, Sentry, PostHog Cloud, Resend, R2, Fly billing, Cloudflare DNS) all resolved earlier in session. All seven integrations pass the smoke check on the user's host (`apps/api/scripts/check_integrations.py` → 7/7 with `truststore` patch for Zscaler MITM). Fly deploy ✅; Vercel deploy ✅; both healthchecks return 200.
 

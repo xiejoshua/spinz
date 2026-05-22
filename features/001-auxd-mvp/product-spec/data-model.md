@@ -45,13 +45,16 @@ User {
   display_name             # human-readable, ≤40 chars
   bio                      # ≤140 chars
   avatar_url               # CDN URL
-  is_private_profile       # bool, default false
+  private_profile          # bool, default false  (sync-fix Run #3 L5-004: was is_private_profile in earlier drafts; aligned to code)
   default_entry_visibility # enum: public | followers | private, default "public"
   default_backlog_visibility # enum: public | followers | private, default "private"
   keep_backlog_after_log   # bool, default false
   status                   # enum: active | suspended | deleted (grace period) | hard_deleted
   deletion_scheduled_for   # datetime, set when user requests deletion
-  last_login_at            # datetime
+  last_seen_at             # datetime  (sync-fix Run #3 L5-004: was last_login_at; renamed since field updates on activity, not just login)
+  handle_created_at        # datetime, set on account creation
+  handle_changed_at        # datetime, None until first handle change (FR-029)  (sync-fix Run #3 L5-004: was last_handle_change; symmetric with created_at)
+  session_version          # int, default 1 — incremented on password change / forced logout to invalidate prior cookies
   auto_prompt_enabled      # bool, default true — show in-app prompt when Spotify detects a finished album
   auto_prompt_push_enabled # bool, default false — also send push for auto-prompts
   notification_preferences # ref → NotificationPreferences
@@ -293,11 +296,14 @@ Static-ish editorial list of accounts pre-recommended/pre-followed at onboarding
 ```
 CriticSeed {
   id
-  user_id                  # the actual User account that is a seed
-  category                 # enum: critic | curator | label_account | artist
-  description              # ≤140 chars, why this account is seeded
-  priority                 # 0–100, used for ranking in onboarding
-  active                   # bool, soft-disable
+  user_id                  # the actual User account that is a seed; strict unique index (one CriticSeed per User)
+  priority                 # 1–100, used for ranking in the onboarding card stack; default 50
+  active                   # bool, default true — founder can deactivate without deleting
+  genre_signature          # array<string>, optional — tags for matching to a viewing user's taste graph  (sync-fix Run #3 L5-005: replaces earlier `category` enum sketch — richer taxonomy)
+  public_bio               # ≤200 chars, optional — short copy shown on the onboarding card  (sync-fix Run #3 L5-005: replaces earlier `description` sketch)
+  notes                    # internal-only founder notes
+  added_at                 # datetime
+  deactivated_at           # datetime, None until `active` flips to False
 }
 ```
 

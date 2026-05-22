@@ -15,6 +15,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
+from auxd_api.lib.visibility import Visibility
 from auxd_api.modules.users.models import (
     MusicProviderSubDoc,
     NotificationPreferencesSubDoc,
@@ -177,3 +178,22 @@ def test_handle_change_tracking_fields() -> None:
     assert user.handle_created_at.tzinfo is not None
     assert before <= user.handle_created_at <= after
     assert user.handle_changed_at is None
+
+
+# ---------------------------------------------------------------------------
+# Visibility defaults + session bookkeeping (US-G1, FR-029)
+# ---------------------------------------------------------------------------
+
+
+def test_visibility_defaults() -> None:
+    """Data-model.md §User: public diary, private backlog, opt-in keep-after-log."""
+    user = _make_user()
+    assert user.default_entry_visibility is Visibility.PUBLIC
+    assert user.default_backlog_visibility is Visibility.PRIVATE
+    assert user.keep_backlog_after_log is False
+
+
+def test_session_version_default() -> None:
+    """``session_version`` starts at 1; a bump invalidates all prior cookies."""
+    user = _make_user()
+    assert user.session_version == 1

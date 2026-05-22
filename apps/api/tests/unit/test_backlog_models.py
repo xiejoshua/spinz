@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 import pytest
 from pydantic import ValidationError
 
+from auxd_api.lib.visibility import Visibility
 from auxd_api.modules.backlog.models import Backlog, BacklogItem
 
 BASE62_ALPHABET = set(string.digits + string.ascii_letters)
@@ -98,19 +99,49 @@ def test_backlog_item_added_at_default_now() -> None:
     assert before <= item.added_at <= after
 
 
-def test_backlog_item_note_optional() -> None:
-    """``note`` is optional; default ``None``, accepts a string when supplied."""
+def test_backlog_item_notes_optional() -> None:
+    """``notes`` is optional; default ``None``, accepts a string when supplied."""
     item_without = BacklogItem.model_validate(
         {"backlog_id": "bl_1", "album_id": "al_1", "position": 1}
     )
-    assert item_without.note is None
+    assert item_without.notes is None
 
     item_with = BacklogItem.model_validate(
         {
             "backlog_id": "bl_1",
             "album_id": "al_1",
             "position": 1,
-            "note": "must-listen on a long drive",
+            "notes": "must-listen on a long drive",
         }
     )
-    assert item_with.note == "must-listen on a long drive"
+    assert item_with.notes == "must-listen on a long drive"
+
+
+def test_backlog_item_per_item_visibility_defaults_to_inherit() -> None:
+    """``per_item_visibility`` defaults to ``None`` (inherit Backlog default)."""
+    item = BacklogItem.model_validate({"backlog_id": "bl_1", "album_id": "al_1", "position": 1})
+    assert item.per_item_visibility is None
+
+    overridden = BacklogItem.model_validate(
+        {
+            "backlog_id": "bl_1",
+            "album_id": "al_1",
+            "position": 2,
+            "per_item_visibility": Visibility.PUBLIC,
+        }
+    )
+    assert overridden.per_item_visibility is Visibility.PUBLIC
+
+
+def test_backlog_item_has_unique_backlog_album_index() -> None:
+    """Plan §3.1 invariant: one row per (backlog_id, album_id) pair."""
+    indexes = BacklogItem.Settings.indexes
+    unique_compound = [
+        ix
+        for ix in indexes
+        if getattr(ix, "document", {}).get("unique") is True
+        and list(ix.document.get("key", {}).keys()) == ["backlog_id", "album_id"]
+    ]
+    assert len(unique_compound) == 1, (
+        f"expected exactly one unique (backlog_id, album_id) index; got {indexes}"
+    )

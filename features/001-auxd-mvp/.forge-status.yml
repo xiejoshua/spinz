@@ -118,8 +118,8 @@ phases:
     tasks_completed: 22
     tasks_total: 183
     autonomous_section_zero_complete: true
-    session_count: 3
-    progressive_checkpoints_run: 7
+    session_count: 4
+    progressive_checkpoints_run: 8
     notes: "Session 3 (2026-05-22 evening): Wave A §0 closeout + Wave B backend data layer. Wave A: T009 deploy-api workflow, T010 synthetic monitoring, T010a nightly mongodump → R2 (commit 743d052). Wave B: T012 Beanie connection + lifespan wiring (db.py + ALL_DOCUMENT_MODELS single-source; ping-on-connect P5 fail-loud); T016 visibility matrix (54 tests, 100% cov); T021-T027 all 17 Beanie Documents (User, Album, DiaryEntry+Review+ReviewLike+ReviewEditHistory, Backlog+BacklogItem, Follow+FollowRequest+Block, Notification+Report+FailedEmail+NotificationPreferences, JustFinishedPrompt+SuggestedFollow+CriticSeed). mongomock-motor conftest fixture initialises Beanie once per session. Full test suite 229/229 green; ruff + mypy --strict clean. 22/183 tasks complete. Session 2 (PM) covered T014/T015/T015a/T017/T018/T029."
   code_review:
     status: "pending"
@@ -449,16 +449,16 @@ gates:
     skip_reason: null
 
 sync_runs:
-  last_run: "2026-05-22T17:00:00Z"
-  total_runs: 2
-  last_drift_count: 25
+  last_run: "2026-05-22T22:30:00Z"
+  total_runs: 3
+  last_drift_count: 19
   last_critical_count: 0
-  last_warning_count: 3
-  last_info_count: 22
-  last_structural_count: 24
-  last_cosmetic_count: 3
+  last_warning_count: 2
+  last_info_count: 17
+  last_structural_count: 5
+  last_cosmetic_count: 2
   last_verdict: "RESOLVED_WITH_OVERRIDE"
-  last_verdict_note: "Run #2: 0 CRITICAL findings; 10 inline cleanups applied (incl. L1-003 OAuth scopes widened from 3→5 — added user-read-email + user-read-private to unblock S-A1); 13 advisory recurring items skipped; gate overridden. Run #1 backlog items (10) all verified landed; 10 inline cleanups all hold. Aux + brand rename clean."
+  last_verdict_note: "Run #3: 0 CRITICAL findings; 6 inline cleanups applied (L5-001 added 4 missing User fields + session_version; L5-002 BacklogItem per_item_visibility + note→notes rename; L5-003 unique compound (backlog_id, album_id) index; L5-004 data-model.md User aligned to code field names; L5-005 data-model.md CriticSeed aligned to code shape + T027 status note refresh; L7-014 Session 3→4 renumber + session_count bump). 13 advisory recurring items skipped (unchanged from Run #2 disposition). Gate overridden — structural=5 trips strict budget but no runtime-CRITICAL finding. All Run #1 + Run #2 backlog items still verified landed in code."
   last_report_path: "sync-report.md"
   last_fix_list_path: "sync-fix-list.md"
   runs:
@@ -575,6 +575,65 @@ sync_runs:
       resolved_organically_since_run_1:
         - "L7-009 migrations/digest.md now indexed by migrations/migration-plan.md"
       next_action: "Continue Phase 6 implementation. Re-run sync-verify between Phase 6B (code review) and Phase 7 (full verify) when Layer 6 (spec ↔ code) becomes meaningful."
+    - run: 3
+      date: "2026-05-22"
+      layers_checked: [1, 2, 3, 4, 5, 7]
+      layers_skipped: [6]
+      layers_skipped_reason: "Layer 6 backward direction still premature — only data-layer code (no business logic / endpoints) has landed at 22/183. Layer 5 (tasks.md ↔ code) is now meaningful and is the headline scope of this run."
+      critical: 0
+      warning: 2
+      info: 17
+      structural: 5
+      cosmetic: 2
+      verdict: "DRIFT_DETECTED"
+      run_1_backlog_verified_landed: true
+      run_2_inline_cleanups_holding: true
+      new_warnings:
+        - "DRIFT-L5-001: T021 User Document missing 5 fields promised by task description (default_entry_visibility, default_backlog_visibility, keep_backlog_after_log, last_handle_change, session_version) — 4 added inline; last_handle_change resolved by L5-004 alignment to code (handle_changed_at)"
+        - "DRIFT-L5-002: T024 BacklogItem missing per_item_visibility (plan §3.1 per-album override) + note→notes field-name drift vs data-model.md"
+      new_info:
+        - "DRIFT-L5-003: T024 BacklogItem missing unique compound (backlog_id, album_id) index — same album could be added twice in one backlog"
+        - "DRIFT-L5-004: User field-name drift — is_private_profile/last_login_at/last_handle_change (spec) vs private_profile/last_seen_at/handle_changed_at (code)"
+        - "DRIFT-L5-005: T027 CriticSeed field-shape + index drift vs data-model.md sketch — code has richer fields (genre_signature/public_bio/notes/priority/active); status note misstated the index intent"
+        - "DRIFT-L7-014: duplicate `## Session 3` header in implementation-log.md — second occurrence renumbered to Session 4 + session_count bumped"
+      recurring_info_unchanged:
+        - "DRIFT-L1-001 (W1 activation narrowing)"
+        - "DRIFT-L1-002 (Apple Music re-eval threshold drift 15% → 30% — deferred since Run #2)"
+        - "DRIFT-L2-004 / L2-005 (FR trace tags)"
+        - "DRIFT-L2-006 (cluster name enrichment)"
+        - "DRIFT-L2-009 (entity inventory ReviewLike row)"
+        - "DRIFT-L3-009 (/critics route in plan, no spec backing)"
+        - "DRIFT-L3-010 (handle collision suggestion algorithm incomplete)"
+        - "DRIFT-L4-005 (4 satellite collections still missing from product-spec/data-model.md inventory — plan §3.1 narrowed the gap; data-model.md still incomplete)"
+        - "DRIFT-L7-004..008 (5 phase-digest orphans — convention question)"
+        - "DRIFT-L7-013 (implementation-log.md orphan — same convention class)"
+      disposition: "applied_split_with_override"
+      gate_override:
+        granted: true
+        granted_at: "2026-05-22T22:30:00Z"
+        reason: "0 CRITICAL findings. Net drift narrowed from Run #2 (24 → 5). All 6 new items applied inline (L5-001..L5-005 + L7-014). Strict structural=0 budget still trips but disposition is clean: all WARNINGs resolved at the code layer, all new INFO resolved either in code or in spec docs."
+      inline_applied:
+        - "L5-001: User model adds default_entry_visibility (Visibility.PUBLIC), default_backlog_visibility (Visibility.PRIVATE), keep_backlog_after_log (bool), session_version (int=1)"
+        - "L5-002: BacklogItem adds per_item_visibility (Visibility | None = None, inherit-from-Backlog semantics); note → notes rename; test updated"
+        - "L5-003: BacklogItem unique compound index (backlog_id, album_id) added; new test asserts uniqueness in the index list"
+        - "L5-004: product-spec/data-model.md User aligned to code names: is_private_profile→private_profile, last_login_at→last_seen_at, last_handle_change→handle_changed_at; added session_version; tasks.md T021 description aligned"
+        - "L5-005: product-spec/data-model.md CriticSeed aligned to code shape (genre_signature/public_bio/notes/priority/active vs earlier category/description sketch); tasks.md T027 description aligned; status note's index claim refreshed to match code (strict unique on user_id + separate partial-active index)"
+        - "L7-014: implementation-log.md second '## Session 3' renumbered to '## Session 4'; .forge-status.yml session_count 3 → 4 + progressive_checkpoints_run 7 → 8"
+      skipped_advisory_recurring:
+        - "L1-001 W1 activation narrowing"
+        - "L1-002 Apple Music re-eval threshold (still deferred)"
+        - "L2-004 / L2-005 FR trace tags"
+        - "L2-006 cluster name enrichment"
+        - "L2-009 entity inventory ReviewLike row"
+        - "L3-009 /critics route in plan, no spec backing"
+        - "L3-010 handle collision suggestion algorithm incomplete"
+        - "L4-005 4 satellite collections in product-spec/data-model.md inventory"
+        - "L7-004..008 5 phase-digest orphans (convention question)"
+        - "L7-013 implementation-log.md orphan"
+      verification_pre_disposition:
+        - "Full test suite: 233/233 passing (up from 229 with 4 new tests: User visibility defaults, User session_version, BacklogItem per_item_visibility, BacklogItem unique index)"
+        - "ruff check + format + mypy --strict: all clean across 51 source files"
+      next_action: "Continue Phase 6 implementation. Next wave candidates: T019 sessions middleware (now unblocked by User.session_version being present), T020 rate-limit middleware, T028 OpenAPI codegen. Re-run sync-verify between Phase 6B (code review) and Phase 7 (full verify) when Layer 6 (spec ↔ code) becomes meaningful — i.e., once first endpoint cluster (T040+) lands."
 
 change_requests: []
 

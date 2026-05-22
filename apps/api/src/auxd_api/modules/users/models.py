@@ -36,6 +36,7 @@ from pymongo import ASCENDING
 from pymongo.operations import IndexModel
 
 from auxd_api.lib.ids import new_ksuid
+from auxd_api.lib.visibility import Visibility
 
 # Field-length constants — kept module-level so tests and callers can import
 # them rather than duplicating magic numbers.
@@ -139,6 +140,16 @@ class User(Document):
     auto_prompt_enabled: bool = True  # FR-026 just-finished in-app prompt
     auto_prompt_push_enabled: bool = False  # FR-026 push surface for prompt
     private_profile: bool = False  # US-G2 / FR-013
+
+    # Visibility defaults (US-G1 / data-model.md §User) ---------------------
+    default_entry_visibility: Visibility = Visibility.PUBLIC
+    default_backlog_visibility: Visibility = Visibility.PRIVATE
+    keep_backlog_after_log: bool = False  # S-D3 alt-path: default = auto-remove on log
+
+    # Session bookkeeping ----------------------------------------------------
+    # Incremented on password change / forced logout; every cookie carries
+    # the version at issue time so a bump invalidates all prior sessions.
+    session_version: int = 1
 
     # Timestamps -------------------------------------------------------------
     created_at: datetime = Field(default_factory=_utcnow)

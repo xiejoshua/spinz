@@ -236,7 +236,7 @@
       Size: M
       Deps: T012, T018
       Refs: plan §3, §4.3; FR-029; US-G1; data-model.md User
-      Description: Beanie `User` Document with all fields per data-model.md User entity. Includes `auto_prompt_enabled`, `auto_prompt_push_enabled`, `default_entry_visibility`, `default_backlog_visibility`, `keep_backlog_after_log`, `last_handle_change`, `created_at`, `deletion_scheduled_for`, `session_version`, `status`. Indexes: handle unique, email unique, status partial.
+      Description: Beanie `User` Document with all fields per data-model.md User entity. Includes `auto_prompt_enabled`, `auto_prompt_push_enabled`, `default_entry_visibility`, `default_backlog_visibility`, `keep_backlog_after_log`, `handle_changed_at` (renamed from `last_handle_change` in sync-fix Run #3 L5-004), `created_at`, `deletion_scheduled_for`, `session_version`, `status`. Indexes: handle unique, email unique, status partial.
       Done: model loads; unit test creates/saves/loads a User; indexes confirmed via aggregate explain.
 
 - [x] **T022 — Album Document + identity fields** *(completed 2026-05-22; Album schema incl. mbid/spotify_id sparse-unique indexes; Atlas Search index JSON at apps/api/migrations/atlas_search/albums_index.json — one-time UI apply documented)*
@@ -279,12 +279,12 @@
       Description: `Report` (target_type/target_id, status, resolution_note — target_type enum extended with `missing_album` per sync-fix L3-006); `Notification` (user_id, type, payload, channel_dispatch_state, read_at, TTL 90d); `NotificationPreferences` (embedded on User per plan §3 — model the embedded sub-document explicitly); `FailedEmail` (user_id, notification_type, payload, attempted_at, last_error — write target for T135 failure-mode wiring). 18 active notification types as `NotificationType` enum.
       Done: models + TTL index on Notification; FailedEmail covered by integration test in T135.
 
-- [x] **T027 — JustFinishedPrompt + SuggestedFollow + CriticSeed Documents** *(completed 2026-05-22; 13/13 tests; JustFinishedPrompt TTL partial-filter (state=pending → 24h expiry), retains LOGGED/DISMISSED for S-B6 30d cooldown + attribution analytics; SuggestedFollow sparse dismissed_at index; CriticSeed unique on user_id with active=True partial)*
+- [x] **T027 — JustFinishedPrompt + SuggestedFollow + CriticSeed Documents** *(completed 2026-05-22; 13/13 tests; JustFinishedPrompt TTL partial-filter (state=pending → 24h expiry), retains LOGGED/DISMISSED for S-B6 30d cooldown + attribution analytics; SuggestedFollow sparse dismissed_at index; CriticSeed strict unique on user_id + separate partial-active index for fast "active critics" reads — sync-fix Run #3 L5-005 clarified intent vs initial status note)*
       Paths: apps/api/src/auxd_api/modules/prompts/models.py, apps/api/src/auxd_api/modules/seeding/models.py
       Size: M
       Deps: T021, T022
       Refs: plan §3
-      Description: `JustFinishedPrompt` (state, detected_at, TTL 24h on pending), `SuggestedFollow` (score, reason enum, dismissed_at), `CriticSeed` (active, priority, category, description).
+      Description: `JustFinishedPrompt` (state, detected_at, TTL 24h on pending), `SuggestedFollow` (score, reason enum, dismissed_at), `CriticSeed` (active, priority, genre_signature, public_bio, notes — sync-fix Run #3 L5-005 replaced earlier `category`/`description` sketch with the richer code shape).
       Done: models + TTL configured.
 
 - [ ] **T028 — OpenAPI → TS type codegen pipeline**
