@@ -44,3 +44,4 @@ htmlcov/
 *.bak
 *.tmp
 *-backup.jsonl
+.vercel

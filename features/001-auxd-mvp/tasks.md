@@ -111,7 +111,7 @@
       Description: Generate VAPID public/private keypair; public key committed to `apps/web/.env.example` and frontend bundle, private key in Fly secret as `VAPID_PRIVATE_KEY`.
       Done: keys generated and placed.
 
-- [ ] **T009 — Bootstrap deployment workflows (auto-deploy on main)**
+- [x] **T009 — Bootstrap deployment workflows (auto-deploy on main)** *(completed 2026-05-22; .github/workflows/deploy-api.yml uses superfly/flyctl-actions; Vercel auto-deploys via GitHub integration; needs FLY_API_TOKEN secret)*
       Paths: .github/workflows/deploy-api.yml, .github/workflows/deploy-web.yml
       Size: S
       Deps: T006, T007
@@ -119,7 +119,7 @@
       Description: GitHub Actions jobs that `flyctl deploy` for api and trigger Vercel deploy for web on push-to-main. Smoke test post-deploy.
       Done: a no-op push to main lands both apps without intervention.
 
-- [ ] **T010 — Synthetic monitoring + alerting**
+- [x] **T010 — Synthetic monitoring + alerting** *(completed 2026-05-22; .github/workflows/synthetic.yml — 15-min cron probing both URLs; Discord webhook on failure; needs DISCORD_WEBHOOK_URL secret)*
       Paths: .github/workflows/synthetic.yml, docs/infra.md
       Size: XS
       Deps: T009
@@ -127,7 +127,7 @@
       Description: GitHub Actions cron every 15min curls `https://xiejoshua.com` and `https://api.xiejoshua.com/healthz`, posts to Discord webhook on failure.
       Done: synthetic check is live; intentional /healthz outage triggers Discord notification within 15min.
 
-- [ ] **T010a — Nightly mongodump backup to Cloudflare R2** *(added in sync-fix Run #1 — DRIFT-L4-002; swapped S3 → R2 on 2026-05-22 to stay on free tier)*
+- [x] **T010a — Nightly mongodump backup to Cloudflare R2** *(added in sync-fix Run #1 — DRIFT-L4-002; swapped S3 → R2 on 2026-05-22 to stay on free tier; completed 2026-05-22 with .github/workflows/backup-mongo.yml — 03:30 UTC cron, mongodump|aws s3 cp streaming, Discord alert on failure; needs MONGODB_URI + R2_* + DISCORD_WEBHOOK_URL secrets, Atlas IP allowlist widened to 0.0.0.0/0)*
       Paths: .github/workflows/backup-mongo.yml, docs/infra.md (backup-restore runbook)
       Size: S
       Deps: T005, T007

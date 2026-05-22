@@ -1,0 +1,86 @@
+name: synthetic monitoring
+
+# T010 — black-box uptime check.
+#
+# Cron probes both production URLs every 15 minutes. If either returns
+# non-200 or fails the TLS handshake, posts to Discord with details.
+# Manual trigger via workflow_dispatch for ad-hoc checks.
+#
+# Required GitHub secret:
+#   DISCORD_WEBHOOK_URL  — Discord channel webhook URL.
+#                          Create: Discord channel → Edit Channel →
+#                          Integrations → Webhooks → New Webhook → Copy URL
+#                          Add at https://github.com/xiejoshua/auxd/settings/secrets
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"        # every 15 minutes
+  workflow_dispatch:
+
+concurrency:
+  group: synthetic
+  cancel-in-progress: true        # if a previous run is still going, cancel it
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: Probe production endpoints
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false             # if frontend fails, still test backend
+      matrix:
+        include:
+          - name: frontend (apex → www)
+            url: https://xiejoshua.com
+            expect_status: "200"   # follow redirect; final response should be 200
+            curl_flags: "-L"       # follow apex → www redirect
+          - name: backend /healthz
+            url: https://api.xiejoshua.com/healthz
+            expect_status: "200"
+            curl_flags: ""
+    steps:
+      - name: Probe ${{ matrix.name }}
+        id: probe
+        run: |
+          start_ms=$(date +%s%N)
+          status=$(curl -sS ${{ matrix.curl_flags }} -o /tmp/body -w "%{http_code}" --max-time 10 "${{ matrix.url }}" || echo "000")
+          end_ms=$(date +%s%N)
+          duration_ms=$(( (end_ms - start_ms) / 1000000 ))
+          body_preview=$(head -c 200 /tmp/body | tr '\n' ' ')
+
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          echo "duration_ms=$duration_ms" >> "$GITHUB_OUTPUT"
+          echo "body=$body_preview" >> "$GITHUB_OUTPUT"
+
+          echo "✓ ${{ matrix.name }}: HTTP $status in ${duration_ms}ms"
+          if [ "$status" != "${{ matrix.expect_status }}" ]; then
+            echo "✗ Expected ${{ matrix.expect_status }}; got $status"
+            exit 1
+          fi
+
+      - name: Alert Discord on failure
+        if: failure() && env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -sS -H "Content-Type: application/json" \
+            -d "$(cat <<EOF
+          {
+            "username": "auxd synthetic",
+            "embeds": [{
+              "title": "🚨 ${{ matrix.name }} failed",
+              "color": 15158332,
+              "fields": [
+                {"name": "URL", "value": "${{ matrix.url }}", "inline": false},
+                {"name": "Status", "value": "${{ steps.probe.outputs.status }}", "inline": true},
+                {"name": "Duration", "value": "${{ steps.probe.outputs.duration_ms }}ms", "inline": true},
+                {"name": "Body preview", "value": "\`\`\`${{ steps.probe.outputs.body }}\`\`\`", "inline": false},
+                {"name": "Run", "value": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "inline": false}
+              ]
+            }]
+          }
+          EOF
+          )" \
+            "$DISCORD_WEBHOOK_URL"

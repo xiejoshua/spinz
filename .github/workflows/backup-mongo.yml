@@ -1,0 +1,112 @@
+name: backup mongo to r2
+
+# T010a — nightly mongodump → Cloudflare R2.
+#
+# Runs daily at 03:30 UTC (low-traffic window). Streams a gzipped archive
+# directly to R2 via the S3-compatible API; no local intermediate file.
+# 30-day lifecycle policy applies via R2 bucket settings (configure once
+# in Cloudflare dashboard → R2 → bucket → Object lifecycle).
+#
+# Failures alert Discord. Manual trigger via workflow_dispatch.
+#
+# Required GitHub secrets:
+#   MONGODB_URI            — same value as Fly secret + apps/api/.env
+#   R2_ACCESS_KEY_ID       — Cloudflare R2 API token access key
+#   R2_SECRET_ACCESS_KEY   — Cloudflare R2 API token secret
+#   R2_ENDPOINT_URL        — https://<account_id>.r2.cloudflarestorage.com
+#   R2_BUCKET_NAME         — typically `auxd-backups-prod`
+#   DISCORD_WEBHOOK_URL    — for failure alerts (same secret as synthetic.yml)
+#
+# Required Atlas configuration:
+#   IP allowlist must permit the GitHub Actions runner egress. The
+#   ranges are dynamic, so the practical choice is one of:
+#     (a) Add 0.0.0.0/0 to the allowlist — relies on the password to
+#         authenticate (auxd uses a strong generated password)
+#     (b) Self-host the runner on Fly so the Fly outbound IPs (already
+#         allowlisted) carry the connection.
+#   (a) is the simpler MVP choice; (b) is the more secure long-term path.
+
+on:
+  schedule:
+    - cron: "30 3 * * *"          # 03:30 UTC daily — well outside US-East peak
+  workflow_dispatch:
+
+concurrency:
+  group: backup-mongo
+  cancel-in-progress: false        # never cancel an in-flight backup
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: mongodump → R2
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Install mongodump (MongoDB Database Tools)
+        run: |
+          # Pin the version for reproducibility. 100.10+ supports MongoDB 8 servers.
+          curl -fsSL https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.10.0.deb \
+            -o /tmp/mongodb-tools.deb
+          sudo dpkg -i /tmp/mongodb-tools.deb
+          mongodump --version
+
+      - name: Install AWS CLI v2 (for R2 S3-compat upload)
+        run: |
+          # ubuntu-latest images ship with awscli v1; v2 has better S3-compat.
+          # Skip if already v2.
+          if ! aws --version 2>&1 | grep -q "aws-cli/2"; then
+            curl -fsSL https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -o /tmp/awscli.zip
+            unzip -q /tmp/awscli.zip -d /tmp/
+            sudo /tmp/aws/install --update
+          fi
+          aws --version
+
+      - name: Stream mongodump → R2
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_ENDPOINT_URL: ${{ secrets.R2_ENDPOINT_URL }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
+        run: |
+          set -euo pipefail
+          stamp=$(date -u +%Y-%m-%dT%H-%M-%SZ)
+          key="mongodump-${stamp}.gz"
+
+          echo "Streaming dump → s3://${R2_BUCKET_NAME}/${key}"
+          mongodump --uri "$MONGODB_URI" --gzip --archive \
+            | aws s3 cp - "s3://${R2_BUCKET_NAME}/${key}" \
+                --endpoint-url "$R2_ENDPOINT_URL" \
+                --no-progress \
+                --expected-size 10737418240   # 10GB upper-bound hint for multipart
+
+          # Capture object size for the success report.
+          size=$(aws s3 ls "s3://${R2_BUCKET_NAME}/${key}" --endpoint-url "$R2_ENDPOINT_URL" --human-readable | awk '{print $3 " " $4}')
+          echo "✓ Backup uploaded: ${key} (${size})"
+          echo "backup_key=${key}" >> "$GITHUB_OUTPUT"
+          echo "backup_size=${size}" >> "$GITHUB_OUTPUT"
+        id: backup
+
+      - name: Alert Discord on failure
+        if: failure() && env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          curl -sS -H "Content-Type: application/json" \
+            -d "$(cat <<EOF
+          {
+            "username": "auxd backups",
+            "embeds": [{
+              "title": "🚨 Nightly mongodump failed",
+              "color": 15158332,
+              "fields": [
+                {"name": "Date", "value": "$(date -u +%Y-%m-%d)", "inline": true},
+                {"name": "Run", "value": "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}", "inline": false}
+              ]
+            }]
+          }
+          EOF
+          )" \
+            "$DISCORD_WEBHOOK_URL"
