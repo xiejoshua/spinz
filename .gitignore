@@ -1,0 +1,46 @@
+# Node / pnpm
+node_modules/
+.pnpm-store/
+*.log
+.next/
+out/
+build/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# Python / uv
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+.python-version
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Env + secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Test + coverage
+coverage/
+.coverage
+htmlcov/
+*.cover
+
+# Backup files
+*.bak
+*.tmp
+*-backup.jsonl
