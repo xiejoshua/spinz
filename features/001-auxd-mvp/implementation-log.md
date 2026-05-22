@@ -220,3 +220,50 @@ Result: all 229 tests run in ~11s without a Mongo process.
 - GitHub repo secrets: `FLY_API_TOKEN`, `DISCORD_WEBHOOK_URL`, `MONGODB_URI`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT_URL`, `R2_BUCKET_NAME`.
 - Atlas IP allowlist widening to `0.0.0.0/0` (or self-hosted runner).
 - T002 Spotify Extended Quota Mode submission (2-6 week external lead — still the longest-tail blocker for production OAuth scope).
+
+## Session 5 — 2026-05-22 evening — request-path wave (T011 + T013 + T019 + T020 + T028)
+
+User confirmed GitHub repo secrets and Atlas IP allowlist are resolved at the start of the session. T002 (Spotify Extended Quota submission) remains the long-tail blocker.
+
+### Tasks completed
+
+| Task | What landed | Notes |
+|------|-------------|-------|
+| T011 | FastAPI app skeleton + `/api/v1` router + extended `/healthz` + JSON root logging | `routers/v1.py` aggregator (empty for now); `/healthz` returns `{status, db, redis, version}`, returns 200 with `degraded` when any subcheck fails so Fly never restart-loops on data-layer flap; `lib/logging.py` installs `JSONFormatter` on the root logger (1-line JSON-per-record). `ping_db`/`ping_redis` are no-raise sub-check helpers. |
+| T013 | Redis client expansion + arq worker + Dockerfile/fly.toml two-process layout + fail-mode wiring | `redis_client.py` now owns the arq pool lifecycle (separate from the cache client) + `cache_get`/`cache_set` (fail-open + Sentry tag `cache.redis_down`) + `enqueue_job` (fail-503 via `JobEnqueueUnavailable` + Sentry tag `jobs.redis_down`). Global exception handler in `main.py` converts the exception to HTTP 503. `workers/main.py` registers `WorkerSettings` with a single `noop_job` so the enqueue → dequeue path is smoke-testable. fly.toml moved to `[processes]` (app + worker) with `[[vm]]` `processes = ["app", "worker"]`. arq 0.26+ added to deps. |
+| T019 | Session middleware (HMAC cookie + CSRF double-submit + sliding expiry) | `lib/sessions.py` owns the token format (`base64url(payload).base64url(sig)`, payload `{u, c, i, e, v}`). `middleware.py` decodes on every request, sets `request.state.session`, returns 401 on tamper/expiry (refusing to silently downgrade so HMAC-rotation regressions surface), enforces CSRF on non-safe methods when authenticated, re-issues the cookie when remaining lifetime < 7d. `issue_session()` and `clear_session_cookies()` exported for use by login/logout handlers landing in T040+. |
+| T020 | Rate-limit FastAPI dependency (Redis sorted-set sliding window + fail-open) | `lib/rate_limit.py` exposes a `rate_limit(endpoint, per_ip, per_user)` factory returning a `Depends()`-compatible callable. Algorithm: pipeline of `ZREMRANGEBYSCORE` + `ZCARD` → conditional `ZADD` + `EXPIRE`. Per-user dimension only evaluated when `request.state.session` is set. Fail-mode: RedisError → allow + Sentry tag `rate_limit.redis_down` (locked in Phase 5C C-5 + sync-fix L4-004). X-Forwarded-For honoured for first-hop client IP. |
+| T028 | OpenAPI → TS type codegen pipeline | `packages/shared-types/scripts/codegen.sh` invokes `python -c "from auxd_api.main import app; …app.openapi()…"` in-process (no uvicorn boot needed) and pipes through `openapi-typescript` to `src/api.ts`. `src/index.ts` now re-exports the generated `paths`/`components`/`operations` (plus legacy `greeting()` from T003). `.github/workflows/codegen.yml` runs on `apps/api/**` + `packages/shared-types/**` changes and `git diff --exit-code`s `src/api.ts` so a stale checked-in copy fails the PR with the regen command in the error. `codegen:check` script wired for the same purpose locally. |
+
+### Checkpoint #9 — Post-wave mini-verify
+
+| Check | Status | Notes |
+|-------|:------:|-------|
+| Backend full suite | ✅ | 305/305 passing in 11.4s (was 229 → +76 new tests across the wave: T011 +25, T013 +20, T019 +23, T020 +8 — `test_sessions` includes a tampered-signature test that now uses a full-signature replacement instead of a single-char flip after one transient failure on an unlucky base64 alignment). |
+| Backend ruff + format | ✅ | All 69 source files clean (auto-fixed 3 import-order + UP037 nits during the wave). |
+| Backend mypy --strict | ✅ | 0 errors across 68 source files. One `type: ignore[arg-type]` added in the `JobEnqueueUnavailable` exception-handler test to paper over Starlette's `add_exception_handler` typing (handler narrows to subclass, Starlette signature is `Exception` only). |
+| Frontend typecheck (apps/web) | ✅ | `tsc --noEmit` clean; the new `paths`/`components`/`operations` exports are picked up via `transpilePackages: ['@auxd/shared-types']` in `next.config.mjs`. |
+| Frontend lint (apps/web Biome) | ✅ | 7 files clean. |
+| Shared-types typecheck | ✅ | Generated `api.ts` (73 lines, paths for `/healthz` + empty `components.schemas` since no Pydantic models are routed yet) passes `tsc --noEmit`. |
+| Codegen deterministic check | ✅ | `pnpm --filter @auxd/shared-types codegen:check` (regen + `git diff --exit-code`) returns clean — the CI gate will pass on its first PR. |
+
+### Implementation decisions worth flagging
+
+- **Two-pool Redis layout** in `redis_client.py` (cache `_client` vs arq `_arq_pool`) — arq attaches its own serialisation + connection pooling, so reusing the cache client would couple the two failure surfaces. Both connect to the same Redis URL; one Sentry alert per affected operation is the spec.
+- **JSON logging on the root logger** (not just `auxd.observability`) — uvicorn's access logs and any third-party `logging` user now get the same shape. The `observability` logger keeps its dedicated handler for `log_call` so the `external_call` event stays separately filterable.
+- **Sliding-expiry refresh on response, not request** — the new cookie is bundled with whatever the handler returns, so the client only sees the updated `Set-Cookie` after the in-flight call succeeds. Avoids the trap where a failed handler re-issues a session against the old state.
+- **Fail-mode divergence on the same request** (cache → open, jobs → 503) was made explicit with a dedicated integration test (`test_cache_failure_does_not_block_enqueue_path`) so the contract from sync-fix L4-004 + pre-impl-review C-5 has runtime evidence.
+- **OpenAPI ingestion is in-process** (no `uvicorn` spin-up) so the codegen script runs in <100ms and doesn't need real env vars. Confirmed locally: settings are deferred to lifespan, not module import.
+
+### Status snapshot
+
+- Tasks completed: **27 / 183** (Session 4: 22 → Session 5: +5).
+- Foundation now complete enough that §3 service+handler tasks (T031+) can begin: every cluster's prerequisites are in code.
+- Sync-verify scope expanded: Layer 6 (spec ↔ code) is still premature (no business logic yet), but Layer 5 (tasks ↔ code) coverage for the request path has more surface to compare against now. Recommend re-running sync-verify before the next 6B code review cluster.
+
+### Operator follow-up status (post-Session-5)
+
+- ✅ GitHub repo secrets configured by user.
+- ✅ Atlas IP allowlist widened by user.
+- 🟡 **T002 Spotify Extended Quota Mode submission** — still pending. Long-tail (2-6 week external lead).
+- 🟡 Push to `main` will trigger the deploy-api workflow (T009) for the first time on the actual `FLY_API_TOKEN` secret — worth eyeballing in `fly logs` after the commit lands.

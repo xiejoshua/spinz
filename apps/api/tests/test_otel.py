@@ -131,18 +131,20 @@ def _reset_otel_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterato
     _uninstrument_all()
     _reset_global_tracer_provider()
 
-    # Bypass the real DB connect during lifespan — these tests exercise the
-    # OTel side of init only. The conftest-level mongomock fixture handles
-    # any Document instantiation; the lifespan's init_db() call is replaced
-    # with a no-op so we never reach localhost:27017.
-    async def _noop_init_db(_uri: str) -> None:
+    # Bypass the real DB + Redis connects during lifespan — these tests
+    # exercise the OTel side of init only. The conftest-level mongomock
+    # fixture handles any Document instantiation; the lifespan's
+    # init_db()/init_redis() calls are replaced with no-ops so we never
+    # reach localhost:27017 or localhost:6379.
+    async def _noop_async(*_args: object, **_kwargs: object) -> None:
         return None
 
-    async def _noop_close_db() -> None:
-        return None
-
-    monkeypatch.setattr(main_module, "init_db", _noop_init_db)
-    monkeypatch.setattr(main_module, "close_db", _noop_close_db)
+    monkeypatch.setattr(main_module, "init_db", _noop_async)
+    monkeypatch.setattr(main_module, "close_db", _noop_async)
+    monkeypatch.setattr(main_module, "init_redis", _noop_async)
+    monkeypatch.setattr(main_module, "close_redis", _noop_async)
+    monkeypatch.setattr(main_module, "init_arq_pool", _noop_async)
+    monkeypatch.setattr(main_module, "close_arq_pool", _noop_async)
 
     yield
 
@@ -234,8 +236,12 @@ def test_healthz_request_creates_span_with_http_route() -> None:
         provider.add_span_processor(SimpleSpanProcessor(exporter))
 
         response = client.get("/healthz")
+        # The OTel test only cares that a request lands on /healthz and
+        # produces a span. The body's ``status`` field is exercised by
+        # tests/test_healthz.py — here the data layer is no-op'd so it
+        # would report ``degraded``.
         assert response.status_code == 200
-        assert response.json()["status"] == "ok"
+        assert "status" in response.json()
 
     # Force-flush any pending spans to the exporter before assertions.
     provider.force_flush()

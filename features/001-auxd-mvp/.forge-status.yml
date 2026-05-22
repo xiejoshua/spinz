@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-22T22:00:00Z"
+last_updated: "2026-05-22T23:30:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -111,16 +111,14 @@ phases:
     completed_at: null
     digest_path: "implement/digest.md"
     log_path: "implementation-log.md"
-    session_count: 1
-    progressive_checkpoints_run: 3
     progressive_warnings: 0
     progressive_critical: 0
-    tasks_completed: 22
+    tasks_completed: 27
     tasks_total: 183
     autonomous_section_zero_complete: true
-    session_count: 4
-    progressive_checkpoints_run: 8
-    notes: "Session 3 (2026-05-22 evening): Wave A §0 closeout + Wave B backend data layer. Wave A: T009 deploy-api workflow, T010 synthetic monitoring, T010a nightly mongodump → R2 (commit 743d052). Wave B: T012 Beanie connection + lifespan wiring (db.py + ALL_DOCUMENT_MODELS single-source; ping-on-connect P5 fail-loud); T016 visibility matrix (54 tests, 100% cov); T021-T027 all 17 Beanie Documents (User, Album, DiaryEntry+Review+ReviewLike+ReviewEditHistory, Backlog+BacklogItem, Follow+FollowRequest+Block, Notification+Report+FailedEmail+NotificationPreferences, JustFinishedPrompt+SuggestedFollow+CriticSeed). mongomock-motor conftest fixture initialises Beanie once per session. Full test suite 229/229 green; ruff + mypy --strict clean. 22/183 tasks complete. Session 2 (PM) covered T014/T015/T015a/T017/T018/T029."
+    session_count: 5
+    progressive_checkpoints_run: 9
+    notes: "Session 5 (2026-05-22 evening) — request-path wave: T011 FastAPI app skeleton (versioned /api/v1 router + extended /healthz with db/redis sub-checks + JSON root-logger formatter), T013 Redis client expansion (arq pool + cache fail-open + enqueue_job fail-503 + workers/main.py noop_job + fly.toml two-process layout), T019 session middleware (HMAC-signed cookies + CSRF double-submit + sliding 30d expiry + 401-on-tamper), T020 rate-limit dependency (Redis sorted-set sliding window + per-IP/per-user + fail-open with Sentry tag rate_limit.redis_down), T028 OpenAPI→TS codegen pipeline (packages/shared-types/scripts/codegen.sh + .github/workflows/codegen.yml + initial api.ts committed). 305 backend tests green (was 229; +76 new); ruff + mypy --strict clean across 68 source files. Operator follow-ups GitHub secrets + Atlas IP allowlist now reported resolved by user. 27/183 tasks complete. Prior sessions: 1 (T001/T003/T004/T008), 2 (T014/T015/T015a/T017/T018/T029), 3 (infra swaps), 4 (T009/T010/T010a/T012/T016/T021-T027)."
   code_review:
     status: "pending"
   verify:
@@ -369,6 +367,75 @@ task_log:
     started_at: "2026-05-22T20:45:00Z"
     completed_at: "2026-05-22T21:05:00Z"
     notes: "JustFinishedPrompt with TTL partial-filter ({state: pending} → 24h expiry) so LOGGED/DISMISSED/SUPPRESSED/EXPIRED rows survive for S-B6 30-day per-album cooldown + attribution analytics. SuggestedFollow (score + reason enum + sparse dismissed_at). CriticSeed (unique on user_id partial active=True; priority/category/description). 13/13 tests."
+  - task_id: "T011"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/main.py"
+      - "backend:apps/api/src/auxd_api/db.py"
+      - "backend:apps/api/src/auxd_api/redis_client.py"
+      - "backend:apps/api/src/auxd_api/lib/logging.py"
+      - "backend:apps/api/src/auxd_api/routers/__init__.py"
+      - "backend:apps/api/src/auxd_api/routers/v1.py"
+      - "backend:apps/api/tests/test_healthz.py"
+      - "backend:apps/api/tests/test_otel.py"
+      - "backend:apps/api/tests/unit/test_db.py"
+      - "backend:apps/api/tests/unit/test_logging_config.py"
+      - "backend:apps/api/tests/unit/test_redis_client.py"
+    commit_sha: null
+    started_at: "2026-05-22T22:30:00Z"
+    completed_at: "2026-05-22T22:45:00Z"
+    notes: "FastAPI app extended per plan §17.2: versioned /api/v1 APIRouter mounted (empty — T031+ contribute endpoints); /healthz returns {status, db, redis, version} with status=ok only when both subchecks pass; JSON root-logger formatter (lib/logging.py) emits one-line JSON envelope with timestamp + level + logger + message + extras + exception. ping_db / ping_redis helpers never raise → liveness probe stays 200 under data-layer flap. Lifespan order: db → redis → sentry → otel (most-disruptive-first per P5). 21 new tests (was 229 → 254). Existing test_otel.py + test_healthz.py updated to monkeypatch new init/close functions."
+  - task_id: "T013"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/redis_client.py"
+      - "backend:apps/api/src/auxd_api/workers/__init__.py"
+      - "backend:apps/api/src/auxd_api/workers/main.py"
+      - "backend:apps/api/src/auxd_api/main.py"
+      - "backend:apps/api/pyproject.toml"
+      - "backend:apps/api/Dockerfile"
+      - "backend:apps/api/fly.toml"
+      - "backend:apps/api/tests/unit/test_redis_client.py"
+      - "backend:apps/api/tests/unit/test_workers_main.py"
+      - "backend:apps/api/tests/integration/__init__.py"
+      - "backend:apps/api/tests/integration/test_redis_fail_modes.py"
+    commit_sha: null
+    started_at: "2026-05-22T22:45:00Z"
+    completed_at: "2026-05-22T23:00:00Z"
+    notes: "arq>=0.26 added. redis_client.py gained init_arq_pool / close_arq_pool / get_arq_pool plus cache_get / cache_set (fail-open with Sentry tag cache.redis_down) plus enqueue_job (fail-503 via JobEnqueueUnavailable + Sentry tag jobs.redis_down). FastAPI exception handler in main.py converts JobEnqueueUnavailable → HTTP 503. workers/main.py registers WorkerSettings with a single noop_job for the enqueue → dequeue smoke test. fly.toml moved to [processes] app + worker layout; Dockerfile CMD comment updated. 20 new tests (was 254 → 274) incl. 3 integration tests covering cache-fails-open + enqueue-503 + divergent fail modes on the same request."
+  - task_id: "T019"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/lib/sessions.py"
+      - "backend:apps/api/src/auxd_api/middleware.py"
+      - "backend:apps/api/src/auxd_api/main.py"
+      - "backend:apps/api/tests/unit/test_sessions.py"
+      - "backend:apps/api/tests/integration/test_session_middleware.py"
+    commit_sha: null
+    started_at: "2026-05-22T23:00:00Z"
+    completed_at: "2026-05-22T23:15:00Z"
+    notes: "lib/sessions.py owns the HMAC-SHA256 token format (base64url(payload).base64url(sig), JSON payload with u/c/i/e/v fields). 30-day sliding expiry via refresh_session_token + SESSION_REFRESH_THRESHOLD_SECONDS (7d). middleware.py wraps the request lifecycle: decodes the cookie, populates request.state.session, enforces CSRF double-submit on non-GET/HEAD/OPTIONS when authenticated, returns 401 on tamper/expiry, re-issues the cookie on refresh. issue_session(response, ...) helper available for login handlers (lands T040+). 23 new tests (was 274 → 297) incl. round-trip + tamper-rejection + CSRF mismatch + sign-in/call/sign-out integration. Single integration test covers the T019 Done criterion verbatim."
+  - task_id: "T020"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/lib/rate_limit.py"
+      - "backend:apps/api/tests/integration/test_rate_limit.py"
+    commit_sha: null
+    started_at: "2026-05-22T23:15:00Z"
+    completed_at: "2026-05-22T23:25:00Z"
+    notes: "FastAPI dependency factory (not a global middleware — per-route config is the cleaner shape). RateLimit dataclass (limit + window_seconds) + rate_limit(endpoint, per_ip, per_user) builder. Sliding-window algorithm via Redis sorted sets: ZREMRANGEBYSCORE → ZCARD → conditional ZADD + EXPIRE. Per-user dimension only evaluated when request.state.session is set. Fail-open on RedisError with Sentry tag rate_limit.redis_down (locked Phase 5C C-5 + sync-fix L4-004); silent pass when get_redis() raises (test-env path — no Sentry flood). X-Forwarded-For honoured for client IP. 8 new tests (was 297 → 305)."
+  - task_id: "T028"
+    status: "completed"
+    paths:
+      - "shared:packages/shared-types/package.json"
+      - "shared:packages/shared-types/scripts/codegen.sh"
+      - "shared:packages/shared-types/src/index.ts"
+      - "shared:packages/shared-types/src/api.ts"
+      - ".github/workflows/codegen.yml"
+    commit_sha: null
+    started_at: "2026-05-22T23:25:00Z"
+    completed_at: "2026-05-22T23:30:00Z"
+    notes: "Codegen pipeline dumps app.openapi() in-process (no uvicorn boot — settings construction deferred to lifespan) and pipes through openapi-typescript 7.13 → packages/shared-types/src/api.ts. pnpm scripts: 'codegen' regenerates; 'codegen:check' regenerates then git diff --exit-code on api.ts for CI. .github/workflows/codegen.yml runs on apps/api/** and packages/shared-types/** changes, fails the PR if the TS is stale with the regen command in the error message. shared-types/src/index.ts now re-exports the generated paths/components/operations types alongside the legacy greeting() smoke export. apps/web typechecks against the new module shape unchanged."
 
 scope:
   paths:

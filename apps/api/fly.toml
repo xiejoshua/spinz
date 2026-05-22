@@ -1,11 +1,11 @@
 # Fly.io config — auxd-api backend
 #
-# Single-process layout for now (the FastAPI app only). When T013 lands the
-# arq worker, we'll switch this file to use [processes] + [[services]] to
-# run api + worker on the same VM under the Hobby-plan $5/mo minimum.
+# Two-process layout (T013): `app` runs the FastAPI/uvicorn server, `worker`
+# runs the arq background-job worker. Both processes share the same image
+# and connect to the same Redis (Upstash) for the job queue.
 #
 # Deploy:    fly deploy
-# Logs:      fly logs
+# Logs:      fly logs [--proc app|worker]
 # SSH:       fly ssh console
 # Region:    iad  (Ashburn, VA — colocates with Atlas + Upstash + R2 on US-East)
 
@@ -15,8 +15,15 @@ primary_region = "iad"
 [build]
   dockerfile = "Dockerfile"
 
+# Two-process layout (T013). `app` answers HTTP via uvicorn; `worker` runs the
+# arq event loop and pulls jobs from Redis. http_service binds only to `app`
+# below so the worker is not exposed publicly.
+[processes]
+  app = "uvicorn auxd_api.main:app --host 0.0.0.0 --port 8080 --proxy-headers --forwarded-allow-ips=*"
+  worker = "arq auxd_api.workers.main.WorkerSettings"
+
 # Non-secret runtime env. Anything sensitive goes through `fly secrets set`
-# (or `fly secrets import < apps/api/.env`).
+# (or `fly secrets import < apps/api/.env`). These apply to both processes.
 [env]
   ENVIRONMENT = "staging"
   LOG_LEVEL = "INFO"
@@ -24,9 +31,9 @@ primary_region = "iad"
   R2_BUCKET_NAME = "auxd-backups-prod"
   SPOTIFY_INTEGRATION_ENABLED = "false"
 
-# HTTP service routing. force_https redirects 80 → 443.
-# min_machines_running=1 keeps one VM warm so /healthz responds without
-# cold-start latency — that's the entire wedge of the <500ms p95 NFR.
+# HTTP service routing applies to the `app` process only. force_https redirects
+# 80 → 443. min_machines_running=1 keeps one VM warm so /healthz responds
+# without cold-start latency — that's the entire wedge of the <500ms p95 NFR.
 # Hobby plan's $5/mo allowance covers a single shared-cpu-1x VM running 24/7.
 [http_service]
   internal_port = 8080
@@ -49,7 +56,9 @@ primary_region = "iad"
     path = "/healthz"
 
 # VM sizing — shared-cpu-1x with 512MB is enough for FastAPI + observability
-# overhead at MVP. Bump to 1x/1GB if memory pressure shows up under load.
+# overhead at MVP. Bump to 1x/1GB if memory pressure shows up under load. The
+# `app` and `worker` processes each get one such VM at this size.
 [[vm]]
   size = "shared-cpu-1x"
   memory = "512mb"
+  processes = ["app", "worker"]

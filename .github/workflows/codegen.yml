@@ -1,0 +1,60 @@
+name: codegen
+
+# T028 — OpenAPI → TS type codegen check.
+# Fails the PR when a backend schema change isn't paired with a regenerated
+# packages/shared-types/src/api.ts. Authors should run
+# `pnpm --filter @auxd/shared-types codegen` locally and commit the diff.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/shared-types/**"
+      - ".github/workflows/codegen.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/api/**"
+      - "packages/shared-types/**"
+      - ".github/workflows/codegen.yml"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: shared-types up-to-date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Set up Python
+        run: uv python install 3.12
+      - name: Install backend deps
+        working-directory: apps/api
+        run: uv sync --extra dev
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+      - name: Install workspace deps
+        run: pnpm install --frozen-lockfile
+      - name: Regenerate shared-types
+        run: pnpm --filter @auxd/shared-types codegen
+      - name: Verify shared-types is checked in and up to date
+        run: |
+          if ! git diff --quiet packages/shared-types/src/api.ts; then
+            echo "::error::packages/shared-types/src/api.ts is out of date."
+            echo "Run: pnpm --filter @auxd/shared-types codegen"
+            echo "Then commit the result. Diff:"
+            git --no-pager diff packages/shared-types/src/api.ts
+            exit 1
+          fi
+      - name: Typecheck shared-types
+        run: pnpm --filter @auxd/shared-types typecheck

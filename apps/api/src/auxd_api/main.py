@@ -1,38 +1,64 @@
-"""FastAPI app entry point.
+"""FastAPI app entry point (T011).
 
-Wires the global observability stack (Sentry + OpenTelemetry) via the
-ASGI lifespan event so external dependencies are configured exactly once
-per process and before any request is served. See plan §15.4 and
-Constitution P5 for the FAIL-LOUD discipline applied at init.
+Wires the global runtime stack — JSON root logging, MongoDB + Redis
+clients, Sentry + OpenTelemetry — via the ASGI lifespan so external
+dependencies are configured exactly once per process and before any
+request is served. Constitution P5 (fail-loud) governs init order:
+the most disruptive failure surface (the data layer) runs first so the
+container crashes before observability is wired rather than coming up
+serving requests against a broken DB.
+
+The application root exposes ``/healthz`` for liveness probes
+(``{status, db, redis, version}``); the feature surface is mounted at
+``/api/v1`` from :mod:`auxd_api.routers.v1` and grows as feature
+modules land (T031+). The OpenAPI document at ``/openapi.json`` reflects
+the versioned namespace and is consumed by the T028 codegen pipeline.
 """
 
 from __future__ import annotations
 
+import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 
 from auxd_api import __version__
-from auxd_api.db import close_db, init_db
+from auxd_api.db import close_db, init_db, ping_db
+from auxd_api.lib.logging import configure_logging
 from auxd_api.lib.observability import init_sentry
 from auxd_api.lib.otel import init_otel
-from auxd_api.settings import get_settings
+from auxd_api.middleware import SessionMiddleware
+from auxd_api.redis_client import (
+    JobEnqueueUnavailable,
+    close_arq_pool,
+    close_redis,
+    init_arq_pool,
+    init_redis,
+    ping_redis,
+)
+from auxd_api.routers.v1 import router as v1_router
+from auxd_api.settings import emit_startup_audit, get_settings
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Initialise MongoDB, then Sentry + OpenTelemetry on app startup.
+    """Initialise data stores, then observability, on app startup.
 
-    Database init runs first because it is the most likely to fail and the
-    most disruptive when broken — better to crash the process before
-    observability is wired than to come up serving requests against no DB.
-    All three init paths are idempotent under repeated lifespan entry
-    (e.g. multiple :class:`TestClient` constructions in the same process);
-    any failure propagates (Constitution P5: fail-loud).
+    Order is deliberate: MongoDB → Redis → Sentry → OpenTelemetry. Each
+    step's failure surface decreases — a broken DB should crash the
+    process before logs are wired so the operator sees the connection
+    error immediately rather than chasing a "healthy" container that
+    serves 5xx on every route.
     """
     settings = get_settings()
+    configure_logging(level=settings.LOG_LEVEL.value)
+    emit_startup_audit(settings, logging.getLogger("auxd.startup"))
+
     await init_db(settings.MONGODB_URI)
+    await init_redis(settings.REDIS_URL)
+    await init_arq_pool(settings.REDIS_URL)
     init_sentry(
         dsn=settings.SENTRY_DSN,
         environment=settings.ENVIRONMENT.value,
@@ -42,6 +68,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        await close_arq_pool()
+        await close_redis()
         await close_db()
 
 
@@ -51,8 +79,53 @@ app = FastAPI(
     description="auxd backend — social album-tracking platform.",
     lifespan=lifespan,
 )
+# Session middleware must wrap every route, including future /api/v1/auth
+# endpoints, so register it before the router include.
+app.add_middleware(SessionMiddleware)
+app.include_router(v1_router)
+
+
+@app.exception_handler(JobEnqueueUnavailable)
+async def _handle_job_enqueue_unavailable(
+    _request: Request, exc: JobEnqueueUnavailable
+) -> JSONResponse:
+    """Convert :class:`JobEnqueueUnavailable` into ``HTTP 503``.
+
+    The Sentry alert (tag ``jobs.redis_down``) is already emitted inside
+    :func:`auxd_api.redis_client.enqueue_job` before the exception
+    propagates, so this handler is purely responsible for the response
+    shape. Sync-fix L4-004 + pre-impl-review C-5 lock this contract.
+    """
+    return JSONResponse(
+        status_code=503,
+        content={
+            "error": "job_queue_unavailable",
+            "detail": str(exc),
+        },
+    )
 
 
 @app.get("/healthz")
 async def healthz() -> dict[str, str]:
-    return {"status": "ok", "version": __version__}
+    """Liveness probe with per-dependency sub-checks.
+
+    Returns HTTP 200 unconditionally — Fly uses the status code as a
+    process-up signal, and a degraded data layer should not flap the
+    container restart loop. Callers inspect the body to distinguish
+    healthy from degraded states:
+
+    * ``status``: ``"ok"`` only when every sub-check is ``"ok"``;
+      ``"degraded"`` otherwise.
+    * ``db`` / ``redis``: ``"ok"`` or ``"down"`` per the corresponding
+      ``ping_*`` helper.
+    * ``version``: package version, useful for confirming a deploy.
+    """
+    db_status = await ping_db()
+    redis_status = await ping_redis()
+    overall = "ok" if db_status == "ok" and redis_status == "ok" else "degraded"
+    return {
+        "status": overall,
+        "db": db_status,
+        "redis": redis_status,
+        "version": __version__,
+    }

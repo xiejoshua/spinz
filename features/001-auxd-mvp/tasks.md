@@ -139,7 +139,7 @@
 
 ## §1 Backend foundation + libs (single-source-of-truth utilities)
 
-- [ ] **T011 — FastAPI app skeleton + healthz**
+- [x] **T011 — FastAPI app skeleton + healthz** *(completed 2026-05-22 Session 5; versioned /api/v1 APIRouter mounted (empty for now); /healthz returns {status, db, redis, version} with status=ok only when both subchecks pass; JSON root-logger formatter in lib/logging.py; 21 new tests; ruff + mypy strict clean)*
       Paths: apps/api/src/auxd_api/main.py, apps/api/src/auxd_api/settings.py
       Size: S
       Deps: T003, T005
@@ -155,7 +155,7 @@
       Description: Beanie init on app startup; connection pool config; document base class with `_schema_version: int = 1` (Constitution P2).
       Done: integration test connects to local Mongo and inserts/retrieves a sanity document.
 
-- [ ] **T013 — Redis connection + arq worker scaffold + fail-mode wiring**
+- [x] **T013 — Redis connection + arq worker scaffold + fail-mode wiring** *(completed 2026-05-22 Session 5; arq 0.26+ added; redis_client.py owns arq pool + cache_get/set fail-open (cache.redis_down Sentry tag) + enqueue_job fail-503 via JobEnqueueUnavailable (jobs.redis_down Sentry tag) + FastAPI exception handler → HTTP 503; workers/main.py with noop_job; fly.toml [processes] app+worker; 20 new tests incl. 3 integration tests covering divergent fail modes)*
       Paths: apps/api/src/auxd_api/redis_client.py, apps/api/src/auxd_api/workers/main.py, apps/api/Dockerfile, apps/api/tests/integration/test_redis_fail_modes.py
       Size: M
       Deps: T011, T005
@@ -211,7 +211,7 @@
       Description: KSUID factory + Beanie field type. KSUIDs sort chronologically; useful for cursor pagination.
       Done: unit test confirms ordered generation.
 
-- [ ] **T019 — Session middleware (HMAC cookie + CSRF)**
+- [x] **T019 — Session middleware (HMAC cookie + CSRF)** *(completed 2026-05-22 Session 5; lib/sessions.py HMAC-SHA256 token format with payload {u,c,i,e,v}; middleware.py decodes + CSRF-enforces + slides expiry; 401 on tamper/expiry (no silent downgrade); issue_session() helper for login handlers; 23 new tests incl. Done-criterion sign-in/call/sign-out integration)*
       Paths: apps/api/src/auxd_api/lib/sessions.py, apps/api/src/auxd_api/middleware.py
       Size: M
       Deps: T011, T017
@@ -219,7 +219,7 @@
       Description: HMAC-signed session cookie (httpOnly, SameSite=Lax, Secure in prod); 30-day sliding expiry; CSRF double-submit cookie. Reject invalid/tampered cookies with 401.
       Done: integration test signs in, makes authenticated call, signs out, verifies invalidation.
 
-- [ ] **T020 — Rate-limit middleware (Redis-backed, fail-open)**
+- [x] **T020 — Rate-limit middleware (Redis-backed, fail-open)** *(completed 2026-05-22 Session 5; FastAPI dependency factory rate_limit(endpoint, per_ip, per_user); Redis sorted-set sliding window ZREMRANGEBYSCORE+ZCARD+ZADD+EXPIRE; per-user only evaluated when request.state.session present; fail-open with Sentry tag rate_limit.redis_down; silent pass when get_redis() raises (test-env); X-Forwarded-For honoured; 8 new tests)*
       Paths: apps/api/src/auxd_api/lib/rate_limit.py, apps/api/tests/integration/test_rate_limit.py
       Size: M
       Deps: T013, T015
@@ -287,7 +287,7 @@
       Description: `JustFinishedPrompt` (state, detected_at, TTL 24h on pending), `SuggestedFollow` (score, reason enum, dismissed_at), `CriticSeed` (active, priority, genre_signature, public_bio, notes — sync-fix Run #3 L5-005 replaced earlier `category`/`description` sketch with the richer code shape).
       Done: models + TTL configured.
 
-- [ ] **T028 — OpenAPI → TS type codegen pipeline**
+- [x] **T028 — OpenAPI → TS type codegen pipeline** *(completed 2026-05-22 Session 5; packages/shared-types/scripts/codegen.sh dumps app.openapi() in-process and pipes through openapi-typescript 7.13 → src/api.ts; pnpm scripts codegen + codegen:check; .github/workflows/codegen.yml fails PR on stale TS via git diff --exit-code; src/index.ts re-exports paths/components/operations; initial api.ts committed)*
       Paths: packages/shared-types/package.json, packages/shared-types/scripts/codegen.sh, .github/workflows/codegen.yml
       Size: S
       Deps: T003, T011

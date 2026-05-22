@@ -13,9 +13,11 @@ new Documents need only be registered in one place.
 
 from __future__ import annotations
 
+from typing import Final
+
 from beanie import Document, init_beanie
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
-from pymongo.errors import ConfigurationError
+from pymongo.errors import ConfigurationError, PyMongoError
 from pymongo.uri_parser import parse_uri
 
 from auxd_api.modules.albums.models import Album
@@ -58,6 +60,9 @@ ALL_DOCUMENT_MODELS: list[type[Document]] = [
 
 
 _client: AsyncIOMotorClient[dict[str, object]] | None = None
+
+OK: Final[str] = "ok"
+DOWN: Final[str] = "down"
 
 
 def _redact_uri(uri: str) -> str:
@@ -141,12 +146,32 @@ def get_client() -> AsyncIOMotorClient[dict[str, object]]:
     return _client
 
 
+async def ping_db() -> str:
+    """Return :data:`OK` if MongoDB is reachable, :data:`DOWN` otherwise.
+
+    Suitable for ``/healthz`` sub-checks: never raises. Returns
+    :data:`DOWN` when :func:`init_db` has not run (e.g. unit tests
+    constructed via a bare :class:`TestClient` without lifespan) or when
+    the admin ``ping`` fails for any reason.
+    """
+    if _client is None:
+        return DOWN
+    try:
+        await _client.admin.command("ping")
+    except PyMongoError:
+        return DOWN
+    return OK
+
+
 # Re-export ``ConfigurationError`` so callers wanting to handle URI-related
 # misconfiguration can do so without importing from pymongo directly.
 __all__ = [
     "ALL_DOCUMENT_MODELS",
+    "DOWN",
     "ConfigurationError",
+    "OK",
     "close_db",
     "get_client",
     "init_db",
+    "ping_db",
 ]

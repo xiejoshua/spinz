@@ -18,6 +18,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from beanie import Document
+from pymongo.errors import ServerSelectionTimeoutError
 
 from auxd_api import db as db_module
 from auxd_api.db import (
@@ -27,6 +28,7 @@ from auxd_api.db import (
     close_db,
     get_client,
     init_db,
+    ping_db,
 )
 
 
@@ -189,3 +191,36 @@ async def test_close_db_is_idempotent(monkeypatch: pytest.MonkeyPatch) -> None:
     # Second call is a no-op.
     await close_db()
     fake_client.close.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_ping_db_returns_down_when_uninitialised() -> None:
+    db_module._client = None
+    assert await ping_db() == "down"
+
+
+@pytest.mark.asyncio
+async def test_ping_db_returns_ok_on_successful_ping() -> None:
+    fake_admin = MagicMock()
+    fake_admin.command = AsyncMock(return_value={"ok": 1})
+    fake_client = MagicMock()
+    fake_client.admin = fake_admin
+    db_module._client = fake_client
+    try:
+        assert await ping_db() == "ok"
+        fake_admin.command.assert_awaited_once_with("ping")
+    finally:
+        db_module._client = None
+
+
+@pytest.mark.asyncio
+async def test_ping_db_returns_down_on_pymongo_error() -> None:
+    fake_admin = MagicMock()
+    fake_admin.command = AsyncMock(side_effect=ServerSelectionTimeoutError("no primary available"))
+    fake_client = MagicMock()
+    fake_client.admin = fake_admin
+    db_module._client = fake_client
+    try:
+        assert await ping_db() == "down"
+    finally:
+        db_module._client = None

@@ -12,9 +12,12 @@
   },
   "scripts": {
     "build": "tsc",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "codegen": "bash scripts/codegen.sh",
+    "codegen:check": "bash scripts/codegen.sh && git diff --exit-code src/api.ts"
   },
   "devDependencies": {
+    "openapi-typescript": "^7.4.0",
     "typescript": "^5.6.0"
   }
 }
