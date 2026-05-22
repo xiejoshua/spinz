@@ -85,18 +85,18 @@ MusicProvider {
 }
 ```
 
-<!-- CR-001: Album entity — spotify_id dropped from MVP schema; discogs_id added as fallback identifier. -->
+<!-- CR-001: Album entity — spotify_id dropped from MVP schema; discogs_release_id added as fallback identifier. -->
 ### Album
 Canonical catalog cache (MusicBrainz primary + Discogs fallback). Records are the album identity anchor.
 ```
 Album {
   id                       # KSUID
   mbid                     # MusicBrainz release-group MBID (canonical key when available)
-  discogs_id               # Discogs release ID (fallback identifier when MBID unavailable) — added by CR-001 (replaces spotify_id)
+  discogs_release_id               # Discogs release ID (fallback identifier when MBID unavailable) — added by CR-001 (replaces spotify_id)
   apple_music_id           # nullable, populated when Apple Music ships (v2)
   title
   artist_credit            # display string, e.g. "Kendrick Lamar & SZA"
-  artists                  # array<{ name, mbid?, discogs_id? }>
+  artists                  # array<{ name, mbid?, discogs_release_id? }>
   release_date             # YYYY-MM-DD or YYYY-MM or YYYY (granularity preserved)
   release_year             # int, denormalized for sort
   primary_type             # enum: album | ep | single | compilation | live | other
@@ -398,9 +398,9 @@ Every document has `_schema_version: int`. Writers always write the current vers
 |---|---|---|
 | User | `{ handle: 1 } unique` | Handle lookup |
 | User | `{ email: 1 } unique` | Login |
-<!-- CR-001: index on spotify_id replaced with index on discogs_id. -->
+<!-- CR-001: index on spotify_id replaced with index on discogs_release_id. -->
 | Album | `{ mbid: 1 } sparse unique` | MBID lookup |
-| Album | `{ discogs_id: 1 } sparse unique` | Discogs ID lookup (fallback identifier per CR-001) |
+| Album | `{ discogs_release_id: 1 } sparse unique` | Discogs ID lookup (fallback identifier per CR-001) |
 | Album | Atlas Search index on `{ title, artist_credit, artists.name }` | Catalog search |
 | DiaryEntry | `{ user_id: 1, logged_at: -1 }` | User diary timeline |
 | DiaryEntry | `{ user_id: 1, album_id: 1, logged_at: -1 }` | "Have I logged this before?" check |

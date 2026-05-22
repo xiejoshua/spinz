@@ -170,6 +170,8 @@ The MVP has **five user-facing capabilities** plus onboarding and social/identit
 | FR-030 | Users can edit a published review; the latest version is shown publicly with an "edited" badge; an internal 90-day revision history is preserved for moderation | Must | Edit-history is NOT public. Internal log includes prior versions + edit timestamps + edit-event hashes for tamper detection. |
 | FR-031 | Users can "Like" (👍) other users' reviews — a lightweight social engagement signal distinct from the entry-owner's Aux | Must | Idempotent toggle; per-user, per-review. Like is on the Review only (not on DiaryEntry); Aux stays on the entry owner's DiaryEntry. Notifications generated per N-004 (review.liked). |
 | FR-032 | Reviews on album-detail and profile surfaces can be sorted by Newest (default), Most Liked, or Highest-Rated | Must | Sort persists per-device; "Most Liked" surfaces engagement-validated reviews; "Highest-Rated" surfaces the reviewer's rating order. Sort applies to the reviews list, not to other surfaces. |
+<!-- sync-fix L2-014: FR-033 added by CR-001 spec.md propagated here (Run #4). -->
+| FR-033 | "Report missing album" workflow surfaced from the manual-search empty-state in the Log sheet; user submits artist + album + optional MBID/Discogs URL hint; report queued for catalog-team triage; user gets in-app confirmation | Must | Tied to US-F2 (album search). Backed by `Report.target_type=missing_album` (data-model.md). Catalog gap-fill safety valve added in CR-001 since manual search is now the sole catalog-discovery surface. |
 
 ---
 

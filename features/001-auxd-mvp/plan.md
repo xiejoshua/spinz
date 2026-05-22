@@ -457,32 +457,36 @@ Sync-fix Run #1 (DRIFT-L3-007 → spec.md FR-027) and Run #2 (placement lock) ar
 from typing import Protocol
 from datetime import datetime
 
+# sync-fix L3-013 (Run #4): Protocol method names + return types re-aligned to the
+# actual code that landed in T041/T049/T049b. `lookup_by_mbid` → `get_album_by_mbid`,
+# `lookup_by_external_id` → `get_album_by_external_id`; cover-art is a *field* on
+# `CatalogAlbum` (synthesized from CAA URL convention), not a Protocol method;
+# return types `AlbumRef`/`AlbumDetail`/`Listen` → `CatalogAlbum` / `ListeningEvent`.
+# `provider_id` field dropped (not used by code). `get_user_library` moved out of
+# MVP scope — MusicProvider stays deferred-to-v2 with a smaller surface.
+
 class CatalogProvider(Protocol):
     """Read-only catalog metadata. MVP ships two impls (MusicBrainz + Discogs).
     No user auth required — pure server-to-server."""
 
-    provider_id: str
-
-    async def search_albums(self, query: str, limit: int = 20) -> list[AlbumRef]: ...
-    async def lookup_by_mbid(self, mbid: str) -> AlbumDetail | None: ...
-    async def lookup_by_external_id(self, external_id: str) -> AlbumDetail | None: ...
-    async def cover_art_url(self, release_group_mbid: str) -> str | None: ...
+    async def search_albums(self, query: str, limit: int = 10) -> list[CatalogAlbum]: ...
+    async def get_album_by_mbid(self, mbid: str) -> CatalogAlbum | None: ...
+    async def get_album_by_external_id(self, provider: str, external_id: str) -> CatalogAlbum | None: ...
 
 class MusicProvider(Protocol):
     """User-scoped listening-history provider. DEFERRED-TO-V2 (CR-001) — Protocol defined for forward compat;
     NO concrete impls at MVP. v2 candidates: Last.fm scrobble import, Apple Music MusicKit."""
 
-    provider_id: str
-
-    async def get_recently_played(self, user: "User", since: datetime, limit: int = 50) -> list["Listen"]: ...
-    async def get_currently_playing(self, user: "User") -> "CurrentlyPlaying | None": ...
-    async def get_user_library(self, user: "User", limit: int = 50) -> list["AlbumRef"]: ...
+    async def get_recently_played(self, user_token: str, limit: int = 50) -> list[ListeningEvent]: ...
+    async def get_currently_playing(self, user_token: str) -> ListeningEvent | None: ...
 ```
 
 ### 5.2 Concrete implementations (MVP)
 
-- `providers/musicbrainz/MusicBrainzCatalogProvider` — implements `CatalogProvider`. Rate-limited to **1 req/sec per IP** per MusicBrainz policy (enforced client-side via `lib/resilience.rate_limit`). Wraps `httpx.AsyncClient` with the resilience transport (lib/resilience.py). Primary identity source — returns release-group MBID.
-- `providers/discogs/DiscogsCatalogProvider` — implements `CatalogProvider`. Fallback path for releases not in MusicBrainz (e.g., obscure pressings, bootlegs, label-specific reissues). Authenticated via `DISCOGS_API_TOKEN` (60 req/min); unauthenticated (25 req/min) acceptable for MVP scale. Returns Discogs release ID — populated into `Album.discogs_release_id` only when no MBID is found.
+<!-- sync-fix L3-014 (Run #4): rate-limit policy is provider-specific (Session 7 deliberate). MB pacing is in-class (asyncio.Lock + time.monotonic in MusicBrainzCatalogProvider), not via a shared `lib/resilience.rate_limit` helper (no such function exists). Discogs relies on server-side enforcement (60 req/min authenticated). -->
+- `providers/musicbrainz.py:MusicBrainzCatalogProvider` — implements `CatalogProvider`. Rate-limited to **1 req/sec per IP** per MusicBrainz etiquette policy, enforced in-class via an `asyncio.Lock` + `time.monotonic()` pacing pair so the policy lives next to the only provider that needs it. Wraps `httpx.AsyncClient` with `providers/transport.py:ResilienceTransport` (T050) — composes `circuit_breaker(name="musicbrainz") + retry(attempts=3) + timeout(10s)` from `lib/resilience.py`. Primary identity source — returns release-group MBID.
+<!-- sync-fix L3-014 (Run #4): Discogs token-absent path is graceful-disabled (construction succeeds, queries return empty/None) — not "unauthenticated mode". This makes the provider a true optional fallback. -->
+- `providers/discogs.py:DiscogsCatalogProvider` — implements `CatalogProvider`. Fallback path for releases not in MusicBrainz (e.g., obscure pressings, bootlegs, label-specific reissues). Authenticated via `DISCOGS_API_TOKEN` (60 req/min). **Graceful-disabled when token unset**: construction succeeds, every method returns empty/None so the search service can call it unconditionally. Returns Discogs release ID — populated into `Album.discogs_release_id` only when no MBID is found.
 - Cover-art is fetched via Cover Art Archive (CAA) using the MBID returned by `MusicBrainzCatalogProvider`. CAA is a sibling service to MusicBrainz, served directly from `coverartarchive.org/release-group/<mbid>/front`. No S3 cache at MVP — direct hot-link to CAA URLs is permitted by their ToS; revisit if bandwidth cost spikes.
 - Feature code injects via FastAPI dependency: `def get_catalog_providers() -> list[CatalogProvider]: return [MusicBrainzCatalogProvider(...), DiscogsCatalogProvider(...)]`. The albums service iterates providers in order and short-circuits on first hit.
 
@@ -530,8 +534,9 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 | `moderation` | `submit_report`, `daily_scan_for_flagged_users`, `action_report` | Daily cron |
 | `data_export` | `enqueue_export`, `process_export`, `mail_export` | GDPR pipeline |
 <!-- CR-001: providers/spotify row dropped; providers/musicbrainz + providers/discogs rows added -->
-| `providers/musicbrainz` | `search_albums`, `lookup_by_mbid`, `lookup_by_external_id`, `cover_art_url` | Primary `CatalogProvider`. Rate-limited 1 req/sec per IP (MusicBrainz policy). Cover art via Cover Art Archive sibling service. |
-| `providers/discogs` | `search_albums`, `lookup_by_external_id` | Fallback `CatalogProvider` for releases not in MusicBrainz. Authenticated via `DISCOGS_API_TOKEN`. |
+<!-- sync-fix L3-013 (Run #4): method names re-aligned to actual T041 Protocol shape. cover-art URL is a *field* on CatalogAlbum (synthesized from CAA convention), not a Protocol method. -->
+| `providers/musicbrainz` | `search_albums`, `get_album_by_mbid`, `get_album_by_external_id` | Primary `CatalogProvider`. Rate-limited 1 req/sec per IP via in-class asyncio.Lock + monotonic (MusicBrainz policy). Cover art URL synthesized as CAA sibling-service path `coverartarchive.org/release-group/{mbid}/front` — populated into `CatalogAlbum.cover_art_url` field. |
+| `providers/discogs` | `search_albums`, `get_album_by_mbid` (returns None — Discogs is not MBID-canonical), `get_album_by_external_id` | Fallback `CatalogProvider` for releases not in MusicBrainz. Authenticated via `DISCOGS_API_TOKEN`; graceful-disabled when token unset. |
 
 ---
 

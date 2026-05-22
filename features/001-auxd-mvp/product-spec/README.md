@@ -59,7 +59,8 @@ See [decision-log.md](./decision-log.md) for the full table with rationale.
 ## Counts (after Revisions #1 + #2 + #3 + #4)
 
 - **27 Must-Have user stories** (~2.5–5 month build) — net of R1 (+7) + R3 (-6 Lists +1 S-C4 Like) + R4 / CR-001 (-3 deferred: S-A2, S-A3, S-B6). Prior count was 30.
-- **22 functional requirements active** (FR-001, FR-004 to FR-016, FR-018 to FR-020, FR-028 to FR-032). Reserved-gap IDs: FR-002, FR-003, FR-017, FR-021..FR-025, FR-026, FR-027 (CR-001 + R3 deferrals; IDs preserved for audit, not reassigned).
+<!-- sync-fix L2-014: FR-033 added by CR-001 spec.md propagated here (Run #4). -->
+- **23 functional requirements active** (FR-001, FR-004 to FR-016, FR-018 to FR-020, FR-028 to FR-032, **FR-033**). Reserved-gap IDs: FR-002, FR-003, FR-017, FR-021..FR-025, FR-026, FR-027 (CR-001 + R3 deferrals; IDs preserved for audit, not reassigned). FR-033 "Report missing album" surfaces from the manual-search empty-state per CR-001.
 - **14 notification types active** (N-001 to N-008, N-012 to N-017). Reserved-gap IDs: N-009, N-010, N-011, N-018 (CR-001 deferrals) and N-019, N-020 (R3 Lists deferral).
 - **15 active data entities** at MVP (User, Album, DiaryEntry, Backlog, BacklogItem, Review, ReviewLike, Follow, FollowRequest, Block, Report, Notification, NotificationPreferences, SuggestedFollow, CriticSeed). **MusicProvider** and **JustFinishedPrompt** are preserved in the schema as DEFERRED-TO-V2 surface area but are unwired from the MVP — User.music_providers is always `[]` and no MVP code path writes or reads JustFinishedPrompt.
 - **4 user journeys at MVP** (Journey 1 onboarding, Journey 2 manual-search log, Journey 3 social-graph discovery, Journey 4 backlog, Journey 5 long-form review). Journey 1.5 (just-finished auto-prompt) is DEFERRED-TO-V2 per CR-001; Journey 4.5 (Lists) removed in R3.

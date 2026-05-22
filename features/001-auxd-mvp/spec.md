@@ -200,7 +200,8 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 ### Wireframe references
 
-- [wireframes/01-onboarding.html](./product-spec/wireframes/01-onboarding.html) — Confirm-last-30-days screen
+<!-- sync-fix L2-015 (Run #4): wireframe label updated post-CR-001 — was "Confirm-last-30-days screen" (Spotify-import activation). -->
+- [wireframes/01-onboarding.html](./product-spec/wireframes/01-onboarding.html) — Follow-Critics screen (the new onboarding activation step)
 - [wireframes/02-home-feed.html](./product-spec/wireframes/02-home-feed.html) — Default home surface; Aux badge + Like count distinguished
 - [wireframes/03-log-sheet.html](./product-spec/wireframes/03-log-sheet.html) — THE wedge interaction (<8s commit target)
 - [wireframes/04-album-detail.html](./product-spec/wireframes/04-album-detail.html) — Social hub with Editions, friends, sortable reviews
@@ -352,7 +353,8 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 ### Data model impact
 
 <!-- CR-001: active-entity count drops MVP-active count to 15 (JustFinishedPrompt deferred); schema row kept in table for v2 traceability -->
-16 entities listed below; **15 active at MVP** (JustFinishedPrompt **deferred to v2 per CR-001**). See [product-spec/data-model.md](./product-spec/data-model.md) for field-level sketch; count reconciled with ReviewLike in sync-verify Run #2. Final indexes + collection layout in Phase 5.
+<!-- sync-fix L2-016 (Run #4): entity count corrected — was "16 entities listed; 15 active". MusicProvider sub-doc + JustFinishedPrompt are both DEFERRED-TO-V2 per CR-001; 16 in schema, 14 active at MVP. -->
+16 entities listed below; **14 active at MVP** (MusicProvider sub-doc + JustFinishedPrompt are both **deferred to v2 per CR-001** but preserved in schema for forward compat). See [product-spec/data-model.md](./product-spec/data-model.md) for field-level sketch; count reconciled with ReviewLike in sync-verify Run #2; ReviewLike count holds. Final indexes + collection layout in Phase 5.
 
 | Entity | Notes |
 |---|---|
@@ -577,7 +579,8 @@ Phase 5 (plan) will surface **technical** decisions (fan-out load model, Atlas S
 Phase 5 (plan) **must** read these supporting docs in addition to this spec.md:
 
 1. [product-spec/decision-log.md](./product-spec/decision-log.md) — the 45+ locked decisions with rationale (THE source of truth on choices)
-2. [product-spec/data-model.md](./product-spec/data-model.md) — 16 active entities + relationships + preliminary indexes
+<!-- sync-fix L2-016 (Run #4): mirror of the §7 count correction — 14 active, 2 deferred-to-v2 in schema. -->
+2. [product-spec/data-model.md](./product-spec/data-model.md) — 14 active entities (+2 v2-deferred-but-schema-preserved) + relationships + preliminary indexes
 3. [product-spec/notification-taxonomy.md](./product-spec/notification-taxonomy.md) — 18 active notification types with defaults (load-bearing — wrong notification design = Goodreads-style churn)
 4. [product-spec/seeding-strategy.md](./product-spec/seeding-strategy.md) — 4-pronged cold-start playbook (launch infrastructure, not marketing)
 <!-- CR-001: tech-stack reading reframed — original Extended Quota Mode dependency superseded by CR-001 -->

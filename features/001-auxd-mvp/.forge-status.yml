@@ -587,16 +587,18 @@ gates:
     skip_reason: null
 
 sync_runs:
-  last_run: "2026-05-22T22:30:00Z"
-  total_runs: 3
-  last_drift_count: 19
+  last_run: "2026-05-23T01:00:00Z"
+  total_runs: 4
+  last_drift_count: 18
   last_critical_count: 0
-  last_warning_count: 2
-  last_info_count: 17
-  last_structural_count: 5
-  last_cosmetic_count: 2
-  last_verdict: "RESOLVED_WITH_OVERRIDE"
-  last_verdict_note: "Run #3: 0 CRITICAL findings; 6 inline cleanups applied (L5-001 added 4 missing User fields + session_version; L5-002 BacklogItem per_item_visibility + note→notes rename; L5-003 unique compound (backlog_id, album_id) index; L5-004 data-model.md User aligned to code field names; L5-005 data-model.md CriticSeed aligned to code shape + T027 status note refresh; L7-014 Session 3→4 renumber + session_count bump). 13 advisory recurring items skipped (unchanged from Run #2 disposition). Gate overridden — structural=5 trips strict budget but no runtime-CRITICAL finding. All Run #1 + Run #2 backlog items still verified landed in code."
+  last_warning_count: 4
+  last_info_count: 14
+  last_structural_count: 7
+  last_cosmetic_count: 0
+  last_verdict: "DRIFT_DETECTED"
+  last_verdict_note: "Run #4 (post-CR-001 + post-§4): 0 CRITICAL; 4 new WARN + 3 new INFO ALL APPLIED inline (L2-014 FR-033 propagated to product-spec/README.md count + product-spec/product-spec.md FR table + tasks.md T053a Refs; L3-013 plan.md §5.1 Protocol re-aligned to actual code shape (get_album_by_mbid/get_album_by_external_id, cover-art as field not method, ListeningEvent return type, provider_id field dropped) + §6 service surface table updated; L3-014 plan.md §5.2 rate-limit text rewritten to acknowledge MB in-class asyncio.Lock + monotonic provider-specific policy + Discogs graceful-disabled-when-token-unset; L4-006 discogs_id → discogs_release_id renamed in product-spec/data-model.md (4 locations) + tasks.md T063; L2-015 spec.md wireframe label updated; L2-016 entity counts reconciled in spec.md §7 + §13 to 14 active; L4-007 tasks.md FR math fixed — 23 active = 28 base (incl. FR-033) − 5 deferred). All 5 Run #3 backlog items VERIFIED RESOLVED in code (L5-001..005 + L7-014). 11 recurring advisory INFOs from prior runs unchanged. Disposition: applied_split_with_override (carry-forward of Runs #2/#3 pattern). All structural-budget items closed at the doc layer; §6 entry unblocked."
+  last_report_path: "sync-report.md"
+  last_disposition: "applied_split_with_override"
   last_report_path: "sync-report.md"
   last_fix_list_path: "sync-fix-list.md"
   runs:

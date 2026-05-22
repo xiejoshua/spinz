@@ -62,7 +62,8 @@
 | §18 Pre-launch hardening | T171–T180 | NFR Measurement Contract; spec.md §10 E2E coverage |
 
 <!-- CR-001: total recomputed. Removed 16 (T002, T042-T047, T054-T056, T114-T116, T121, T122, T177). Added 3 (T049a, T049b, T053a). 183 − 16 + 3 = 170 task lines in file. Of those, 162 are active MVP + 8 are DEFERRED-TO-V2 (T123-T130) kept in-file for traceability. Note: T169 is also DEFERRED-TO-V2 per CR-001 (built on removed auto-import surface) — counted within the 162 active for line-count purposes but won't ship at MVP. -->
-**Total: 162 active MVP tasks + 8 DEFERRED-TO-V2 (T123–T130 per CR-001) = 170 task lines in file** (= 180 base + T117a Phase 5C + T010a + T015a both added in sync-fix Run #1 + 3 added in CR-001 − 16 removed in CR-001 — see [sync-fix-list.md](./sync-fix-list.md) + CR-001 banner above). Sized to deliver M-2 closed-beta scope per plan §18; Must-Have user stories addressed minus the 3 deferred (US-A2, US-A3, US-B6 — DEFERRED in spec.md per CR-001); 27 active FRs covered minus the 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027 — DEFERRED in spec.md per CR-001); critical TCs (excluding TC-006/TC-018–021/TC-022 which now sit with the deferred tasks) + 13 E2E scenarios referenced. Tasks amended in sync-fix Run #1: T013 (Redis fail-modes), T023 (ReviewEditHistory), T025 (FollowRequest), T026 (FailedEmail + missing_album report type), T135 (PostMark failure-mode + retry). Tasks amended in CR-001: T021, T022, T026, T027, T029 (code patches land separately).
+<!-- sync-fix L4-007 (Run #4): FR math reconciled — FR-033 was added by CR-001 spec.md but not surfaced here. Base FR set = 28 (27 originals + FR-033). 23 active = 28 − 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027). -->
+**Total: 162 active MVP tasks + 8 DEFERRED-TO-V2 (T123–T130 per CR-001) = 170 task lines in file** (= 180 base + T117a Phase 5C + T010a + T015a both added in sync-fix Run #1 + 3 added in CR-001 − 16 removed in CR-001 — see [sync-fix-list.md](./sync-fix-list.md) + CR-001 banner above). Sized to deliver M-2 closed-beta scope per plan §18; Must-Have user stories addressed minus the 3 deferred (US-A2, US-A3, US-B6 — DEFERRED in spec.md per CR-001); **23 active FRs** covered = 28 base (27 originals + FR-033 "Report missing album" added by CR-001) − 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027 — DEFERRED in spec.md per CR-001); critical TCs (excluding TC-006/TC-018–021/TC-022 which now sit with the deferred tasks) + 13 E2E scenarios referenced. Tasks amended in sync-fix Run #1: T013 (Redis fail-modes), T023 (ReviewEditHistory), T025 (FollowRequest), T026 (FailedEmail + missing_album report type), T135 (PostMark failure-mode + retry). Tasks amended in CR-001: T021, T022, T026, T027, T029 (code patches land separately).
 
 ---
 
@@ -518,7 +519,7 @@
       Paths: apps/api/src/auxd_api/modules/moderation/routes.py, apps/api/src/auxd_api/modules/moderation/service.py, apps/web/src/components/search/report-missing-album.tsx, apps/web/src/app/(app)/search/missing/page.tsx
       Size: M
       Deps: T026, T071, T155
-      Refs: FR-005; CR-001; sync-fix L3-006 (Report.target_type=missing_album)
+      Refs: FR-005; FR-033; CR-001; sync-fix L3-006 (Report.target_type=missing_album) <!-- sync-fix L2-014: FR-033 added to refs (Run #4). -->
       Description: `POST /api/v1/reports/missing-album` accepts `query` (the failed search term), `artist`, `title`, optional `release_year`, `notes`. Reuses Report Document with `target_type=missing_album` (already in T026 model per sync-fix L3-006). Rate-limited per-reporter via T020 (`per_user=5/day`). UI: surfaces from search empty-state (T071) as a "Can't find it? Report missing album" link → opens modal-form. Submission confirmation toast. Admin can later resolve via mongo + reconcile by enqueuing a T065 MBID lookup with the structured hint.
       Done: integration test covers happy path + rate limit + duplicate-suppression (same user reports same query twice within 24h returns existing report); E2E covers search → empty results → report → confirmation.
 
@@ -581,7 +582,8 @@
       Size: M
       Deps: T022, T049, T049b
       Refs: US-F1; FR-010; decision-log Q15, Q21; TC-008, TC-009, TC-010
-      Description: `resolve_identity(mbid=None, discogs_id=None)` → canonical Album. If MBID known → use it; else if Discogs ID known → create `candidate` Album flagged for MBID reconciliation (T065). Lazy-fetch from MusicBrainz; cache 7d. CR-001: legacy `spotify_id` parameter removed; existing `Album.spotify_id` sparse index dropped per T022 amendment.
+      Description: `resolve_identity(mbid=None, discogs_release_id=None)` → canonical Album. If MBID known → use it; else if Discogs ID known → create `candidate` Album flagged for MBID reconciliation (T065). Lazy-fetch from MusicBrainz; cache 7d. CR-001: legacy `spotify_id` parameter removed; existing `Album.spotify_id` sparse index dropped per T022 amendment. <!-- sync-fix L4-006: parameter name aligned to code (`discogs_release_id`, not `discogs_id`). -->
+
       Done: TC-008/009/010 unit tests pass.
 
 <!-- CR-001: T064 description updated — cache refresh from MusicBrainz, not Spotify. -->
@@ -1583,7 +1585,7 @@ For a greenfield project, "migration" at MVP is the initial collection creation 
 - **Constitution Principle 5 (observability):** T015 (lib) + T051 (provider — MusicBrainz + Discogs per CR-001) + woven throughout (each task adds its PostHog events).
 - **Constitution Principle 6 (provider abstraction):** T041 (Protocols) + T049 (MusicBrainz impl) + T049b (Discogs impl) per CR-001 — MVP ships one impl per kind.
 - **Must-Have user stories per CR-001:** original 32 minus 3 deferred (US-A2, US-A3, US-B6 — DEFERRED in spec.md) — each remaining story maps to ≥1 task per coverage matrix.
-- **Active FRs per CR-001:** original 27 minus 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027 — DEFERRED in spec.md) — each remaining FR maps to ≥1 task per coverage matrix.
+- **Active FRs per CR-001:** 28 base (27 originals + FR-033 "Report missing album" added by CR-001) minus 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027 — DEFERRED in spec.md) = **23 active** — each remaining FR maps to ≥1 task per coverage matrix.  <!-- sync-fix L4-007 (Run #4) -->
 - **Critical TCs + 13 E2E scenarios:** mapped per plan §16.2 + woven into tasks above; TC-006/TC-018/TC-019/TC-020/TC-021/TC-022 sit with deferred tasks per CR-001.
 - **NFR Measurement Contract (spec.md §6.1)** → instrumentation woven (T015, T077 wedge timing, T107 feed perf, T144 notification rate, T172 perf audit).
 - **Aux (🏅) vs Like (👍) split preserved:** T023 (separate fields), T073 (Aux on DiaryEntry), T088 (Like on Review via ReviewLike), T090 (UI distinct icons), notification N-001 (follow) vs N-004 (review.liked).
