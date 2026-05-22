@@ -21,6 +21,7 @@ dependencies = [
   "resend>=2.0",                                 # T135 transactional email SDK
   "boto3>=1.35",                                 # T010a + T149 R2 (S3-compat) client
   "truststore>=0.10",                            # native OS keychain trust (handles corporate TLS-MITM CAs)
+  "httpx>=0.27",                                 # async HTTP client (Spotify/MusicBrainz/Resend) + required by opentelemetry-instrumentation-httpx import
 ]
 
 [project.optional-dependencies]
@@ -30,7 +31,6 @@ dev = [
   "pytest>=8",
   "pytest-asyncio>=0.24",
   "pytest-cov>=5.0",
-  "httpx>=0.27",
 ]
 
 [build-system]

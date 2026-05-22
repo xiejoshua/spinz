@@ -94,6 +94,7 @@ dependencies = [
     { name = "boto3" },
     { name = "cryptography" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "motor" },
     { name = "opentelemetry-exporter-otlp-proto-http" },
     { name = "opentelemetry-instrumentation-fastapi" },
@@ -112,7 +113,6 @@ dependencies = [
 
 [package.optional-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "mypy" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -125,7 +125,7 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.35" },
     { name = "cryptography", specifier = ">=44.0" },
     { name = "fastapi", specifier = ">=0.115" },
-    { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27" },
+    { name = "httpx", specifier = ">=0.27" },
     { name = "motor", specifier = ">=3.6" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.28" },
