@@ -1,0 +1,345 @@
+schema_version: 3
+feature: "001-auxd-mvp"
+created_at: "2026-05-21"
+last_updated: "2026-05-22T03:50:00Z"
+
+feature_mode: "standard"
+backfilled: false
+v2_native: true
+speckit_mode: "classic"
+
+phases:
+  problem_discovery:
+    status: "completed"
+    started_at: "2026-05-21T22:46:47Z"
+    completed_at: "2026-05-21T22:47:30Z"
+    digest_path: "problem-discovery/digest.md"
+    skipped: false
+    skip_reason: null
+  research:
+    status: "completed"
+    started_at: "2026-05-21T22:47:45Z"
+    completed_at: "2026-05-21T22:51:00Z"
+    digest_path: "research/digest.md"
+    dimensions:
+      competitors: "completed"
+      ux_patterns: "completed"
+      codebase: "completed"
+      tech_stack: "completed"
+      metrics_roi: "completed"
+    web_access_blocked: true
+    notes: "Web tools denied at harness layer for all 4 web-dependent agents despite user approval. Outputs based on training data through Jan 2026. Quantitative claims tagged [VERIFY] in source files; spot-check required in Phase 2."
+  product_spec:
+    status: "completed"
+    started_at: "2026-05-21T22:51:30Z"
+    completed_at: "2026-05-21T23:10:00Z"
+    digest_path: "product-spec/digest.md"
+    artifact_count: 12
+    detail_level: "standard"
+    open_questions_carried: 22
+    user_story_count: 35
+    notes: "Detail-level + wireframe defaults applied without explicit user answer because user interrupted the question flow with 'continue where you left off'. All 12 open questions resolved with research-recommended defaults and logged in decision-log.md for Phase 3 revisitation."
+  revalidation:
+    status: "approved"
+    started_at: "2026-05-21T23:11:00Z"
+    completed_at: "2026-05-21T23:55:00Z"
+    revisions_applied: 3
+    final_version: "v1.3"
+    notes: "3 revisions applied. R1: Lists+Auto-prompt elevated, Spotify skippable, Heart→Award rename. R2: all 30 open questions resolved with locked decisions, FRs 028–030 added. R3: removed soft prompt, split Award/Like semantics, added Likes+sort, Lists reverted to v2."
+  bridge:
+    status: "completed"
+    started_at: "2026-05-21T23:55:30Z"
+    completed_at: "2026-05-22T00:05:00Z"
+    artifact_path: "spec.md"
+    speckit_mode: "classic"
+    sections: 14
+    notes: "spec.md generated from approved product-spec v1.3. End-user feature; no Prerequisites, EDA, or Consumer Contract sections. Phase 5 prereqs surfaced: constitution ratification + Extended Quota Mode application Day 1."
+  i18n_harvest:
+    status: "not_applicable"
+    notes: "Project is English-only at MVP per decision-log; copy strings are key-extracted for future locales but no harvest needed."
+  plan:
+    status: "completed"
+    started_at: "2026-05-22T00:06:00Z"
+    completed_at: "2026-05-22T00:25:00Z"
+    digest_path: "plan/digest.md"
+    artifact_path: "plan.md"
+    sections: 22
+    cross_validation: "14/14 product-spec checks passed; 6/6 constitution principles satisfied by design"
+    notes: "Comprehensive technical plan with monorepo topology (pnpm + apps/api FastAPI + apps/web Next.js 15), provider-interface abstraction, fan-out-on-read feed, notification dispatcher with coalescer + rate limit, just-finished detection via arq polling, GDPR pipeline, observability stack (Sentry + PostHog self-hosted + OTel). 2 Phase 5B prerequisite tasks surfaced: constitution ratification + Spotify Extended Quota Mode Day-1 application."
+  tasks:
+    status: "completed"
+    started_at: "2026-05-22T00:25:30Z"
+    completed_at: "2026-05-22T00:50:00Z"
+    digest_path: "tasks/digest.md"
+    artifact_path: "tasks.md"
+    task_count: 180
+    clusters: 18
+    story_coverage: "32/32"
+    fr_coverage: "27/27"
+    notes: "180 dependency-ordered tasks across 18 clusters (T001-T180; unique; no duplicates). All 32 Must-Have stories + 27 active FRs covered. Constitution Principle 4 (test-first) enforced via T042/T048 before T043/T049. Parallel-track opportunities documented. Lists deliberately absent (R3 deferral). 10 XL tasks flagged as decomposition candidates."
+  migration_plan:
+    status: "completed"
+    started_at: "2026-05-22T00:51:00Z"
+    completed_at: "2026-05-22T01:15:00Z"
+    digest_path: "migrations/digest.md"
+    db_kind: "mongodb"
+    strategy: "big-bang (greenfield)"
+    destructive_changes: false
+    files:
+      plan: "migrations/migration-plan.md"
+      forward: "migrations/forward.py"
+      rollback: "migrations/rollback.py"
+      validation: "migrations/validation.py"
+      seed: "migrations/seed-data/reserved_handles.txt"
+      risk_matrix: "migrations/risk-matrix.md"
+    notes: "Greenfield big-bang initial setup. Establishes Constitution P2 pattern for all post-M0 migrations. forward.py is idempotent; rollback.py is double-gated; validation.py asserts 18 collections + 50+ indexes + Atlas Search + reserved-handles seed. 200 reserved-handles seeded. Atlas Search index requires manual UI application at M0 (Atlas Admin API automation deferred to v1.x)."
+  pre_impl_review:
+    status: "completed"
+    started_at: "2026-05-22T01:16:00Z"
+    completed_at: "2026-05-22T01:45:00Z"
+    digest_path: "pre-impl-review/digest.md"
+    artifact_path: "pre-impl-review.md"
+    recommendation: "PROCEED WITH CONDITIONS (all 5 conditions applied inline)"
+    findings: { design: 6, architecture: 10, risks: 13 }
+    critical_findings: 0
+    critical_risks: 2
+    conditions_resolved: 5
+    notes: "All 5 conditions applied inline: T117a added to tasks.md (synchronous critic-seed card algorithm); 2 onboarding edge cases speccd in decision-log.md + user-stories.md S-A1; feed weighting math + tiebreak locked in plan §10.2; coalescer cross-type semantics locked in plan §8.2 + notification-taxonomy.md; rate-limiter fail-open policy locked in plan §1.1.1 + tasks.md T020. Spec at v1.4. Ready for Phase 6."
+  implement:
+    status: "in_progress"
+    started_at: "2026-05-22T02:40:00Z"
+    completed_at: null
+    digest_path: "implement/digest.md"
+    log_path: "implementation-log.md"
+    session_count: 1
+    progressive_checkpoints_run: 3
+    progressive_warnings: 0
+    progressive_critical: 0
+    tasks_completed: 4
+    tasks_total: 183
+    autonomous_section_zero_complete: false
+    notes: "Session 1 (2026-05-22): pre-implementation sync-fix-list applied (10 items → plan §4.5/§4.6/§11.2.1/§16.5 added; T010a + T015a added; T013/T023/T025/T026/T135 amended). Autonomous §0 partially complete — T001 (constitution ratified + committed 0c608a9), T003 (monorepo scaffolded + build-verified post pnpm/uv install), T004 (CI workflow written + all steps green locally), T008 (VAPID keypair generated). T002/T005/T006/T007/T009/T010/T010a deferred — human-action external dependencies. Checkpoint #3 confirmed: pnpm install + uv sync + both dev servers boot + full CI step-set passes locally."
+  code_review:
+    status: "pending"
+  verify:
+    status: "pending"
+  test_plan:
+    status: "pending"
+  test_run:
+    status: "pending"
+  release_readiness:
+    status: "pending"
+  monitoring_setup:
+    status: "pending"
+  experiment_design:
+    status: "pending"
+  retrospective:
+    status: "pending"
+
+testing:
+  final_pass_rate: ""
+  bugs_found: 0
+  bugs_fixed: 0
+  bugs_deferred: 0
+  test_runs_total: 0
+
+task_log:
+  - task_id: "T001"
+    status: "completed"
+    paths: ["backend:.specify/memory/constitution.md"]
+    commit_sha: "0c608a9"
+    started_at: "2026-05-22T02:50:00Z"
+    completed_at: "2026-05-22T03:05:00Z"
+    notes: "Constitution ratified by Joshua Xie (founder, solo mode); committed as chore: ratify project constitution."
+  - task_id: "T003"
+    status: "completed"
+    paths:
+      - "package.json"
+      - "pnpm-workspace.yaml"
+      - ".gitignore"
+      - "README.md"
+      - "backend:apps/api/pyproject.toml"
+      - "backend:apps/api/README.md"
+      - "backend:apps/api/src/auxd_api/__init__.py"
+      - "backend:apps/api/src/auxd_api/main.py"
+      - "backend:apps/api/tests/__init__.py"
+      - "backend:apps/api/tests/test_healthz.py"
+      - "frontend:apps/web/package.json"
+      - "frontend:apps/web/tsconfig.json"
+      - "frontend:apps/web/next.config.mjs"
+      - "frontend:apps/web/biome.json"
+      - "frontend:apps/web/next-env.d.ts"
+      - "frontend:apps/web/README.md"
+      - "frontend:apps/web/.env.example"
+      - "frontend:apps/web/src/app/layout.tsx"
+      - "frontend:apps/web/src/app/page.tsx"
+      - "shared:packages/shared-types/package.json"
+      - "shared:packages/shared-types/tsconfig.json"
+      - "shared:packages/shared-types/README.md"
+      - "shared:packages/shared-types/src/index.ts"
+      - ".product-forge/config.yml"
+    commit_sha: null
+    started_at: "2026-05-22T03:05:00Z"
+    completed_at: "2026-05-22T03:20:00Z"
+    notes: "Monorepo scaffolded (pnpm + uv). Build verification pending pnpm + uv install — see implementation-log.md checkpoint #2 open items."
+  - task_id: "T004"
+    status: "completed"
+    paths: [".github/workflows/ci.yml"]
+    commit_sha: null
+    started_at: "2026-05-22T03:20:00Z"
+    completed_at: "2026-05-22T03:22:00Z"
+    notes: "CI workflow written — backend (ruff + mypy strict + pytest) + frontend (Biome + tsc + build) + aggregate ci-status. First green run pending push to remote."
+  - task_id: "T008"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/.env.example"
+      - "docs/infra.md"
+    commit_sha: null
+    started_at: "2026-05-22T03:22:00Z"
+    completed_at: "2026-05-22T03:28:00Z"
+    notes: "VAPID P-256 keypair generated via cryptography lib. Public key in env.example; private key tracked outside repo with rotation procedure documented in docs/infra.md."
+
+scope:
+  paths:
+    - "backend"
+    - "frontend"
+    - "shared"
+  cross_workspace: true
+  cross_workspace_note: "Feature touches all three declared workspaces (backend/frontend/shared). Expected and approved at Phase 4 Bridge — this is the foundational feature for the entire codebase."
+
+gates:
+  - phase: "problem_discovery"
+    decision: "approved"
+    timestamp: "2026-05-21T22:47:45Z"
+    notes: "GO with conditions accepted. Validation strength moderate (competitor evidence only); user-research gap explicitly deferred to Phase 1."
+    conditions: []
+    sync_result: "clean"
+    skip_reason: null
+  - phase: "research"
+    decision: "approved"
+    timestamp: "2026-05-21T22:51:30Z"
+    notes: "5 dimensions analyzed (~25k words). Web access denied at harness layer; outputs are training-data-based with Phase 2 verification flags. H1 user-research gap explicitly carried forward to live-metrics validation. Constitution gap flagged for Phase 5 Task 0. 12 open questions forwarded to product-spec."
+    conditions: []
+    sync_result: "clean"
+    skip_reason: null
+  - phase: "product_spec"
+    decision: "approved"
+    timestamp: "2026-05-21T23:11:00Z"
+    notes: "12 documents created including 2 first-class supporting docs (notification-taxonomy.md, seeding-strategy.md). 35 user stories. 14 data entities. 4 wireframes. All 12 research open questions resolved with research-recommended defaults; 22 new/refined open questions deliberately preserved for Phase 3 revalidation. Detail-level + wireframe defaults applied without explicit user confirmation due to interrupted question; Phase 3 is the override surface."
+    conditions: []
+    sync_result: "clean"
+    skip_reason: null
+  - phase: "revalidation"
+    decision: "approved"
+    timestamp: "2026-05-21T23:55:00Z"
+    notes: "3 revisions of iterative refinement, then explicit APPROVED. R1: Lists+Auto-prompt elevated to MVP, Spotify connect made skippable, Heart→Award rename. R2: all 30 open questions (10 main + 20 supporting-doc) resolved; FRs 028–030 added for newly surfaced behavior. R3: removed soft 'say more' prompt, split Award (🏅 self) / Like (👍 social) semantics, added Likes-on-reviews + Most Liked sort, reverted Lists back to v2. Final spec: 32 stories, 27 active FRs, 18 active notification types, 15 entities, 5 journeys. Zero open questions at spec level. Build estimate: 3–6 months."
+    conditions: []
+    sync_result: "clean"
+    skip_reason: null
+  - phase: "bridge"
+    decision: "approved"
+    timestamp: "2026-05-22T00:06:00Z"
+    notes: "spec.md generated from product-spec v1.3 (classic SpecKit format). 14 sections; conditional sections (Prerequisites, EDA, Consumer Contract) correctly omitted for end-user feature with no prereqs/EDA. 32 Must-Have stories preserved with AC + IDs. Award/Like semantic split intact. Lists correctly absent (R3 deferral). Phase 5 prereqs surfaced: constitution ratification + Spotify Extended Quota Mode Day-1 application."
+    conditions: []
+    sync_result: "clean"
+    skip_reason: null
+  - phase: "plan"
+    decision: "approved"
+    timestamp: "2026-05-22T00:25:30Z"
+    notes: "Technical plan with 22 sections, ~6500 words. Monorepo (pnpm + apps/api FastAPI + apps/web Next.js 15). All research tech-stack recommendations confirmed unchanged. 14/14 product-spec cross-validation checks passed; 6/6 constitution principles satisfied by design (constitution itself is Task 0 of Phase 5B). All 32 Must-Have stories addressed. Phase 5B prerequisites surfaced: Task 0 = constitution ratification, Task 1 = Spotify Extended Quota Mode application (Day 1, 2–6 wk external review)."
+    conditions: []
+    sync_result: "clean"
+    skip_reason: null
+  - phase: "tasks"
+    decision: "approved"
+    timestamp: "2026-05-22T00:50:30Z"
+    notes: "180 tasks across 18 clusters (T001–T180; unique + contiguous IDs). 32/32 Must-Have stories + 27/27 active FRs covered. Constitution Principle 4 (test-first) enforced in sequencing. Parallel-track opportunities documented. 10 XL tasks flagged for decomposition. Lists absent (R3 deferral). Phase 5.5 trigger fires (plan has Data Model section)."
+    conditions: []
+    sync_result: "clean"
+    skip_reason: null
+  - phase: "migration_plan"
+    decision: "approved"
+    timestamp: "2026-05-22T01:15:30Z"
+    notes: "Greenfield big-bang initial setup. 7 artifacts produced (migration-plan.md, forward.py, rollback.py, validation.py, risk-matrix.md, reserved_handles seed, digest.md). 18 collections + 30+ indexes + Atlas Search index + 200 reserved handles. forward.py idempotent; rollback.py double-gated (--confirm-destruction + interactive prompt). Constitution P2 (per-doc _schema_version + lazy upgrade) established as the pattern for all post-M0 migrations."
+    conditions: []
+    sync_result: "clean"
+    skip_reason: null
+  - phase: "pre_impl_review"
+    decision: "approved_with_conditions"
+    timestamp: "2026-05-22T01:45:00Z"
+    notes: "PROCEED WITH CONDITIONS — all 5 conditions applied inline (~65 min of edits). 0 critical design/architecture findings; 2 critical risks (H1 + cold-start) are pre-existing and have documented mitigations. Spec v1.4. Build estimate unchanged at 3-6 months. Ready for Phase 6 implementation."
+    conditions:
+      - "C-1 applied: T117a added (synchronous critic-seed card algorithm)"
+      - "C-2 applied: 2 onboarding edge cases specced (deleted-account email collision; Spotify-OAuth-on-existing-email)"
+      - "C-3 applied: feed weighting math + tiebreak locked in plan §10.2"
+      - "C-4 applied: notification coalescer cross-type semantics locked in plan §8.2 + notification-taxonomy.md"
+      - "C-5 applied: rate-limiter fail-open policy locked in plan §1.1.1 + tasks.md T020"
+    sync_result: "clean"
+    skip_reason: null
+
+sync_runs:
+  last_run: "2026-05-22T02:35:00Z"
+  total_runs: 1
+  last_drift_count: 33
+  last_critical_count: 0
+  last_warning_count: 19
+  last_info_count: 14
+  last_structural_count: 27
+  last_cosmetic_count: 6
+  last_verdict: "RESOLVED_WITH_OVERRIDE"
+  last_verdict_note: "Run #1: 0 CRITICAL findings; CRITICAL DRIFT verdict was driven by structural:0 budget rule. User applied recommended split — 10 inline cleanups applied; 10 plan-level items backlogged to sync-fix-list.md for Phase 6; 2 items deferred (i18n + Last.fm Should-Have); 14 INFOs skipped as advisory. Gate overridden — Phase 6 implementation cleared to start."
+  last_report_path: "sync-report.md"
+  last_fix_list_path: "sync-fix-list.md"
+  runs:
+    - run: 1
+      date: "2026-05-22"
+      layers_checked: [1, 2, 3, 4, 7]
+      layers_skipped: [5, 6]
+      critical: 0
+      warning: 19
+      info: 14
+      structural: 27
+      cosmetic: 6
+      verdict: "CRITICAL_DRIFT_BUDGET_RULE"
+      disposition: "applied_split_with_override"
+      gate_override:
+        granted: true
+        granted_at: "2026-05-22T02:35:00Z"
+        reason: "No runtime-CRITICAL findings. structural:0 budget is strict by policy; all WARNINGs categorized and either applied or backlogged to sync-fix-list.md with named owners (Phase 6 implementation)."
+      inline_applied:
+        - "DRIFT-L2-001: S-B6 story body added to product-spec/user-stories.md"
+        - "DRIFT-L2-002: stale 'hearted' filter dropped from spec.md:298"
+        - "DRIFT-L2-003: story count reconciled to 30 across spec.md (3 locations), user-stories.md, product-spec/README.md, product-spec/digest.md"
+        - "DRIFT-L2-008: 'Lists' residual removed from product-spec S-A2 AC + user-journeys Journey 1 alt path"
+        - "DRIFT-L4-006: T117a Refs corrected from 'A-009' to 'A-005' (canonical architecture finding)"
+        - "DRIFT-L4-007: tasks.md coverage matrix updated from 180 to 181 (T117a inclusion)"
+        - "DRIFT-L4-008: tasks.md coverage matrix §1 label aligned with cluster header"
+        - "DRIFT-L7-001: digest.md indexed in product-spec/README.md document map"
+        - "DRIFT-L7-002: digest.md indexed in research/README.md document table"
+        - "DRIFT-L7-003: interview-script.md linked as markdown link from spec.md §11 risks + product-spec.md §8 risks"
+      backlogged_to_phase_6:
+        - "DRIFT-L3-001: endpoint rate-limiting (sec NFR)"
+        - "DRIFT-L3-002: follow-request queue (US-G2 infra)"
+        - "DRIFT-L3-003: review_edit_history collection (FR-030)"
+        - "DRIFT-L3-004: axe-core CI gate (a11y NFR)"
+        - "DRIFT-L3-006: report-missing-album path (FR-005)"
+        - "DRIFT-L3-007: Settings → Integrations route + services (FR-027)"
+        - "DRIFT-L4-001: OpenTelemetry instrumentation task"
+        - "DRIFT-L4-002: nightly mongodump backup task"
+        - "DRIFT-L4-003: PostMark failure-mode wiring in T135"
+        - "DRIFT-L4-004: Redis cache + arq fail-mode policy in tasks"
+      deferred:
+        - "DRIFT-L3-005: i18n key extraction (i18n_harvest=not_applicable)"
+        - "DRIFT-L3-008: Last.fm provider scaffolding (Should-Have FR-017)"
+      info_skipped: 14
+      next_action: "Begin Phase 6 implementation. Re-run sync-verify before Phase 6B code-review."
+
+change_requests: []
+
+dependencies:
+  depends_on: []
+  depended_on_by: []
+
+role_approvals:
+  solo_mode: true
+  required_roles_per_phase: {}

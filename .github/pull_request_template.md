@@ -1,5 +1,5 @@
 <!--
-Spinz PR template — keep sections short. Constitution lives at .specify/memory/constitution.md.
+auxd PR template — keep sections short. Constitution lives at .specify/memory/constitution.md.
 Delete sections that genuinely don't apply (e.g., NFR notes for a docs-only PR), but
 explain why in one line rather than removing silently.
 -->
@@ -23,9 +23,9 @@ explain why in one line rather than removing silently.
 <!-- How did you verify this change? Concrete commands or test IDs. -->
 
 - [ ] `uv run pytest` (backend) — N passed
-- [ ] `pnpm --filter @spinz/web typecheck` — clean
-- [ ] `pnpm --filter @spinz/web lint` — clean (Biome)
-- [ ] `pnpm --filter @spinz/web build` — succeeds
+- [ ] `pnpm --filter @auxd/web typecheck` — clean
+- [ ] `pnpm --filter @auxd/web lint` — clean (Biome)
+- [ ] `pnpm --filter @auxd/web build` — succeeds
 - [ ] Manual smoke (describe):
 
 ## Constitution compliance — `.specify/memory/constitution.md`
@@ -40,7 +40,7 @@ explain why in one line rather than removing silently.
 - [ ] **V. Observability mandatory** — every new external API call emits structured log via `lib/observability.log_call`; every notification dispatch emits a PostHog event; errors captured to Sentry with feature + module tags.
 - [ ] **VI. Provider abstraction** — no direct `spotify_sdk` (or equivalent) imports outside `lib/providers/<provider>/`.
 
-## NFR gates — `features/001-spinz-mvp/spec.md §6.1`
+## NFR gates — `features/001-auxd-mvp/spec.md §6.1`
 
 <!-- Only relevant rows; delete the rest with a one-line reason. -->
 

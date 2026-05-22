@@ -1,11 +1,11 @@
-# Forge Session Log — Spinz MVP
+# Forge Session Log — auxd MVP
 
 > Conversation reconstruction (chronological summary, not verbatim transcript)
 > Session date: 2026-05-21 → 2026-05-22
-> Feature: `001-spinz-mvp`
+> Feature: `001-auxd-mvp`
 > Outcome: Phases 0 → 5C complete; ready for Phase 6 (Implement)
 
-This is a reconstructed summary of the session that produced the Spinz MVP artifact stack. The full verbatim transcript is not available to me, but every decision, gate, and major piece of user feedback is captured here.
+This is a reconstructed summary of the session that produced the auxd MVP artifact stack. The full verbatim transcript is not available to me, but every decision, gate, and major piece of user feedback is captured here.
 
 ---
 
@@ -48,9 +48,9 @@ I detected that the config defaulted to `v-model` mode but the project_domain is
 
 1. **Feature mode?** User chose **Standard** (instead of the config-default v-model — correct call for a consumer social product).
 2. **Run Phase 0 Problem Discovery?** User chose **Yes**.
-3. **Scope?** User chose **One feature: 001-spinz-mvp** (treat the whole MVP as a single feature; tightly coupled data model justifies this).
+3. **Scope?** User chose **One feature: 001-auxd-mvp** (treat the whole MVP as a single feature; tightly coupled data model justifies this).
 
-Created `features/001-spinz-mvp/` and bootstrapped `.forge-status.yml` v3.
+Created `features/001-auxd-mvp/` and bootstrapped `.forge-status.yml` v3.
 
 ---
 
@@ -219,7 +219,7 @@ Generated `spec.md` from the locked product-spec. Classic SpecKit format (not v-
 Conditional sections correctly OMITTED:
 - Prerequisites (no related features — this is feature 001)
 - EDA Events (no event-driven patterns in greenfield)
-- Consumer Contract (Spinz is end-user, not shared infrastructure)
+- Consumer Contract (auxd is end-user, not shared infrastructure)
 
 **Gate:** Approve — proceed to Phase 5.
 
@@ -385,7 +385,7 @@ This is what Phase 3 (Revalidation) exists for — give the founder a structured
 
 ## Files referenced in this log
 
-Most artifacts live under `features/001-spinz-mvp/`:
+Most artifacts live under `features/001-auxd-mvp/`:
 - `problem-discovery/` — Phase 0 outputs
 - `research/` — Phase 1 outputs
 - `product-spec/` — Phase 2 outputs (12 docs)

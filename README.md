@@ -1,13 +1,13 @@
-# Spinz
+# auxd
 
 Social album-tracking platform — log albums in <8 seconds, discover from the people you follow.
 
-> Active feature: **001-spinz-mvp**. See [features/001-spinz-mvp/README.md](features/001-spinz-mvp/README.md) for the full lifecycle status.
+> Active feature: **001-auxd-mvp**. See [features/001-auxd-mvp/README.md](features/001-auxd-mvp/README.md) for the full lifecycle status.
 
 ## Monorepo layout
 
 ```
-spinz/
+auxd/
 ├── apps/
 │   ├── api/                  FastAPI backend (uv-managed, Python 3.12+)
 │   └── web/                  Next.js 15 frontend (pnpm-managed, React 19)
@@ -36,7 +36,7 @@ pnpm web:dev                  # http://localhost:3000
 # Backend (separate terminal)
 cd apps/api
 uv sync
-uv run uvicorn spinz_api.main:app --reload --port 8000
+uv run uvicorn auxd_api.main:app --reload --port 8000
 # http://localhost:8000/healthz
 ```
 
@@ -55,7 +55,7 @@ Every PR review checks these. Amendments require ADR + founder sign-off.
 
 ## Product Forge lifecycle
 
-Spinz uses [Product Forge](.claude/skills/speckit-product-forge-forge/) for the full feature lifecycle. Status of the current feature:
+auxd uses [Product Forge](.claude/skills/speckit-product-forge-forge/) for the full feature lifecycle. Status of the current feature:
 
 ```bash
 # Lifecycle status of the active feature

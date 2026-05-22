@@ -1,6 +1,6 @@
-# @spinz/shared-types
+# @auxd/shared-types
 
-Shared TypeScript types for the Spinz frontend.
+Shared TypeScript types for the auxd frontend.
 
 Currently a placeholder — real types land in **T028 (OpenAPI → TS codegen)**,
 which pipes the FastAPI OpenAPI schema through `openapi-typescript` and emits

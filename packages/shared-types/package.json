@@ -1,5 +1,5 @@
 {
-  "name": "@spinz/shared-types",
+  "name": "@auxd/shared-types",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",

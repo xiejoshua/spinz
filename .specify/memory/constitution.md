@@ -1,7 +1,7 @@
-# Spinz Constitution
+# auxd Constitution
 
-> Project: **Spinz** — social album-tracking platform for casual streaming listeners
-> Repo: `spinz/` monorepo · Feature `001-spinz-mvp` is the first feature
+> Project: **auxd** — social album-tracking platform for casual streaming listeners
+> Repo: `auxd/` monorepo · Feature `001-auxd-mvp` is the first feature
 > Source-of-truth for principles cross-validated in every Phase 5 plan and every PR review.
 
 ## Core Principles
@@ -10,7 +10,7 @@
 
 Every provider/API call wraps in **retry + timeout + circuit-breaker**.
 No bare `httpx.get(...)`, `requests.get(...)`, or equivalent in feature code — all
-outbound calls route through `apps/api/src/spinz_api/lib/resilience.py` helpers
+outbound calls route through `apps/api/src/auxd_api/lib/resilience.py` helpers
 (`retry`, `timeout`, `circuit_breaker`).
 
 - **Why:** Spotify, MusicBrainz, Postmark, and PostHog are all third-party SLAs we
@@ -43,7 +43,7 @@ Migration code lives in `apps/api/migrations/{collection}_v{N}_to_v{N+1}.py`.
 ### III. Library-first modules (NON-NEGOTIABLE)
 
 Backend is organized as **composable libraries**, not god-objects.
-Each `apps/api/src/spinz_api/modules/<module>/` exposes a single public surface
+Each `apps/api/src/auxd_api/modules/<module>/` exposes a single public surface
 (`<module>.service.py` with public functions, `<module>.routes.py` with FastAPI
 routes, `<module>.schemas.py` with Pydantic IO models, `<module>.models.py` with
 Beanie Documents).
@@ -52,7 +52,7 @@ Beanie Documents).
 `_weighting_helpers.py`) are not importable across module boundaries.
 Cross-module calls go through public services, not internal helpers.
 
-- **Why:** Spinz's wedge thesis spans many features (log, review, feed, prompts,
+- **Why:** auxd's wedge thesis spans many features (log, review, feed, prompts,
   notifications, seeding, moderation). Each is a load-bearing slice that needs
   its own boundary. God-object services rot fast under that pressure; module
   boundaries enable independent testing, parallel development, and clean
@@ -88,7 +88,7 @@ Every error captures to **Sentry** with feature + module tags.
 **OpenTelemetry** traces every HTTP request, outbound httpx call, and DB op
 (per T015a + plan §15.4).
 
-- **Why:** Spinz operates against three black-box external systems (Spotify,
+- **Why:** auxd operates against three black-box external systems (Spotify,
   MusicBrainz, Postmark). Without forensic observability we cannot debug
   user-reported issues, can't validate the wedge metrics (sub-8s log,
   sub-500ms feed p95), and can't prove the notification system is not
@@ -102,8 +102,8 @@ Every error captures to **Sentry** with feature + module tags.
 ### VI. Provider abstraction (project-specific)
 
 Every music-provider integration goes through the
-`apps/api/src/spinz_api/lib/providers/MusicProvider` interface.
-Provider-specific code lives in `apps/api/src/spinz_api/lib/providers/<provider>/`.
+`apps/api/src/auxd_api/lib/providers/MusicProvider` interface.
+Provider-specific code lives in `apps/api/src/auxd_api/lib/providers/<provider>/`.
 **Feature code never imports `spotify_sdk` (or equivalent) directly.**
 
 - **Why:** The 2024-11-27 audio-features deprecation removed a public Spotify
@@ -166,8 +166,8 @@ This constitution **supersedes informal conventions**. Amendments require:
 All PRs and reviews must verify compliance with the principles above before merge. Complexity beyond a principle's scope must be justified in the PR description.
 
 For runtime development guidance (project structure, conventions, day-to-day patterns), see:
-- `features/001-spinz-mvp/plan.md` — current technical plan
-- `features/001-spinz-mvp/tasks.md` — task breakdown with dependency ordering
+- `features/001-auxd-mvp/plan.md` — current technical plan
+- `features/001-auxd-mvp/tasks.md` — task breakdown with dependency ordering
 - `.product-forge/config.yml` — Product Forge runtime configuration
 - `docs/infra.md` — operational runbook (created in T010 + T010a)
 

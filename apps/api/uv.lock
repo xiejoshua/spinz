@@ -570,7 +570,7 @@ wheels = [
 ]
 
 [[package]]
-name = "spinz-api"
+name = "auxd-api"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [

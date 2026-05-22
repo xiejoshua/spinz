@@ -10,7 +10,7 @@ importers:
 
   apps/web:
     dependencies:
-      '@spinz/shared-types':
+      '@auxd/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
       next:

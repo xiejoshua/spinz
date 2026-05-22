@@ -51,11 +51,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Biome lint
-        run: pnpm --filter @spinz/web lint
+        run: pnpm --filter @auxd/web lint
       - name: Type-check
-        run: pnpm --filter @spinz/web typecheck
+        run: pnpm --filter @auxd/web typecheck
       - name: Build
-        run: pnpm --filter @spinz/web build
+        run: pnpm --filter @auxd/web build
 
   ci-status:
     name: ci-status
