@@ -270,3 +270,83 @@ User confirmed GitHub repo secrets and Atlas IP allowlist are resolved at the st
   1. **CI pytest red:** `workers/main.py` was constructing the full `Settings()` at class-definition (import-time) via `get_settings()`. Locally my `.env` had `SESSION_HMAC_KEY` + `TOKEN_ENCRYPTION_KEY` set; CI doesn't. Test collection blew up before any test ran. Fix: read `REDIS_URL` directly from `os.environ` (the only env var the worker needs at boot); reserve `get_settings()` for code paths that run after worker `on_startup`. Updated the 2 worker-settings helper tests to exercise the env-var path + local-default fallback. Caught the same regression locally via `env -i HOME=$HOME PATH=$PATH uv run pytest` before re-pushing.
   2. **deploy-api red:** `flyctl deploy` rejected the new `fly.toml` with "missing an app name". The `[processes].app` group name collided with the top-level `app = "auxd-api"` field — Fly's parser treats them ambiguously even though TOML scoping is clean. Fix: rename the HTTP process group `app` → `web` (and update `http_service.processes` + `[[vm]].processes` + Dockerfile CMD comment). Also switched the workflow to the conventional monorepo invocation (`working-directory: apps/api` + `flyctl deploy --remote-only -a auxd-api`) so we never depend on the fly.toml-parsing path for the app name in the first place.
 - ✅ **Production deploy verified end-to-end** (`e6d5f28` → Fly deploy at 2026-05-22T21:53Z): `curl https://api.xiejoshua.com/healthz` returns `{"status":"ok","db":"ok","redis":"ok","version":"0.0.0"}` HTTP 200 — the new healthz contract is live, both subchecks (MongoDB Atlas + Upstash Redis) pass, and the two-process layout (`web` + `worker`) is running.
+
+## Session 6 — 2026-05-22 night — CR-001 application (Spotify pivot)
+
+**Scope:** apply Change Request CR-001 — remove all Spotify integration; pivot the MVP to a Letterboxd-style manual search + rating model backed by MusicBrainz (primary) + Discogs (fallback) + Cover Art Archive (covers). Spotify deferred to v2 because Extended Quota Mode now requires 250k MAUs to apply (structurally unreachable pre-launch).
+
+**Execution model:** 5 parallel subagents (product-spec rewrite, spec.md rewrite, plan.md rewrite, tasks.md rewrite, code+tests patch) + wireframe redesigns + change-log + sync-verify done in main context. Locked decisions: MusicBrainz+Discogs catalog; just-finished cluster deferred-to-v2 (kept importable); provider abstraction kept; Must-Have priority in-release.
+
+**Tasks (post-CR-001 state):**
+
+| Action | Tasks | Notes |
+|---|---|---|
+| Hard-removed | T002, T042–T047, T054–T056, T114–T116, T121, T122, T177 (16 total) | All Spotify-only; T177 = orphan from T002 |
+| Deferred-to-v2 | T123–T130 §12 cluster + T169 (9 total) | JustFinishedPrompt model kept importable but unregistered with Beanie |
+| Amended completed | T021, T022, T026, T027, T029 (5 total) | Code patches landed alongside the spec edits |
+| Added | T049a/b Discogs + T053a Report-missing-album (3 total) | Replace gap from Spotify removal |
+| Final | 183 → 170 active lines (162 MVP + 8 §12 deferred) | |
+
+**Verification:**
+- Backend full suite: **306/306 pass + 3 skip** in 11.25s (skips = deferred JustFinishedPrompt instantiation tests).
+- ruff + ruff format + mypy --strict: clean across 68 source files.
+- CI green (CI, codegen, deploy-api all ✅ on commit `fa43ad8`).
+- Production `/healthz` re-verified after deploy: 200 with all subchecks `ok`.
+
+**Cross-agent risk consensus:** all three doc-rewriting agents independently flagged critic-seed cold-start as the new High-criticality risk. Logged in spec.md §11, plan.md §21, product-spec/seeding-strategy.md. Instrumentation flag set: if `log.commit.duration_ms` p50 > 3 min during M-2 closed beta, UX intervention required.
+
+**Schedule impact:** **−2 to −6 weeks** (Spotify Extended Quota was the longest-tail blocker; removing it shortens M-1/M0 path).
+
+**Memory persistence:** saved `project_auxd_spotify_pivot.md` to project memory so future sessions don't reintroduce Spotify by reflex.
+
+**Commit history (Session 6):** `fa43ad8` — single squashed CR commit (44 files, +1789/−1131).
+
+## Session 7 — 2026-05-22 late night — §4 Providers wave
+
+**Scope:** build the post-CR-001 catalog backbone. 8 tasks: T041 Protocols, T048+T049 MusicBrainz pair, T049a+T049b Discogs pair, T050 Resilience transport, T051 Provider observability, T052 Error taxonomy. Constitution P4 test-first discipline.
+
+### Tasks completed
+
+| Task | Files | Notes |
+|------|-------|-------|
+| T041 | `providers/base.py` (148L), `providers/__init__.py` (50L), `tests/unit/test_providers_base.py` (109L) | `CatalogProvider` Protocol + `MusicProvider` Protocol (deferred-to-v2, no MVP impl); `CatalogAlbum` + `ListeningEvent` Pydantic models |
+| T052 | `providers/errors.py` (92L), `tests/unit/test_providers_errors.py` (75L) | `ProviderError` base + `ProviderUnavailable` / `ProviderRateLimited` / `ProviderAuthRevoked` / `ProviderNotFound`; each carries optional `provider` field |
+| T050 | `providers/transport.py` (282L), `tests/unit/test_providers_transport.py` (265L) | Custom `ResilienceTransport(httpx.AsyncBaseTransport)` wraps `circuit_breaker + retry + timeout`. 5xx → `ProviderUnavailable` after retry exhaustion; 429 → `ProviderRateLimited` immediately (no retry — P1 honored); connection error → `ProviderUnavailable` |
+| T051 | extends `providers/transport.py` (above) | Per-request `log_call(provider, endpoint, latency_ms, status, request_id)` emission; status mapping uses HTTP code for clean responses + sentinels `"timeout"` / `"circuit_open"` / `"failed"` |
+| T048 | `tests/integration/test_musicbrainz_provider.py` (225L) | 9 contract tests: search/get_by_mbid/limit/rate-limit/429→ProviderRateLimited/5xx→ProviderUnavailable/404→None. **Confirmed FAILING with ImportError before T049 written.** |
+| T049 | `providers/musicbrainz.py` (180L) | `MusicBrainzCatalogProvider`: `httpx.AsyncClient` with `ResilienceTransport`, internal `asyncio.Lock + time.monotonic()` for the 1 req/sec MB policy, UA `"auxd/0.0.0 (https://auxd.xiejoshua.com)"`, CAA cover URL `https://coverartarchive.org/release-group/{mbid}/front`. **9/9 T048 tests PASS after impl** |
+| T049a | `tests/integration/test_discogs_provider.py` (226L) | 7 contract tests: search/lookup/token-required/5xx/429/empty-when-token-unset. **Confirmed FAILING with ImportError before T049b written.** |
+| T049b | `providers/discogs.py` (221L) | `DiscogsCatalogProvider`: reads `DISCOGS_API_TOKEN` lazily; **graceful-disabled mode when token unset** (returns empty/None — search endpoint T069 can call unconditionally). `Authorization: Discogs token={token}` scheme. **7/7 T049a tests PASS after impl** |
+
+Plus `pyproject.toml` got `respx>=0.21` added to dev deps (resolved → 0.23.1) — the canonical httpx route mocker; used by both contract-test files.
+
+### Architectural decisions worth flagging
+
+- **Rate-limit policy stays provider-specific** — MB has its 1/sec lock inside `MusicBrainzCatalogProvider`; transport stays pure (resilience + observability only). Cleaner separation since Discogs handles its own pacing server-side.
+- **429 retry semantics** — 429 bypasses the retry layer (one attempt, immediate raise); 5xx goes through normal retry-with-backoff. Honors P1's "429 means back off, not transient".
+- **Discogs disabled-mode** — no token = construction succeeds, all queries return empty/None. Discogs is a true graceful fallback per the CR-001 decision, never load-bearing.
+- **Cover-art URL synthesized** — MB responses don't carry image URLs; auxd derives them from the CAA URL convention. Frontend handles 404 fallback if the asset is missing.
+- **ID-space ownership** — each catalog provider is authoritative for its own ID space (`mbid` vs `discogs`). Cross-provider joins are T063's job (identity-normalization service).
+- **Env hygiene workaround** — the user's local `.env` still has pre-CR-001 `SPOTIFY_*` keys that `extra="forbid"` rejects. The new `_clean_env` fixture chdirs to `tmp_path` so pydantic-settings can't discover the polluted file. **Operator follow-up: strip SPOTIFY_* lines from `apps/api/.env` before next local `uv run uvicorn`.**
+
+### Checkpoint #11 — Post-wave mini-verify
+
+| Check | Status | Notes |
+|-------|:------:|-------|
+| Backend full suite | ✅ | **352/352 passing + 3 skipped** in 11.51s (was 306/3 → +46 new tests) |
+| Backend ruff + format | ✅ | All 80 source files clean |
+| Backend mypy --strict | ✅ | 0 errors across 79 source files |
+| P4 test-first audit trail | ✅ | T048 and T049a both verified FAILING with ImportError before their impls were written |
+| respx integration | ✅ | New dev dep; resolved to 0.23.1; both contract-test files mock via `@respx.mock` |
+
+### Status snapshot
+
+- Tasks completed: **35 / 170** (Session 6: 27 → Session 7: +8).
+- §4 Providers cluster now COMPLETE. §6 (Albums + Search) unblocks: T063 identity normalization, T064 cache + TTL refresh, T065 MBID reconciliation, T067 album detail endpoint, T068 Atlas Search index, T069 search endpoint (Atlas + MB + Discogs fallback merge), T070 album detail page, T071 search UI, T072 cover-art proxy.
+- §7 (Diary + Log sheet) also gains: T079 (Manual album search + prefill) can now bind to the catalog providers.
+
+### Operator follow-up
+
+- 🟡 Strip `SPOTIFY_*` lines from local `apps/api/.env` (the agent's `_clean_env` fixture covers tests but local `uv run uvicorn` will fail until cleaned).
+- 🟡 Apply for Discogs Personal Access Token at https://www.discogs.com/settings/developers when ready — without it, Discogs runs in disabled-mode (degraded but functional).
+

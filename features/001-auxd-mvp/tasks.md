@@ -422,7 +422,7 @@
 <!-- CR-001: §4 retitled — Spotify provider removed; MusicBrainz primary + Discogs fallback. -->
 ## §4 Providers — MusicBrainz + Discogs (contract-test-first per Constitution P4)
 
-- [ ] **T041 — MusicProvider + CatalogProvider protocols**
+- [x] **T041 — MusicProvider + CatalogProvider protocols** *(completed 2026-05-23 Session 7; CatalogProvider Protocol is the MVP catalog backbone; MusicProvider declared DEFERRED-TO-V2 (no MVP impl); canonical types CatalogAlbum + ListeningEvent live in same file. Note: also created `providers/__init__.py` for clean re-export surface — slight scope expansion vs original Paths spec.)*
       Paths: apps/api/src/auxd_api/providers/base.py
       Size: S
       Deps: T014, T015
@@ -437,7 +437,7 @@
 <!-- CR-001 removed: T046 (Spotify provider — search_albums) — search now MusicBrainz primary + Discogs fallback via T049 + T049b. -->
 <!-- CR-001 removed: T047 (Spotify provider — get_album + tracklist) — album detail now MBID-only via T049. -->
 
-- [ ] **T048 — MusicBrainz catalog provider — contract tests (FAIL state)**
+- [x] **T048 — MusicBrainz catalog provider — contract tests (FAIL state)** *(completed 2026-05-23 Session 7; 9 tests via respx httpx-mocker. Verified FAILING with ImportError before T049 written — P4 audit trail. Note: landed in `tests/integration/test_musicbrainz_provider.py` (not `tests/contract/...` per original Paths) — uses respx mocks rather than nightly hits against live MB, so runs in normal CI.)*
       Paths: apps/api/tests/contract/test_musicbrainz_release_group_lookup.py
       Size: S
       Deps: T041
@@ -446,7 +446,7 @@
       Description: Contract test for MusicBrainz `lookup_by_mbid` and candidate-Album (Discogs-sourced) → MBID reconciliation (per CR-001 — Spotify ID reconciliation path retired).
       Done: tests fail (expected, no implementation).
 
-- [ ] **T049 — MusicBrainz catalog provider — implementation**
+- [x] **T049 — MusicBrainz catalog provider — implementation** *(completed 2026-05-23 Session 7; httpx.AsyncClient via ResilienceTransport (timeout=10s, retry=3, cb=`musicbrainz`); asyncio.Lock + time.monotonic() pacing for MB's 1 req/sec; UA `auxd/0.0.0 (https://auxd.xiejoshua.com)`; CAA cover URL synthesized; all 9 T048 tests PASS. Note: landed as `providers/musicbrainz.py` (single file) not `providers/musicbrainz/__init__.py + client.py` package — simpler for MVP scope.)*
       Paths: apps/api/src/auxd_api/providers/musicbrainz/__init__.py, apps/api/src/auxd_api/providers/musicbrainz/client.py
       Size: M
       Deps: T048, T014
@@ -455,7 +455,7 @@
       Done: contract tests (T048) PASS.
 
 <!-- CR-001: new task — Discogs catalog provider contract tests (FAIL state) per Constitution P4 test-first pattern; fallback for MusicBrainz misses. -->
-- [ ] **T049a — Discogs catalog provider — contract tests (FAIL state) [TEST-FIRST]**
+- [x] **T049a — Discogs catalog provider — contract tests (FAIL state) [TEST-FIRST]** *(completed 2026-05-23 Session 7; 7 tests via respx incl. graceful-disabled-when-token-unset assertion. Verified FAILING with ImportError before T049b written — P4 audit trail. Note: consolidated to single file `tests/integration/test_discogs_provider.py` (not split + not under `tests/contract/`) — uses respx mocks; runs in normal CI.)*
       Paths: apps/api/tests/contract/test_discogs_release_lookup.py, apps/api/tests/contract/test_discogs_search.py
       Size: S
       Deps: T041
@@ -464,7 +464,7 @@
       Done: pytest collects ≥4 tests; all fail with import/implementation errors (expected).
 
 <!-- CR-001: new task — Discogs catalog provider implementation; fallback when MusicBrainz returns nothing for a search; covers FR-005 empty-state edge. -->
-- [ ] **T049b — Discogs catalog provider — implementation**
+- [x] **T049b — Discogs catalog provider — implementation** *(completed 2026-05-23 Session 7; `respx>=0.21` added to dev deps; reads DISCOGS_API_TOKEN lazily — token-unset = graceful-disabled mode (returns empty/None); `Authorization: Discogs token={token}` scheme; UA matches MB; ResilienceTransport with cb=`discogs`; all 7 T049a tests PASS. Note: landed as `providers/discogs.py` (single file) not the 3-file package — mappings inlined since the file stays under ~230L.)*
       Paths: apps/api/src/auxd_api/providers/discogs/__init__.py, apps/api/src/auxd_api/providers/discogs/client.py, apps/api/src/auxd_api/providers/discogs/mappings.py
       Size: S
       Deps: T041, T049, T050
@@ -472,7 +472,7 @@
       Description: `DiscogsCatalogProvider` implementing `CatalogProvider` protocol. Token-authenticated httpx client (token via `DISCOGS_API_TOKEN` from T029 amendment). Rate-limited per Discogs free-tier policy (60 req/min authenticated). Used as fallback in search service (T069) when MusicBrainz Atlas search returns <5 results. Maps Discogs release → internal Album shape with MBID null (candidate flag for later T065 reconcile).
       Done: contract tests (T049a) PASS against Discogs API.
 
-- [ ] **T050 — Resilience transport — httpx custom Transport**
+- [x] **T050 — Resilience transport — httpx custom Transport** *(completed 2026-05-23 Session 7; ResilienceTransport(httpx.AsyncBaseTransport) wraps every request with circuit_breaker + retry + timeout; status mapping connection-error→ProviderUnavailable, 429→ProviderRateLimited (no retry per P1), 5xx-after-retries→ProviderUnavailable; includes build_async_client() factory. Note: landed at `providers/transport.py` (not `lib/http_transport.py`) — transport is provider-specific scaffolding, kept beside the provider package.)*
       Paths: apps/api/src/auxd_api/lib/http_transport.py
       Size: M
       Deps: T014
@@ -481,7 +481,7 @@
       Done: unit tests assert transport applies all three policies.
 
 <!-- CR-001: T051 deps + paths updated — drop Spotify provider; instrument MusicBrainz + Discogs only. -->
-- [ ] **T051 — Provider observability instrumentation**
+- [x] **T051 — Provider observability instrumentation** *(completed 2026-05-23 Session 7; per-request log_call(provider, endpoint, latency_ms, status, request_id) baked into ResilienceTransport (T050) — single emission point covers both MB and Discogs; status field uses HTTP code for clean responses + sentinels `timeout`/`circuit_open`/`failed`. Note: instrumentation landed in `providers/transport.py` not in each provider's client.)*
       Paths: apps/api/src/auxd_api/providers/musicbrainz/client.py, apps/api/src/auxd_api/providers/discogs/client.py
       Size: S
       Deps: T049, T049b, T015
@@ -489,7 +489,7 @@
       Description: Every provider call emits `log_call(provider, endpoint, latency_ms, status, request_id)` via lib/observability.
       Done: log lines present; assertion test verifies structure.
 
-- [ ] **T052 — Provider error taxonomy**
+- [x] **T052 — Provider error taxonomy** *(completed 2026-05-23 Session 7; ProviderError base + ProviderUnavailable / ProviderRateLimited / ProviderAuthRevoked / ProviderNotFound; each carries optional `provider: str` field. Path matches original spec.)*
       Paths: apps/api/src/auxd_api/providers/errors.py
       Size: S
       Deps: T041

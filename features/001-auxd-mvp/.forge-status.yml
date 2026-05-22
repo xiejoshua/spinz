@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-22T23:55:00Z"
+last_updated: "2026-05-23T00:50:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -113,13 +113,13 @@ phases:
     log_path: "implementation-log.md"
     progressive_warnings: 0
     progressive_critical: 0
-    tasks_completed: 27
+    tasks_completed: 35
     tasks_total: 170
     tasks_total_pre_cr001: 183
     autonomous_section_zero_complete: true
-    session_count: 6
-    progressive_checkpoints_run: 10
-    notes: "Session 6 (2026-05-22 night) — CR-001 application. Pivot away from Spotify (Extended Quota now requires 250k MAUs — pre-launch unreachable) toward Letterboxd-style manual search via MusicBrainz + Discogs. 16 tasks hard-removed (T002, T042-T047, T054-T056, T114-T116, T121, T122, T177); 9 tasks deferred-to-v2 (T123-T130 + T169); 5 completed tasks amended via code patches (T021/T022/T026/T027/T029); 3 new tasks added (T049a/b Discogs + T053a Report-missing-album). Net 183 → 170 tasks (162 active MVP + 8 §12 deferred). 27/170 tasks completed post-CR (was 27/183 — 5 amended tasks stay [x] since the code patches landed alongside the spec edits; CR-001 reshaped the denominator but not the completed-count numerator). Tests: 306 pass / 3 skip (skips are deferred JustFinishedPrompt instantiation tests). ruff + mypy --strict clean across 68 source files. CR-001 work applied by 5 parallel subagents (product-spec/, spec.md, plan.md, tasks.md, code+tests) with consistent CR-001 markers; cross-agent consensus surfaced critic-seed cold-start as the new High-criticality risk. Prior sessions: 1 (T001/T003/T004/T008), 2 (T014/T015/T015a/T017/T018/T029), 3 (infra swaps), 4 (T009/T010/T010a/T012/T016/T021-T027), 5 (T011/T013/T019/T020/T028 request-path wave)."
+    session_count: 7
+    progressive_checkpoints_run: 11
+    notes: "Session 7 (2026-05-23 early morning) — §4 Providers wave. 8 tasks completed: T041 CatalogProvider + MusicProvider Protocols + CatalogAlbum/ListeningEvent canonical types; T052 ProviderError taxonomy (Unavailable/RateLimited/AuthRevoked/NotFound); T050 ResilienceTransport (httpx.AsyncBaseTransport wrapping circuit_breaker + retry + timeout); T051 per-request log_call observability baked into the transport; T048+T049 MusicBrainz pair (TEST-FIRST P4 audit trail verified — tests confirmed FAILING with ImportError before impl written, then all 9 PASS); T049a+T049b Discogs pair (same P4 audit trail; graceful-disabled mode when DISCOGS_API_TOKEN unset). Added `respx>=0.21` as dev dep (resolved 0.23.1) for httpx route mocking. 11 new files, 1873 lines; 306→352 tests (+46) + 3 skip; ruff + format + mypy --strict clean across 79 files. §4 cluster COMPLETE — §6 Albums + Search unblocks. 35/170 tasks done. Session 6 (CR-001 pivot) prior — see CR-001 entry in change_requests for the full audit trail."
   code_review:
     status: "pending"
   verify:
@@ -437,6 +437,76 @@ task_log:
     started_at: "2026-05-22T23:25:00Z"
     completed_at: "2026-05-22T23:30:00Z"
     notes: "Codegen pipeline dumps app.openapi() in-process (no uvicorn boot — settings construction deferred to lifespan) and pipes through openapi-typescript 7.13 → packages/shared-types/src/api.ts. pnpm scripts: 'codegen' regenerates; 'codegen:check' regenerates then git diff --exit-code on api.ts for CI. .github/workflows/codegen.yml runs on apps/api/** and packages/shared-types/** changes, fails the PR if the TS is stale with the regen command in the error message. shared-types/src/index.ts now re-exports the generated paths/components/operations types alongside the legacy greeting() smoke export. apps/web typechecks against the new module shape unchanged."
+  - task_id: "T041"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/providers/__init__.py"
+      - "backend:apps/api/src/auxd_api/providers/base.py"
+      - "backend:apps/api/tests/unit/test_providers_base.py"
+    commit_sha: null
+    started_at: "2026-05-23T00:00:00Z"
+    completed_at: "2026-05-23T00:05:00Z"
+    notes: "CatalogProvider Protocol (search_albums / get_album_by_mbid / get_album_by_external_id) is the MVP catalog backbone. MusicProvider Protocol declared but DEFERRED-TO-V2 (no MVP impl). Internal canonical types: CatalogAlbum (mbid + discogs_release_id + title + artist_name + release_year + cover_art_url + external_ids dict) and ListeningEvent (v2 streaming-history shape, parked for future use)."
+  - task_id: "T052"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/providers/errors.py"
+      - "backend:apps/api/tests/unit/test_providers_errors.py"
+    commit_sha: null
+    started_at: "2026-05-23T00:00:00Z"
+    completed_at: "2026-05-23T00:05:00Z"
+    notes: "ProviderError base class + ProviderUnavailable / ProviderRateLimited / ProviderAuthRevoked / ProviderNotFound. Each carries optional `provider: str` field for tagging."
+  - task_id: "T050"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/providers/transport.py"
+      - "backend:apps/api/tests/unit/test_providers_transport.py"
+    commit_sha: null
+    started_at: "2026-05-23T00:00:00Z"
+    completed_at: "2026-05-23T00:15:00Z"
+    notes: "Custom ResilienceTransport (httpx.AsyncBaseTransport subclass) wraps every request with circuit_breaker(name) + retry(attempts, backoff) + timeout(seconds) from lib/resilience. Configurable per-instance via provider_name / cb_name / retry_attempts / timeout_seconds. Status mapping: connection-error → ProviderUnavailable, 429 → ProviderRateLimited (NO retry per P1), 5xx after retries → ProviderUnavailable, 200s pass through. Includes build_async_client() factory."
+  - task_id: "T051"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/providers/transport.py"
+      - "backend:apps/api/tests/unit/test_providers_transport.py"
+    commit_sha: null
+    started_at: "2026-05-23T00:00:00Z"
+    completed_at: "2026-05-23T00:15:00Z"
+    notes: "Per-request log_call(provider, endpoint, latency_ms, status, request_id) emission baked into ResilienceTransport (T050). Status field uses HTTP code for clean responses + sentinels `timeout` / `circuit_open` / `failed`. Single emission per request; never duplicated; never raises."
+  - task_id: "T048"
+    status: "completed"
+    paths:
+      - "backend:apps/api/tests/integration/test_musicbrainz_provider.py"
+    commit_sha: null
+    started_at: "2026-05-23T00:15:00Z"
+    completed_at: "2026-05-23T00:20:00Z"
+    notes: "9 contract tests for MusicBrainzCatalogProvider via respx (httpx route mocker). Covers: search_albums returns canonical list, get_album_by_mbid populates fields, 404→None, limit param honoured, 1-req/sec rate-limit enforced, 429→ProviderRateLimited, 5xx-after-retries→ProviderUnavailable. **P4 audit trail: tests verified FAILING with ImportError BEFORE T049 written.**"
+  - task_id: "T049"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/providers/musicbrainz.py"
+    commit_sha: null
+    started_at: "2026-05-23T00:20:00Z"
+    completed_at: "2026-05-23T00:30:00Z"
+    notes: "MusicBrainzCatalogProvider impl. httpx.AsyncClient with ResilienceTransport (timeout=10s, retry=3, cb=`musicbrainz`). UA header `auxd/0.0.0 (https://auxd.xiejoshua.com)` per MB etiquette. Internal asyncio.Lock + time.monotonic() enforces MB's 1 req/sec policy in-process. CAA cover URL synthesized as `https://coverartarchive.org/release-group/{mbid}/front`. All 9 T048 contract tests PASS."
+  - task_id: "T049a"
+    status: "completed"
+    paths:
+      - "backend:apps/api/tests/integration/test_discogs_provider.py"
+    commit_sha: null
+    started_at: "2026-05-23T00:30:00Z"
+    completed_at: "2026-05-23T00:35:00Z"
+    notes: "7 contract tests for DiscogsCatalogProvider via respx. Covers: search, lookup by external_id, token sent in Authorization header, 5xx → ProviderUnavailable, 429 → ProviderRateLimited, **and graceful-disabled mode when DISCOGS_API_TOKEN is unset** (search returns [], lookup returns None). **P4 audit trail: tests verified FAILING with ImportError BEFORE T049b written.**"
+  - task_id: "T049b"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/providers/discogs.py"
+      - "backend:apps/api/pyproject.toml"
+    commit_sha: null
+    started_at: "2026-05-23T00:35:00Z"
+    completed_at: "2026-05-23T00:45:00Z"
+    notes: "DiscogsCatalogProvider impl + `respx>=0.21` added to dev deps (resolved 0.23.1). Reads DISCOGS_API_TOKEN lazily via get_settings(); no token = construction succeeds, all queries return empty/None (graceful-disabled). Authorization: Discogs token={token} scheme. UA same as MB. Maps Discogs JSON to CatalogAlbum (discogs_release_id from `id`, artists[0].name, year, images[0].uri). ResilienceTransport with cb=`discogs`. All 7 T049a contract tests PASS."
 
 scope:
   paths:

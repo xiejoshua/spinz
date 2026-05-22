@@ -35,6 +35,7 @@ dev = [
   "pytest-cov>=5.0",
   "hypothesis>=6",
   "mongomock-motor>=0.0.34",                     # in-memory motor mock for Beanie unit tests
+  "respx>=0.21",                                 # T048/T049a httpx route mocking for provider contract tests
 ]
 
 [build-system]
