@@ -32,7 +32,14 @@ jobs:
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy to Fly
-        run: flyctl deploy --remote-only --config apps/api/fly.toml --dockerfile apps/api/Dockerfile apps/api
+        # Run from apps/api/ so flyctl auto-resolves fly.toml + Dockerfile
+        # relative to the working directory (the conventional monorepo
+        # pattern). -a is explicit so the deploy never relies on the
+        # fly.toml-parsing path for the app name — if a future fly.toml
+        # tweak ever breaks parsing again, this still routes to the right
+        # Fly app.
+        working-directory: apps/api
+        run: flyctl deploy --remote-only -a auxd-api
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
