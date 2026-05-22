@@ -36,9 +36,29 @@ BASE62_ALPHABET = set(string.digits + string.ascii_letters)
 # ---------------------------------------------------------------------------
 
 
-def test_notification_type_has_18_active_values() -> None:
-    """Per ``notification-taxonomy.md``, exactly 18 active types (N-001..N-018)."""
-    assert len(list(NotificationType)) == 18
+def test_notification_type_has_16_active_values() -> None:
+    """CR-001: exactly 16 active types remain after dropping N-011 + N-018.
+
+    N-011 (``spotify.reconnect_required``) and N-018
+    (``just_finished.prompt``) were removed with the Spotify integration
+    and the just-finished feature respectively. Their identifier slots
+    are reserved (see :class:`NotificationType` docstring).
+    """
+    assert len(list(NotificationType)) == 16
+
+
+def test_notification_type_reserved_slots_not_reassigned() -> None:
+    """CR-001: N-011 and N-018 must NOT exist on the enum anymore."""
+    for forbidden in (
+        "N011_SPOTIFY_RECONNECT_REQUIRED",
+        "N018_JUST_FINISHED_PROMPT",
+    ):
+        assert not hasattr(NotificationType, forbidden), (
+            f"CR-001 reserved slot {forbidden} must not be present on NotificationType"
+        )
+    string_values = {member.value for member in NotificationType}
+    assert "spotify.reconnect_required" not in string_values
+    assert "just_finished.prompt" not in string_values
 
 
 def test_notification_type_string_values_match_taxonomy() -> None:
@@ -55,8 +75,7 @@ def test_notification_type_string_values_match_taxonomy() -> None:
     # name doesn't sneak through.
     assert NotificationType.N001_FOLLOW_NEW.value == "follow.new"
     assert NotificationType.N008_WEEKLY_DIGEST.value == "weekly.digest"
-    assert NotificationType.N011_SPOTIFY_RECONNECT_REQUIRED.value == "spotify.reconnect_required"
-    assert NotificationType.N018_JUST_FINISHED_PROMPT.value == "just_finished.prompt"
+    # CR-001: N-011 + N-018 removed; assertions on those values are gone.
 
 
 # ---------------------------------------------------------------------------
@@ -168,10 +187,14 @@ def test_failed_email_required_fields() -> None:
 
 
 def test_failed_email_retry_count_default_zero() -> None:
-    """``retry_count`` defaults to 0 (write happens after exhaustion; service sets actual count)."""
+    """``retry_count`` defaults to 0 (write happens after exhaustion; service sets actual count).
+
+    CR-001: switched the exemplar notification type away from the deleted
+    ``N011_SPOTIFY_RECONNECT_REQUIRED`` slot.
+    """
     row = FailedEmail(
         user_id="user_abc",
-        notification_type=NotificationType.N011_SPOTIFY_RECONNECT_REQUIRED,
+        notification_type=NotificationType.N017_SECURITY_PASSWORD_CHANGED,
         payload={},
         last_error="bounce",
     )

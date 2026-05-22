@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!-- CR-001 (2026-05-22): Log sheet redesigned. Was Spotify-prefilled album state with
+     "8-second target". Spotify integration deferred to v2 per CR-001 (250k MAU gate).
+     New flow: empty-state search field backed by MusicBrainz catalog (cached via Atlas
+     Search) with type-ahead results. Letterboxd-pattern. Timer note removed pending a
+     fresh metric on manual-search commit time (likely 10–15s). "Report missing album"
+     link surfaces in empty-result state (FR for catalog gap-filling). -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -16,14 +22,21 @@
     .sheet-handle { width: 36px; height: 4px; background: #ddd; border-radius: 4px; margin: 0 auto 12px auto; }
     h3 { margin: 0 0 4px 0; font-size: 16px; }
     p.helper { margin: 0 0 12px 0; color: #888; font-size: 13px; }
-    .search { width: 100%; padding: 12px 14px; background: #f3f3f3; border: none; border-radius: 8px; font-size: 14px; box-sizing: border-box; margin-bottom: 16px; }
-    .prefill-pill { background: #eef6ff; border: 1px solid #b3d4f5; color: #0050a0; font-size: 11px; padding: 2px 8px; border-radius: 999px; display: inline-block; margin-left: 6px; }
-    .album-row { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 8px; border: 2px solid #222; border-radius: 8px; background: #f9f9f9; margin-bottom: 16px; }
-    .album-cover { width: 56px; height: 56px; background: #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 10px; }
-    .album-meta strong { display: block; font-size: 14px; }
-    .album-meta span { color: #777; font-size: 12px; }
-    .change-link { font-size: 12px; color: #0066cc; cursor: pointer; }
+    .search-wrap { position: relative; margin-bottom: 12px; }
+    .search { width: 100%; padding: 12px 14px 12px 38px; background: #f3f3f3; border: 2px solid #222; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #888; font-size: 16px; }
+    .search-meta { font-size: 11px; color: #999; margin: 0 0 8px 2px; }
+    .results { max-height: 200px; overflow-y: auto; margin-bottom: 12px; border: 1px solid #eee; border-radius: 8px; }
+    .result-row { display: grid; grid-template-columns: 40px 1fr; gap: 10px; align-items: center; padding: 8px 10px; border-bottom: 1px solid #f3f3f3; cursor: pointer; }
+    .result-row:last-child { border-bottom: none; }
+    .result-row.selected { background: #f5f9ff; }
+    .result-cover { width: 40px; height: 40px; background: #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 9px; }
+    .result-meta strong { display: block; font-size: 13px; }
+    .result-meta span { color: #777; font-size: 11px; }
+    .empty-state { padding: 16px; text-align: center; color: #888; font-size: 13px; }
+    .empty-state a { color: #0066cc; }
     .row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .row.dim { opacity: 0.5; pointer-events: none; }
     .row-label { font-size: 14px; }
     .row-label span { color: #888; font-size: 12px; display: block; margin-top: 2px; }
     .stars { font-size: 24px; letter-spacing: 3px; }
@@ -39,8 +52,9 @@
     .footer-row { display: flex; gap: 8px; margin-top: 16px; }
     .btn { flex: 1; padding: 14px; border-radius: 8px; font-size: 15px; text-align: center; cursor: pointer; border: none; }
     .btn-primary { background: #222; color: white; }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
     .btn-secondary { background: #eee; color: #444; }
-    .timer-note { font-size: 11px; color: #999; text-align: center; margin-top: 8px; }
+    .source-note { font-size: 10px; color: #999; text-align: center; margin-top: 8px; }
   </style>
 </head>
 <body>
@@ -68,17 +82,36 @@
     <div class="sheet">
       <div class="sheet-handle"></div>
       <h3>Log an album</h3>
-      <p class="helper">From Spotify <span class="prefill-pill">prefilled</span> · tap album to change</p>
+      <p class="helper">Search for the album you listened to — we'll fill in the metadata.</p>
 
-      <input type="text" class="search" placeholder="Search for an album…" value="">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search" placeholder="Album or artist…" value="kendr">
+      </div>
+      <p class="search-meta">3 results from MusicBrainz · type to narrow</p>
 
-      <div class="album-row">
-        <div class="album-cover">cover</div>
-        <div class="album-meta">
-          <strong>GNX</strong>
-          <span>Kendrick Lamar · 2024 · 12 tracks · 44 min</span>
+      <div class="results">
+        <div class="result-row selected">
+          <div class="result-cover">cover</div>
+          <div class="result-meta">
+            <strong>GNX</strong>
+            <span>Kendrick Lamar · 2024 · 12 tracks</span>
+          </div>
         </div>
-        <span class="change-link">Change</span>
+        <div class="result-row">
+          <div class="result-cover">cover</div>
+          <div class="result-meta">
+            <strong>To Pimp a Butterfly</strong>
+            <span>Kendrick Lamar · 2015 · 16 tracks</span>
+          </div>
+        </div>
+        <div class="result-row">
+          <div class="result-cover">cover</div>
+          <div class="result-meta">
+            <strong>DAMN.</strong>
+            <span>Kendrick Lamar · 2017 · 14 tracks</span>
+          </div>
+        </div>
       </div>
 
       <div class="row">
@@ -116,7 +149,11 @@
         <button class="btn btn-primary">Log →</button>
       </div>
 
-      <div class="timer-note">Target commit time: under 8 seconds</div>
+      <!-- CR-001: empty-state for missing album surfaces from the search field;
+           shown when results.length === 0. Keeps the catalog gap-fill pathway. -->
+      <div class="source-note">
+        Album missing? <a href="#">Report a missing album</a> · We'll add it from MusicBrainz or your tip.
+      </div>
     </div>
   </div>
 </body>

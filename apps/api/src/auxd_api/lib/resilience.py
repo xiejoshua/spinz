@@ -279,7 +279,7 @@ async def circuit_breaker(
 
     Args:
         name: Unique breaker identifier — typically the provider name
-            (e.g. ``"spotify"``, ``"google_oauth"``).
+            (e.g. ``"musicbrainz"``, ``"discogs"``).
         failure_threshold: Consecutive failures that trip the breaker.
         recovery_timeout: Seconds the breaker stays open before the next
             probe is allowed.
@@ -344,8 +344,8 @@ def circuit_breaker_decorator[T](
 
     Example::
 
-        @circuit_breaker_decorator("spotify")
-        async def list_playlists(user_id: str) -> list[Playlist]:
+        @circuit_breaker_decorator("musicbrainz")
+        async def lookup_release(mbid: str) -> ReleaseGroup:
             ...
     """
 

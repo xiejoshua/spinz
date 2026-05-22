@@ -10,13 +10,17 @@ Highlights:
 * ``SESSION_HMAC_KEY`` and ``TOKEN_ENCRYPTION_KEY`` are base64-encoded and
   validated for decoded byte length at construction time (fail loudly with a
   clear message if an operator misconfigures them).
-* Conditional requirements are enforced by a ``model_validator``: e.g. enabling
-  the Spotify integration requires both client credentials.
 * :func:`get_settings` is :func:`functools.lru_cache`-wrapped so FastAPI
   dependency-injection always sees the same instance.
 * :func:`emit_startup_audit` writes a single structured log line at INFO
   (``event=config.loaded``) summarising which integrations are enabled. No
   secret values are ever logged — only booleans / non-sensitive identifiers.
+
+CR-001 (2026-05-22): removed Spotify integration (SPOTIFY_* fields +
+``_check_conditional_requirements`` validator) — see
+``features/001-auxd-mvp/change-log.md``. The MVP now uses a Letterboxd-style
+manual catalog search; an optional Discogs Personal Access Token can be
+supplied via ``DISCOGS_API_TOKEN`` to enable the catalog fallback.
 """
 
 from __future__ import annotations
@@ -28,7 +32,7 @@ from enum import StrEnum
 from functools import lru_cache
 from typing import Annotated
 
-from pydantic import Field, ValidationInfo, field_validator, model_validator
+from pydantic import Field, ValidationInfo, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -113,20 +117,17 @@ class Settings(BaseSettings):
         ),
     ]
 
-    # --- Feature flags ---------------------------------------------------
-    SPOTIFY_INTEGRATION_ENABLED: bool = Field(
-        default=True,
-        description="Toggle Spotify OAuth + sync features.",
-    )
-
-    # --- Spotify (required iff SPOTIFY_INTEGRATION_ENABLED) --------------
-    SPOTIFY_CLIENT_ID: str | None = Field(
+    # --- Catalog providers (optional) ------------------------------------
+    # CR-001: removed Spotify integration (SPOTIFY_INTEGRATION_ENABLED /
+    # SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET fields gone). The MVP catalog
+    # is now MusicBrainz-only by default; supplying a Discogs token enables
+    # the secondary fallback (see features/001-auxd-mvp/change-log.md).
+    DISCOGS_API_TOKEN: str | None = Field(
         default=None,
-        description="Spotify app client ID (required when Spotify integration is enabled).",
-    )
-    SPOTIFY_CLIENT_SECRET: str | None = Field(
-        default=None,
-        description="Spotify app client secret (required when Spotify integration is enabled).",
+        description=(
+            "Discogs Personal Access Token for catalog fallback. Optional — "
+            "without it, the MusicBrainz catalog runs solo."
+        ),
     )
 
     # --- Observability (optional) ----------------------------------------
@@ -208,21 +209,9 @@ class Settings(BaseSettings):
             )
         return v
 
-    @model_validator(mode="after")
-    def _check_conditional_requirements(self) -> Settings:
-        if self.SPOTIFY_INTEGRATION_ENABLED:
-            missing: list[str] = []
-            if not self.SPOTIFY_CLIENT_ID:
-                missing.append("SPOTIFY_CLIENT_ID")
-            if not self.SPOTIFY_CLIENT_SECRET:
-                missing.append("SPOTIFY_CLIENT_SECRET")
-            if missing:
-                joined = ", ".join(missing)
-                raise ValueError(
-                    f"SPOTIFY_INTEGRATION_ENABLED=true requires: {joined}. "
-                    "Set the missing variable(s) or set SPOTIFY_INTEGRATION_ENABLED=false."
-                )
-        return self
+    # CR-001: removed ``_check_conditional_requirements`` model_validator that
+    # enforced Spotify client credentials — there are no Spotify-specific
+    # conditional requirements at MVP anymore.
 
 
 @lru_cache(maxsize=1)
@@ -251,7 +240,9 @@ def emit_startup_audit(settings: Settings, logger: logging.Logger) -> None:
             "event": "config.loaded",
             "environment": settings.ENVIRONMENT.value,
             "log_level": settings.LOG_LEVEL.value,
-            "spotify_enabled": settings.SPOTIFY_INTEGRATION_ENABLED,
+            # CR-001: ``spotify_enabled`` removed; ``discogs_enabled`` replaces it
+            # as the catalog-fallback signal.
+            "discogs_enabled": settings.DISCOGS_API_TOKEN is not None,
             "sentry_enabled": settings.SENTRY_DSN is not None,
             "posthog_enabled": settings.POSTHOG_API_KEY is not None,
             "resend_enabled": settings.RESEND_API_KEY is not None,

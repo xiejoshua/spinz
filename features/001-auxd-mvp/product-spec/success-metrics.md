@@ -17,21 +17,24 @@
 | **WAL (North Star)** | Unique users logged ≥1 album AND opened app, trailing 7d | 500 | 2,500 | PostHog cohort query, daily rollup |
 | **W1 activation rate** | New signups who log ≥3 albums in their first week | 30% | 35% | PostHog funnel, cohort attribution |
 | **D30 retention** | Day-30 retention of weekly cohort | 8% | 12% | PostHog retention chart |
-| **Social-originated play rate** | % of `Listen on Spotify` events triggered from feed or friend-discovery surface (vs profile or search) | 25% | 40% | Event source attribution |
+<!-- CR-001: replaced outbound-streaming-play metric with social-originated-discovery metric (Add to Up Next OR Log from a feed-discovered album). -->
+| **Social-originated discovery rate** | % of `Add to Up Next` OR `Log` events on an album the user first encountered in the feed or friend-discovery surface (vs profile or search) | 25% | 40% | Event source attribution (discovery surface tagged on each event) |
 | **Reviews per WAL** | Average reviews published per weekly active logger | 0.5 | 0.8 | Review count / WAL |
 | **Follow graph density** | Median # of follows per WAL | 5 | 12 | Per-cohort, snapshot weekly |
 | **Backlog → Log conversion** | % of backlog items that get logged within 30 days of being added | 30% | 45% | Event chain query |
+<!-- CR-001: new MusicBrainz catalog hit-rate metric — proxies the cost of cold Discogs fetches. -->
+| **Catalog hit rate (MusicBrainz cache)** | % of catalog searches resolved entirely from Atlas Search against the cached MusicBrainz subset (no MusicBrainz cold-fetch and no Discogs fallback needed) | 90% | 95% | Per-search event with `catalog_source` tag (`atlas_cache` / `musicbrainz_cold` / `discogs_fallback`) |
 
 ## Leading Indicators
 
 Watched daily during launch and weekly thereafter; these surface trouble 2–4 weeks before the North Star moves.
 
-- **Onboarding completion rate** (steps 1 → land on home feed): target >70%
-- **Time-to-first-rating** (median): target <90 sec
-- **Time-to-first-follow** (median): target <120 sec
-- **Drop-off at Spotify OAuth consent**: target <25% (outside our control but signal of value clarity)
+<!-- CR-001: Spotify-OAuth-consent drop-off line replaced — no OAuth screen at MVP. Critic-seed follow target raised because Follow ≥3 critics is now load-bearing. -->
+- **Onboarding completion rate** (signup → land on home feed): target >75% (raised from 70% because there is no streaming-OAuth round-trip to bleed users)
+- **Time-to-first-rating** (median): target <2 minutes from signup
+- **Time-to-first-follow** (median, during onboarding): target <90 sec
 - **D1 returnvisit rate**: target >40%
-- **% of new users who follow ≥1 critic seed during onboarding**: target >80%
+- **% of new users who follow ≥3 critic seeds during onboarding**: target >85% (the new minimum is 3; this metric tracks whether users keep the pre-checked cards)
 
 ## Health / Guardrail Metrics
 
@@ -41,7 +44,8 @@ These must not regress; an alert fires if any cross a threshold.
 |---|---|---|
 | p95 home feed load | <500ms | Above this, perceived quality drops |
 | p95 album detail load | <400ms | SSR critical for sharing |
-| Spotify API error rate | <2% per 5m window | Above this, degraded experience surfaces |
+<!-- CR-001 removed: Spotify API error rate guardrail. Replaced with catalog-provider error rate. -->
+| Catalog provider error rate (MusicBrainz + Discogs combined) | <2% per 5m window | Above this, search/log flows degrade visibly |
 | Notification rate per user per week | <12 (excluding digest) | Above this, churn risk per Goodreads pattern |
 | Report → resolution time | median <72h | Moderation hygiene |
 | Account deletion rate | <1% MAU per month | Above this, dissatisfaction signal |
@@ -54,16 +58,18 @@ These signals indicate the product isn't working — even if WAL is climbing.
 |---|---|
 | WAL climbs but D30 stagnates | Acquisition-driven growth without product fit |
 | Reviews/WAL <0.2 | Logs are happening but engagement is shallow ("zombie scrobbling") |
-| Social-originated play rate <15% by M3 | The social-graph thesis (H2) is failing; rec strategy broken |
+<!-- CR-001: anti-metric renamed; Spotify-connect anti-metric removed; catalog-hit-rate added as a quality bellwether. -->
+| Social-originated discovery rate <15% by M3 | The social-graph thesis (H2) is failing; the feed surface isn't driving discovery |
 | Follow graph density median <3 | Cold-start seeding strategy failed; product is islands of one |
 | Notification settings dramatically opt-out (>40% of users disable in-app notifications) | Notification taxonomy is wrong; firehose problem |
-| % users connecting Spotify drops below 50% | OAuth UX broken or trust gap |
+| Catalog hit rate (MusicBrainz cache) <80% | Cache is the wrong subset OR users are searching long-tail albums far more than expected — search UX degrades because cold-fetches add latency |
 
 ## Measurement Plan
 
 | Cadence | What we check |
 |---|---|
-| **Day 0 (launch)** | Smoke metrics: signups/hour, OAuth completion rate, first-log conversion. Alarms on Spotify API errors. |
+<!-- CR-001: Day-0 smoke metrics no longer include OAuth completion rate or Spotify API error alarms. -->
+| **Day 0 (launch)** | Smoke metrics: signups/hour, signup → first-follow conversion, first-log conversion. Alarms on catalog-provider (MusicBrainz + Discogs) error rate. |
 | **Day 1** | First retention cohort baseline. Founder reads the first 50 user-written reviews qualitatively. |
 | **Day 7** | First W1 activation cohort. Drop-off step analysis. Onboarding funnel review. |
 | **Day 14** | First D14 cohort returns. Initial qualitative interviews (5 users). |
@@ -73,7 +79,8 @@ These signals indicate the product isn't working — even if WAL is climbing.
 
 ## Reporting
 
-- **Daily**: Auto-generated email digest of signups, WAL, OAuth errors, p95 latency. Distributed to founder.
+<!-- CR-001: daily digest swaps OAuth errors for catalog-provider errors. -->
+- **Daily**: Auto-generated email digest of signups, WAL, catalog-provider errors, p95 latency. Distributed to founder.
 - **Weekly**: Cohort report (PostHog-generated); reviewed every Monday.
 - **Monthly**: Investor-grade + retention deep-dive. Compared against M3/M6 plan.
 - **Quarterly**: Full retro + pivot decision if metrics are off-trajectory.
@@ -86,4 +93,5 @@ Benchmarks compared against:
 - **Strava** (proxy): users with ≥5 follows retain ~3–4× longer at D90.
 - **Goodreads** (cautionary): notification firehose drove documented churn; explicit anti-pattern.
 
-auxd's targets are **deliberately set below Letterboxd's mature numbers** because (a) we're a portfolio/side-project, not a venture-backed effort, and (b) Spotify is already paying for the underlying job — switching cost is real.
+<!-- CR-001: rationale (b) reworded — auxd is no longer positioned against any one streaming service. -->
+auxd's targets are **deliberately set below Letterboxd's mature numbers** because (a) we're a portfolio/side-project, not a venture-backed effort, and (b) users are already paying for their streaming service of choice for the underlying job — switching cost is real, and we are deliberately not asking them to switch services to use auxd.

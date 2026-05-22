@@ -4,6 +4,13 @@ These tests exercise Pydantic-level validation only (no MongoDB connection):
 Beanie ``Document`` inherits from ``pydantic.BaseModel``, so default factories,
 required-field validation, and basic type-coercion all run without a live
 database.
+
+CR-001 (2026-05-22): :class:`JustFinishedPrompt` is DEFERRED-TO-V2 — the
+class is no longer registered with Beanie via ``ALL_DOCUMENT_MODELS``, so
+direct instantiation in this file's autouse conftest scope raises
+``CollectionWasNotInitialized``. The instantiation-based JustFinishedPrompt
+tests below are skipped; the enum-shape test (which doesn't touch
+Beanie at all) is kept as a v2 forward-compat anchor.
 """
 
 from __future__ import annotations
@@ -21,7 +28,7 @@ BASE62_ALPHABET = set(string.digits + string.ascii_letters)
 
 
 # ---------------------------------------------------------------------------
-# JustFinishedPrompt
+# JustFinishedPrompt — CR-001: DEFERRED-TO-V2.
 # ---------------------------------------------------------------------------
 
 
@@ -30,8 +37,18 @@ def _now_and_expiry() -> tuple[datetime, datetime]:
     return now, now + timedelta(hours=24)
 
 
+_PROMPT_DEFERRED_REASON = (
+    "CR-001: JustFinishedPrompt is DEFERRED-TO-V2 — class kept importable "
+    "but not registered with Beanie via ALL_DOCUMENT_MODELS at MVP."
+)
+
+
+@pytest.mark.skip(reason=_PROMPT_DEFERRED_REASON)
 def test_just_finished_prompt_ksuid_id() -> None:
-    """A new ``JustFinishedPrompt`` gets an auto-generated 27-char base62 KSUID."""
+    """A new ``JustFinishedPrompt`` gets an auto-generated 27-char base62 KSUID.
+
+    Skipped at MVP per CR-001 — re-enable when v2 reactivates the model.
+    """
     detected_at, expires_at = _now_and_expiry()
     prompt = JustFinishedPrompt(
         user_id="user_abc",
@@ -52,8 +69,12 @@ def test_just_finished_prompt_ksuid_id() -> None:
     assert prompt.id != other.id
 
 
+@pytest.mark.skip(reason=_PROMPT_DEFERRED_REASON)
 def test_just_finished_prompt_required_fields() -> None:
-    """``user_id``, ``album_id``, ``detected_at``, and ``expires_at`` are required."""
+    """``user_id``, ``album_id``, ``detected_at``, and ``expires_at`` are required.
+
+    Skipped at MVP per CR-001 — re-enable when v2 reactivates the model.
+    """
     with pytest.raises(ValidationError) as exc_info:
         JustFinishedPrompt()
     missing = {err["loc"][0] for err in exc_info.value.errors() if err["type"] == "missing"}
@@ -88,8 +109,12 @@ def test_just_finished_prompt_required_fields() -> None:
         )
 
 
+@pytest.mark.skip(reason=_PROMPT_DEFERRED_REASON)
 def test_just_finished_prompt_state_default_pending() -> None:
-    """``state`` defaults to :attr:`JustFinishedPromptState.PENDING`."""
+    """``state`` defaults to :attr:`JustFinishedPromptState.PENDING`.
+
+    Skipped at MVP per CR-001 — re-enable when v2 reactivates the model.
+    """
     detected_at, expires_at = _now_and_expiry()
     prompt = JustFinishedPrompt(
         user_id="user_abc",
@@ -108,7 +133,12 @@ def test_just_finished_prompt_state_default_pending() -> None:
 
 
 def test_just_finished_prompt_state_enum_five_values() -> None:
-    """``JustFinishedPromptState`` exposes exactly the five documented values."""
+    """``JustFinishedPromptState`` exposes exactly the five documented values.
+
+    CR-001: kept un-skipped because this test only touches a Python Enum and
+    never instantiates the Beanie Document — useful as a forward-compat
+    anchor for when the feature reactivates in v2.
+    """
     expected = {"pending", "logged", "dismissed", "expired", "suppressed"}
     actual = {member.value for member in JustFinishedPromptState}
     assert actual == expected

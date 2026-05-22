@@ -21,9 +21,13 @@ def _new_key_b64() -> str:
 
 
 def test_from_base64_roundtrip() -> None:
-    """A round-trip through encrypt/decrypt returns the original plaintext."""
+    """A round-trip through encrypt/decrypt returns the original plaintext.
+
+    CR-001: example plaintext switched from a Spotify-flavored exemplar
+    to a generic provider OAuth token string.
+    """
     enc = TokenEncryptor.from_base64_strings([_new_key_b64()])
-    plaintext = "a-spotify-access-token-value"
+    plaintext = "a-provider-oauth-access-token-value"
     ciphertext = enc.encrypt(plaintext)
     assert ciphertext != plaintext
     assert enc.decrypt(ciphertext) == plaintext

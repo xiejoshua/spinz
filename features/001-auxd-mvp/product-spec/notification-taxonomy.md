@@ -25,35 +25,39 @@ Each row defines: identifier, trigger event, surfaces (default ON channels), rec
 | ID | Type | Trigger | Default in_app | Default email | Default push | Notes |
 |---|---|---|---|---|---|---|
 | N-001 | `follow.new` | Someone follows you | ✅ ON | ❌ OFF | ✅ ON | Coalesced if >3/hr. Real-time. |
-| N-002 | `follow.request_pending` | Someone requested to follow your private profile | ✅ ON | ❌ OFF | ✅ ON | Real-time. Only fires if `is_private_profile=true`. |
+<!-- CR-001: field renamed from is_private_profile to private_profile (already corrected in data-model in sync-fix Run #3 L5-004; reflect here). -->
+| N-002 | `follow.request_pending` | Someone requested to follow your private profile | ✅ ON | ❌ OFF | ✅ ON | Real-time. Only fires if `private_profile=true`. |
 | N-003 | `follow.request_approved` | A user you requested to follow approved you | ✅ ON | ❌ OFF | ❌ OFF | Quiet — they'll see it on next app open. |
 | N-004 | `review.liked` | Someone liked one of your reviews | ✅ ON | ❌ OFF | ❌ OFF | Coalesced aggressively (per-review per-day). Rename history: `review.hearted` (v1.0) → `review.auxed` (R1) → `review.liked` (R3 — Aux/Like semantic split). |
 | N-005 | `review.reply` | Someone replied to your review *(v2 feature; schema reserved)* | ✅ ON | ❌ OFF | ❌ OFF | Not active at MVP. |
 | N-006 | `friend.logged_album` | A close-friend (top-5 interacted) logged an album you have in your Up Next | ✅ ON | ❌ OFF | ❌ OFF | Useful! Triggers exactly once per album per friend. |
 | N-007 | `friend.high_rated` | A followed user rated an album ≥4.5★ that you don't have in your diary | ❌ OFF | ❌ OFF | ❌ OFF | Deliberately OFF by default. Opt-in for power discovery users. |
 | N-008 | `weekly.digest` | Monday 09:00 user-local, summarizing top 10 entries from follow graph past 7 days | ❌ OFF | ✅ ON | ❌ OFF | Primary engagement surface. Plain HTML email, ~6 hero entries + 4 secondary. |
-| N-009 | `import.completed` | Spotify or Last.fm import job finished | ✅ ON | ❌ OFF | ❌ OFF | Transactional — confirms work done. |
-| N-010 | `import.failed` | Spotify or Last.fm import errored / partial | ✅ ON | ✅ ON | ❌ OFF | Transactional + email so user can recover. |
-| N-011 | `spotify.reconnect_required` | OAuth token revoked or expired and refresh failed | ✅ ON | ✅ ON | ✅ ON | Transactional; must be high-visibility, product is degraded. |
+<!-- CR-001: N-009 / N-010 / N-011 deferred to v2 — bundled with streaming-integration cluster. IDs reserved; not reassigned. Rows preserved as reserved-gap for traceability. -->
+| N-009 | *(DEFERRED-TO-V2 — was `import.completed`; reserved-gap per CR-001)* | — | — | — | — | Returns with streaming + Last.fm import in v2. |
+| N-010 | *(DEFERRED-TO-V2 — was `import.failed`; reserved-gap per CR-001)* | — | — | — | — | Returns with streaming + Last.fm import in v2. |
+| N-011 | *(DEFERRED-TO-V2 — was `spotify.reconnect_required`; reserved-gap per CR-001)* | — | — | — | — | Returns with streaming integration in v2. |
 | N-012 | `report.acknowledged` | A report you filed has been reviewed | ✅ ON | ❌ OFF | ❌ OFF | Transparency on moderation. |
 | N-013 | `account.deletion_scheduled` | User scheduled account deletion | ✅ ON | ✅ ON | ❌ OFF | Confirmation + grace-period reminder. |
 | N-014 | `account.deletion_reminder_7d` | 7 days before hard delete | ✅ ON | ✅ ON | ❌ OFF | "Cancel deletion?" reminder. |
 | N-015 | `system.announcement` | Founder-issued product announcement | ❌ OFF | ❌ OFF | ❌ OFF | Opt-in to "auxd news" in onboarding. Use sparingly (target: ≤6/year). |
 | N-016 | `security.new_session` | New device/browser login | ✅ ON | ✅ ON | ❌ OFF | Security hygiene. Always-on (cannot disable email channel). |
 | N-017 | `security.password_changed` | Password changed | ✅ ON | ✅ ON | ❌ OFF | Always-on email. |
-| N-018 | `just_finished.prompt` | Spotify detected a finished album; prompt user to log it | ✅ ON | ❌ OFF | ❌ OFF | Added in Revision #1 (auto-prompt elevated to MVP). In-app default ON; push default OFF (opt-in). Respects `User.auto_prompt_enabled` and quiet hours. Coalesced — only the latest unacted album is surfaced per user. |
+<!-- CR-001: N-018 deferred to v2 with the just-finished cluster. ID reserved; not reassigned. -->
+| N-018 | *(DEFERRED-TO-V2 — was `just_finished.prompt`; reserved-gap per CR-001)* | — | — | — | — | Returns with streaming integration in v2 alongside the JustFinishedPrompt entity (US-B6). |
 <!-- N-019 (list.auxed) and N-020 (list.added_to) were added in Revision #1 and removed in Revision #3 — Lists deferred to v2. IDs reserved; not reassigned. -->
 
 ---
 
 ## Defaults summary (what a new user gets)
 
+<!-- CR-001: defaults summary updated — import status / just-finished / spotify-reconnect channels removed since the underlying types are deferred. -->
 **At signup, a new user receives:**
-- In-app: follow notifications, follow requests (if private), review likes, import status, just-finished prompts (when Spotify connected), transactional/security, friend-logged-from-my-backlog
-- Email: weekly digest, import-failed alert, deletion-scheduled, security events
-- Push: follow notifications, follow-request-pending, spotify-reconnect-required
+- In-app: follow notifications, follow requests (if private), review likes, transactional/security, friend-logged-from-my-backlog
+- Email: weekly digest, deletion-scheduled, security events
+- Push: follow notifications, follow-request-pending
 
-**Total recurring noise expected at MVP defaults, week one of active user:** ~5–10 notifications (one digest email + a few follow events + a handful of just-finished prompts from connected Spotify users + transactional confirmations). Slightly lower after Revision #3 removed list-related notifications. Still well under Goodreads' 15+/week.
+**Total recurring noise expected at MVP defaults, week one of active user:** ~3–7 notifications (one digest email + a few follow events + transactional confirmations). Lower than the v1.3 estimate because CR-001 deferred the import-status, just-finished-prompt, and reconnect channels. Well under Goodreads' 15+/week.
 
 ---
 
@@ -72,16 +76,11 @@ Notifications
    Friend logged my up-next    [in-app ✓] [email ☐] [push ☐]
    Friend high-rated discovery [in-app ☐] [email ☐] [push ☐]
 
-▸ Auto-prompts (when Spotify connected)
-   Just-finished prompt        [in-app ✓] [email ☐] [push ☐]
-   Quiet hours apply [✓]
-
+<!-- CR-001: Auto-prompts section removed (deferred); Import-status + Spotify-reconnect rows removed from Account & system (deferred). -->
 ▸ Digests
    Weekly digest               [in-app ☐] [email ✓] [push ☐]
 
 ▸ Account & system
-   Import status               [in-app ✓] [email partial] [push ☐]
-   Spotify reconnect needed    [in-app ✓] [email ✓] [push ✓]
    auxd news                  [in-app ☐] [email ☐] [push ☐]
    Security events             [in-app ✓] [email ✓ (locked)] [push ☐]
 
@@ -136,7 +135,8 @@ These are reversible single-tap controls — not destructive.
 - **Per-user rate limit (per-type, independent):** ≤5 in-app notifications per hour, ≤25/day **per notification type**. Each type has its own counter; e.g., follow notifications and review-like notifications consume separate buckets. Excess events still happen; they're coalesced into a single notification ("X people followed you today").
 - **Per-actor rate limit (CROSS-TYPE):** Notifications from user X to user Y collapsed if >3 happen in a trailing 24-hour window — counting ACROSS all notification types from X to Y. Example: if X follows Y, then likes 3 of Y's reviews within 1 hour, the first 3 events fire individually and any subsequent X→Y notifications in the next 24h collapse into "X did several things on your reviews today".
 - **Per-event dedup:** If user X follows then unfollows then follows again within 1 hour, only the latest event is surfaced.
-- **Notification storms after import:** Suppress N-001/N-007 for 24h after a fresh Spotify-import; otherwise a follower's import would spam everyone in their graph.
+<!-- CR-001: import-storm guardrail superseded — no import at MVP. Preserved as a v2-pending note. -->
+- **Notification storms after import:** *(DEFERRED-TO-V2)* This guardrail (suppress N-001/N-007 for 24h after a fresh import) is reserved for v2 when streaming-import / Last.fm-import return. N/A at MVP.
 - **Fail-mode:** If Redis is unreachable, the rate-limiter FAILS OPEN — notifications dispatch through and a Sentry alert fires with tag `notif_limiter.redis_down`. This is intentional: notifications missed during an outage are worse than notifications sent without rate-limiting during a short outage.
 
 ---
@@ -158,5 +158,7 @@ All 5 prior open questions resolved. See [decision-log.md §Notification taxonom
 1. **NT-1 — Suppress critic-seed N-001 (follow) notifications during onboarding wave.** Otherwise every seed account gets a notification storm from new-user onboarding.
 2. **NT-2 — Weekly digest includes "most-rated album in your follow graph this week" hero entry.** Single hero entry; cheap query; editorial feel.
 3. **NT-3 — Weekly digest fires during quiet hours.** Quiet hours suppress push and in-app prompts only; email/digest fire on their own schedule.
-4. **NT-4 — N-004 (review.auxed) surfaces both in-app AND aggregated into weekly digest.** In-app for immediate feedback; digest aggregates for absent users.
-5. **NT-5 — "Import succeeded" notification fires every time** (not just first time). Users re-trigger imports; want explicit confirmation.
+<!-- CR-001: NT-4 renamed to review.liked (R3 split, preserved). -->
+4. **NT-4 — N-004 (review.liked) surfaces both in-app AND aggregated into weekly digest.** In-app for immediate feedback; digest aggregates for absent users.
+<!-- CR-001: NT-5 superseded — import deferred. -->
+5. **NT-5 — *(SUPERSEDED by CR-001 / R4)*** "Import succeeded" notification N/A at MVP because all imports are deferred. Decision returns alongside imports in v2.

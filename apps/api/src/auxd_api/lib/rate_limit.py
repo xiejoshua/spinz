@@ -38,8 +38,9 @@ Fail mode
 * A Sentry warning tagged ``rate_limit.redis_down`` is emitted.
 
 Locked in pre-impl-review C-5 and sync-fix L4-004. The rationale is
-that the limiter is defensive (Spotify enforces upstream limits at the
-edge) — a Redis blip should never block legitimate traffic.
+that the limiter is defensive (upstream providers like MusicBrainz and
+Discogs enforce their own rate limits) — a Redis blip should never
+block legitimate traffic.
 """
 
 from __future__ import annotations

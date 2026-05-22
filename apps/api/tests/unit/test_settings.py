@@ -27,6 +27,8 @@ def _b64(num_bytes: int) -> str:
 
 # All env vars that Settings recognises. We clear all of them at the start of
 # every test so each case has a clean slate independent of CI runner env.
+# CR-001: removed SPOTIFY_* env keys; DISCOGS_API_TOKEN is the new
+# (optional) catalog-fallback toggle.
 _ALL_ENV_KEYS = (
     "ENVIRONMENT",
     "LOG_LEVEL",
@@ -34,9 +36,7 @@ _ALL_ENV_KEYS = (
     "REDIS_URL",
     "SESSION_HMAC_KEY",
     "TOKEN_ENCRYPTION_KEY",
-    "SPOTIFY_INTEGRATION_ENABLED",
-    "SPOTIFY_CLIENT_ID",
-    "SPOTIFY_CLIENT_SECRET",
+    "DISCOGS_API_TOKEN",
     "SENTRY_DSN",
     "POSTHOG_API_KEY",
     "POSTHOG_HOST",
@@ -65,10 +65,13 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> Iterator[None]:  # 
 
 
 def _set_minimum_required(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Set the smallest env that allows Settings() to construct (Spotify disabled)."""
+    """Set the smallest env that allows Settings() to construct.
+
+    CR-001: no more Spotify creds — the two crypto keys are the only
+    hard-required env vars at MVP.
+    """
     monkeypatch.setenv("SESSION_HMAC_KEY", _b64(32))
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", _b64(32))
-    monkeypatch.setenv("SPOTIFY_INTEGRATION_ENABLED", "false")
 
 
 def test_minimal_local_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -81,7 +84,8 @@ def test_minimal_local_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert cfg.MONGODB_URI == "mongodb://localhost:27017/auxd_dev"
     assert cfg.REDIS_URL == "redis://localhost:6379/0"
     assert cfg.POSTHOG_HOST == "https://us.i.posthog.com"
-    assert cfg.SPOTIFY_INTEGRATION_ENABLED is False
+    # CR-001: replaced SPOTIFY_INTEGRATION_ENABLED with DISCOGS_API_TOKEN.
+    assert cfg.DISCOGS_API_TOKEN is None
     assert cfg.SENTRY_DSN is None
     assert cfg.POSTHOG_API_KEY is None
     assert cfg.RESEND_API_KEY is None
@@ -92,7 +96,6 @@ def test_minimal_local_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_missing_session_hmac_key_fails(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", _b64(32))
-    monkeypatch.setenv("SPOTIFY_INTEGRATION_ENABLED", "false")
 
     with pytest.raises(ValidationError) as exc_info:
         Settings()
@@ -103,7 +106,6 @@ def test_missing_session_hmac_key_fails(monkeypatch: pytest.MonkeyPatch) -> None
 def test_invalid_session_hmac_key_too_short(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SESSION_HMAC_KEY", _b64(16))  # only 16 bytes after decode
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", _b64(32))
-    monkeypatch.setenv("SPOTIFY_INTEGRATION_ENABLED", "false")
 
     with pytest.raises(ValidationError) as exc_info:
         Settings()
@@ -116,7 +118,6 @@ def test_invalid_session_hmac_key_too_short(monkeypatch: pytest.MonkeyPatch) -> 
 def test_invalid_token_encryption_key_wrong_length(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("SESSION_HMAC_KEY", _b64(32))
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", _b64(31))  # off-by-one short
-    monkeypatch.setenv("SPOTIFY_INTEGRATION_ENABLED", "false")
 
     with pytest.raises(ValidationError) as exc_info:
         Settings()
@@ -132,42 +133,37 @@ def test_invalid_token_encryption_key_wrong_length(monkeypatch: pytest.MonkeyPat
     assert "exactly 32 bytes" in str(exc_info_long.value)
 
 
-def test_spotify_enabled_requires_secrets(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("SESSION_HMAC_KEY", _b64(32))
-    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", _b64(32))
-    monkeypatch.setenv("SPOTIFY_INTEGRATION_ENABLED", "true")
-    # Intentionally omit SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET.
+def test_discogs_api_token_optional_default_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    """CR-001: DISCOGS_API_TOKEN defaults to None and is fully optional.
 
-    with pytest.raises(ValidationError) as exc_info:
-        Settings()
-
-    msg = str(exc_info.value)
-    assert "SPOTIFY_CLIENT_ID" in msg
-    assert "SPOTIFY_CLIENT_SECRET" in msg
-
-
-def test_spotify_disabled_no_secrets_ok(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("SESSION_HMAC_KEY", _b64(32))
-    monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", _b64(32))
-    monkeypatch.setenv("SPOTIFY_INTEGRATION_ENABLED", "false")
+    Replaces the old ``test_spotify_enabled_requires_secrets`` /
+    ``test_spotify_disabled_no_secrets_ok`` pair — there is no
+    Spotify-equivalent conditional requirement anymore.
+    """
+    _set_minimum_required(monkeypatch)
 
     cfg = Settings()
+    assert cfg.DISCOGS_API_TOKEN is None
 
-    assert cfg.SPOTIFY_INTEGRATION_ENABLED is False
-    assert cfg.SPOTIFY_CLIENT_ID is None
-    assert cfg.SPOTIFY_CLIENT_SECRET is None
+
+def test_discogs_api_token_round_trips_when_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    """When DISCOGS_API_TOKEN is provided it surfaces on the Settings object."""
+    _set_minimum_required(monkeypatch)
+    monkeypatch.setenv("DISCOGS_API_TOKEN", "discogs-pat-example")
+
+    cfg = Settings()
+    assert cfg.DISCOGS_API_TOKEN == "discogs-pat-example"
 
 
 def test_emit_startup_audit_logs_one_line(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
+    """CR-001: ``spotify_enabled`` replaced by ``discogs_enabled`` on the audit line."""
     session_key = _b64(32)
     token_key = _b64(32)
     monkeypatch.setenv("SESSION_HMAC_KEY", session_key)
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", token_key)
-    monkeypatch.setenv("SPOTIFY_INTEGRATION_ENABLED", "true")
-    monkeypatch.setenv("SPOTIFY_CLIENT_ID", "spotify-id")
-    monkeypatch.setenv("SPOTIFY_CLIENT_SECRET", "spotify-secret")
+    monkeypatch.setenv("DISCOGS_API_TOKEN", "discogs-pat-example")
     monkeypatch.setenv("SENTRY_DSN", "https://public@sentry.example/1")
 
     cfg = Settings()
@@ -182,7 +178,7 @@ def test_emit_startup_audit_logs_one_line(
     assert record.levelno == logging.INFO
     assert record.message == "config.loaded"
     assert record.event == "config.loaded"  # type: ignore[attr-defined]
-    assert record.spotify_enabled is True  # type: ignore[attr-defined]
+    assert record.discogs_enabled is True  # type: ignore[attr-defined]
     assert record.sentry_enabled is True  # type: ignore[attr-defined]
     assert record.posthog_enabled is False  # type: ignore[attr-defined]
     assert record.environment == "local"  # type: ignore[attr-defined]
@@ -191,7 +187,7 @@ def test_emit_startup_audit_logs_one_line(
     record_dump = repr(record.__dict__)
     assert session_key not in record_dump
     assert token_key not in record_dump
-    assert "spotify-secret" not in record_dump
+    assert "discogs-pat-example" not in record_dump
     assert "https://public@sentry.example/1" not in record_dump
 
 

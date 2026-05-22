@@ -17,7 +17,7 @@ from pydantic import ValidationError
 
 from auxd_api.lib.visibility import Visibility
 from auxd_api.modules.users.models import (
-    MusicProviderSubDoc,
+    MusicProviderState,
     NotificationPreferencesSubDoc,
     User,
     UserStatus,
@@ -81,14 +81,19 @@ def test_user_email_required() -> None:
 
 
 def test_user_defaults() -> None:
-    """Default values per spec — feature opt-ins, status, bio, sub-docs."""
+    """Default values per spec — feature opt-ins, status, bio, sub-docs.
+
+    CR-001: removed assertions on ``auto_prompt_enabled`` /
+    ``auto_prompt_push_enabled`` — those fields no longer exist (the
+    just-finished feature is DEFERRED-TO-V2). ``music_providers`` now
+    defaults to ``{}`` (dict keyed by provider name) rather than the old
+    Spotify-shaped list.
+    """
     user = _make_user()
-    assert user.auto_prompt_enabled is True
-    assert user.auto_prompt_push_enabled is False
     assert user.private_profile is False
     assert user.status == UserStatus.ACTIVE
     assert user.bio == ""
-    assert user.music_providers == []
+    assert user.music_providers == {}
     assert user.password_hash is None
     assert user.avatar_url is None
     assert user.deletion_scheduled_for is None
@@ -120,31 +125,35 @@ def test_user_status_enum() -> None:
 
 
 def test_user_with_music_provider() -> None:
-    """Music provider sub-doc round-trips through ``model_dump_json``."""
+    """Music provider state round-trips through ``model_dump_json``.
+
+    CR-001: switched ``music_providers`` from a list of OAuth-shaped
+    ``MusicProviderSubDoc`` entries to a dict of neutral
+    ``MusicProviderState`` values keyed by provider name. The previous
+    Spotify-specific assertions are gone with the integration.
+    """
     connected = datetime(2026, 5, 22, 12, 0, 0, tzinfo=UTC)
-    provider = MusicProviderSubDoc(
-        provider="spotify",
-        provider_user_id="spotify-user-123",
-        display_name="Alice on Spotify",
+    state = MusicProviderState(
+        provider="discogs",
+        display_name="Alice on Discogs",
         connected_at=connected,
-        access_token_encrypted="ciphertext-access",
-        refresh_token_encrypted="ciphertext-refresh",
-        token_expires_at=datetime(2026, 5, 22, 13, 0, 0, tzinfo=UTC),
-        scopes=["user-read-email", "user-read-recently-played"],
     )
-    user = _make_user(music_providers=[provider])
+    user = _make_user(music_providers={"discogs": state})
 
     payload = json.loads(user.model_dump_json())
-    assert len(payload["music_providers"]) == 1
-    serialised = payload["music_providers"][0]
-    assert serialised["provider"] == "spotify"
-    assert serialised["provider_user_id"] == "spotify-user-123"
-    assert serialised["access_token_encrypted"] == "ciphertext-access"
-    assert serialised["refresh_token_encrypted"] == "ciphertext-refresh"
-    assert serialised["scopes"] == [
-        "user-read-email",
-        "user-read-recently-played",
-    ]
+    assert set(payload["music_providers"].keys()) == {"discogs"}
+    serialised = payload["music_providers"]["discogs"]
+    assert serialised["provider"] == "discogs"
+    assert serialised["display_name"] == "Alice on Discogs"
+    # Ensure no Spotify-era OAuth fields snuck back into the schema.
+    for forbidden in (
+        "provider_user_id",
+        "access_token_encrypted",
+        "refresh_token_encrypted",
+        "token_expires_at",
+        "scopes",
+    ):
+        assert forbidden not in serialised
 
 
 def test_notification_preferences_default() -> None:

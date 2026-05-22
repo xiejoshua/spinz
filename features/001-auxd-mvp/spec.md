@@ -14,25 +14,34 @@
 
 ## 0. Locked Decisions Carried From Product Spec (read first)
 
-These 17 decisions are non-negotiable inputs to Phase 5 (plan). Each links back to [decision-log.md](./product-spec/decision-log.md) for rationale.
+<!-- CR-001: decision-row count bumped from 17 → 18 and several rows reframed; see #18 below -->
+These 18 decisions are non-negotiable inputs to Phase 5 (plan). Each links back to [decision-log.md](./product-spec/decision-log.md) for rationale.
 
-1. **Spotify-only at launch** (Apple Music = v2)
+<!-- CR-001: original "Spotify-only at launch" reframed — catalog is MusicBrainz primary + Discogs fallback at MVP -->
+1. **Catalog at launch** = MusicBrainz primary + Discogs fallback; Atlas Search indexes a cached MusicBrainz subset. (Original "Spotify-only at launch" **DEFERRED-TO-V2 (CR-001)** — streaming-platform integration deferred pending Extended Quota Mode policy.)
 2. **½-star rating scale** (Letterboxd model)
-3. **Auto-prompt for just-finished albums** ENABLED at MVP (opt-out, default ON)
+<!-- CR-001: auto-prompt cluster requires streaming-history API; deferred -->
+3. **Auto-prompt for just-finished albums** — **DEFERRED-TO-V2 (CR-001)**: structurally impossible without provider listening-history API.
 4. **Public-by-default privacy** with per-entry visibility override
 5. **Lists DEFERRED to v2** *(elevated in R1, returned to v2 in R3 — do NOT include Lists work in Phase 5)*
-6. **Onboarding** = Spotify auth + auto-import last 30 days + **prominent Skip option**; skip is a full product, not "degraded mode"
-7. **Album identity** = MusicBrainz release-group MBID canonical, Spotify album ID as fallback
+<!-- CR-001: onboarding now signup → handle → follow ≥3 critics → critic-seed feed -->
+6. **Onboarding** = signup (email + password + handle) → follow ≥3 critics → critic-seed feed; no music-service auth at MVP.
+<!-- CR-001: album identity now MBID canonical with no streaming-platform fallback at MVP -->
+7. **Album identity** = MusicBrainz release-group MBID canonical (no streaming-platform ID fallback at MVP)
 8. **PWA + responsive web only** at MVP (no native iOS/Android)
 9. **Aux (🏅) vs Like (👍) — distinct semantics**: Aux is the entry-owner's self-curation signal on their own DiaryEntry; Like is other-user social engagement on a Review. Two icons, two semantics, two data fields, two notification types.
 10. **No "say more" soft prompt** on short reviews — reviews can be ≥1 character without a nudge
 11. **Reviews are Likeable + sortable** by Newest / Most Liked / Highest-Rated
 12. **Critic seeds** appear as PRE-CHECKED checkbox cards on the "Follow 3" onboarding screen (opt-in with default-tick)
 13. **Deluxe / remasters** merged under release-group MBID; album detail surfaces an "Edition" chip + dropdown
-14. **Diary persists immutably on Spotify disconnect** — reconnect does not back-fill the gap
+<!-- CR-001: streaming-platform disconnect path moot — no connect path at MVP; row reframed to v2 -->
+14. **Diary persists immutably on streaming-platform disconnect** — **DEFERRED-TO-V2 (CR-001)**: no streaming-platform connect path at MVP; row applies once integration ships in v2.
 15. **Reviews edits** allowed; public surface shows latest version + "edited" badge; 90-day internal audit log preserved
 16. **Handles** immutable for first 30 days after account creation, then changeable once per 30 days; 200–500 obvious-squat candidates reserved at launch
-17. **Spotify OAuth scopes** locked (5 essential, sync-fix Run #2): `user-read-email`, `user-read-private`, `user-read-recently-played`, `user-read-currently-playing`, `user-library-read`. `playlist-read-private`/`user-top-read`/`user-follow-read` deferred.
+<!-- CR-001: OAuth scopes row deferred — no music-service OAuth at MVP -->
+17. **Music-service OAuth scopes** — **DEFERRED-TO-V2 (CR-001)**: no music-service auth at MVP (Letterboxd-style manual search via MusicBrainz + Discogs).
+<!-- CR-001: new locked decision row added (2026-05-22) -->
+18. **CR-001 (2026-05-22):** all streaming-platform integration deferred to v2; MVP is Letterboxd-style manual search via MusicBrainz + Discogs. Reason: Extended Quota Mode now requires 250k MAUs to apply — structurally unreachable pre-launch.
 
 > **Phase 5 prerequisite — Constitution gap:** `.specify/memory/constitution.md` is currently the unfilled template. Phase 5 MUST either run `/speckit.constitution` to ratify principles OR include constitution ratification as Task 0 before any feature work. Recommended principles from [research/codebase-analysis.md](./research/codebase-analysis.md): external-call resilience, schema-versioned documents, library-first modules, test-first for catalog/auth edges, observability mandatory.
 
@@ -42,7 +51,8 @@ These 17 decisions are non-negotiable inputs to Phase 5 (plan). Each links back 
 
 ### What we're building
 
-auxd is a social album-tracking platform for casual Spotify listeners (18–35). Users log albums they've listened to, rate them on a ½-star scale, write optional reviews, "Aux" personal standouts in their own diary, "Like" reviews written by others, maintain a private backlog of "want to listen" albums, and discover music via their social graph rather than algorithmic recommendations. Spotify OAuth on day one auto-imports recently-played history so the diary is never empty.
+<!-- CR-001: persona reframed casual Spotify listeners → music-engaged listeners; streaming-history auto-import removed -->
+auxd is a social album-tracking platform for music-engaged listeners (18–35) — Letterboxd-for-music in posture. Users log albums they've listened to via a manual search-and-pick flow, rate them on a ½-star scale, write optional reviews, "Aux" personal standouts in their own diary, "Like" reviews written by others, maintain a private backlog of "want to listen" albums, and discover music via their social graph rather than algorithmic recommendations. The first session is non-empty via a critic-seed feed populated from the user's "follow ≥3 critics" onboarding step.
 
 ### Why we're building it
 
@@ -50,7 +60,8 @@ Casual streaming-era listeners (18–35) have no low-friction way to record, sha
 
 ### The wedge thesis
 
-The *unhad combination* of four things none of the 13 prior Letterboxd-for-music attempts combined: **auto-imported streaming history + social-graph-primary feed + album-as-unit + casual-first onboarding** — all four simultaneously. Spotify's deprecation of audio-features / recommendations / related-artists endpoints (2024-11-27) makes the social-graph thesis the only viable rec path; there's no algorithmic-rec fallback available.
+<!-- CR-001: 4-of-4 wedge reduced to 3-of-4; auto-imported streaming history dropped (deferred to v2) -->
+The *unhad combination* of three things none of the 13 prior Letterboxd-for-music attempts combined at once: **social-graph-primary feed + album-as-unit + casual-first onboarding** — all three simultaneously. The original wedge included a fourth pillar, *auto-imported streaming history*, which is **DEFERRED-TO-V2 (CR-001)**: Extended Quota Mode now requires 250k MAUs to apply, making any streaming-platform integration structurally unreachable pre-launch. We are honestly shipping 3-of-4 of the original combinatorial gap; the social-graph thesis remains the rec path with no algorithmic-rec fallback.
 
 ### Research backing
 
@@ -58,7 +69,8 @@ This spec is backed by a full research phase (Phase 1) covering:
 
 - **Competitors:** 13 competitors analyzed; six concrete causes identified for why prior Letterboxd-for-music attempts (RYM, AOTY, MusicBoard, Albums.fm, hi-fi.cafe, Sonemic) stalled. The combinatorial gap is open.
 - **UX/UI:** Letterboxd's bottom-sheet log + ½-star + heart + optional review (sub-8-second commit) is the proven minimum-friction pattern. Goodreads' notification firehose and AOTY/RYM 100-point metadata walls are the documented anti-patterns to avoid.
-- **Tech stack:** Spotify Web API social-core endpoints are stable; Extended Quota Mode review (2–6 wk) is on the critical path for public launch. Recommended stack: Next.js 15 App Router + TanStack Query + shadcn/ui (frontend); FastAPI async + Pydantic v2 + Beanie + Authlib + arq/Redis (backend); MongoDB Atlas + Atlas Search.
+<!-- CR-001: tech-stack line — streaming-platform Web API + Extended Quota Mode replaced with MusicBrainz + Discogs -->
+- **Tech stack:** MusicBrainz catalog API + Discogs fallback; no Extended Quota gate to clear. Recommended stack: Next.js 15 App Router + TanStack Query + shadcn/ui (frontend); FastAPI async + Pydantic v2 + Beanie + Authlib + arq/Redis (backend); MongoDB Atlas + Atlas Search.
 
 > Deep-dive: [research/README.md](./research/README.md). All quantitative figures in research are training-data-based (web access was denied during Phase 1) and tagged for Phase 5 spot-check.
 
@@ -72,7 +84,8 @@ When a casual listener finishes an album, they can record their reaction (rate, 
 
 ### Secondary goals
 
-- Make the first session non-empty via Spotify auto-import of the last 30 days (or critic-seed-only if user skips Spotify).
+<!-- CR-001: first-session non-empty now sourced entirely from critic-seed feed (no streaming auto-import) -->
+- Make the first session non-empty via critic-seed activity surfaced after the "follow ≥3 critics" onboarding step.
 - Build a trusted social graph through curated critic-seed roster + mutual-taste suggestions + invite mechanics.
 - Provide the album-detail surface as a social hub (friends' ratings + Aux'd, public reviews sortable by Newest / Most Liked / Highest-Rated, Editions).
 
@@ -95,9 +108,10 @@ Full out-of-scope list with rationale: [product-spec/out-of-scope.md](./product-
 
 ## 3. Users
 
-### Primary persona — Casey, the Casual Streamer (24)
+<!-- CR-001: primary persona reframed from "Casual Streamer" to music-engaged listener; streaming-app daily-use line softened -->
+### Primary persona — Casey, the Music-Engaged Listener (24)
 
-Designer/grad-student/early-career professional. Listens to Spotify daily. Has a "music taste" but it lives in their head, screenshots, and a Notes app. Listens to ~2–4 full albums per week (rest is playlist/shuffle). Wants to remember standouts and find what to play next without the algorithm or a 2008-era UI.
+Designer/grad-student/early-career professional. Streams music daily across one of the major platforms. Has a "music taste" but it lives in their head, screenshots, and a Notes app. Listens to ~2–4 full albums per week (rest is playlist/shuffle). Wants to remember standouts and find what to play next without the algorithm or a 2008-era UI.
 
 **Activation signal:** Casey logs an album within their first session AND returns to log a second album within 7 days.
 
@@ -125,20 +139,26 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 **Cluster A — Onboarding and first-session activation**
 
-- [ ] **US-A1** As Casey, I want to sign up in under 60 seconds, so I don't bounce before seeing value. **AC:** Spotify OAuth shortcut OR email/password+handle; auto-handle suggestions on collision.
-- [ ] **US-A2** As Casey, I want the option to connect Spotify and auto-import 30 days, OR skip Spotify entirely and still use auxd fully. **AC:** Prominent Skip; no "degraded mode" framing; settings → Integrations connects later and back-fills.
-- [ ] **US-A3** As Casey, I want to rate my standout listens from the past 30 days in <60 seconds. **AC:** Top-5 cards with ½-star widgets; skip allowed; optimistic save.
-- [ ] **US-A4** As Casey, I want to follow a starter set during onboarding. **AC:** Mixed cards (≥3 critics in top 6) with critic-seed cards **PRE-CHECKED** by default (Q13); minimum 1 follow to advance.
+<!-- CR-001: US-A1 AC rewritten — removed OAuth shortcut clause -->
+- [ ] **US-A1** As Casey, I want to sign up in under 60 seconds, so I don't bounce before seeing value. **AC:** email + password + handle (no music-service OAuth shortcut); auto-handle suggestions on collision.
+<!-- CR-001: US-A2 deferred — no music-service connect path at MVP -->
+- [ ] **US-A2** **DEFERRED-TO-V2 (CR-001)** — *Original AC: connect to a music service to auto-import recent listening, OR skip and still use auxd fully.* Streaming-platform connect deferred until Extended Quota Mode policy allows pre-launch app review.
+<!-- CR-001: US-A3 deferred — depends on streaming-platform listening history -->
+- [ ] **US-A3** **DEFERRED-TO-V2 (CR-001)** — *Original AC: rate standout listens from the past 30 days during onboarding via auto-imported recents.* Streaming-platform connect deferred until Extended Quota Mode policy allows pre-launch app review.
+<!-- CR-001: US-A4 AC — minimum-follow floor raised from 1 to 3 critics to match CR-001 onboarding flow (signup → handle → follow ≥3 critics → critic-seed feed) -->
+- [ ] **US-A4** As Casey, I want to follow a starter set during onboarding. **AC:** Mixed cards (≥3 critics in top 6) with critic-seed cards **PRE-CHECKED** by default (Q13); minimum **3 critic follows** to advance (raised from 1 per CR-001 onboarding flow, since first-session non-emptiness now depends entirely on critic-seed activity — see §11 cold-start risk).
 - [ ] **US-A5** As Casey, my first home feed must be non-empty. **AC:** ≥5 entries; if follow graph sparse, padded with critic-seed activity from past 7 days.
 
 **Cluster B — Logging, rating, Aux, auto-prompt**
 
-- [ ] **US-B1** As Casey, I want to log an album in <8 seconds. **AC:** Persistent "+" Log button → bottom sheet with Spotify-prefilled album; rating + Aux + review + visibility; commit time measured server-side.
+<!-- CR-001: US-B1 AC rewritten — Letterboxd-pattern manual search; <8s target may revisit on first-typed-search -->
+- [ ] **US-B1** As Casey, I want to log an album in <8 seconds. **AC:** Persistent "+" Log button → bottom sheet → MusicBrainz-backed search → pick album → rate + Aux + review + visibility (Letterboxd-pattern); commit time measured server-side. *Note: <8s target may rise to 12–15s on first-typed-search; revisit metric after live signal — see §9 success metrics.*
 - [ ] **US-B2** As Casey, I want ½-star rating precision (0.5–5.0). **AC:** Tap-between-stars or drag-to-rate; null rating allowed.
 - [ ] **US-B3** As Casey, I want to "Aux" (🏅) an album in my diary as one of my standouts. **AC:** Toggle independent of rating; "Aux'd" filter on profile; appears on album detail "Friends who rated & aux'd this" surface (Aux is **self-directed-only** — not the same as reviewing/liking).
 - [ ] **US-B4** As Maya, I want to re-log the same album multiple times. **AC:** New entry; prior entries preserved; album-page shows my full history.
 - [ ] **US-B5** As Casey, I want to edit or delete a diary entry. **AC:** Edit rating/Aux/review/visibility; soft-delete with 30d recovery; "edited" badge on changed entries.
-- [ ] **US-B6** As Casey (Spotify connected), I want a prompt when Spotify detects I just finished an album, so I capture the moment. **AC:** In-app prompt 5–15min after detection; opt-in push; per-album dismissal sticks 30d; quiet hours respected; per-user `auto_prompt_enabled` setting (default ON); one-tap "Disable auto-prompts" from the prompt menu.
+<!-- CR-001: US-B6 deferred — depends on streaming-platform listening-history API -->
+- [ ] **US-B6** **DEFERRED-TO-V2 (CR-001)** — *Original AC: in-app prompt 5–15min after a streaming-platform-detected just-finished album; opt-in push; per-album 30d dismissal; quiet hours; per-user `auto_prompt_enabled` (default ON).* Pending streaming-platform integration; structurally impossible without provider listening-history API.
 
 **Cluster C — Reviews + Likes + sort**
 
@@ -150,7 +170,8 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 **Cluster D — Backlog (Up Next)**
 
 - [ ] **US-D1** As Casey, I want to add an album to my private backlog. **AC:** "Add to Up Next" from album detail or Log flow; private by default.
-- [ ] **US-D2** As Casey, I want to view/reorder my backlog and deep-link to Spotify. **AC:** Drag-reorder persists; `spotify:album:ID` deep-link.
+<!-- CR-001: US-D2 deep-link replaced — streaming-platform deep-link removed at MVP -->
+- [ ] **US-D2** As Casey, I want to view/reorder my backlog and deep-link to an album. **AC:** Drag-reorder persists; deep-link to in-app album detail page only at MVP (external streaming-platform deep-links deferred to v2 alongside streaming integration).
 - [ ] **US-D3** As Casey, I want logged albums auto-removed from backlog. **AC:** Default behavior; per-user `keep_backlog_after_log` setting to override; toast confirms removal.
 
 **Cluster E — Social graph and discovery**
@@ -164,7 +185,8 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 **Cluster F — Album detail and catalog**
 
 - [ ] **US-F1** As Casey, the album detail page is the social hub. **AC:** SSR; cover, metadata, tracklist, my history, friends' ratings + Aux'd, public reviews list (sortable), Log + Up Next CTAs, OG meta. **Edition selector** chip when an album has multiple editions under the same release-group MBID (per Q15 / FR-028).
-- [ ] **US-F2** As Casey, I want to search the album catalog. **AC:** Atlas Search (cached) + Spotify search (uncached); ≥3 chars + 200ms debounce; "Report missing album" link on empty result.
+<!-- CR-001: US-F2 AC rewritten — Atlas/MusicBrainz/Discogs three-tier instead of Spotify -->
+- [ ] **US-F2** As Casey, I want to search the album catalog. **AC:** Atlas Search (cached MusicBrainz subset) + live MusicBrainz lookup on cache-miss + Discogs fallback for obscure pressings; ≥3 chars + 200ms debounce; "Report missing album" link on empty result.
 
 **Cluster G — Profile, settings, privacy**
 
@@ -192,11 +214,15 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 | ID | Requirement | Priority | Source story |
 |---|---|---|---|
-| FR-001 | Sign up via email/password or Spotify OAuth shortcut | Must | US-A1 |
-| FR-002 | Connect Spotify via OAuth 2.0 PKCE; optional and skippable. Scopes locked (5 essential, sync-fix Run #2 — per Q22 v1.3): `user-read-email`, `user-read-private`, `user-read-recently-played`, `user-read-currently-playing`, `user-library-read` | Must | US-A2 |
-| FR-003 | Auto-import last 30 days of recently-played on Spotify connect | Must | US-A3 |
+<!-- CR-001: FR-001 — OAuth shortcut clause removed -->
+| FR-001 | Sign up via email + password + handle (no music-service OAuth shortcut at MVP) | Must | US-A1 |
+<!-- CR-001: FR-002 — entire row deferred; kept for traceability -->
+| FR-002 | **DEFERRED-TO-V2 (CR-001)** — Connect streaming-platform via OAuth 2.0 PKCE; deferred until Extended Quota Mode policy allows pre-launch app review. | Deferred | US-A2 |
+<!-- CR-001: FR-003 — auto-import deferred with streaming integration -->
+| FR-003 | **DEFERRED-TO-V2 (CR-001)** — Auto-import last 30 days of recently-played on streaming-platform connect; deferred with FR-002. | Deferred | US-A3 |
 | FR-004 | Log an album with ½-star rating, Aux (🏅), and optional review in a single bottom sheet | Must | US-B1, US-B2, US-B3, US-C1 |
-| FR-005 | Album catalog search (Atlas Search + Spotify search merge) | Must | US-F2 |
+<!-- CR-001: FR-005 — search reframed as Atlas/MusicBrainz/Discogs three-tier -->
+| FR-005 | Album catalog search: Atlas Search (cached MusicBrainz subset) + live MusicBrainz lookup on cache-miss + Discogs fallback for obscure pressings | Must | US-F2 |
 | FR-006 | Add an album to "Up Next" (private backlog) | Must | US-D1 |
 | FR-007 | User has a chronological diary visible on their profile | Must | US-E2 |
 | FR-008 | Asymmetric follow / unfollow other users | Must | US-E1 |
@@ -208,18 +234,23 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 | FR-014 | Block and report | Must | US-G4 |
 | FR-015 | Critic-seed pre-checked cards on Follow 3 (opt-in default-tick; Q13) | Must | US-A4 |
 | FR-016 | Suggested follows based on mutual-taste heuristic | Must | US-E5 |
-| FR-017 | Last.fm history import as Spotify alternative | Should | US-H1 |
+<!-- CR-001: FR-017 — Last.fm import no longer makes sense without a streaming-history primary -->
+| FR-017 | **DEFERRED-TO-V2 (CR-001)** — Last.fm history import (was an alternative to streaming-platform auto-import); deferred because the streaming-history primary is itself deferred. | Deferred | US-H1 |
 | FR-018 | Export diary as JSON or CSV | Should | US-G5 |
 | FR-019 | Account deletion with 30-day grace period; cascading hard-delete | Must | US-G5 |
 | FR-020 | Client + server-side form validation | Must | (cross-cutting) |
 | ~~FR-021..FR-025~~ | *Reserved — were Lists FRs in R1, removed in R3 (Lists deferred to v2). IDs preserved for audit.* | — | — |
-| FR-026 | Just-finished auto-prompt (when Spotify connected); in-app default ON, push opt-in; quiet-hours respected; per-album 30d dismissal | Must | US-B6 |
-| FR-027 | Settings → Integrations: Spotify status, back-fill diary trigger, immutability on disconnect | Must | US-A2, US-G2 |
+<!-- CR-001: FR-026 deferred — depends on streaming-platform listening-history API -->
+| FR-026 | **DEFERRED-TO-V2 (CR-001)** — Just-finished auto-prompt; deferred with streaming-platform integration (structurally impossible without provider listening-history API). | Deferred | US-B6 |
+<!-- CR-001: FR-027 deferred — no integrations to surface at MVP -->
+| FR-027 | **DEFERRED-TO-V2 (CR-001)** — Settings → Integrations surface; deferred — returns when first streaming-platform integration ships in v2. | Deferred | US-A2, US-G2 |
 | FR-028 | Album detail Edition chip + dropdown for multi-edition release-groups | Must | US-F1 |
 | FR-029 | Handle change policy: immutable 30d post-creation, ≤1 change per 30d; ~200–500 squat reservations | Must | US-G1 |
 | FR-030 | Review edits: latest public + edited badge; 90d internal audit log; edit history NOT public | Must | US-C3 |
 | FR-031 | Like (👍) another user's review; idempotent toggle; counter on Review | Must | US-C4 |
 | FR-032 | Review sort by Newest (default) / Most Liked / Highest-Rated; persists per-device | Must | US-C2 |
+<!-- CR-001: FR-033 added — "Report missing album" workflow tied to manual-search empty-state -->
+| FR-033 | "Report missing album" workflow surfaced from manual-search empty-state: user submits artist + album + optional MBID/Discogs URL hint; report queued for catalog-team triage; user gets in-app confirmation. | Must | US-F2 |
 
 ---
 
@@ -227,14 +258,18 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 | Category | Requirement |
 |---|---|
-| Performance | p95 home feed load <500ms (SSR); p95 album detail <400ms; p99 Spotify 30-day import <8s end-to-end |
-| Availability | 99.5% monthly uptime at MVP; degrade gracefully when Spotify API unavailable (show cached data, queue writes) |
+<!-- CR-001: Performance — streaming-import row removed -->
+| Performance | p95 home feed load <500ms (SSR); p95 album detail <400ms |
+<!-- CR-001: Availability — streaming-API graceful-degrade clause removed -->
+| Availability | 99.5% monthly uptime at MVP |
 | Scalability | Sized for 10,000 concurrent users at peak (3× M6 WAL target) without architectural changes |
 | Accessibility | WCAG 2.1 AA — keyboard nav; screen-reader labels on rating widget + Aux + Like; contrast ≥4.5:1 on album-art-heavy surfaces; reduced-motion respect; touch targets ≥44pt on mobile |
 | Privacy | Public-by-default with per-entry opt-out; private-profile toggle; no third-party tracking beyond PostHog Cloud + Sentry (errors); no ad SDKs |
 | Security | OAuth tokens encrypted at rest; no refresh tokens client-side; rate limiting on log/follow/review/like endpoints; CSRF; bcrypt cost ≥12 |
-| Compliance | GDPR (export + erasure); Spotify ToS ("Powered by Spotify" attribution + branding compliance) |
-| Spotify rate limits | All Spotify calls server-side via async httpx; per-user circuit breaker; cache album metadata 7d; cache user listening 1h |
+<!-- CR-001: Compliance — streaming-ToS row removed -->
+| Compliance | GDPR (export + erasure) |
+<!-- CR-001: rate-limit row reframed for MusicBrainz primary + Discogs fallback -->
+| Catalog rate limits | MusicBrainz rate limit 1 req/sec per IP (server-side enforced); use Atlas Search cache for read-heavy paths; Discogs fallback governed by its own quota (server-side circuit breaker + retry-with-jitter) |
 | i18n / l10n | English-only at MVP; copy strings extracted to keys |
 | Mobile responsiveness | Mobile-first; PWA installable; breakpoint 768px |
 | SEO | Album detail + profile pages SSR with Open Graph meta; everything else CSR acceptable |
@@ -248,9 +283,10 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 |---|---|---|---|
 | p95 home feed load | PostHog `pageview.duration_ms` on `/` | p95 over trailing 7d windows, per-device-class | <500ms |
 | p95 album detail load | PostHog `pageview.duration_ms` on `/album/*` | p95 over trailing 7d | <400ms |
-| Spotify import p99 | Backend trace `spotify.import.completed_at - started_at` | p99 over trailing 7d | <8s |
+<!-- CR-001: streaming-import p99 row removed (FR-003 deferred) -->
 | Uptime | Synthetic check + Sentry availability monitor | Monthly uptime % | ≥99.5% |
-| Spotify API error rate | Backend trace counter `spotify.api.4xx + 5xx / total` | per-5-min window | <2% |
+<!-- CR-001: streaming-API error-rate row replaced with catalog-API error rate -->
+| Catalog API error rate | Backend trace counter `catalog.api.4xx + 5xx / total` (MusicBrainz primary + Discogs fallback) | per-5-min window | <2% |
 | Notification rate per user | Backend counter — notifications dispatched per user per week | trailing 7d, p95 | <12 (excluding digest) |
 | Report → resolution time | Admin event `report.resolved.at - report.created.at` | median across active reports | <72h |
 | Account deletion rate | Backend counter `account.deletion.confirmed / MAU` | per calendar month | <1% |
@@ -266,7 +302,8 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 ### Integration points
 
-**Greenfield project** — no existing application code; the project root is Spec Kit scaffolding only. All integration points are NEW modules. Spotify Web API is the primary external integration. MusicBrainz + Discogs are secondary metadata sources (lazy-fetched, cached).
+<!-- CR-001: external integrations reframed — MusicBrainz primary + Discogs fallback; streaming-platform integration deferred -->
+**Greenfield project** — no existing application code; the project root is Spec Kit scaffolding only. All integration points are NEW modules. **MusicBrainz** is the primary catalog integration with **Discogs** as a fallback for obscure pressings. Streaming-platform integration is **DEFERRED-TO-V2 (CR-001)** — the `MusicProvider` Protocol abstraction is retained (per CR-001 decision #3) so v2 integration is a single new implementation without architectural rework. MVP ships **one impl per provider kind**: one `CatalogProvider` chain (MusicBrainz → Discogs) and zero active `MusicProvider` impls (Protocol defined, no production impl).
 
 ### Reusable components
 
@@ -276,23 +313,33 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 
 | Layer | Module | Responsibility |
 |---|---|---|
-| Backend | `auth` | OAuth flows (Spotify + email/password), session management, handle policy enforcement |
-| Backend | `providers/spotify` | All Spotify API calls behind a `MusicProvider` interface; recently-played polling; just-finished detection; album catalog fetch |
-| Backend | `providers/musicbrainz` | MBID lookup + release-group reconciliation |
-| Backend | `albums` | Canonical Album records; identity normalization (MBID canonical / Spotify fallback); cache TTL; Edition aggregation |
+<!-- CR-001: auth module — OAuth-flows-mentioning-streaming-platform reduced to email/password only at MVP -->
+| Backend | `auth` | Email + password sign-up and login flows, session management, handle policy enforcement (streaming-platform OAuth flow **deferred to v2** with FR-002) |
+<!-- CR-001: providers/spotify module replaced with providers/musicbrainz primary + providers/discogs fallback behind CatalogProvider Protocol -->
+| Backend | `providers/musicbrainz` | All MusicBrainz API calls behind a `CatalogProvider` Protocol; release-group MBID lookup + reconciliation; album catalog fetch; 1 req/sec rate-limit handling |
+<!-- CR-001: new module for Discogs fallback -->
+| Backend | `providers/discogs` | Fallback `CatalogProvider` impl for obscure pressings not in MusicBrainz; quota-aware retry-with-jitter |
+<!-- CR-001: MusicProvider Protocol retained but no production impl at MVP -->
+| Backend | `providers/_base` | `MusicProvider` + `CatalogProvider` Protocols (kept per CR-001 decision #3); MVP ships zero `MusicProvider` impls, two `CatalogProvider` impls (MusicBrainz, Discogs) |
+<!-- CR-001: albums identity now MBID-only at MVP -->
+| Backend | `albums` | Canonical Album records; identity normalization (MBID canonical at MVP; streaming-platform-ID fallback **deferred to v2**); cache TTL; Edition aggregation |
 | Backend | `diary` | DiaryEntry CRUD; visibility evaluation; soft-delete + 30d grace; relisten support |
 | Backend | `reviews` | Review CRUD; markdown-safe rendering; edit history (90d internal); like-toggle + likes_count denormalization |
 | Backend | `backlog` | Per-user Backlog + BacklogItem; auto-remove-on-log behavior |
 | Backend | `social` | Follow / unfollow; block; suggested follows job; mutual-taste scoring |
 | Backend | `feed` | Home feed read (fan-out-on-read at MVP); weighted ordering; "Latest" toggle |
 | Backend | `notifications` | Dispatcher; per-channel adapters (in-app, email, push); coalescer + rate-limit; weekly digest job |
-| Backend | `prompts` | JustFinishedPrompt lifecycle; Spotify polling; quiet hours; per-album dismissal |
+<!-- CR-001: prompts module deferred — JustFinishedPrompt cluster moved to v2 -->
+| Backend | `prompts` | **DEFERRED-TO-V2 (CR-001)** — JustFinishedPrompt lifecycle depends on streaming-platform listening-history API. Module spec retained for v2 plan. |
 | Backend | `seeding` | CriticSeed roster; pre-checked card ordering; analytics on opt-out rate |
 | Backend | `moderation` | Report queue; daily-log-scan for ≥3-report threshold |
-| Backend | `search` | Atlas Search index; Spotify search fallback |
+<!-- CR-001: search module reframed — Atlas + MusicBrainz live + Discogs fallback (no streaming-platform search) -->
+| Backend | `search` | Atlas Search index over a cached MusicBrainz subset; live MusicBrainz lookup on cache-miss; Discogs fallback for obscure pressings |
 | Backend | `data-export` | GDPR JSON/CSV export job; deletion grace + cascade |
-| Frontend | `app/(auth)` | Sign-up, login, OAuth redirect |
-| Frontend | `app/(onboarding)` | 5-step flow with Spotify Skip |
+<!-- CR-001: app/(auth) module — OAuth-redirect path deferred -->
+| Frontend | `app/(auth)` | Sign-up + login (email/password); OAuth redirect deferred to v2 with FR-002 |
+<!-- CR-001: onboarding flow reframed signup → handle → follow ≥3 critics → critic-seed feed -->
+| Frontend | `app/(onboarding)` | Streamlined flow: signup → handle → follow ≥3 critics → critic-seed feed (no music-service auth step at MVP) |
 | Frontend | `app/(feed)` | Home feed; "Latest" toggle; entry cards |
 | Frontend | `app/album/[id]` | Album detail; Edition chip; sortable reviews; friends section |
 | Frontend | `app/@[handle]` | Profile; diary; filters (Aux'd, public-only) |
@@ -304,12 +351,15 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 
 ### Data model impact
 
-16 active entities (see [product-spec/data-model.md](./product-spec/data-model.md) for field-level sketch; count reconciled with ReviewLike in sync-verify Run #2). Final indexes + collection layout in Phase 5.
+<!-- CR-001: active-entity count drops MVP-active count to 15 (JustFinishedPrompt deferred); schema row kept in table for v2 traceability -->
+16 entities listed below; **15 active at MVP** (JustFinishedPrompt **deferred to v2 per CR-001**). See [product-spec/data-model.md](./product-spec/data-model.md) for field-level sketch; count reconciled with ReviewLike in sync-verify Run #2. Final indexes + collection layout in Phase 5.
 
 | Entity | Notes |
 |---|---|
-| User, MusicProvider | Embedded music_providers; encrypted tokens; auto_prompt_enabled flag |
-| Album | MBID canonical + Spotify ID fallback; 7d cache; tracklist denormalized at MVP |
+<!-- CR-001: User/MusicProvider — embedded music_providers retained for v2; auto_prompt_enabled flag scoped to v2 cluster -->
+| User, MusicProvider | Embedded music_providers (schema kept for v2 — no production impl at MVP per CR-001); encrypted tokens; auto_prompt_enabled flag **deferred to v2 (CR-001)** |
+<!-- CR-001: Album identity simplified to MBID canonical only at MVP (Spotify ID fallback deferred) -->
+| Album | MBID canonical at MVP (streaming-platform ID fallback **deferred to v2 (CR-001)**); 7d cache; tracklist denormalized at MVP |
 | DiaryEntry | The central activity record; `auxed` boolean (renamed from `hearted` in R1); soft-delete 30d |
 | Review | 1:1 optional with DiaryEntry; `reactions.likes_count` (R3 rename); 90d edit-history retained internally |
 | ReviewLike *(new in R3)* | Per-user-per-review like records for idempotent toggle and Most Liked sort |
@@ -317,7 +367,8 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 | Follow, Block | Asymmetric follows; cascading dissolve on block |
 | Report | Open / reviewing / actioned / dismissed; 90d resolution audit |
 | Notification, NotificationPreferences | 18 active types; per-channel + quiet-hours |
-| JustFinishedPrompt *(new in R1)* | Pending / dismissed / logged / expired lifecycle |
+<!-- CR-001: JustFinishedPrompt entity deferred — cluster moves to v2 with streaming integration -->
+| JustFinishedPrompt *(new in R1)* | **DEFERRED-TO-V2 (CR-001)** — Pending / dismissed / logged / expired lifecycle; entity schema kept in spec for v2 planning, not implemented at MVP. |
 | SuggestedFollow | Precomputed offline; dismissed exclusion 30d |
 | CriticSeed | Editorial roster; `active` toggle; priority ranking for Follow-3 |
 
@@ -334,7 +385,8 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 | Background jobs | arq + Redis (research recommended over Celery for FastAPI-native async) | Confirm |
 | Database | MongoDB Atlas | Locked by config |
 | Search | Atlas Search (native to MongoDB Atlas) | Locked |
-| Cover-art | Proxy Spotify CDN (DM-2 decision); no S3 cache | Locked |
+<!-- CR-001: cover-art source migrates to Cover Art Archive (MusicBrainz-linked) + Discogs image URL fallback; no streaming-platform CDN at MVP -->
+| Cover-art | Cover Art Archive (MusicBrainz-linked) primary + Discogs image URL fallback; no S3 cache. (Original DM-2 streaming-CDN-proxy decision **superseded by CR-001**.) | Locked (revised CR-001) |
 | Recommendation engine | Heuristic social-graph at MVP; no ML/ALS | Locked (ALS deferred to v2) |
 
 ### Codebase constraints
@@ -342,13 +394,18 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 | Constraint | Source | Impact on design |
 |---|---|---|
 | Constitution gap | `.specify/memory/constitution.md` is template-only | **Phase 5 MUST** ratify principles as Task 0 before any feature work |
-| Provider-interface abstraction | Decision-log structural decisions | Every external music API call goes through `MusicProvider` interface; future-proofs against Spotify deprecations |
-| Album-identity normalization | Decision Q15 | All album references resolve through MBID-canonical / Spotify-fallback; cascades through search, dedup, recs, analytics |
-| External-call resilience | Recommended principle from research | Retry + timeout + circuit breaker on every Spotify call |
+<!-- CR-001: provider abstraction reframed — MusicProvider Protocol kept (per CR-001 decision #3); CatalogProvider added -->
+| Provider-interface abstraction | Decision-log structural decisions + CR-001 #3 | Every external API call goes through a typed Protocol (`MusicProvider` for streaming, `CatalogProvider` for catalog); MVP ships one `CatalogProvider` chain (MusicBrainz → Discogs) and zero `MusicProvider` impls. Protocol retained so v2 streaming integration is additive. |
+<!-- CR-001: album-identity normalization simplified — MBID canonical only at MVP -->
+| Album-identity normalization | Decision Q15 (revised CR-001) | All album references resolve through MBID-canonical at MVP; streaming-platform-ID fallback deferred to v2. Cascades through search, dedup, analytics. |
+<!-- CR-001: external-call resilience now scoped to MusicBrainz + Discogs -->
+| External-call resilience | Recommended principle from research | Retry + timeout + circuit breaker on every MusicBrainz + Discogs call; respect 1 req/sec MusicBrainz IP limit. |
 | Schema versioning | Recommended principle | Every Mongo document carries `_schema_version` int |
-| Test-first for catalog + auth edges | Recommended principle | Contract tests for Spotify integration + auth flow before implementation |
+<!-- CR-001: test-first scope narrowed — auth + catalog edges only at MVP -->
+| Test-first for catalog + auth edges | Recommended principle | Contract tests for MusicBrainz + Discogs integrations + email/password auth flow before implementation. |
 | Observability mandatory | Recommended principle | Every external call logged with provider/latency/status |
-| Spotify Extended Quota Mode | External dependency | 2–6 week review on critical path; **submit Day 1 of plan**; design closed-beta wave inside Development Mode quotas as fallback |
+<!-- CR-001: Extended Quota Mode row removed from MVP critical path — no longer a gating dependency -->
+| ~~Streaming-platform Extended Quota Mode~~ | ~~External dependency~~ | **REMOVED-AT-MVP (CR-001)** — no streaming-platform integration at MVP; gating dependency eliminated. Row preserved (struck through) for audit trail. |
 
 ---
 
@@ -356,17 +413,23 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 
 The feature is complete when:
 
-1. All 30 Must-Have user stories pass their G/W/T acceptance criteria.
+<!-- CR-001: AC #1 — Must-Have count drops; US-A2/A3/B6 deferred -->
+1. All Must-Have user stories that remain in scope at MVP pass their G/W/T acceptance criteria (US-A2, US-A3, US-B6 are **DEFERRED-TO-V2 (CR-001)** and are not counted against MVP completion).
 2. Wireframes match implementation within acceptable visual deviation (designed on PWA-default styles).
 3. Performance NFRs are met as measured by the NFR Measurement Contract (§6.1).
 4. WCAG 2.1 AA passes automated (axe-core) + manual keyboard-nav audit on every screen.
-5. Spotify Extended Quota Mode is approved and the production app is operating outside Development Mode quotas.
+<!-- CR-001: AC #5 — Extended Quota Mode dependency removed at MVP -->
+5. **REMOVED-AT-MVP (CR-001)** — *Original: Extended Quota Mode is approved and the production app is operating outside Development Mode quotas.* No streaming-platform gating dependency at MVP.
 6. Constitution is ratified at `.specify/memory/constitution.md` (per Phase 5 Task 0).
 7. Critic-seed roster: ≥25 active seed accounts onboarded pre-public-launch (per [seeding-strategy.md](./product-spec/seeding-strategy.md) playbook).
 8. Notification rate-limits and quiet hours are verified end-to-end (no Goodreads-firehose regressions).
-9. Spotify OAuth + auto-import + just-finished prompt flows are verified with at least 5 real user-side tests.
-10. Disconnect → diary immutability is verified (data persists; reconnect resumes cleanly without back-fill).
+<!-- CR-001: AC #9 — streaming-platform OAuth + import + prompt flows deferred -->
+9. **DEFERRED-TO-V2 (CR-001)** — *Original: streaming-platform OAuth + auto-import + just-finished prompt flows verified with ≥5 real user-side tests.* Returns when streaming-platform integration ships in v2.
+<!-- CR-001: AC #10 — disconnect flow moot at MVP -->
+10. **DEFERRED-TO-V2 (CR-001)** — *Original: disconnect → diary immutability is verified.* Moot at MVP (no streaming-platform connect path); returns with v2 integration.
 11. Aux (🏅) vs Like (👍) semantics are consistent: never confused in UI, copy, notifications, or API.
+<!-- CR-001: new AC for catalog-search resilience at MVP -->
+12. Manual catalog search end-to-end is verified: MusicBrainz hit → Discogs fallback on miss → "Report missing album" workflow on empty result (FR-033).
 
 ---
 
@@ -381,7 +444,8 @@ The feature is complete when:
 | WAL (North Star) | 500 | 2,500 |
 | W1 activation rate (new signups logging ≥3 albums in first week) | 30% | 35% |
 | D30 retention | 8% | 12% |
-| Social-originated play rate (`Listen on Spotify` from feed or friend surface vs profile/search) | 25% | 40% |
+<!-- CR-001: social-originated metric reframed — no streaming-platform deep-link at MVP; measure social-originated album-detail opens instead -->
+| Social-originated album-detail opens (album-detail page opened from feed or friend surface vs profile/search) | 25% | 40% |
 | Reviews per WAL | 0.5 | 0.8 |
 | Follow graph density (median follows per WAL) | 5 | 12 |
 | Backlog → Log conversion (within 30d of add) | 30% | 45% |
@@ -398,8 +462,10 @@ The feature is complete when:
 
 | Module / Service | Target | Type |
 |---|---|---|
-| `providers/spotify` | ≥85% | unit + integration (contract tests against Spotify sandbox) |
-| `albums` (identity normalization) | ≥85% | unit (MBID + Spotify fallback paths; Edition aggregation) |
+<!-- CR-001: provider coverage retargeted to MusicBrainz + Discogs (streaming-platform provider deferred) -->
+| `providers/musicbrainz` + `providers/discogs` | ≥85% | unit + integration (contract tests against MusicBrainz + Discogs sandboxes); streaming-platform provider **DEFERRED-TO-V2 (CR-001)** |
+<!-- CR-001: albums coverage — only MBID-canonical path at MVP -->
+| `albums` (identity normalization) | ≥85% | unit (MBID canonical path; Edition aggregation; streaming-platform fallback path **deferred to v2 (CR-001)**) |
 | `diary` + `reviews` | ≥80% | unit + integration |
 | `social` (follow, block, suggestions) | ≥80% | unit + integration |
 | `feed` (weighted ordering) | ≥80% | unit + property tests on weight calc |
@@ -416,11 +482,14 @@ The feature is complete when:
 | TC-001 | Log + ½-star + Aux an album in <8 seconds (server-measured) | DiaryEntry created with all three; commit time recorded | integration |
 | TC-002 | Log without rating (just confirm album) | Entry saves with null rating, null Aux; no errors | unit |
 | TC-003 | Re-log same album | Two DiaryEntry records with different `logged_at`; both visible in user's diary | integration |
-| TC-004 | Spotify OAuth with all three scopes | Tokens stored encrypted; refresh works; revoke handled | integration |
-| TC-005 | Spotify OAuth with permission denied for one scope | Friendly error; user can retry or skip | integration |
-| TC-006 | 30-day Spotify import with 50+ albums | Dedupes to album-grain; preserves timestamps; <8s p99 | integration |
-| TC-007 | Spotify API 429 (rate limit) | Circuit-breaker engages; client sees friendly degradation | unit + integration |
-| TC-008 | Album with MBID and Spotify ID | Canonical Album record has both; subsequent lookups reuse | unit |
+<!-- CR-001: TC-004/005/006 deferred — streaming-platform OAuth/import flows out at MVP -->
+| TC-004 | **DEFERRED-TO-V2 (CR-001)** — *Original: streaming-platform OAuth with all required scopes.* | n/a at MVP | integration |
+| TC-005 | **DEFERRED-TO-V2 (CR-001)** — *Original: streaming-platform OAuth with permission denied for one scope.* | n/a at MVP | integration |
+| TC-006 | **DEFERRED-TO-V2 (CR-001)** — *Original: 30-day streaming-platform import with 50+ albums.* | n/a at MVP | integration |
+<!-- CR-001: TC-007 retargeted to MusicBrainz/Discogs rate-limit handling -->
+| TC-007 | MusicBrainz 503 / 429 (rate limit) + Discogs fallback 429 | Per-provider circuit-breaker engages; retry-with-jitter applied; client sees friendly degradation; "Report missing album" still works | unit + integration |
+<!-- CR-001: TC-008 narrowed to MBID-canonical only at MVP -->
+| TC-008 | Album with MBID; same album discovered via Discogs fallback | Canonical Album record keyed on MBID; Discogs result reconciles to MBID where possible; subsequent lookups reuse | unit |
 | TC-009 | Album with no MBID (fresh release) | Candidate record created; reconciles when MusicBrainz updates | unit + integration |
 | TC-010 | Multi-edition album (Standard + Deluxe + Bonus) | Single canonical record; Edition selector aggregates ratings/reviews/likes across editions | unit |
 | TC-011 | Public diary entry, viewer follows owner | Entry visible | unit (visibility matrix) |
@@ -430,11 +499,13 @@ The feature is complete when:
 | TC-015 | Like a review (idempotent toggle) | First tap creates ReviewLike + increments counter + N-004; second tap removes both, no N-004 | unit + integration |
 | TC-016 | Like own review | UI disabled with tooltip; API rejects | unit |
 | TC-017 | Sort reviews by Most Liked | Result order matches `reactions.likes_count` desc within tier | unit |
-| TC-018 | Just-finished detection (Spotify recently-played shows completed album) | JustFinishedPrompt created; surfaces in-app within 5–15 min | integration |
+<!-- CR-001: TC-018 deferred — depends on streaming-platform listening-history API -->
+| TC-018 | **DEFERRED-TO-V2 (CR-001)** — *Original: just-finished detection via streaming-platform recently-played.* | n/a at MVP | integration |
 | TC-019 | Just-finished during quiet hours | No push; in-app prompt deferred to next non-quiet open | integration |
 | TC-020 | Per-album auto-prompt dismissal | Same album does not re-prompt for 30 days | unit |
 | TC-021 | User disables auto-prompts | No prompts surface even if detection fires | unit |
-| TC-022 | Spotify disconnect | All existing entries persist; auto-import + auto-prompt + prefill stop; reconnect resumes without gap back-fill | integration |
+<!-- CR-001: TC-022 deferred — disconnect path moot at MVP -->
+| TC-022 | **DEFERRED-TO-V2 (CR-001)** — *Original: streaming-platform disconnect → diary immutability; auto-import + prompt + prefill stop; reconnect without back-fill.* | n/a at MVP | integration |
 | TC-023 | Handle change during 30-day lock | API rejects; UI shows next-available date | unit |
 | TC-024 | Reserved-squat handle claim | API rejects; verification flow link shown | unit |
 | TC-025 | Review edit | Latest version public; "edited" badge; 90d internal history written | unit + integration |
@@ -450,15 +521,19 @@ The feature is complete when:
 
 | TC-ID | Scenario | Entry | Exit |
 |---|---|---|---|
-| TC-E2E-001 | Full onboarding (Spotify connected) | Landing page invite link | Home feed with ≥5 entries |
-| TC-E2E-002 | Full onboarding (Spotify skipped) | Landing page direct | Home feed with critic-seed entries only |
+<!-- CR-001: TC-E2E-001 deferred — streaming-connected onboarding path moves to v2 -->
+| TC-E2E-001 | **DEFERRED-TO-V2 (CR-001)** — *Original: full onboarding with streaming-platform connected.* | n/a at MVP | n/a at MVP |
+<!-- CR-001: TC-E2E-002 retargeted as THE canonical MVP onboarding flow (signup → handle → follow ≥3 critics → critic-seed feed) -->
+| TC-E2E-002 | Full onboarding (MVP canonical: signup → handle → follow ≥3 critics → critic-seed feed) | Landing page direct | Home feed with ≥5 critic-seed entries |
 | TC-E2E-003 | Log + rate + Aux + review an album in <25s | Home feed | Entry visible in diary |
-| TC-E2E-004 | Discover album via social feed → Listen on Spotify | Home feed | Spotify deep-link fired (mocked) |
+<!-- CR-001: TC-E2E-004 deferred — streaming-platform deep-link removed at MVP -->
+| TC-E2E-004 | **DEFERRED-TO-V2 (CR-001)** — *Original: discover album via social feed → streaming-platform deep-link.* | n/a at MVP | n/a at MVP |
 | TC-E2E-005 | Like a review → reviewer sees N-004 notification | Album detail page | Notification visible in reviewer's session |
 | TC-E2E-006 | Sort reviews by Most Liked | Album detail | Result order changes; persistence across reload |
 | TC-E2E-007 | Add album to Up Next, later log it, verify auto-remove | Album detail | Backlog reflects removal; toast confirms |
-| TC-E2E-008 | Just-finished prompt: appears, log from prompt | Home feed (with mocked Spotify event) | Diary entry created with `source: spotify_just_finished_prompt` |
-| TC-E2E-009 | Settings → disable auto-prompts → verify no prompts | Settings | Subsequent detection produces no UI |
+<!-- CR-001: TC-E2E-008/009 deferred — Just-finished prompt cluster moves to v2 -->
+| TC-E2E-008 | **DEFERRED-TO-V2 (CR-001)** — *Original: just-finished prompt appears + log from prompt.* | n/a at MVP | n/a at MVP |
+| TC-E2E-009 | **DEFERRED-TO-V2 (CR-001)** — *Original: Settings → disable auto-prompts → verify no prompts.* | n/a at MVP | n/a at MVP |
 | TC-E2E-010 | Edit profile + change handle (after 30d lock) | Settings → Profile | Handle changes; old URL redirects |
 | TC-E2E-011 | Block a user → verify content hiding both ways | Other user's profile | Profile shows "Blocked"; content hidden |
 | TC-E2E-012 | Export data → receive email with JSON+CSV | Settings → Data | Email received (mocked); contains diary + reviews |
@@ -471,13 +546,19 @@ The feature is complete when:
 | Risk | Impact | Mitigation |
 |---|---|---|
 | H1 (user-research validation) never confirms | High | Run the [interview script](./problem-discovery/interview-script.md) during early-access wave; treat first 8 weeks of live metrics as the real validation gate; M3 pivot/shutdown decision point if WAL <50% of target |
-| Spotify changes API terms / further endpoint deprecation | High | Provider-interface abstraction; degrade gracefully; Apple Music ready as v2 fallback |
-| Extended Quota Mode application denied or stuck | Medium | Apply Day 1 of plan; design closed-beta wave entirely inside Development Mode quotas |
+<!-- CR-001: streaming-platform API-deprecation risk re-scoped — risk applies only post-v2 -->
+| Streaming-platform API terms change / endpoint deprecation | Low at MVP / Medium at v2 | Risk is dormant at MVP (no streaming integration); `MusicProvider` Protocol kept ready so v2 integration is additive. **CR-001 (2026-05-22)** demoted this risk from High → Low at MVP. |
+<!-- CR-001: Extended Quota Mode risk eliminated at MVP -->
+| ~~Extended Quota Mode application denied or stuck~~ | ~~Medium~~ | **REMOVED-AT-MVP (CR-001)** — Extended Quota Mode requires 250k MAUs and is unreachable pre-launch; streaming-platform integration deferred to v2. Risk row preserved (struck through) for audit. |
 | Cold-start ghost-town — seed graph doesn't compound | High | Seeding strategy launched as a project alongside the product, not a marketing afterthought; founder-curated critic seed must be live before public access |
+<!-- CR-001: cold-start ghost-town risk amplified — first-session non-empty now depends ENTIRELY on critic seed (no streaming fallback) -->
+| Cold-start critic-seed under-delivery | High (new at CR-001) | First-session non-emptiness now depends *entirely* on critic-seed activity (no streaming auto-import fallback); seeding-strategy.md targets MUST be hit pre-public-launch. CR-001 raises the criticality of pre-launch critic recruitment. |
 | Notification firehose drives churn (Goodreads pattern) | High | Conservative defaults; granular per-type per-channel toggles; weekly digest primary mode |
-| Music metadata quality | Medium | MBID canonical + Spotify fallback; Edition selector merges deluxe/remasters; user "report wrong album" surface |
+<!-- CR-001: music metadata quality mitigation reframed — MBID canonical, Discogs fallback, FR-033 user report -->
+| Music metadata quality | Medium | MBID canonical via MusicBrainz; Discogs fallback for obscure pressings; Edition selector merges deluxe/remasters; FR-033 "Report missing album" user surface |
 | Privacy / safety incident | High | Block + report from MVP; private-profile toggle; rate-limit follows; explicit ToS |
-| Search returns irrelevant results | Medium | Start with Spotify search as primary, Atlas as fallback; iterate index after launch |
+<!-- CR-001: search-relevance mitigation reframed — Atlas-cached MusicBrainz + live MusicBrainz + Discogs three-tier -->
+| Search returns irrelevant results | Medium | Three-tier search: Atlas Search (cached MusicBrainz subset) → live MusicBrainz on cache-miss → Discogs fallback; iterate index after launch; "Report missing album" closes the loop on empty results |
 | Performance regression at 5k+ users due to feed fan-out | Medium | Fan-out-on-read at MVP; switch to fan-out-on-write only if p95 >200ms; load-modeling in Phase 5 |
 | Content moderation load exceeds founder bandwidth | Medium | Daily log-scan workflow at MVP; cap feature growth; ToS + guidelines clear from day one |
 
@@ -499,7 +580,8 @@ Phase 5 (plan) **must** read these supporting docs in addition to this spec.md:
 2. [product-spec/data-model.md](./product-spec/data-model.md) — 16 active entities + relationships + preliminary indexes
 3. [product-spec/notification-taxonomy.md](./product-spec/notification-taxonomy.md) — 18 active notification types with defaults (load-bearing — wrong notification design = Goodreads-style churn)
 4. [product-spec/seeding-strategy.md](./product-spec/seeding-strategy.md) — 4-pronged cold-start playbook (launch infrastructure, not marketing)
-5. [research/tech-stack.md](./research/tech-stack.md) — Spotify API audit (H4 critical findings, Extended Quota Mode dependency)
+<!-- CR-001: tech-stack reading reframed — original Extended Quota Mode dependency superseded by CR-001 -->
+5. [research/tech-stack.md](./research/tech-stack.md) — streaming-platform API audit (H4 critical findings) is **historical context only** at MVP per CR-001; current catalog stack is MusicBrainz primary + Discogs fallback (no Extended Quota gate to clear).
 6. [research/codebase-analysis.md](./research/codebase-analysis.md) — greenfield analysis + recommended constitution principles
 
 Phase 5's Task 0 should be: **Ratify the project constitution** (currently template-only) with the 5 recommended principles from research/codebase-analysis.md or a founder-defined alternative.
@@ -517,3 +599,5 @@ This spec.md is generated from a product-spec that went through 3 revisions in P
 | v1.2 | 2026-05-21 | R2: All 30 open questions resolved with locked decisions; FRs 028–030 added |
 | v1.3 | 2026-05-21 | R3: Removed "say more" prompt; split Aux (🏅 self) / Like (👍 social); added Likes + sort; reverted Lists to v2; FRs 031–032 added; ReviewLike entity added |
 | **spec.md** | **2026-05-21** | **Generated by Phase 4 Bridge from product-spec v1.3** |
+<!-- CR-001: change-request row appended -->
+| **CR-001** | **2026-05-22** | **All streaming-platform integration deferred to v2 (Extended Quota Mode now requires 250k MAUs — structurally unreachable pre-launch). MVP becomes Letterboxd-style manual search via MusicBrainz primary + Discogs fallback. US-A2/A3/B6 deferred; FR-002/003/017/026/027 deferred; FR-033 added (Report missing album); JustFinishedPrompt cluster deferred; MusicProvider Protocol kept for v2 additive integration. Decision row #18 added to §0.** |

@@ -12,44 +12,40 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 
 ## Cluster A — Onboarding & first-session activation (Must Have)
 
-### S-A1: Sign up with email or Spotify shortcut
+<!-- CR-001: S-A1 rewritten — email + password + handle is the only signup at MVP; streaming-OAuth shortcut deferred to v2. -->
+### S-A1: Sign up with email + password
 **As Casey,** I want to sign up in under 60 seconds, so that I don't bounce before seeing any value.
 
 **AC:**
-- Given I'm on the landing page, When I click "Get started with Spotify", Then I am redirected to Spotify OAuth and on consent return to step 2 of onboarding with an account auto-created using my Spotify display name and email.
-- Given I prefer email signup, When I provide email + password + handle, Then my account is created and I'm asked to connect Spotify next (skippable but discouraged).
+- Given I'm on the landing page, When I tap "Sign up", Then I see a single-screen form for email + password + handle.
+- Given I provide a valid email + password + an available handle, When I submit, Then my account is created and I advance to the "Follow ≥3 critics" step.
 - Given my chosen handle is taken, When I submit, Then I see an inline error with 3 suggested alternatives.
-- **Edge: deleted-account email collision (Phase 5C decision):** Given the email I'm signing up with is tied to an account in `status: deleted` (grace period), When I submit (via either signup method), Then I see a "This email is tied to an account scheduled for deletion. Restore your account?" page with a Restore CTA that requires re-authentication. New account creation is REFUSED.
-- **Edge: Spotify-OAuth email matches existing email/password account (Phase 5C decision):** Given Spotify OAuth returns an email matching an existing ACTIVE auxd account, When the OAuth callback fires, Then I see a "Connect Spotify to your existing account?" page that requires my existing auxd password to confirm identity. On confirm, the Spotify `MusicProvider` sub-doc attaches to the existing User. Silent auto-link is NEVER performed.
+- **Edge: deleted-account email collision (Phase 5C decision):** Given the email I'm signing up with is tied to an account in `status: deleted` (grace period), When I submit, Then I see a "This email is tied to an account scheduled for deletion. Restore your account?" page with a Restore CTA that requires re-authentication. New account creation is REFUSED.
+<!-- CR-001 removed: streaming-OAuth-email-matches-existing-account edge case — N/A at MVP, returns when streaming integration ships in v2 -->
 
-### S-A2: Optionally connect Spotify and auto-import recent listens
-**As Casey,** I want the option to connect Spotify and auto-import my last 30 days, so my first session shows something real — but I also want to be able to skip Spotify entirely and still use auxd fully.
 
-**AC:**
-- Given I'm on the Spotify auth step, When the screen renders, Then I see a clear primary CTA "Connect Spotify" and an equally visible secondary "Skip — connect later" link, plus an explanation of what Spotify connect enables.
-- Given I tap Skip, When I confirm, Then I advance to "Follow 3" with critic-seed-only suggestions; my account is fully functional (manual log, reviews, backlog, auxes all work); no "degraded mode" indicator is shown anywhere.
-- Given I authorized Spotify, When the import completes, Then my diary shows up to 50 deduped album entries from the last 30 days with timestamps preserved.
-- Given the import is taking >5s, When I'm on the import screen, Then I see a progress indicator with the count of albums found and a "Continue without waiting" link.
-- Given Spotify returns no recent listens, When the import completes, Then I see a friendly empty state with a "Log your first album manually" CTA.
-- Given I skipped Spotify at signup, When I later open Settings → Integrations and tap Connect Spotify, Then OAuth runs and (on success) the same 30-day import auto-runs to back-fill my diary.
-
-### S-A3: Confirm and ½-star recent listens
-**As Casey,** I want to rate my standout listens from the past 30 days in <60 seconds, so that my diary captures my actual taste signal.
+<!-- CR-001: S-A2 rewritten — streaming connect and auto-import are deferred to v2; first-session content comes from the critic-seed feed only. -->
+### S-A2: Land on a non-empty critic-seed feed (no diary to start)
+**As Casey,** I want my first sight of the home feed to be populated with real content even though my own diary is empty, so I understand the product immediately.
 
 **AC:**
-- Given the import succeeded, When I see the "Confirm your last 30 days" screen, Then I'm shown my top 5 albums (by play time) as tappable cards with a ½-star rating widget per card.
-- Given I tap a star, When I commit, Then the rating saves immediately (optimistic UI) and is reflected in my diary.
-- Given I want to skip, When I tap "Skip", Then I advance to the next onboarding step without ratings.
+- Given I've completed signup and the Follow ≥3 critics step, When I land on home, Then I see entries from the critics I just followed in reverse-chronological order, with at least 5 entries visible from the past 14 days.
+- Given my own diary is empty (no logs yet), When I view my profile, Then I see an "empty diary — log your first album" CTA that opens the manual-search Log sheet.
+- Given the critic-seed feed has <5 entries from the people I just followed, When I land on home, Then the feed is padded with additional critic-seed activity from the broader roster.
 
-### S-A4: Follow 3 to fill the feed
-**As Casey,** I want to follow a small starter set of accounts during onboarding, so that my home feed has content when I land on it.
+<!-- CR-001: S-A3 deferred to v2 — there's no streaming-history confirm step at MVP. Story marker preserved as DEFERRED-TO-V2 for traceability. -->
+### S-A3: *(DEFERRED-TO-V2)* Confirm and ½-star recent listens
+*(was: confirm-your-last-30-days screen after streaming auto-import. CR-001 / R4 defers this story to v2 alongside the streaming-integration cluster. Body preserved in git history; intentionally omitted here to keep the MVP user-stories surface honest.)*
+
+<!-- CR-001: S-A4 reframed — without streaming-imported taste data, we only show critic-seed cards (no mutual-taste suggestions yet); minimum follow count raised from 1 to 3 to ensure a populated feed at first session. -->
+### S-A4: Follow ≥3 critics to fill the feed
+**As Casey,** I want to follow a small starter set of critics during onboarding, so that my home feed has content when I land on it.
 
 **AC:**
-- Given I'm in the "Follow 3 to fill your feed" step, When I see the screen, Then I'm shown a mix of (a) up to 6 critic-seed accounts, (b) up to 4 mutual-taste suggestions based on my just-imported listens. The top 6 visible cards always include ≥3 critics (per decision UJ-2).
+- Given I'm in the "Follow ≥3 critics to fill your feed" step, When I see the screen, Then I'm shown up to 10 critic-seed cards. (Mutual-taste suggestions are not surfaced at MVP — no taste signal exists yet because there's no streaming history; mutual-taste returns in v1.x once users have built a few weeks of personal logs.)
 - **Given critic-seed cards are shown, When the screen first renders, Then those critic-seed cards have their follow-checkbox PRE-CHECKED by default; the user can untick any before tapping "Continue" (per decision Q13).**
-- Given mutual-taste suggestion cards are shown, When the screen renders, Then those cards are UNCHECKED by default; user explicitly opts in per card.
-- Given I've followed ≥1 person (any source), When I tap "Continue", Then I advance to the home feed.
-- Given I've followed 0 people, When I tap "Continue", Then a soft modal asks "follow at least one to see a feed?" with a "Skip anyway" option.
+- Given I've followed ≥3 people, When I tap "Continue", Then I advance to the home feed.
+- Given I've followed fewer than 3 people, When I tap "Continue", Then a soft modal explains "Pick at least 3 to see a feed that isn't empty" with an inline list of the most-popular critic seeds; "Skip anyway" remains available but warns about an empty feed.
 - Given I tap "Continue" with pre-checked critic-seed cards unchanged, When the follows commit, Then those follow records carry `source: onboarding_preselected` (analytics signal — we want to know what % of users keep vs untick the defaults).
 
 ### S-A5: Land on a non-empty home feed
@@ -63,14 +59,16 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 
 ## Cluster B — Logging & rating an album (Must Have)
 
-### S-B1: Log an album in <8 seconds
-**As Casey,** I want to log an album as listened in under 8 seconds, so that the moment doesn't slip away.
+<!-- CR-001: S-B1 rewritten Letterboxd-pattern — manual search, no streaming prefill. -->
+### S-B1: Log an album via manual search in <8 seconds
+**As Casey,** I want to log an album as listened in under 8 seconds via a clean manual search, so that the moment doesn't slip away.
 
 **AC:**
-- Given I'm anywhere in the app, When I tap the persistent "+" Log button, Then a bottom-sheet appears with album search prefilled with the most recent Spotify listen.
-- Given I tap "Log", When I confirm, Then a diary entry is created with default visibility = public, no rating, no review, sourced as "manual" (or "spotify-prefill" if the prefill was used).
-- Given I tap "Log + Rate", When I rate, Then I commit the rating and a diary entry exists with both fields in <8s end-to-end (measured server-side: time from log-button-tap to confirmed entry).
-- Given Spotify integration isn't connected, When I open the Log sheet, Then album search uses the catalog directly (no prefill), with autocomplete.
+- Given I'm anywhere in the app, When I tap the persistent "+" Log button, Then a bottom-sheet appears with an empty album-search field focused for typing.
+- Given I type ≥3 characters, When debounced 200ms, Then I see autocomplete results from Atlas Search (cached MusicBrainz subset); if no in-cache results, Discogs is queried as fallback.
+- Given I tap a result, When the album card highlights, Then rating row + Aux row (🏅) + review row appear.
+- Given I tap "Log", When I confirm, Then a diary entry is created with default visibility = public, no rating, no review, sourced as "manual".
+- Given I tap "Log + Rate", When I rate, Then I commit the rating and a diary entry exists with both fields in <8s end-to-end (measured server-side: time from log-button-tap to confirmed entry; excludes typing time on a slow connection).
 
 ### S-B2: Rate an album with ½-star precision
 **As Casey,** I want to express "this was better than fine but not great" as 3.5 stars, so that my taste signal is honest.
@@ -105,20 +103,23 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 - Given I edited the entry, When I save, Then the entry shows an "edited" badge with timestamp on hover.
 - Given I tap Delete, When I confirm in a modal, Then the entry is soft-deleted (recoverable for 30 days; hard-deleted thereafter).
 
-### S-B6: Just-finished auto-prompt *(elevated to MVP in Revision #1; story body added in sync-verify Run #1)*
-**As Casey (Spotify connected),** I want a prompt when Spotify detects I just finished an album, so I capture the moment without having to remember to log it later.
+<!-- CR-001: S-B6 marked DEFERRED-TO-V2 — story preserved for traceability; nothing in the MVP wires it. -->
+### S-B6: *(DEFERRED-TO-V2)* Just-finished auto-prompt
+**As a returning streaming-connected user,** I would want a prompt when my streaming service detects I just finished an album, so I capture the moment without having to remember to log it later.
 
-**AC:**
-- Given I have `auto_prompt_enabled=true` (default for Spotify-connected accounts) and Spotify recently-played reports a finished album, When background polling fires (5 min cadence with active session in last 24h, 15 min otherwise), Then a `JustFinishedPrompt` is created in `pending` state for that album.
+**Status:** DEFERRED-TO-V2 (CR-001 / R4, 2026-05-22). Originally elevated to MVP in Revision #1; deferred in R4 because the streaming integration it depends on is itself deferred. The `JustFinishedPrompt` entity, polling worker (T123), and related code remain in the repository as deferred surface area; nothing in the MVP wires them.
+
+**AC (preserved for v2 re-activation):**
+- Given I have `auto_prompt_enabled=true` (default for streaming-connected accounts) and the streaming provider's recently-played reports a finished album, When background polling fires (5 min cadence with active session in last 24h, 15 min otherwise), Then a `JustFinishedPrompt` is created in `pending` state for that album.
 - Given a `JustFinishedPrompt` is `pending`, When I next open auxd, Then the home feed shows a hero prompt card at the top: "Just listened to {album} — log it?" with primary "Log" CTA and secondary "Not now"/"⋮ menu" options.
-- Given I tap "Log" on the hero prompt, When the Log sheet opens, Then the album is prefilled identically to Journey 2; on commit the resulting `DiaryEntry.source = spotify_just_finished_prompt` and the `JustFinishedPrompt` transitions to `logged` referencing the new entry id.
+- Given I tap "Log" on the hero prompt, When the Log sheet opens, Then the album is prefilled; on commit the resulting `DiaryEntry.source = just_finished_prompt` and the `JustFinishedPrompt` transitions to `logged` referencing the new entry id.
 - Given I tap "Not now", When the prompt dismisses, Then the same album will not re-prompt me for 30 days.
 - Given I tap "⋮ menu", When I select "Don't prompt me for this album" or "Disable auto-prompts", Then per-album mute or global opt-out (`auto_prompt_enabled=false`) applies immediately and persists.
 - Given I am inside my configured quiet hours, When detection fires, Then the prompt is queued and surfaces on the next open outside quiet hours; if it ages past 24h it expires silently.
-- Given I have opted into auto-prompt push (`auto_prompt_push_enabled=true`), When detection fires outside quiet hours, Then at most one push per day is delivered (per N-018 — see the [Notification types table](./notification-taxonomy.md#notification-types-full-enumeration) and [Anti-spam guardrails](./notification-taxonomy.md#anti-spam-guardrails-locked-in-phase-5c--resolves-a-003-from-pre-impl-review) in notification-taxonomy.md).
+- Given I have opted into auto-prompt push (`auto_prompt_push_enabled=true`), When detection fires outside quiet hours, Then at most one push per day is delivered.
 - Given `auto_prompt_enabled=false`, When detection fires, Then no prompt card, no push, no entry is ever created from auto-detection.
 
-> See [user-journeys.md § Journey 1.5](./user-journeys.md#journey-15-just-finished-auto-prompt-casey-spotify-connected-returning-added-in-revision-1) for the full happy path and drop-off mitigations, and FR-026 in [product-spec.md](./product-spec.md) for the requirement summary.
+> Re-activation trigger: when streaming integration returns in v2 (see [out-of-scope.md](./out-of-scope.md) row for streaming integration), re-enable this story and re-wire the polling worker + prompt UI.
 
 ---
 
@@ -174,13 +175,14 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 - Given I'm in the bottom-sheet Log flow, When I see options, Then "Add to Up Next" is an alternative to "Log".
 - Given an album is already in backlog, When I view the album detail, Then the button reads "Remove from Up Next".
 
+<!-- CR-001: S-D2 rewritten — no streaming deep-link at MVP; "Find on streaming" generic outbound link returns in v2 with streaming integration. -->
 ### S-D2: View and reorder backlog
 **As Casey,** I want to see my Up Next as a list I can prioritize, so I know what to play next.
 
 **AC:**
 - Given I open Up Next, When the list renders, Then I see albums in user-defined order (default: most-recently-added first).
 - Given I drag an item, When I drop, Then the order persists.
-- Given I open an album from Up Next, When I see the detail page, Then there's a "Listen on Spotify" deep-link if connected (opens spotify:album:ID).
+- Given I open an album from Up Next, When I see the detail page, Then I see the album metadata + cover; outbound deep-links to streaming services are not surfaced at MVP and return in v2 alongside streaming integration.
 
 ### S-D3: Auto-remove from backlog on log
 **As Casey,** I want logged albums to disappear from my backlog automatically, so the list stays a true "next" queue.
@@ -243,15 +245,18 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 - Given I navigate to an album page, When it loads (SSR), Then I see: cover, title, artist, year, label, tracklist, my own log history if any, friends' ratings + auxes, public reviews list, "Add to Up Next" + "Log" CTAs.
 - Given the album has multiple editions under the same MusicBrainz release-group MBID (Standard, Deluxe, Bonus, etc.), When the page renders, Then an "Edition" chip near the cover shows "All editions" with a dropdown to filter (per decision Q15 / FR-028). Default view aggregates ratings/reviews/auxes across all editions.
 - Given the album has Open Graph metadata, When the URL is shared, Then the preview card shows cover + title + artist + average rating.
-- Given the album is missing from MusicBrainz/Spotify caches, When the page loads, Then it falls through to a cold-fetch (Spotify catalog) and caches the result for 7 days. If MusicBrainz MBID is not yet available, the album is created as a `candidate` record (per decision Q21) flagged for MBID reconciliation when MusicBrainz catches up.
+<!-- CR-001: cold-fetch falls through MusicBrainz → Discogs; no streaming-catalog fallback at MVP. -->
+- Given the album is missing from the Atlas Search cache, When the page loads, Then it falls through to a cold-fetch (MusicBrainz primary; Discogs fallback if MusicBrainz returns no match) and caches the result for 7 days. If MusicBrainz MBID is not yet available, the album is created as a `candidate` record (flagged for MBID reconciliation when MusicBrainz catches up).
 
+<!-- CR-001: S-F2 rewritten — Atlas Search indexes a cached MusicBrainz subset; Discogs is the cold-fetch fallback. -->
 ### S-F2: Search the catalog
 **As Casey,** I want to find any album by typing its name, so logging is fast.
 
 **AC:**
-- Given I type ≥3 characters in search, When debounced 200ms, Then I see autocomplete results from Atlas Search (cached metadata) merged with Spotify search (uncached).
+- Given I type ≥3 characters in search, When debounced 200ms, Then I see autocomplete results from Atlas Search (cached MusicBrainz subset).
+- Given my search returns no in-cache hits, When the system falls through, Then it cold-fetches from MusicBrainz; if MusicBrainz also has no match, Discogs is queried as fallback. Successful cold-fetch results are written into the cache for 7 days.
 - Given a result is tapped, When I navigate, Then the album detail page opens.
-- Given my search returns zero, When I see the empty state, Then there's a "Can't find your album?" link that opens a "Report missing album" form.
+- Given my search returns zero across all providers, When I see the empty state, Then there's a "Can't find your album?" link that opens a "Report missing album" form.
 
 ---
 
@@ -281,10 +286,10 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 **As Casey,** I want to turn off individual notification types (including auto-prompts), so I'm not overwhelmed.
 
 **AC:**
-- Given I'm on Settings → Notifications, When the page renders, Then I see every notification type from [notification-taxonomy.md](./notification-taxonomy.md) (18 active types including auto-prompts; N-019/N-020 reserved-gap after Lists removal in R3) with per-channel toggles (in-app, email, push).
+<!-- CR-001: removed mention of auto-prompts / Just-finished toggle and the inactive N-011/N-018 surface lines from S-G3. Notification taxonomy now lists 14 active types at MVP. -->
+- Given I'm on Settings → Notifications, When the page renders, Then I see every active notification type from [notification-taxonomy.md](./notification-taxonomy.md) with per-channel toggles (in-app, email, push). Reserved-gap IDs (N-009 / N-010 / N-011 / N-018 / N-019 / N-020) are not shown because their underlying features are deferred.
 - Given I toggle off "weekly digest", When I save, Then I stop receiving the weekly summary email.
 - Given I toggle on "real-time push for follows", When someone follows me, Then I get a push within 30 seconds (best-effort).
-- Given I toggle off "Just-finished prompt", When the auto-prompt detection runs, Then no prompts are surfaced (in-app or push).
 - Given I configure Quiet hours 22:00–08:00, When a notification is generated during those hours, Then push and in-app prompts are suppressed (delivery deferred to next-open-outside-quiet-hours); email and digest still fire normally.
 
 ### S-G4: Block and report
@@ -311,11 +316,9 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 
 ## Cluster H — Should-have / Could-have
 
-### S-H1 (Should): Last.fm history import as Spotify alternative
-**As Maya,** I want to import my Last.fm scrobbling history if I prefer not to connect Spotify, so I can join auxd without OAuth.
-
-**AC:**
-- Given I'm in onboarding, When I select "Import from Last.fm instead", Then I provide my Last.fm username and the system fetches up to 365 days of scrobbles, dedupes to album-grain, and pre-populates my diary.
+<!-- CR-001: S-H1 deferred to v2 — bundled with streaming-integration cluster. -->
+### S-H1: *(DEFERRED-TO-V2)* Last.fm history import
+**Status:** DEFERRED-TO-V2 (CR-001 / R4). Was originally a Should-Have alternative to streaming auto-import. Now bundled with the streaming-history cluster: returns alongside streaming integration in v2. Story body preserved in git history; deliberately omitted here to keep the MVP user-stories surface honest.
 
 ### S-H2 (Should): Album merge / report wrong album
 **As Casey,** I want to flag duplicate or wrong albums, so the catalog quality improves.
@@ -343,22 +346,24 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 
 ---
 
+<!-- CR-001: coverage table updated — S-A2/S-A3 and S-B6 marked as deferred-to-v2; "Alternative imports" row collapsed (S-H1 deferred). -->
 ## Story coverage by capability
 
 | Capability (§3 of product-spec) | Stories |
 |---|---|
 | Rate albums | S-B2, S-B3 (Aux) |
-| Log listens (diary) | S-B1, S-B4, S-B5, S-B6 (auto-prompt), S-A2, S-A3 |
+| Log listens (diary) | S-B1 (manual search), S-B4, S-B5; S-B6 *(DEFERRED-TO-V2)* |
 | Write/share reviews | S-C1, S-C2 (sort), S-C3, **S-C4 (Like)**, S-H5 |
 | Backlog / Up Next | S-D1, S-D2, S-D3 |
 | Discover via social graph | S-E1, S-E2, S-E3, S-E4, S-E5 |
-| Onboarding | S-A1, S-A2 (skippable), S-A3, S-A4, S-A5 |
+| Onboarding | S-A1 (email+password), S-A4 (Follow ≥3 critics), S-A5 (critic-seed feed); S-A2/S-A3 *(DEFERRED-TO-V2)* |
 | Album detail & search | S-F1, S-F2, S-H2 |
 | Profile, settings, privacy | S-G1, S-G2, S-G3, S-G4, S-G5, S-H3 |
-| Alternative imports | S-H1 |
+| Alternative imports | *(DEFERRED-TO-V2 — S-H1 returns with streaming integration)* |
 | Notifications | S-G3, S-H4 |
 
 > *Curated Lists capability was added in R1 (Cluster I, S-I1..S-I6) and removed in R3 — Lists deferred to v2.*
+> *CR-001 (R4): streaming integration and just-finished auto-prompt (S-A2, S-A3, S-B6, S-H1) deferred to v2 — see decision-log R4. Story stubs preserved with DEFERRED-TO-V2 markers; bodies live in git history.*
 
-**Total Must-Have stories: 30 · Should-Have: 2 · Could-Have: 3.** *(Count reconciled in sync-verify Run #1 — see [sync-report.md § DRIFT-L2-003](../sync-report.md#drift-l2-003-story-count-claim-32-vs-enumerated-bodies-30). Earlier "32" claim arose from a v1.3 transition arithmetic slip; the enumerated S-* / US-* bodies have always been 30 post-R3.)*
-History: 30 stories at v1.0 → 37 at v1.1 (Lists + auto-prompt added) → 30 at v1.3 (6 Lists stories removed, S-C4 Like added, S-B6 carried through as elevated MVP story = 31−1 churn). Estimated build: 3–6 months — back to the v1.0 range, reflecting that R3 ~20% scope reduction nets out against the small S-C4 addition.
+**Total Must-Have stories at MVP: 27 · Should-Have: 1 · Could-Have: 3.** *(Net of CR-001: −3 deferred MVP-must stories (S-A2, S-A3, S-B6), −1 deferred Should-Have (S-H1). Prior counts: 30 / 2 / 3.)*
+History: 30 stories at v1.0 → 37 at v1.1 (Lists + auto-prompt added) → 30 at v1.3 (6 Lists stories removed, S-C4 Like added, S-B6 carried through as elevated MVP story) → 27 at v1.4 / R4 (CR-001 deferred S-A2, S-A3, S-B6 to v2). Estimated build: 2.5–5 months — smaller than v1.3 because the streaming-integration surface area was non-trivial.

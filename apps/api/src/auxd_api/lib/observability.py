@@ -158,12 +158,12 @@ def log_call(
     """Emit a structured ``external_call`` log line at INFO.
 
     The single canonical observability event for every outbound call —
-    HTTP to Spotify/MusicBrainz, Resend email dispatch, even PostHog
+    HTTP to MusicBrainz/Discogs, Resend email dispatch, even PostHog
     failures (yes, we log PostHog failures via this same helper).
 
     Args:
         provider: Stable short name of the external dependency.
-            Examples: ``"spotify"``, ``"musicbrainz"``, ``"resend"``,
+            Examples: ``"musicbrainz"``, ``"discogs"``, ``"resend"``,
             ``"posthog"``, ``"sentry"``, ``"r2"``.
         endpoint: Identifier of the specific operation invoked — usually
             a URL path or a logical command name (``"send_email"``).

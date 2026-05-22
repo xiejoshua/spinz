@@ -12,8 +12,9 @@ This is the **conceptual** data model — entities, relationships, and key field
 | Entity | Purpose | Owner |
 |---|---|---|
 | **User** | Account identity, profile, settings | self |
-| **MusicProvider** | Per-user credential block for an external provider (Spotify, Last.fm-import) | User |
-| **Album** | Canonical album record (catalog cache) | system |
+<!-- CR-001: MusicProvider remains in the schema but its purpose at MVP is empty-array; entity is preserved for v2 streaming integration. -->
+| **MusicProvider** | Per-user credential block for an external streaming provider — *empty at MVP per CR-001; preserved as deferred surface area for v2 streaming integration* | User |
+| **Album** | Canonical album record (catalog cache; MusicBrainz primary + Discogs fallback per CR-001) | system |
 | **DiaryEntry** | A single logged listen — the central activity record | User |
 | **Backlog** | A user's private "Up Next" list of albums | User |
 | **BacklogItem** | One album on a Backlog | User |
@@ -25,7 +26,8 @@ This is the **conceptual** data model — entities, relationships, and key field
 | **Report** | User-filed report of content or another user | User → system |
 | **Notification** | A notification record (in-app/email/push surfaces derived) | User |
 | **NotificationPreferences** | Per-user, per-type notification settings | User |
-| **JustFinishedPrompt** | Pending or dismissed "just-finished" auto-prompt for the user | User |
+<!-- CR-001: JustFinishedPrompt marked DEFERRED-TO-V2 — entity preserved in schema; nothing wires it at MVP. -->
+| **JustFinishedPrompt** | *(DEFERRED-TO-V2)* Pending or dismissed "just-finished" auto-prompt for the user — preserved as deferred surface area for v2 streaming integration | User |
 | **SuggestedFollow** | A precomputed follow suggestion (refreshed offline) | system |
 | **CriticSeed** | Editorial seed roster pre-followed/recommended for new users | system |
 
@@ -41,7 +43,8 @@ User {
   id                       # KSUID, used in URLs as `@handle` resolves to id
   handle                   # @-name, unique, 3–24 chars, /^[a-z0-9_]+$/
   email                    # unique, lowercased
-  password_hash            # bcrypt, nullable if Spotify-OAuth-only
+  # CR-001: nullable-if-OAuth-only branch deferred — all MVP users have a password_hash (email+password is the only signup path).
+  password_hash            # bcrypt, NOT NULL at MVP per CR-001; nullable branch returns in v2 when streaming-OAuth signup returns
   display_name             # human-readable, ≤40 chars
   bio                      # ≤140 chars
   avatar_url               # CDN URL
@@ -55,19 +58,22 @@ User {
   handle_created_at        # datetime, set on account creation
   handle_changed_at        # datetime, None until first handle change (FR-029)  (sync-fix Run #3 L5-004: was last_handle_change; symmetric with created_at)
   session_version          # int, default 1 — incremented on password change / forced logout to invalidate prior cookies
-  auto_prompt_enabled      # bool, default true — show in-app prompt when Spotify detects a finished album
-  auto_prompt_push_enabled # bool, default false — also send push for auto-prompts
+  # CR-001: auto_prompt_* fields deferred to v2 with the just-finished prompt cluster. Fields preserved in schema; writers default them but no MVP reader consumes them.
+  auto_prompt_enabled      # bool, default true — *(DEFERRED-TO-V2: show in-app prompt when streaming provider detects a finished album)*
+  auto_prompt_push_enabled # bool, default false — *(DEFERRED-TO-V2: also send push for auto-prompts)*
   notification_preferences # ref → NotificationPreferences
-  music_providers          # array<MusicProvider> (embedded or referenced)
+  # CR-001: music_providers is an empty array at MVP. Field preserved so v2 streaming integration can attach without a migration.
+  music_providers          # array<MusicProvider>, ALWAYS [] at MVP (no streaming integration; see decision-log R4 / CR-001)
   counts (derived/cached): { followers, following, entries, auxed, backlog_size, reviews, likes_given }
 }
 ```
 
-### MusicProvider
-Stored as an embedded sub-document on User (one per provider).
+<!-- CR-001: MusicProvider sub-doc schema preserved verbatim for v2 streaming integration. At MVP the User.music_providers array is always []; no instances of this sub-doc exist in the database. -->
+### MusicProvider *(DEFERRED-TO-V2 sub-document — schema preserved)*
+Stored as an embedded sub-document on User (one per provider). **At MVP no user has any MusicProvider sub-docs — `User.music_providers` is always `[]`. The schema is preserved so v2 streaming integration can attach instances without a migration.**
 ```
 MusicProvider {
-  provider                 # enum: spotify | apple_music | lastfm_import
+  provider                 # enum: spotify | apple_music | lastfm_import (all v2; none populated at MVP)
   external_id              # provider's user ID
   display_name             # provider's display name at connect time
   access_token_encrypted   # symmetric-encrypted with KMS key
@@ -79,26 +85,27 @@ MusicProvider {
 }
 ```
 
+<!-- CR-001: Album entity — spotify_id dropped from MVP schema; discogs_id added as fallback identifier. -->
 ### Album
-Canonical catalog cache. Records survive disconnects from Spotify; act as the album identity anchor.
+Canonical catalog cache (MusicBrainz primary + Discogs fallback). Records are the album identity anchor.
 ```
 Album {
   id                       # KSUID
   mbid                     # MusicBrainz release-group MBID (canonical key when available)
-  spotify_id               # Spotify album ID (canonical when MBID unavailable)
+  discogs_id               # Discogs release ID (fallback identifier when MBID unavailable) — added by CR-001 (replaces spotify_id)
   apple_music_id           # nullable, populated when Apple Music ships (v2)
   title
   artist_credit            # display string, e.g. "Kendrick Lamar & SZA"
-  artists                  # array<{ name, mbid?, spotify_id? }>
+  artists                  # array<{ name, mbid?, discogs_id? }>
   release_date             # YYYY-MM-DD or YYYY-MM or YYYY (granularity preserved)
   release_year             # int, denormalized for sort
   primary_type             # enum: album | ep | single | compilation | live | other
-  cover_art_url            # primary, CDN URL (Spotify CDN at MVP)
+  cover_art_url            # primary, CDN URL (Cover Art Archive at MVP per CR-001)
   cover_art_blurhash       # for placeholder
-  tracklist                # array<{ position, title, duration_ms, spotify_id? }>
+  tracklist                # array<{ position, title, duration_ms }>  # CR-001: per-track streaming IDs dropped
   duration_ms              # total
   label
-  source_provider          # which provider seeded this record (for audit)
+  source_provider          # enum: musicbrainz | discogs (which provider seeded this record — for audit)
   cached_at                # datetime
   cache_expires_at         # datetime (7d default)
   popularity_score         # 0–100, derived (used for search ranking)
@@ -118,7 +125,8 @@ DiaryEntry {
                            # (renamed from "hearted" in Revision #1, 2026-05-21)
   review_id                # FK → Review, nullable
   visibility               # enum: public | followers | private, default = user's default
-  source                   # enum: manual | spotify_import | lastfm_import | spotify_prefill
+  # CR-001: source enum reduced to manual at MVP. The reserved values (streaming_import, just_finished_prompt, lastfm_import, streaming_prefill) are kept in the enum for v2 forward-compatibility but no MVP writer emits them.
+  source                   # enum at MVP: manual (only). Reserved for v2: streaming_import | just_finished_prompt | lastfm_import | streaming_prefill
   relisten                 # bool, true if user has a prior entry for this album
   device                   # enum: web | mobile_web | api (for analytics)
   edited_at                # datetime, nullable
@@ -197,15 +205,18 @@ BacklogItem {
      Lists deferred to v2 — see out-of-scope.md and decision-log.md row 7.
      Schema preserved in git history (R1 = v1.1). -->
 
-### JustFinishedPrompt
-Pending or dismissed auto-prompt from Spotify-detection. Added in Revision #1.
+<!-- CR-001: JustFinishedPrompt status changed to DEFERRED-TO-V2. Schema and semantics preserved verbatim so v2 streaming integration can re-wire the collection without a migration. The polling worker (T123 in tasks.md) and prompt-card UI are unwired from the MVP. -->
+### JustFinishedPrompt *(DEFERRED-TO-V2 entity — schema preserved)*
+
+**Status:** DEFERRED-TO-V2 (CR-001 / R4, 2026-05-22). Originally added in Revision #1 to support the just-finished auto-prompt at MVP. CR-001 deferred the streaming integration this entity depends on, so the entity is unwired from the MVP. The collection schema, index, and any backing code remain so v2 can re-activate without a migration. No MVP code path writes or reads JustFinishedPrompt instances.
+
 ```
 JustFinishedPrompt {
   id
   user_id                  # FK → User
   album_id                 # FK → Album (the detected just-finished album)
-  detected_at              # datetime (when Spotify's recently-played showed it finished)
-  source                   # enum: spotify_recently_played | spotify_currently_playing_done
+  detected_at              # datetime (when the streaming provider's recently-played showed it finished)
+  source                   # enum: streaming_recently_played | streaming_currently_playing_done  (CR-001: renamed from spotify_*)
   state                    # enum: pending | dismissed | logged | expired
                            # expired = >24h since detected without action
   dismissed_at             # datetime, nullable
@@ -213,7 +224,7 @@ JustFinishedPrompt {
 }
 ```
 
-**Semantics:**
+**Semantics (preserved for v2 re-activation):**
 - Auto-prompt generation runs as a background task per user (poll interval: 5–15 min while user has an active session in last 24h; lower otherwise).
 - A user sees at most one active prompt at a time (latest finished album).
 - Prompts expire after 24h; dismissed prompts don't re-fire for the same album for 30 days.
@@ -260,6 +271,7 @@ Notification {
 
 Notification taxonomy enumeration is in [notification-taxonomy.md](./notification-taxonomy.md).
 
+<!-- CR-001: NotificationPreferences — review_heart is now review_liked (R3 split, preserved); just-finished and spotify-reconnect lines removed because those types are deferred. -->
 ### NotificationPreferences
 Embedded on User, but extracted here for clarity.
 ```
@@ -267,7 +279,7 @@ NotificationPreferences {
   per_type: {
     follow:           { in_app: true,  email: false, push: true  }   # default
     follow_request:   { in_app: true,  email: false, push: true  }
-    review_heart:     { in_app: true,  email: false, push: false }
+    review_liked:     { in_app: true,  email: false, push: false }
     review_reply:     { in_app: true,  email: false, push: false }  # v2 feature, accepted
     weekly_digest:    { in_app: false, email: true,  push: false }
     system_announce:  { in_app: true,  email: true,  push: false }
@@ -337,12 +349,13 @@ User 1──0..1 CriticSeed (decoration, not required)
 
 ### Album identity normalization (load-bearing)
 
+<!-- CR-001: identity-normalization cascade updated — Discogs ID replaces Spotify ID as the secondary canonical key. -->
 When the system encounters an album reference, it must resolve to a single canonical Album record:
 
 ```
 1. If MBID is present (or resolvable via MusicBrainz lookup) → use MBID as the canonical key.
-2. Else if Spotify ID is present → use Spotify ID as the canonical key.
-3. Else (rare — e.g., user typed a manual title in a v2 flow) → create a "candidate" album record flagged for admin merge.
+2. Else if Discogs ID is present (or resolvable via Discogs lookup) → use Discogs ID as the canonical key.
+3. Else (rare — e.g., a user manually typed an album title with no provider hit) → create a "candidate" album record flagged for admin merge.
 ```
 
 Deluxe / remaster / regional variants: Phase 5 must decide whether to **merge under release-group MBID** (preferred — fewer duplicates, cleaner social signal) or **keep as separate albums** (preferred for power-users tracking specific editions). Default recommendation: **merge under release-group**.
@@ -385,8 +398,9 @@ Every document has `_schema_version: int`. Writers always write the current vers
 |---|---|---|
 | User | `{ handle: 1 } unique` | Handle lookup |
 | User | `{ email: 1 } unique` | Login |
+<!-- CR-001: index on spotify_id replaced with index on discogs_id. -->
 | Album | `{ mbid: 1 } sparse unique` | MBID lookup |
-| Album | `{ spotify_id: 1 } sparse unique` | Spotify ID lookup |
+| Album | `{ discogs_id: 1 } sparse unique` | Discogs ID lookup (fallback identifier per CR-001) |
 | Album | Atlas Search index on `{ title, artist_credit, artists.name }` | Catalog search |
 | DiaryEntry | `{ user_id: 1, logged_at: -1 }` | User diary timeline |
 | DiaryEntry | `{ user_id: 1, album_id: 1, logged_at: -1 }` | "Have I logged this before?" check |
@@ -410,14 +424,16 @@ Every document has `_schema_version: int`. Writers always write the current vers
 Decisions previously deferred have been resolved at spec level. Final implementation specifics remain Phase 5. See [decision-log.md §Data model](./decision-log.md) for full table.
 
 - **DM-1 — Fan-out-on-read at MVP.** Switch to fan-out-on-write only if feed query p95 exceeds 200ms (re-evaluate in Phase 5 from load model).
-- **DM-2 — Cover-art: proxy Spotify CDN.** No S3 cache; client-side blurhash placeholders only.
+<!-- CR-001: cover-art source changed from Spotify CDN to Cover Art Archive. -->
+- **DM-2 — Cover-art: proxy Cover Art Archive.** No S3 cache; client-side blurhash placeholders only. (Was "proxy Spotify CDN" pre-CR-001.)
 - **DM-3 — Reactions on Reviews (`likes_count`, R3 rename — was `aux_count` in R1): ship visible at MVP.** No feature-flag gating; volume will be low and that's fine.
 - **DM-4 — Tracklist denormalized into Album docs at MVP.** Revisit if Album docs balloon (>~20KB).
 - **DM-5 — Soft-deleted DiaryEntry: cascade reactions.** Don't leave orphan ReviewLike rows or stale `likes_count` aggregates.
 
 ## Remaining Phase 5 (technical) decisions
 
-- Atlas Search index tuning (analyzer, synonyms, autocomplete) — depends on Spotify catalog sample data.
+<!-- CR-001: Atlas Search tuning now depends on MusicBrainz subset, not streaming-catalog sample. -->
+- Atlas Search index tuning (analyzer, synonyms, autocomplete) — depends on the MusicBrainz subset selected for caching.
 - GDPR audit log schema (every export / delete request is logged) — schema final in Phase 5.
 - Specific MongoDB indexes (the table in §Indexes is preliminary; Phase 5 finalizes after query-load modeling).
 - Provider-interface abstraction's exact method signatures.

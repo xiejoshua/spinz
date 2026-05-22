@@ -3,12 +3,17 @@
 Per data-model.md, plan §3.1 + §9, and FR-026:
 
 * :class:`JustFinishedPrompt` — a per-user, per-album "you just listened to
-  X — log it?" card that gets surfaced shortly after Spotify reports the
-  album as finished. Pending prompts are dropped automatically after 24h
-  via a TTL index scoped to ``state == "pending"``.
+  X — log it?" card that originally surfaced shortly after a music
+  provider reported the album as finished. Pending prompts are dropped
+  automatically after 24h via a TTL index scoped to ``state == "pending"``.
 
 The polling job that *creates* these rows and the card-ordering service
 that *consumes* them live in separate tasks (T123 / T117 / T117a).
+
+# CR-001 (2026-05-22): JustFinishedPrompt is DEFERRED-TO-V2 — the model
+# class is kept for v2 reactivation but is NOT registered with Beanie via
+# ALL_DOCUMENT_MODELS at MVP. SuggestedFollow + CriticSeed remain in MVP
+# scope. See features/001-auxd-mvp/change-log.md.
 """
 
 from __future__ import annotations
@@ -46,10 +51,15 @@ class JustFinishedPrompt(Document):
     """Pending 'just listened to X — log it?' card.
 
     Per FR-026 + S-B6 + plan §9. One row per (user, album, detected
-    listening session). The polling job sets ``detected_at`` + ``expires_at``
-    when Spotify recently-played first reports the finished album; the UI
-    layer sets ``surfaced_at`` when the card is first shown; user action
-    moves the row out of ``PENDING`` and stamps ``acted_at``.
+    listening session). When this feature reactivates in v2, the polling
+    job sets ``detected_at`` + ``expires_at`` when a music provider's
+    recently-played feed first reports the finished album; the UI layer
+    sets ``surfaced_at`` when the card is first shown; user action moves
+    the row out of ``PENDING`` and stamps ``acted_at``.
+
+    CR-001 (2026-05-22): DEFERRED-TO-V2. The original v1 design polled
+    Spotify recently-played; the v2 design will re-pick the source
+    provider at activation time.
     """
 
     _schema_version: int = 1
@@ -62,7 +72,9 @@ class JustFinishedPrompt(Document):
     user_id: str  # FK → User; the user we're prompting
     album_id: str  # FK → Album; the album they just finished
     state: JustFinishedPromptState = JustFinishedPromptState.PENDING
-    detected_at: datetime  # when Spotify recently-played first reported the album
+    # CR-001: provider-source comment updated — v2 reactivation will
+    # repick the provider feed. Field semantics unchanged.
+    detected_at: datetime  # when the provider's recently-played first reported the album
     surfaced_at: datetime | None = None  # when the card was first shown in the UI
     acted_at: datetime | None = None  # when state moved out of PENDING
     logged_diary_entry_id: str | None = None  # FK → DiaryEntry if state == LOGGED

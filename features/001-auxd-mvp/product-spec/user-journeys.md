@@ -8,139 +8,110 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 
 ---
 
+<!-- CR-001: Journey 1 rewritten end-to-end. No streaming-OAuth step; manual onboarding only. Target time tightened because the streaming-auth round-trip is gone. -->
 ## Journey 1: First-time onboarding (Casey)
 
-> Entry point: xiejoshua.com landing page. Exit point: home feed populated, ≥1 album logged. Target completion time: **<3 minutes**.
+> Entry point: xiejoshua.com landing page. Exit point: home feed populated with critic-seed activity; user has logged ≥1 album manually OR added one to Up Next. Target completion time: **<2 minutes** (tighter than the prior <3min target because there is no streaming-auth round-trip).
 
 | Step | User action | System response | Emotion | Notes |
 |---|---|---|---|---|
-| 1 | Lands on `xiejoshua.com` from a friend's invite link | Shows: "Casey invited you to auxd" hero + Casey's 5 recent ratings + "Get started with Spotify" big button | 😊 curious | Social proof primes commitment |
-| 2 | Taps "Get started with Spotify" | Redirects to Spotify OAuth consent page | 😐 mild friction | OAuth screen owned by Spotify; we explain scopes in our pre-screen tooltip |
-| 3 | Approves Spotify scopes | Redirects back to auxd with auth code; exchange for tokens; account auto-created using Spotify display name and email | 😊 quick | Auto-create account avoids form-filling tax |
-| 4 | Sees "Pulling your last 30 days…" screen | Background: import job runs, fetches recently-played, dedupes to ~30 albums, caches metadata | 😊 anticipation | Progress: "Found 28 albums…" |
-| 5 | Sees "Confirm your last 30 days" with top 5 albums as cards | Top 5 ranked by play count or recency; ½-star rating widget per card | 😊 engaged | This is the activation hook — they're already invested |
-| 6 | ½-stars 3 of 5 albums, skips 2 | Ratings save optimistically; UI advances immediately | 😊 in control | No required field; user is never blocked |
-| 7 | Sees "Follow 3 to fill your feed" | Shows 6 critic-seed cards + 4 mutual-taste suggestions (based on just-imported listens) | 😊 curious | Each card: avatar, name, "writes about indie hip-hop" tagline, 3 recent rating samples |
-| 8 | Follows 4 accounts (1 mutual-taste, 3 critics) | Follow records created; suggestion job re-runs to update remaining suggestions | 😊 anticipatory | Each follow has a 200ms haptic on mobile |
-| 9 | Taps "Done" | Lands on home feed | 😊 satisfied | Feed already populated with critic-seed activity from past 7 days |
-| 10 | Scrolls feed, taps an album rated 5★ by a critic | Album detail page opens (SSR'd) | 😊 engaged | Critic review prominent; "Friends" section empty; "Add to Up Next" button visible |
-| 11 | Adds album to Up Next | Toast: "Added to Up Next"; counter increments | 😊 productive | First moment of personal-curation behavior |
-
-**Alternative path: User skips Spotify connect** *(revised in Revision #1 — skippable, no degraded-mode framing)*
-
-| Step | Diverge from | What happens |
-|---|---|---|
-| 2a | At the Spotify auth screen | User taps the prominent **Skip — connect later** link (no shame, no "limited features" framing) → skips steps 3 & 4 of import flow |
-| 3a | After skip | User goes directly to "Follow 3 to fill your feed" with critic-seed-only suggestions (mutual-taste suggestions are empty since we have no taste signal yet) |
-| 4a | After follow step | User lands on home feed (populated by critic-seed activity from past 7 days); all features work: manual log, reviews, backlog, auxes |
-| Later | From Settings → Integrations | User can connect Spotify any time; the same 30-day auto-import then back-fills the diary |
+| 1 | Lands on `xiejoshua.com` from a friend's invite link | Shows: "Casey invited you to auxd" hero + Casey's 5 recent ratings + "Sign up" big button | 😊 curious | Social proof primes commitment |
+| 2 | Taps "Sign up" | Single-screen form: email + password + handle, with inline handle availability check | 😐 mild friction | Form is the only friction; ~20–40 seconds |
+| 3 | Submits valid signup | Account created; advances to handle-confirmation toast then directly to "Follow ≥3 critics" | 😊 quick | No streaming auth, no import wait |
+| 4 | Sees "Follow ≥3 critics to fill your feed" | Shows up to 10 critic-seed cards, pre-checked by default (per Q13) | 😊 curious | Each card: avatar, name, "writes about indie hip-hop" tagline, 3 recent rating samples |
+| 5 | Untickes 2 critics whose taste isn't theirs; keeps 6 ticked | Live count: "6 critics selected" | 😊 in control | Default-tick + free unticking is the proven middle (Q13) |
+| 6 | Taps "Continue" | Follow records created; user lands on home feed | 😊 anticipatory | Each follow has a 200ms haptic on mobile |
+| 7 | Sees home feed populated with critic-seed activity from past 7 days | Feed renders SSR-fast | 😊 satisfied | Critic-seed feed is load-bearing for first-session content |
+| 8 | Scrolls feed, taps an album rated 5★ by a critic | Album detail page opens (SSR'd) | 😊 engaged | Critic review prominent; "Friends" section empty (no follows that overlap yet); "Add to Up Next" + "Log" CTAs visible |
+| 9 | Adds album to Up Next OR taps "Log" and uses manual search | Toast confirms; backlog or diary updates | 😊 productive | First moment of personal-curation behavior |
 
 **Drop-off risk points:**
-- Step 2 — Spotify OAuth consent screen (cannot be helped — owned by Spotify; mitigate with pre-screen "we only request read access" tooltip)
-- Step 7 — "Follow 3" minimum is 1; users who skip with "Continue" land on a feed that's mostly critic-seed content
-- Step 9 — empty feed is a worst-case if the user only followed seed critics with no recent activity; pad with last-7-day critic activity
+- Step 2 — signup form. Mitigate with social-proof copy + a "why do you need my email?" tooltip explaining we only use it for transactional + digest mail.
+- Step 4 — "Follow ≥3 critics" minimum of 3 (raised from 1 because there is no streaming taste signal to fall back to). Users who try to tap Continue with <3 selected see a soft modal explaining the minimum.
+- Step 7 — empty feed is a worst-case if the user only followed seed critics with no recent activity; pad with broader-roster last-14-day critic activity.
 
 **Journey metric goals:**
-- Time-to-first-rating (steps 1–6): median **<90 seconds**
-- Time-to-first-follow (steps 1–8): median **<120 seconds**
-- Time-to-feed-with-≥5-entries (steps 1–9): median **<150 seconds**
-- Drop-off between step 1 (landing) and step 9 (feed): target **<30%**
+- Time-to-first-follow (steps 1–6): median **<60 seconds**
+- Time-to-feed-with-≥5-entries (steps 1–7): median **<75 seconds**
+- Time-to-first-log-OR-backlog (steps 1–9): median **<3 minutes**
+- Drop-off between step 1 (landing) and step 7 (feed): target **<25%**
 
 ---
 
-## Journey 1.5: Just-finished auto-prompt (Casey, Spotify-connected, returning) *(added in Revision #1)*
+<!-- CR-001: Journey 1.5 marked DEFERRED-TO-V2 — body preserved as a frozen snapshot; nothing in the MVP wires it. -->
+## Journey 1.5: *(DEFERRED-TO-V2)* Just-finished auto-prompt
 
-> Entry point: Casey finishes an album on Spotify and either opens auxd within ~15 minutes OR has auto-prompt push enabled. Exit point: diary entry created from the prompt. Target: ≥30% of Spotify-connected sessions trigger an auto-prompt log within 3 months of connect.
+**Status:** DEFERRED-TO-V2 (CR-001 / R4, 2026-05-22). Originally added in Revision #1. Returns in v2 alongside the streaming-integration cluster. The frozen happy-path/drop-off-mitigations/metric-goals content is preserved in git history at v1.3; deliberately not re-displayed here to keep the MVP user-journeys surface honest.
 
-| Step | User action | System response | Emotion | Notes |
-|---|---|---|---|---|
-| 1 | Casey finishes "GNX" on Spotify | auxd background polling detects finished album within 5–15 min via Spotify recently-played | (background) | Polling cadence: 5 min while user has active app session in last 24h, 15 min otherwise |
-| 2 | Casey opens auxd (or push lands if opted-in) | A `JustFinishedPrompt` is in `pending` state; the home feed renders a hero prompt card at the top: "Just listened to GNX — log it?" with primary "Log" CTA and secondary "Not now" + "⋮ menu" | 😊 mild surprise | Hero prompt is dismissable via swipe-up or "Not now" |
-| 3 | Casey taps "Log" | Log sheet opens with album prefilled; same path as Journey 2 | 😊 fast | <8 second commit follows |
-| 4 | Casey rates + commits | DiaryEntry created with `source: spotify_just_finished_prompt`; the `JustFinishedPrompt` state → `logged` with the entry id; the prompt disappears | 😊 done |
-
-**Alternative paths:**
-- 3a — Casey taps "Not now" → prompt dismisses; same album won't re-prompt for 30 days
-- 3b — Casey taps "⋮ menu" → options: "Don't prompt me for this album", "Disable auto-prompts", "Settings"
-- 3c — Casey is in quiet hours (e.g., overnight) → prompt is queued, surfaces next open outside quiet hours
-- 3d — Casey has `auto_prompt_enabled=false` → no prompt ever appears, even if detection fires
-
-**Drop-off risk points:**
-- Push fatigue if `auto_prompt_push_enabled=true` and the user finishes many albums (mitigation: push rate limit + coalescing — at most 1 push/day for auto-prompts)
-- "Stale" prompts if user opens app days after finishing (mitigation: prompts expire after 24h)
-- Privacy concern: user might feel watched. Mitigation: "Disable auto-prompts" is one-tap from the prompt itself, not buried in settings.
-
-**Journey metric goals:**
-- % of Spotify-connected sessions with active prompt: **>40%** (signal that detection is firing meaningfully)
-- Log-through-rate on prompts (Log tap vs Not now): **>25%** at M3, **>40%** at M6
-- % of users who disable auto-prompts in first 30 days: **<15%** (privacy escape hatch is functioning but not the norm)
+> Re-activation trigger: see [out-of-scope.md](./out-of-scope.md) row for streaming integration.
 
 ---
 
-## Journey 2: Log an album in <8 seconds (Casey, returning user)
+<!-- CR-001: Journey 2 rewritten — manual search is now the only logging path; no streaming prefill. -->
+## Journey 2: Log an album via manual search in <8 seconds (Casey, returning user)
 
-> Entry point: user finishes an album on Spotify. Exit point: diary entry created. Target completion time: **<8 seconds from intent to commit**.
+> Entry point: user wants to record an album they just finished listening to. Exit point: diary entry created. Target completion time: **<8 seconds from intent to commit** (measured for cached/popular albums; first-time queries that require Discogs cold-fetch may add 200–500ms).
 
 | Step | User action | System response | Emotion | Notes |
 |---|---|---|---|---|
 | 1 | Opens auxd (app already running or pinned tab) | App resumes on last surface (or home if cold-start) | 😊 |
-| 2 | Taps the persistent "+" Log button (top-right or FAB) | Bottom sheet slides up; album search prefilled with most recent Spotify listen ("Black Star — Mos Def & Talib Kweli (1998)") | 😊 fast | Prefill is the magic — saves 4–5 seconds |
-| 3 | Confirms the prefill is correct (it is) | Album card highlights; rating row + Aux row (🏅) + review row appear | 😐 focused | If prefill is wrong, user types to search |
-| 4 | Taps 4 ½-stars | Rating displays "4 ★ ★ ★ ★ ☆" with a faint half-star indicator if applicable | 😊 commit | Single tap to commit; rolling thumb on mobile changes value |
-| 5 | Skips review, taps "Log" | Entry saves, sheet dismisses, toast: "Logged — see in your diary" with link | 😊 done |
-| (T=<8s end-to-end measured from step 2 to step 5) |
+| 2 | Taps the persistent "+" Log button (top-right or FAB) | Bottom sheet slides up; empty album-search field focused, soft keyboard up on mobile | 😊 fast | Empty-state is the Letterboxd norm — users know what they want to log |
+| 3 | Types "kendrick gnx" | Autocomplete suggests results from Atlas Search (cached MusicBrainz subset), debounced 200ms; if no in-cache hits, a "Searching catalog…" inline indicator appears while Discogs is queried | 😐 focused | Most popular albums are in cache; long-tail albums see a brief cold-fetch |
+| 4 | Taps the right album result | Album card highlights; rating row + Aux row (🏅) + review row appear | 😊 commit |
+| 5 | Taps 4 ½-stars | Rating displays "4 ★ ★ ★ ★ ☆" with a faint half-star indicator if applicable | 😊 |
+| 6 | Skips review, taps "Log" | Entry saves, sheet dismisses, toast: "Logged — see in your diary" with link | 😊 done |
+| (T ≤ 8s end-to-end measured from step 2 to step 6, for cached/popular albums) |
 
 **Alternative path: Adding a review**
 
-| 4a | Taps "Add a review" inline after rating | Review textarea expands; soft keyboard appears on mobile |
-| 5a | Types a 2-sentence review, taps "Log" | Entry + Review save; toast shows |
-| (T=<25s end-to-end including writing) |
+| 5a | Taps "Add a review" inline after rating | Review textarea expands; soft keyboard appears on mobile |
+| 6a | Types a 2-sentence review, taps "Log" | Entry + Review save; toast shows |
+| (T ≤ 25s end-to-end including writing) |
 
-**Alternative path: Manually searching (no Spotify prefill or Spotify off)**
+**Alternative path: Cold-fetch (album not in MusicBrainz cache)**
 
-| 2b | Bottom sheet opens with no prefill | Empty search field with autocomplete |
-| 3b | Types "kendrick gnx" | Search results appear (Atlas Search + Spotify search merged), debounced 200ms |
-| 4b | Taps the right album | Album card highlights, same rating/Aux/review rows appear |
-| 5b–7b | (continues as 4–5 above) |
+| 3b | Types a niche album title | "Searching catalog…" inline indicator appears; system queries MusicBrainz; if no MusicBrainz hit, Discogs is queried |
+| 4b | Album appears with a "(new to auxd)" badge | User taps; on commit, the album record is created as a candidate with MBID reconciliation deferred |
 
 **Drop-off risk points:**
-- Step 2 prefill is wrong (user listened to a different album last, or used Spotify on another device) → friction
-- Step 3 album not in catalog (rare) → "Report missing album" surface
-- Step 4 user wants a 3.5★ but only finds integer-star widget → must explicitly support half-star (½-star drag)
+- Step 3 — user can't type the album name fast enough → autocomplete must surface near-matches aggressively (typo tolerance)
+- Step 3 — album not in catalog (cold-fetch fails on both MusicBrainz and Discogs) → "Report missing album" surface
+- Step 5 — user wants a 3.5★ but only finds integer-star widget → must explicitly support half-star (½-star drag)
 
 **Journey metric goals:**
-- Time-from-log-button-to-commit: **median <8s** (without review), **median <25s** (with review)
-- % of logs where prefill is accepted: **>40%** (high prefill accuracy is a wedge ingredient)
+- Time-from-log-button-to-commit: **median <8s** (without review, cached album), **median <25s** (with review)
+- Catalog hit rate (% of searches that match within Atlas Search cache, no Discogs cold-fetch needed): **>90%** at M3, **>95%** at M6 (see [success-metrics.md](./success-metrics.md) — this metric replaces the prior streaming-prefill-accepted metric)
 
 ---
 
+<!-- CR-001: Journey 3 rewritten — no outbound streaming deep-link at MVP; conversion measured as "Add to Up Next" or "Log it now" instead. -->
 ## Journey 3: Discover via the social graph (Casey)
 
-> Entry point: open auxd home tab. Exit point: user opens Spotify to listen to an album they discovered. Target conversion: 1 in 4 sessions ends in an outbound Spotify play.
+> Entry point: open auxd home tab. Exit point: user takes a discovery action — either adds the album to Up Next or logs it immediately. Target conversion: 1 in 4 sessions ends in a discovery action (Up Next add or log).
 
 | Step | User action | System response | Emotion | Notes |
 |---|---|---|---|---|
 | 1 | Opens home tab | Feed loads (SSR or client-cache): reverse-chrono with weight boosts; ~10 hero entries + lazy-load more on scroll | 😊 |
-| 2 | Sees a 5★ rating with a 50-word review from Jamie (a critic Casey follows) for an album Casey doesn't know | Entry card shows: Jamie avatar, "Jamie rated ★★★★★ • 2h ago", album cover thumb, review snippet, 👍 Like action (FR-031) | 😊 intrigued |
+| 2 | Sees a 5★ rating with a 50-word review from Jamie (a critic Casey follows) for an album Casey doesn't know | Entry card shows: Jamie avatar, "Jamie rated ★★★★★ • 2h ago", album cover thumb (via Cover Art Archive), review snippet, 👍 Like action (FR-031) | 😊 intrigued |
 | 3 | Taps the album cover | Album detail page opens (SSR, fast) | 😊 curious | Page shows cover, metadata, tracklist, friends-who-rated, public reviews |
 | 4 | Sees that 2 other people Casey follows also rated this album 4★+ | "Friends" section shows 3 avatars + their ratings | 😊 validated | Social proof from inside the trusted graph |
 | 5 | Reads Jamie's full review | Review expands inline | 😊 engaged | Spends 30–90 seconds reading |
-| 6 | Taps "Listen on Spotify" | Opens `spotify:album:{id}` deep-link → Spotify app/web opens at album | 😊 completes | This is the social-originated-play metric event (M3 target 25%) |
-| (User listens to album on Spotify, returns to auxd to log later) |
+| 6 | Taps "Add to Up Next" OR taps "Log" if they're going to listen right now | Toast confirms; backlog grows OR diary entry is created via manual-log flow | 😊 completes | This is the social-originated-discovery metric event (M3 target 25%) |
+| (User listens to album outside auxd via whatever streaming service they use; returns to auxd to log if they didn't already) |
 
-**Alternative path: Add to Up Next instead of listening immediately**
+**Alternative path: Log immediately**
 
-| 6a | Taps "Add to Up Next" instead | Toast confirms; backlog grows | 😊 deferred |
-| (User comes back days later; logged-from-backlog flow takes over) |
+| 6a | Taps "Log" on the album detail page | Bottom-sheet Log flow opens with the album prefilled | 😊 productive |
+| 7a | Rates + commits (optional review) | Diary entry created; toast confirms | 😊 done |
 
 **Drop-off risk points:**
 - Step 1 — empty/sparse feed (mitigation: critic-seed padding)
 - Step 2 — feed entries look like spam if too many in quick succession from the same user (mitigation: rate-limit per-user fan-out, coalesce visually)
-- Step 6 — Spotify deep-link fails (e.g., not installed on mobile) → fall through to web player
+- Step 6 — outbound streaming play is not measurable at MVP because there is no integration; users will play albums in whichever app they prefer
 
 **Journey metric goals:**
 - Sessions with ≥1 album opened: **>50% of all sessions**
-- Sessions ending in `Listen on Spotify` outbound: **>25% (M3) / >40% (M6)** — this is the social-originated play rate KPI
+- Sessions ending in `Add to Up Next` OR `Log` action on a discovered album: **>25% (M3) / >40% (M6)** — this is the social-originated-discovery rate KPI (replaces the prior social-originated-play KPI which depended on streaming deep-links)
 - Average dwell time on album detail when discovered via feed: **30–90 seconds** (long enough to read a review, short enough not to be stuck)
 
 ---
@@ -151,10 +122,11 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 
 | Step | User action | System response | Emotion | Notes |
 |---|---|---|---|---|
+<!-- CR-001: Journey 4 — no streaming deep-link at MVP. Flow now ends with the user playing the album outside auxd via their own streaming service. -->
 | 1 | Opens "Up Next" tab on bottom nav | Backlog list renders, user-defined order (default: newest-added first) | 😊 |
 | 2 | Scrolls through 8 albums in queue | Each item: cover thumb, title/artist, "added 3 days ago" timestamp, "by Jamie via review" attribution if added from feed | 😊 reflective |
 | 3 | Sees an album they're in the mood for, taps it | Album detail page opens | 😊 |
-| 4 | Reviews the album page briefly, taps "Listen on Spotify" | Spotify deep-link opens | 😊 |
+| 4 | Reviews the album page briefly, decides to listen to it | (User leaves auxd to play the album in their streaming service of choice; auxd does not currently surface outbound streaming deep-links — that returns in v2.) | 😊 |
 | 5 | Later, after listening, returns to auxd | (Some hours/days later) |
 | 6 | Logs the album via Log button | Diary entry created; if `keep_backlog_after_log=false` (default), album auto-removed from backlog with toast "Removed from Up Next" | 😊 satisfying loop |
 
@@ -162,7 +134,7 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 
 | Step | Variation |
 |---|---|
-| 2a | User long-presses an item → context menu: "Remove from Up Next", "Listen on Spotify", "Open album" |
+| 2a | User long-presses an item → context menu: "Remove from Up Next", "Open album" |
 | 3a | User taps Remove → confirmation toast, item disappears |
 
 **Drop-off risk points:**
@@ -183,9 +155,10 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 
 > Entry point: Maya / Jamie just finished an album they want to write about. Exit point: review published; ideally shared externally. Target: ≥10% of week-active users publish a review per week by M6.
 
+<!-- CR-001: Journey 5 step 1 — manual search is the entry point; no streaming prefill at MVP. -->
 | Step | User action | System response | Emotion | Notes |
 |---|---|---|---|---|
-| 1 | Opens auxd, taps "+" Log | Bottom sheet opens with prefilled album (or Maya searches) | 😊 |
+| 1 | Opens auxd, taps "+" Log | Bottom sheet opens with empty search; Maya types the album name and picks the result | 😊 |
 | 2 | Confirms album, rates 4½★ | Rating commits | 😐 deliberate |
 | 3 | Taps "Add a review" | Textarea expands; full editor surface | 😊 |
 | 4 | Writes 200-word review with line breaks and one emphasis | Save state: draft autosaved every 5s | 😊 in flow |
@@ -207,8 +180,9 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 ## Cross-journey notes
 
 - **All journeys must stay <3 minutes for first-time use** — this is the casual-user friction floor.
-- **Every journey ends in either (a) a logged diary entry, (b) a backlog item, (c) an outbound Spotify play, or (d) a share event.** If a journey ends in scroll-and-leave, that's a failed journey.
-- **Empty states matter** in every journey — research §State Inventory called out 22 distinct states; the most-failing journeys are those where step 1 hits an empty state without a meaningful CTA.
+<!-- CR-001: success exits no longer include "outbound streaming play" — that's not measurable without integration. -->
+- **Every journey ends in either (a) a logged diary entry, (b) a backlog item, or (c) a share event.** If a journey ends in scroll-and-leave, that's a failed journey.
+- **Empty states matter** in every journey — research §State Inventory called out 22 distinct states; the most-failing journeys are those where step 1 hits an empty state without a meaningful CTA. *CR-001 note: the first-session empty-diary state is now load-bearing — it was previously masked by the streaming auto-import that pre-populated the diary; without auto-import the user lands on an empty personal diary surface and the critic-seed feed carries the discovery weight.*
 - **Aux (🏅) and Like (👍) are distinct concepts** — Aux is the entry-owner's "this is one of my standouts" personal signal on their own DiaryEntry; Like is other users' social engagement on a Review. Different verbs, different icons, different objects. *(Semantic split locked in Revision #3.)*
 
 ---
@@ -217,8 +191,9 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 
 All 5 prior open questions resolved. See [decision-log.md §User journeys](./decision-log.md) for full table.
 
-1. **UJ-1 — Log sheet prefilled album = most-recently-finished album** (not last-played track). Track-level prefill triggers on background music or skips; album-level is the actual log moment.
-2. **UJ-2 — "Follow 3" card order: mixed, but always ≥3 critics in top 6 visible cards.** Critic-first reads too editorial; pure-mixed dilutes seeding.
+<!-- CR-001: UJ-1 and UJ-2 superseded by CR-001 — streaming prefill removed; "Follow 3" surface no longer mixes critic-seed + mutual-taste (mutual-taste deferred). -->
+1. **UJ-1 — *(SUPERSEDED by CR-001)* Log sheet prefilled album.** Was: "most-recently-finished album, not last-played track". Now: log sheet opens with empty search at MVP because there is no streaming integration to source prefill from. UJ-1 returns alongside streaming integration in v2.
+2. **UJ-2 — *(SUPERSEDED by CR-001)* "Follow 3" card order.** Was: "mixed but always ≥3 critics in top 6 visible cards". Now: critic-seed cards are the only cards surfaced (mutual-taste suggestions require taste data we don't have without streaming history). Minimum follow count raised from 1 to 3 to compensate.
 3. **UJ-3 — Review expanded inline at MVP** (no dedicated reading view). Most reviews are short; inline keeps the feed in-flow.
 4. **UJ-4 — Reviews share-card only at MVP** (no API cross-post to Twitter/X). Cross-post APIs are deprecating; share-card with OG preview is portable and platform-risk-free.
 5. **UJ-5 — No "Reading list" surface at MVP.** Up Next is for albums only.

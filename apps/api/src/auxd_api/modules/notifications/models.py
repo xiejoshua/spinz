@@ -19,13 +19,22 @@ Plus two embedded sub-documents / value types:
   time; both shapes share field names + types and a downstream cleanup pass
   will dedupe.
 
-The :class:`NotificationType` enum is the **source of truth** for the 18
-active notification taxonomy keys (N-001..N-018). The string values mirror
+The :class:`NotificationType` enum is the **source of truth** for the 16
+active notification taxonomy keys remaining at MVP. The string values mirror
 ``features/001-auxd-mvp/product-spec/notification-taxonomy.md`` exactly so
 the Notifications dispatcher (T131), preference UI, and analytics tracking
-plan can pivot on a single identifier set. N-019 and N-020 were reserved
-for the Lists feature in Revision #1 and removed in Revision #3 when Lists
-were deferred to v2; their IDs are **not** reassigned.
+plan can pivot on a single identifier set.
+
+Reserved (not reassigned) identifier slots:
+
+* N-011 (``spotify.reconnect_required``) — removed per CR-001 (Spotify
+  integration deleted from MVP scope).
+* N-018 (``just_finished.prompt``) — removed per CR-001 (just-finished
+  prompt deferred to v2).
+* N-019 (``list.auxed``) and N-020 (``list.added_to``) — added in
+  Revision #1 and removed in Revision #3 when Lists were deferred to v2.
+
+Their IDs are kept reserved for audit and future reactivation.
 """
 
 from __future__ import annotations
@@ -43,17 +52,21 @@ from auxd_api.lib.ids import new_ksuid
 
 
 class NotificationType(str, Enum):  # noqa: UP042 — spec mandates `(str, Enum)` form
-    """All 18 ACTIVE notification types (N-001..N-018).
+    """The 16 ACTIVE notification types remaining after CR-001.
 
     String values are the canonical taxonomy identifiers from
     ``product-spec/notification-taxonomy.md``. Do not rename without
     updating the taxonomy doc and writing a migration for any Notification
     rows already persisted with the old key.
 
-    N-019 (``list.auxed``) and N-020 (``list.added_to``) were added in
-    Revision #1 and removed in Revision #3 when Lists were deferred to v2.
-    Their IDs are **reserved** (not reassigned) for audit and future Lists
-    reactivation.
+    Reserved (not reassigned) slots:
+
+    * N-011 (``spotify.reconnect_required``) — removed in CR-001 along with
+      the Spotify integration.
+    * N-018 (``just_finished.prompt``) — removed in CR-001 (just-finished
+      feature deferred to v2).
+    * N-019 (``list.auxed``) and N-020 (``list.added_to``) — added in
+      Revision #1 and removed in Revision #3 when Lists were deferred to v2.
     """
 
     N001_FOLLOW_NEW = "follow.new"
@@ -66,14 +79,14 @@ class NotificationType(str, Enum):  # noqa: UP042 — spec mandates `(str, Enum)
     N008_WEEKLY_DIGEST = "weekly.digest"
     N009_IMPORT_COMPLETED = "import.completed"
     N010_IMPORT_FAILED = "import.failed"
-    N011_SPOTIFY_RECONNECT_REQUIRED = "spotify.reconnect_required"
+    # CR-001: N-011 (spotify.reconnect_required) reserved — see module docstring.
     N012_REPORT_ACKNOWLEDGED = "report.acknowledged"
     N013_ACCOUNT_DELETION_SCHEDULED = "account.deletion_scheduled"
     N014_ACCOUNT_DELETION_REMINDER_7D = "account.deletion_reminder_7d"
     N015_SYSTEM_ANNOUNCEMENT = "system.announcement"
     N016_SECURITY_NEW_SESSION = "security.new_session"
     N017_SECURITY_PASSWORD_CHANGED = "security.password_changed"
-    N018_JUST_FINISHED_PROMPT = "just_finished.prompt"
+    # CR-001: N-018 (just_finished.prompt) reserved — see module docstring.
 
 
 class ChannelDispatchState(BaseModel):

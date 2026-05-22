@@ -6,13 +6,15 @@
 
 ---
 
+<!-- CR-001: critic-seed is now load-bearing for the first-session non-empty experience because there is no streaming auto-import to pre-populate the diary. -->
 ## Goal
 
-When a brand-new user finishes onboarding, their home feed has content. When they search for "Kendrick" or "Radiohead", the album pages show ratings from someone whose taste they recognize as legitimate. Without this, the social-graph thesis (H2) cannot compound — there is no graph to walk.
+When a brand-new user finishes onboarding, their home feed has content **even though their own diary is empty** (CR-001 / R4 removed the streaming auto-import that previously pre-populated the diary; critic-seed activity is now the *only* source of first-session non-empty content). When they search for "Kendrick" or "Radiohead", the album pages show ratings from someone whose taste they recognize as legitimate. Without this, the social-graph thesis (H2) cannot compound — there is no graph to walk *and* the empty-diary state has nothing to lean on.
 
 ---
 
-## The four-pronged approach
+<!-- CR-001: still framed as four-pronged for historical continuity, but prong 2 (Last.fm import) is deferred to v2; effective MVP shape is three-pronged. -->
+## The four-pronged approach *(at MVP: effectively three-pronged — prong 2 deferred per CR-001 / R4)*
 
 ### 1. Founder-curated critic seed roster (PRIMARY — launch blocker)
 
@@ -52,17 +54,12 @@ If a seed produces zero activity within their first 4 weeks, they're moved to `C
 
 ---
 
-### 2. Last.fm history import (SECONDARY — covers OAuth-averse users)
+<!-- CR-001: Section 2 entirely deferred to v2 — bundled with streaming-integration cluster. Preserved with DEFERRED-TO-V2 marker so the four-pronged framing remains discoverable; section content omitted to keep the MVP surface honest. -->
+### 2. *(DEFERRED-TO-V2)* Last.fm history import (SECONDARY)
 
-Some target users won't connect Spotify (privacy preferences, account-sharing households, Apple-Music-primary). Last.fm import is the alternative activation primitive.
+**Status:** DEFERRED-TO-V2 (CR-001 / R4). Was originally the OAuth-averse-user activation primitive. CR-001 deferred all streaming-history imports — both streaming-OAuth and Last.fm — to v2. At MVP the only activation primitive is manual logging. The section content (Last.fm username flow, 365-day scrobble fetch, album-grain dedup) is preserved in git history at v1.3; intentionally not re-displayed here to keep the MVP surface honest.
 
-- User provides Last.fm username (public scrobbling profiles, no auth required).
-- System fetches last 365 days of scrobbles via Last.fm API.
-- Dedupes to album-grain (≥4 distinct tracks in 1-week window = "album listen").
-- Pre-populates diary with ratings unset (Last.fm doesn't have ratings; user can rate retroactively).
-- Same "Confirm your last 30 days" onboarding step applies, drawn from Last.fm data.
-
-This is covered by user story [S-H1](./user-stories.md#s-h1-should-lastfm-history-import-as-spotify-alternative) — Should-Have priority because it widens addressable market materially.
+Re-eval trigger: streaming integration returns in v2.
 
 ---
 
@@ -119,7 +116,8 @@ Algorithm is heuristic at MVP. ML-based suggestion (collaborative filtering) def
 | **L-10** | Begin cold outreach (20–30 candidates per week). |
 | **L-6** | Closed-beta wave: ~30 critic seeds + ~50 friends-of-founder onboard. |
 | **L-4** | Validate seed activity (each seed has ≥10 ratings, ≥3 reviews). Cull inactive. |
-| **L-3** | Spotify Extended Quota Mode application submitted. |
+<!-- CR-001 removed: Spotify Extended Quota Mode application — N/A at MVP, was the trigger for CR-001 itself. -->
+| **L-3** | *(was: Spotify Extended Quota Mode application submitted — N/A per CR-001 / R4. Slot retained as buffer for catalog-quality bug-bash.)* |
 | **L-2** | Internal-only testing wave; bug-bash. |
 | **L-1** | Soft launch — public signups behind waitlist (controlled ramp). |
 | **L 0** | Open public launch. Critic seed pre-recommended in onboarding. |

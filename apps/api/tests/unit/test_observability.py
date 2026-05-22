@@ -21,6 +21,8 @@ from auxd_api.lib.observability import emit_event, init_sentry, log_call
 # ---------------------------------------------------------------------------
 
 
+# CR-001: removed SPOTIFY_* env keys; DISCOGS_API_TOKEN is the new
+# (optional) catalog-fallback toggle.
 _REQUIRED_ENV_KEYS = (
     "ENVIRONMENT",
     "LOG_LEVEL",
@@ -28,9 +30,7 @@ _REQUIRED_ENV_KEYS = (
     "REDIS_URL",
     "SESSION_HMAC_KEY",
     "TOKEN_ENCRYPTION_KEY",
-    "SPOTIFY_INTEGRATION_ENABLED",
-    "SPOTIFY_CLIENT_ID",
-    "SPOTIFY_CLIENT_SECRET",
+    "DISCOGS_API_TOKEN",
     "SENTRY_DSN",
     "POSTHOG_API_KEY",
     "POSTHOG_HOST",
@@ -59,7 +59,7 @@ def _clean_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterator[Non
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("SESSION_HMAC_KEY", _b64(32))
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", _b64(32))
-    monkeypatch.setenv("SPOTIFY_INTEGRATION_ENABLED", "false")
+    # CR-001: removed SPOTIFY_INTEGRATION_ENABLED=false bootstrap.
     settings_module.get_settings.cache_clear()
 
     # Reset observability module globals so e.g. PostHog client is not
@@ -92,11 +92,13 @@ def _parse_observability_record(caplog: pytest.LogCaptureFixture) -> dict[str, A
 
 
 class TestLogCall:
+    # CR-001: exemplar provider strings switched from "spotify" to
+    # "discogs"/"musicbrainz" — Spotify is no longer wired at MVP.
     def test_log_call_emits_json_line_at_info(self, caplog: pytest.LogCaptureFixture) -> None:
         with caplog.at_level(logging.INFO, logger="auxd.observability"):
             log_call(
-                provider="spotify",
-                endpoint="/me/player/recently-played",
+                provider="discogs",
+                endpoint="/database/search",
                 latency_ms=123.4,
                 status=200,
             )
@@ -108,8 +110,8 @@ class TestLogCall:
 
         payload = _parse_observability_record(caplog)
         assert payload["event"] == "external_call"
-        assert payload["provider"] == "spotify"
-        assert payload["endpoint"] == "/me/player/recently-played"
+        assert payload["provider"] == "discogs"
+        assert payload["endpoint"] == "/database/search"
         assert payload["latency_ms"] == 123.4
         assert payload["status"] == 200
         assert "timestamp" in payload
@@ -122,8 +124,8 @@ class TestLogCall:
     ) -> None:
         with caplog.at_level(logging.INFO, logger="auxd.observability"):
             log_call(
-                provider="spotify",
-                endpoint="/v1/me",
+                provider="discogs",
+                endpoint="/database/releases/12345",
                 latency_ms=42.0,
                 status=200,
                 request_id="req-abc-123",
@@ -135,8 +137,8 @@ class TestLogCall:
     def test_log_call_omits_request_id_when_none(self, caplog: pytest.LogCaptureFixture) -> None:
         with caplog.at_level(logging.INFO, logger="auxd.observability"):
             log_call(
-                provider="spotify",
-                endpoint="/v1/me",
+                provider="discogs",
+                endpoint="/database/releases/12345",
                 latency_ms=42.0,
                 status=200,
                 request_id=None,
@@ -163,8 +165,8 @@ class TestLogCall:
     def test_log_call_status_can_be_string_or_int(self, caplog: pytest.LogCaptureFixture) -> None:
         with caplog.at_level(logging.INFO, logger="auxd.observability"):
             log_call(
-                provider="spotify",
-                endpoint="/v1/me",
+                provider="musicbrainz",
+                endpoint="/ws/2/release-group",
                 latency_ms=10.0,
                 status=200,
             )
@@ -175,8 +177,8 @@ class TestLogCall:
 
         with caplog.at_level(logging.INFO, logger="auxd.observability"):
             log_call(
-                provider="spotify",
-                endpoint="/v1/me",
+                provider="musicbrainz",
+                endpoint="/ws/2/release-group",
                 latency_ms=10000.0,
                 status="timeout",
             )

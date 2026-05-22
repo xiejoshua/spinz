@@ -1,8 +1,12 @@
 <!DOCTYPE html>
+<!-- CR-001 (2026-05-22): Onboarding step 3 redesigned. Was "Confirm Last 30 Days" (rate
+     5 Spotify-imported albums). Spotify integration deferred to v2 per CR-001 (250k MAU
+     Extended Quota gate). New step is "Pick critics to follow" — the critic-seeded feed
+     is the activation surface. Requires ≥3 follows before Continue is enabled. -->
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Wireframe: Onboarding — Confirm Last 30 Days</title>
+  <title>Wireframe: Onboarding — Follow Critics</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #efefef; padding: 20px; margin: 0; color: #222; }
     .wireframe-nav { text-align: center; margin-bottom: 20px; font-size: 13px; }
@@ -16,18 +20,20 @@
     .step-indicator span.done { background: #888; }
     h2 { margin: 0 0 8px 0; font-size: 22px; }
     p.intro { color: #666; font-size: 14px; margin: 0 0 24px 0; line-height: 1.5; }
-    .album-card { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
-    .album-cover { width: 56px; height: 56px; background: #ccc; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #888; font-size: 10px; }
-    .album-meta { font-size: 14px; }
-    .album-meta strong { display: block; }
-    .album-meta span { color: #777; font-size: 12px; }
-    .star-row { font-size: 18px; letter-spacing: 2px; cursor: pointer; user-select: none; }
-    .star { color: #ddd; }
-    .star.filled { color: #222; }
-    .star.half { background: linear-gradient(90deg, #222 50%, #ddd 50%); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .critic-card { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 12px 0; border-bottom: 1px solid #eee; }
+    .critic-avatar { width: 44px; height: 44px; background: #ccc; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #555; font-size: 14px; font-weight: 600; }
+    .critic-meta { font-size: 14px; min-width: 0; }
+    .critic-meta strong { display: block; }
+    .critic-meta .handle { color: #777; font-size: 12px; }
+    .critic-meta .bio { color: #555; font-size: 12px; margin-top: 2px; line-height: 1.3; }
+    .follow-btn { padding: 6px 12px; border-radius: 999px; border: 1px solid #222; background: white; color: #222; font-size: 12px; font-weight: 600; cursor: pointer; min-width: 72px; }
+    .follow-btn.following { background: #222; color: white; }
+    .progress-note { text-align: center; font-size: 12px; color: #888; margin: 16px 0 8px 0; }
+    .progress-note strong { color: #222; }
     .footer { position: absolute; bottom: 16px; left: 16px; right: 16px; display: flex; gap: 8px; }
     .btn { flex: 1; padding: 14px; border-radius: 8px; font-size: 15px; text-align: center; cursor: pointer; border: none; }
     .btn-primary { background: #222; color: white; }
+    .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
     .btn-secondary { background: #eee; color: #444; }
     .note { font-size: 11px; color: #999; text-align: center; margin-top: 12px; }
   </style>
@@ -52,71 +58,67 @@
       <span class="done"></span>
       <span class="active"></span>
       <span></span>
-      <span></span>
     </div>
 
-    <h2>Your last 30 days</h2>
-    <p class="intro">We pulled 28 albums from your Spotify history. Rate your standouts — we'll build your feed from here.</p>
+    <h2>Pick critics to follow</h2>
+    <p class="intro">Your feed starts empty. Follow at least 3 critics — these are music writers and tastemakers we picked to seed your discovery surface.</p>
 
-    <div class="album-card">
-      <div class="album-cover">cover</div>
-      <div class="album-meta">
-        <strong>GNX</strong>
-        <span>Kendrick Lamar · 2024</span>
+    <div class="critic-card">
+      <div class="critic-avatar">SF</div>
+      <div class="critic-meta">
+        <strong>Sasha Frere</strong>
+        <span class="handle">@sasha · Critic</span>
+        <div class="bio">Long-form essays on rap and electronic music; writes monthly for Pitchfork.</div>
       </div>
-      <div class="star-row">
-        <span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star half">★</span>
-      </div>
+      <button class="follow-btn following">Following</button>
     </div>
 
-    <div class="album-card">
-      <div class="album-cover">cover</div>
-      <div class="album-meta">
-        <strong>Brat</strong>
-        <span>Charli XCX · 2024</span>
+    <div class="critic-card">
+      <div class="critic-avatar">JH</div>
+      <div class="critic-meta">
+        <strong>Jamie Hsu</strong>
+        <span class="handle">@jamie · Critic</span>
+        <div class="bio">Indie folk, ambient, and the occasional pop curveball. Newsletter: <em>Sound Levels</em>.</div>
       </div>
-      <div class="star-row">
-        <span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star">★</span><span class="star">★</span>
-      </div>
+      <button class="follow-btn following">Following</button>
     </div>
 
-    <div class="album-card">
-      <div class="album-cover">cover</div>
-      <div class="album-meta">
-        <strong>Cowboy Carter</strong>
-        <span>Beyoncé · 2024</span>
+    <div class="critic-card">
+      <div class="critic-avatar">MR</div>
+      <div class="critic-meta">
+        <strong>Maya Reed</strong>
+        <span class="handle">@mreed · Critic</span>
+        <div class="bio">Pop deconstruction; tracks the post-Brat moment in detail.</div>
       </div>
-      <div class="star-row">
-        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
-      </div>
+      <button class="follow-btn following">Following</button>
     </div>
 
-    <div class="album-card">
-      <div class="album-cover">cover</div>
-      <div class="album-meta">
-        <strong>Hit Me Hard and Soft</strong>
-        <span>Billie Eilish · 2024</span>
+    <div class="critic-card">
+      <div class="critic-avatar">DK</div>
+      <div class="critic-meta">
+        <strong>Devon K.</strong>
+        <span class="handle">@devon · Critic</span>
+        <div class="bio">R&amp;B, jazz, and the people who taught it to themselves.</div>
       </div>
-      <div class="star-row">
-        <span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star filled">★</span><span class="star">★</span>
-      </div>
+      <button class="follow-btn">Follow</button>
     </div>
 
-    <div class="album-card">
-      <div class="album-cover">cover</div>
-      <div class="album-meta">
-        <strong>Two Star &amp; The Dream Police</strong>
-        <span>Mk.gee · 2024</span>
+    <div class="critic-card">
+      <div class="critic-avatar">RT</div>
+      <div class="critic-meta">
+        <strong>Riley T.</strong>
+        <span class="handle">@riley · Critic</span>
+        <div class="bio">Genre-fluid; reviews albums you've never heard of with reasons you'll remember.</div>
       </div>
-      <div class="star-row">
-        <span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span><span class="star">★</span>
-      </div>
+      <button class="follow-btn">Follow</button>
     </div>
 
-    <p class="note">Tap a star to rate. You can skip and rate later from your diary.</p>
+    <div class="progress-note">Following <strong>3 of 3</strong> · you can follow more from Discover later</div>
+
+    <p class="note">Tap Follow to seed your feed. We picked these critics based on activity, taste-range, and review depth — not on follower count.</p>
 
     <div class="footer">
-      <button class="btn btn-secondary">Skip</button>
+      <button class="btn btn-secondary">Back</button>
       <button class="btn btn-primary">Continue →</button>
     </div>
   </div>

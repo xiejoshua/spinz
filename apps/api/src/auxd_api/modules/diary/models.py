@@ -33,12 +33,16 @@ class Visibility(StrEnum):
 
 
 class DiaryEntrySource(StrEnum):
-    """How a diary entry was created. Used for analytics + behavior toggles."""
+    """How a diary entry was created. Used for analytics + behavior toggles.
+
+    CR-001 (2026-05-22): removed Spotify-derived sources
+    (``SPOTIFY_IMPORT``, ``SPOTIFY_JUST_FINISHED_PROMPT``,
+    ``SPOTIFY_PREFILL``) along with the Spotify integration. Diary
+    entries at MVP are either ``MANUAL`` or ``LASTFM_IMPORT`` (Should-Have
+    FR-017); just-finished prompts are deferred to v2.
+    """
 
     MANUAL = "manual"
-    SPOTIFY_IMPORT = "spotify_import"
-    SPOTIFY_JUST_FINISHED_PROMPT = "spotify_just_finished_prompt"
-    SPOTIFY_PREFILL = "spotify_prefill"
     LASTFM_IMPORT = "lastfm_import"  # Should-Have FR-017
 
 

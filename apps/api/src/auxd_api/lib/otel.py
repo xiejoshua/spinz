@@ -11,7 +11,7 @@ Provides :func:`init_otel` that:
   3. Calls ``FastAPIInstrumentor.instrument_app(app)`` for HTTP request
      spans (containing ``http.route``, ``trace_id``, ``span_id``, etc.).
   4. Calls ``HTTPXClientInstrumentor().instrument()`` for outbound httpx
-     spans (covers Spotify/MusicBrainz and any other future provider
+     spans (covers MusicBrainz/Discogs and any other future provider
      client that uses httpx — which is all of them per plan §6).
 
 MongoDB (Beanie/PyMongo) instrumentation is deferred until T012 wires

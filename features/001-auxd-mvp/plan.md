@@ -9,6 +9,9 @@
 > - Research: [research/README.md](./research/README.md)
 > - Decision Log: [product-spec/decision-log.md](./product-spec/decision-log.md)
 
+<!-- CR-001: top-of-plan decision block — all third-party listening-history integration deferred to v2 -->
+> **CR-001 (2026-05-22) — Listening-history integration deferred to v2.** All third-party listening-history provider integration (the original OAuth shortcut, recently-played polling, just-finished detection, library-read prefill, and cover-art CDN proxy) is removed from the MVP. Rationale: the upstream provider's Extended Quota Mode now requires 250k MAUs to apply — structurally unreachable pre-launch. **MVP catalog backbone is MusicBrainz primary + Discogs fallback; cover art via Cover Art Archive.** Onboarding is signup → handle → follow ≥3 critics → critic-seed feed. Album logging is manual search → rate + Aux + review (Letterboxd-style). The `MusicProvider` + `CatalogProvider` Protocols are retained for forward compatibility; MVP ships one `CatalogProvider` impl per kind and no `MusicProvider` impl. All deferred surfaces remain visible in this plan under `**DEFERRED-TO-V2 (CR-001)**` labels.
+
 ---
 
 ## 0. Pre-Implementation Prerequisites (must complete before any feature work)
@@ -23,23 +26,18 @@
 
 3. **Library-first modules.** Backend organized as composable libraries, not god-objects. Each `backend/<module>/` exposes a single public service (`<module>.service.<verb>(...)`); internals are private. Cross-module calls go through public services, not internal helpers.
 
-4. **Test-first for catalog/auth edges.** Spotify integration, MusicBrainz integration, and OAuth flows have contract tests written before implementation. Integration tests must pass against Spotify's sandbox / Development Mode before any feature using those edges merges to main.
+<!-- CR-001: Principle 4 — narrow test-first scope to catalog providers + email/password auth -->
+4. **Test-first for catalog/auth edges.** MusicBrainz and Discogs catalog integrations and the email/password auth flow have contract tests written before implementation. Contract tests must pass before any feature using those edges merges to main.
 
 5. **Observability mandatory.** Every external API call emits a structured log line with `provider`, `endpoint`, `latency_ms`, `status_code`, `request_id`. Every notification dispatch emits a PostHog event. Every error captured to Sentry with feature + module tags.
 
 The constitution should also include a sixth project-specific principle:
 
-6. **Provider abstraction.** Every music-provider integration goes through `lib/providers/MusicProvider` interface; provider-specific code lives in `lib/providers/<provider>/`. Feature code never imports `spotify_sdk` directly. This isolates future deprecations (Spotify removed audio-features in Nov 2024 — the pattern is the protection).
+<!-- CR-001: Principle 6 — provider abstraction language rewritten to be catalog-first, provider-vendor-neutral -->
+6. **Provider abstraction.** Every catalog or music-provider integration goes through the `lib/providers/CatalogProvider` or `lib/providers/MusicProvider` Protocol; provider-specific code lives in `lib/providers/<provider>/`. Feature code never imports a vendor SDK directly. MVP ships one `CatalogProvider` impl per kind (`MusicBrainzCatalogProvider` + `DiscogsCatalogProvider`); the `MusicProvider` Protocol is defined but unimplemented at MVP. The abstraction isolates future listening-history providers and prevents repeats of past third-party endpoint deprecations.
 
-### Task 1 — Submit Spotify Extended Quota Mode Application (Day 1, parallel work)
-
-2–6 week external dependency on Spotify's app-review queue. Submit on **Day 1 of Phase 6** to overlap with implementation. Application requires:
-- Business / use-case description (use the wedge thesis from spec.md §1.3)
-- Compliance with Spotify Developer Policy + branding guidelines ("Powered by Spotify" attribution on album surfaces)
-- Privacy policy + terms of service URLs (placeholders OK at submission; finalize before public launch)
-- Sample app screenshots (use wireframes/ HTMLs as placeholders if needed)
-
-**Fallback plan:** All implementation through M2 happens in Spotify Development Mode (25-user quota). Closed-beta wave (M-2 from public launch) operates entirely inside Development Mode. Production-tier quotas only required for public launch; if Extended Quota review is delayed, the launch waitlist can hold real users without violating quotas.
+<!-- CR-001: Task 1 (Extended Quota Mode application) removed — no listening-history provider at MVP -->
+**DEFERRED-TO-V2 (CR-001):** Listening-history provider application + quota review. Original §0 Task 1 required submitting an Extended Quota Mode application to a third-party listening-history provider on Day 1 of Phase 6. CR-001 removes that integration from the MVP entirely; no provider application is required to ship. v2 candidates: Last.fm scrobble import, Apple Music MusicKit (Apple's developer programme has a different quota model and is not blocked by the same 250k MAU threshold).
 
 ---
 
@@ -65,19 +63,22 @@ The constitution should also include a sixth project-specific principle:
 │  │   └── seeding · moderation · data-export                │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                  │
+<!-- CR-001: worker box + downstream box rewritten — no listening-history polling worker at MVP; catalog providers swapped to MusicBrainz + Discogs -->
 │  ┌─────────────────────────────────────────────────────────┐    │
 │  │   arq worker (background)                                │    │
-│  │   ├── spotify_poll · digest_dispatch · suggestions_job  │    │
+│  │   ├── digest_dispatch · suggestions_job                  │    │
 │  │   ├── moderation_scan · deletion_cascade · gdpr_export  │    │
 │  │   └── mbid_reconcile                                     │    │
+│  │   (just-finished polling worker DEFERRED-TO-V2 / CR-001) │    │
 │  └─────────────────────────────────────────────────────────┘    │
 └─────┬──────────────────┬───────────────────┬────────────────────┘
       │                  │                   │
       ▼                  ▼                   ▼
 ┌──────────┐      ┌──────────────┐    ┌───────────────────┐
-│  Redis   │      │ MongoDB Atlas│    │  Spotify API +    │
-│  (arq +  │      │  + Atlas     │    │  MusicBrainz +    │
-│  cache)  │      │  Search      │    │  Resend (email)   │
+│  Redis   │      │ MongoDB Atlas│    │  MusicBrainz +    │
+│  (arq +  │      │  + Atlas     │    │  Discogs +        │
+│  cache)  │      │  Search      │    │  Cover Art Archive│
+│          │      │              │    │  + Resend (email) │
 └──────────┘      └──────────────┘    └───────────────────┘
 
 Observability: Sentry · PostHog Cloud · OpenTelemetry traces → Fly logs
@@ -94,13 +95,17 @@ The platform makes deliberate fail-mode choices for shared infrastructure:
 | **Redis (endpoint rate-limit)** | Per-IP / per-user write-endpoint limits bypassed | **FAIL OPEN** — same policy as notification limiter (defensive layer; missing user activity is worse than briefly unlimited writes) | Sentry `endpoint_rate_limit.redis_down` |
 | **Redis (cache)** | Direct DB hits | FAIL OPEN — accept slower queries | Sentry `cache.redis_down` |
 | **Redis (arq job queue)** | New jobs cannot enqueue | FAIL CLOSED — API returns 503 for endpoints that enqueue jobs (e.g., GDPR export) | Sentry `jobs.redis_down` |
-| **Spotify API** | Provider returns 503/timeout | Circuit-breaker opens; cached metadata served; auto-prompt + import paused | Sentry `spotify.unavailable` |
+<!-- CR-001: replaced listening-history provider row with MusicBrainz + Discogs catalog rows -->
+| **MusicBrainz API** | 503/timeout/rate-limited | Circuit-breaker opens; cached catalog subset served from `albums`; live cache-miss lookups return "service degraded" search results | Sentry `musicbrainz.unavailable` |
+| **Discogs API** | 503/timeout/rate-limited | Circuit-breaker opens; fallback path returns nothing (MusicBrainz primary already attempted); search still returns Atlas Search + MusicBrainz hits | Sentry `discogs.unavailable` |
+| **Cover Art Archive** | 503/timeout/404 | Album surface renders placeholder cover; no retry storm | Sentry `caa.unavailable` (sampled, low priority) |
 | **MongoDB Atlas** | Connection refused | FAIL CLOSED — 503 on all data-touching endpoints; static pages still load | Sentry `db.unavailable` (paging) |
 | **Resend (email)** | Send fails | Retry with exponential backoff (3 attempts); on final failure, log to `failed_emails` collection for manual retry | Sentry `email.send_failed` |
 | **PostHog** | Event dispatch fails | FAIL SILENT — events dropped; do not block user actions | Sentry `analytics.posthog_down` |
 | **Sentry** | Sentry itself down | FAIL SILENT — log to stdout (captured by Fly logs) | (none — fallback log channel) |
 
-Rationale: rate-limiting is defensive (Spotify enforces its own limits at their edge; our limiter prevents misuse, but missing notifications during a Redis outage is a worse user experience than briefly unlimited notifications). Job queue and database are load-bearing and fail closed.
+<!-- CR-001: rationale rephrased to be provider-vendor-neutral -->
+Rationale: rate-limiting is defensive (upstream catalog providers enforce their own limits at their edge — MusicBrainz at 1 req/sec, Discogs at 60 req/min authenticated; our limiter prevents misuse, but missing notifications during a Redis outage is a worse user experience than briefly unlimited notifications). Job queue and database are load-bearing and fail closed.
 
 ### 1.2 Repository structure
 
@@ -128,10 +133,10 @@ auxd/
 │   │   │   │   ├── seeding/
 │   │   │   │   ├── moderation/
 │   │   │   │   └── data_export/
-│   │   │   ├── providers/              (MusicProvider abstraction)
+│   │   │   ├── providers/              (Catalog/MusicProvider abstraction)
 │   │   │   │   ├── base.py
-│   │   │   │   ├── spotify/
-│   │   │   │   └── musicbrainz/
+│   │   │   │   ├── musicbrainz/        (CR-001: primary CatalogProvider)
+│   │   │   │   └── discogs/            (CR-001: fallback CatalogProvider)
 │   │   │   ├── lib/                    (cross-cutting utilities)
 │   │   │   │   ├── resilience.py       (retry + timeout + circuit breaker)
 │   │   │   │   ├── visibility.py       (single can_read() function)
@@ -143,7 +148,7 @@ auxd/
 │   │   ├── tests/
 │   │   │   ├── unit/
 │   │   │   ├── integration/
-│   │   │   └── contract/               (against Spotify sandbox)
+│   │   │   └── contract/               (CR-001: against MusicBrainz + Discogs APIs + Cover Art Archive)
 │   │   ├── pyproject.toml              (uv-managed)
 │   │   ├── Dockerfile
 │   │   └── fly.toml
@@ -213,22 +218,28 @@ All Phase 1 research recommendations confirmed unchanged.
 | Frontend UI kit | **shadcn/ui + Radix primitives** | Confirmed. Copy-paste components; full Tailwind control; accessibility built-in (load-bearing for WCAG 2.1 AA). |
 | Frontend forms | **React Hook Form + Zod** | Confirmed. Zod schemas double as TS types and runtime validators; can share Zod schemas with backend Pydantic via codegen if needed. |
 | Frontend testing | **Vitest + Testing Library + Playwright** | Vitest for unit (faster than Jest, native ESM); Playwright for E2E (per spec.md §10). |
-| Backend framework | **FastAPI (async only)** | Confirmed. Locked by config + research; async is essential for Spotify polling. |
+<!-- CR-001: FastAPI rationale rephrased — async remains essential for concurrent MusicBrainz/Discogs lookups -->
+| Backend framework | **FastAPI (async only)** | Confirmed. Locked by config + research; async is essential for concurrent rate-limited catalog lookups (MusicBrainz at 1 req/sec, Discogs fallbacks). |
 | Backend validation | **Pydantic v2** | Confirmed. v2's performance + JSON Schema export power the OpenAPI → TS types pipeline. |
 | Backend ODM | **Beanie** | Confirmed. Async-native, Pydantic-v2-native; less boilerplate than raw PyMongo. Bench note: if Beanie ever bottlenecks on aggregation pipelines, drop to raw `motor` for that one query — Beanie supports the escape hatch. |
-| Backend auth | **Authlib (Spotify OAuth) + custom email/password** | Authlib chosen over fastapi-users because we need granular control over Spotify-scoped flows and handle policy enforcement (FR-029) that fastapi-users doesn't natively support. Custom session middleware with HMAC-signed cookies (no JWT — simpler, single-server). |
+<!-- CR-001: backend auth narrowed to email/password — third-party OAuth deferred to v2 -->
+| Backend auth | **Custom email/password** (Authlib kept on the dep list for v2 OAuth) | Custom email/password is the sole signup path at MVP. Authlib stays in the dependency manifest as a thin shim for v2 listening-history provider OAuth, but no OAuth flow ships in the MVP. Session middleware uses HMAC-signed cookies (no JWT — simpler, single-server). Handle policy (FR-029) enforced in `modules/auth/handle_service.py`. |
 | Backend background jobs | **arq + Redis** | arq is FastAPI-async-native; Celery would force sync-in-async patterns. Redis serves double duty (job queue + ephemeral cache). |
-| Backend HTTP client | **`httpx.AsyncClient`** with custom transport | Confirmed. `spotipy` rejected — it's sync-only and would require thread-pool wrapping. Direct `httpx` with custom retry + circuit-breaker transport. |
+<!-- CR-001: httpx rationale rephrased — sync vendor SDKs rejected for catalog providers too -->
+| Backend HTTP client | **`httpx.AsyncClient`** with custom transport | Confirmed. Sync vendor SDKs (e.g., `musicbrainzngs`, `discogs-client`) rejected — they are sync-only and would require thread-pool wrapping. Direct `httpx` with custom retry + circuit-breaker transport. |
 | Database | **MongoDB Atlas (Shared M0 tier at MVP)** | Confirmed. Free tier handles M3 target (~500 WAL); upgrade to M10 when WAL crosses ~3k. |
-| Search | **Atlas Search** (native to Atlas) | Confirmed. One less moving part than Meilisearch/Typesense. Spotify search as fallback for cold catalog. |
-| Cache | **Redis (Upstash serverless)** | Album metadata cache (7d TTL), user listening cache (1h TTL), arq job queue, OAuth state. |
+<!-- CR-001: search rationale rephrased — cold-catalog fallback is now MusicBrainz live + Discogs -->
+| Search | **Atlas Search** (native to Atlas) | Confirmed. One less moving part than Meilisearch/Typesense. Cold-catalog fallback path: live MusicBrainz lookup → Discogs fallback (see §11). |
+<!-- CR-001: Redis cache rationale — no OAuth state at MVP, no listening cache -->
+| Cache | **Redis (Upstash serverless)** | Album metadata cache (7d TTL), arq job queue, Redis-backed rate limiter. (OAuth state cache + listening cache DEFERRED-TO-V2 / CR-001.) |
 | Email | **Resend** | Transactional email + weekly digest. Free tier 3k emails/mo covers MVP. Swapped from Postmark on 2026-05-22 to stay on free tier ($15/mo saved). |
 | Web push | **Standard Web Push API + VAPID keys** | No third-party push service needed at PWA stage. |
 | Observability — errors | **Sentry** (free tier first) | Confirmed. |
 | Observability — product analytics | **PostHog Cloud (US region, free tier)** | 1M events/mo + 1yr retention on free tier — easily covers M6 closed-beta scale. Self-host on Fly was the original plan but needs 4 GB RAM (~$40/mo); swapped 2026-05-22 to Cloud to drop MVP run-rate to $5/mo. Migrate to self-host if event volume crosses 1M/mo or compliance forces on-prem. |
 | Observability — traces | **OpenTelemetry → Fly logs** at MVP | No dedicated tracing backend at MVP; Honeycomb/Tempo deferred to post-launch if needed. |
 | Recommendation engine | **Heuristic only (Python, in-process)** | Confirmed. Social-graph walking + mutual-taste overlap; no ML/ALS at MVP. |
-| Music identity | **MusicBrainz release-group MBID canonical, Spotify album ID fallback** | Locked. |
+<!-- CR-001: identity model — MBID is the sole canonical key; Discogs release ID is the fallback -->
+| Music identity | **MusicBrainz release-group MBID canonical; Discogs release ID fallback** | Locked. MBID is the sole canonical identity at MVP. `discogs_release_id` is a sparse-unique secondary key on `albums` for obscure pressings that MusicBrainz doesn't cover. |
 | Hosting — backend | **Fly.io (single region: SJC; multi-region post-M3)** | Async-friendly; cheap; pgvector not needed; Redis sidecar via Upstash. |
 | Hosting — frontend | **Vercel (Next.js native)** | Edge functions for SSR; OG image generation; cheap. |
 | CI/CD | **GitHub Actions** | Lint + type-check + unit/integration tests on PR; auto-deploy on main. |
@@ -247,8 +258,10 @@ All Phase 1 research recommendations confirmed unchanged.
 
 | Collection | Volume estimate at M6 | Indexes | Notes |
 |---|---|---|---|
-| `users` | 5k–10k | `handle` unique sparse · `email` unique sparse · `status` partial | KSUID `_id`; encrypted token sub-doc |
-| `albums` | 50k–200k | `mbid` unique sparse · `spotify_id` unique sparse · Atlas Search index on `title + artist_credit + artists.name` | Lazy-cache; 7d TTL via `cache_expires_at` |
+<!-- CR-001: User.music_providers becomes an empty dict at MVP; no provider tokens persisted -->
+| `users` | 5k–10k | `handle` unique sparse · `email` unique sparse · `status` partial | KSUID `_id`. `User.music_providers: dict = {}` at MVP (no provider tokens persisted — v2 may populate). No encrypted token sub-doc required at MVP. |
+<!-- CR-001: `albums` indexes — `spotify_id` dropped; `discogs_release_id` added as fallback identity -->
+| `albums` | 50k–200k | `mbid` unique sparse · `discogs_release_id` unique sparse · Atlas Search index on `title + artist_credit + artists.name` | Lazy-cache; 7d TTL via `cache_expires_at`. MBID is the sole canonical identity; `discogs_release_id` populated only when MusicBrainz returns no match. |
 | `diary_entries` | 50k–500k | `user_id + logged_at desc` · `user_id + album_id + logged_at desc` · `album_id + visibility + rating desc` · `visibility + logged_at desc` (sparse on public) | Soft-delete with `deleted_at`; 30d grace |
 | `reviews` | 10k–100k | `user_id + created_at desc` · `album_id + reactions.likes_count desc` (R3 Most-Liked sort) · `diary_entry_id` unique | 1:1 optional with DiaryEntry |
 | `review_likes` | 50k–500k | `(review_id, user_id)` unique compound · `user_id + created_at desc` | New in R3 |
@@ -259,9 +272,11 @@ All Phase 1 research recommendations confirmed unchanged.
 | `blocks` | 1k–10k | `(blocker_id, blockee_id)` unique compound · `blockee_id` | Cascade-resolves Follow + FollowRequest |
 | `reports` | 100–5k | `target_type + target_id` · `status + created_at desc` | Daily log-scan; `target_type ∈ {user, diary_entry, review, missing_album}` (R3 + sync-fix L3-006) |
 | `review_edit_history` | 5k–50k | `review_id + version desc` · `edited_at` (TTL 90d) | Sync-fix L3-003 — FR-030 90-day audit log; never exposed publicly |
-| `notifications` | 100k–1M | `user_id + created_at desc` · `user_id + read_at` (sparse) · TTL 90d | Hard-delete via TTL after 90d |
+<!-- CR-001: notification type enum — `just_finished` + listening-history-provider-revoked types removed at MVP -->
+| `notifications` | 100k–1M | `user_id + created_at desc` · `user_id + read_at` (sparse) · TTL 90d | Hard-delete via TTL after 90d. **CR-001:** the `just_finished` notification type and the `listening_history_provider_revoked` notification type are NOT emitted at MVP (deferred to v2 with the listening-history integration). All other notification types remain. |
 | `notification_preferences` | 5k–10k (embedded on User) | — | Embedded; no separate collection |
-| `just_finished_prompts` | 10k–100k | `user_id + state + detected_at desc` · TTL 24h on `pending` | New in R1 |
+<!-- CR-001: `just_finished_prompts` collection — kept for forward compat; not used at MVP -->
+| `just_finished_prompts` | **DEFERRED-TO-V2 (CR-001)** | `user_id + state + detected_at desc` · TTL 24h on `pending` | **Status: DEFERRED-TO-V2.** Collection schema and indexes are kept in this plan so the v2 listening-history integration can land without a migration; no writers exist at MVP. |
 | `suggested_follows` | 10k–100k | `user_id + score desc` · `dismissed_at` (sparse) | Precomputed offline |
 | `critic_seeds` | 25–80 | `priority desc` · `active` partial | Editorial roster |
 
@@ -280,12 +295,11 @@ class Visibility(str, Enum):
     FOLLOWERS = "followers"
     PRIVATE = "private"
 
+# CR-001: DiaryEntrySource — only MANUAL ships at MVP; listening-history import sources deferred to v2
 class DiaryEntrySource(str, Enum):
     MANUAL = "manual"
-    SPOTIFY_IMPORT = "spotify_import"
-    SPOTIFY_JUST_FINISHED_PROMPT = "spotify_just_finished_prompt"
-    SPOTIFY_PREFILL = "spotify_prefill"
-    LASTFM_IMPORT = "lastfm_import"
+    # DEFERRED-TO-V2 (CR-001): JUST_FINISHED_PROMPT, LISTENING_HISTORY_IMPORT, LISTENING_HISTORY_PREFILL, LASTFM_IMPORT
+    # Enum values kept off the wire at MVP; v2 will reintroduce as needed.
 
 class DiaryEntry(Document):
     _schema_version: int = 1
@@ -342,19 +356,16 @@ Every read path goes through this function. **Constitution-enforced via lint rul
 
 ### 4.1 Sign-up flows
 
-**Flow A — Spotify OAuth shortcut:**
-1. User taps "Get started with Spotify" → redirect to `https://accounts.spotify.com/authorize` with scopes (§4.4) + PKCE.
-2. On callback, exchange auth code for tokens.
-3. Fetch Spotify profile → `display_name`, `email`, `external_id`.
-4. Auto-create User with handle = first-available slug derived from `display_name`.
-5. Store `MusicProvider` embedded sub-doc on User with encrypted tokens (envelope encryption via Fly.io secret).
-6. Issue session cookie (HMAC-signed; 30-day rolling expiry).
+<!-- CR-001: single email/password signup flow; OAuth shortcut DEFERRED-TO-V2; onboarding sequence: signup → handle → follow ≥3 critics → critic-seed feed -->
+**Email/password (sole MVP path):**
+1. User submits email + password + handle on the signup page.
+2. Validate handle against policy (FR-029, §4.3) — uniqueness, reserved-squat, format.
+3. bcrypt hash password (cost 12); persist User with `password_hash`, `handle`, `status: active`, `music_providers: {}`.
+4. Issue session cookie (HMAC-signed; 30-day rolling expiry).
+5. Onboarding sequence: confirm handle → follow ≥3 critic-seed accounts (pre-checked cards in §12) → land on critic-seed feed.
+6. First album logged via manual search (§11) + rate + Aux + optional review (Letterboxd-style).
 
-**Flow B — Email/password:**
-1. User submits email + password + handle.
-2. bcrypt hash (cost 12); persist User with `password_hash` and `status: active`.
-3. Issue session cookie.
-4. Spotify connect prompted in onboarding step 2 (skippable).
+**DEFERRED-TO-V2 (CR-001):** OAuth shortcut signup. The original Flow A used a third-party listening-history provider's OAuth + PKCE to populate `display_name` + `email` + an `external_id` and to auto-import 30 days of history. v2 will reintroduce an OAuth-based signup path once a viable listening-history provider is selected (Last.fm or Apple Music MusicKit). Until then, MVP uses email/password exclusively; this is also the Letterboxd model and matches the wedge thesis.
 
 ### 4.2 Session model
 
@@ -387,20 +398,14 @@ async def change_handle(user: User, new_handle: str) -> Result:
 
 `is_reserved_squat()` checks against a static list (200–500 entries) deployed alongside backend. Manual review queue + verification flow for claims.
 
-### 4.4 Spotify OAuth scopes (FR-002 / Q22 — LOCKED v1.3 sync-fix Run #2)
+### 4.4 Listening-history provider OAuth scopes — DEFERRED-TO-V2 (CR-001)
 
-Essential at MVP (5 scopes):
-- `user-read-email` — populate `User.email` from OAuth (required by S-A1 OAuth-shortcut signup)
-- `user-read-private` — populate `display_name` from OAuth (required by S-A1)
-- `user-read-recently-played` — auto-import + just-finished detection
-- `user-read-currently-playing` — just-finished detection (confirms album completion event)
-- `user-library-read` — read user's saved albums for backlog hints
+<!-- CR-001: §4.4 entirely replaced — no third-party OAuth ships at MVP; deferred-marker block keeps the historical decision visible for v2 -->
+**DEFERRED-TO-V2 (CR-001).** This section originally locked the 5 OAuth scopes a third-party listening-history provider OAuth flow would request (email, profile, recently-played, currently-playing, library-read), including the resolution of DRIFT-L1-003 in sync-fix Run #2 that widened the scope set on 2026-05-22.
 
-Deferred, requested lazily on first feature need: `playlist-read-private`, `user-top-read`, `user-follow-read`.
+Per CR-001 (2026-05-22), all third-party listening-history provider OAuth flow is removed from the MVP. No tokens are issued, stored, refreshed, or revoked. `User.music_providers = {}` at MVP. v2 will reintroduce a provider-specific scope lock (Last.fm or Apple Music MusicKit have different scope models from the original provider and the lock will be re-derived from the v2 spec).
 
-All 5 essential scopes are requested in one round at signup OR on Settings → Integrations Connect (skippable). Token refresh happens server-side; refresh tokens encrypted at rest with envelope key from Fly secret.
-
-> **Sync-fix Run #2 — DRIFT-L1-003 resolution.** Original v1.2 lock had only 3 scopes (`recently-played`, `currently-playing`, `library-read`); that lock made the S-A1 OAuth-shortcut signup unrealizable because Spotify won't return email or display name without `user-read-email`/`user-read-private`. Widened on 2026-05-22 per founder decision.
+Preserved sync-fix history: DRIFT-L1-003 resolution (5-scope widen on 2026-05-22) is recorded in the project decision log for v2 context but does not gate any MVP code.
 
 ### 4.5 Endpoint rate-limiting (sync-fix Run #1 — DRIFT-L3-001 → spec.md §6 NFR Security)
 
@@ -428,77 +433,76 @@ Per-endpoint limits (defaults, tunable via `Settings`):
 
 Fail-mode is **FAIL OPEN** (see §1.1.1 — same policy as notification rate-limit). Sentry alert tag `endpoint_rate_limit.redis_down` fires on Redis unavailability. 429 responses include `Retry-After` header.
 
-### 4.6 Settings → Integrations (sync-fix Run #1 — DRIFT-L3-007 → spec.md FR-027)
+### 4.6 Settings → Integrations — DEFERRED-TO-V2 (CR-001)
 
-Settings → Integrations is the single management surface for music-provider connections. Lives at `app/(app)/settings/integrations/page.tsx`. Provides:
+<!-- CR-001: §4.6 reduced to a deferred marker — no integrations exist at MVP, so the page ships empty (or is hidden in the nav) -->
+**DEFERRED-TO-V2 (CR-001).** The original §4.6 specified Settings → Integrations as the single management surface for a third-party listening-history provider connection — including connect/disconnect CTAs, a back-fill diary trigger, and Q19's "diary intact on disconnect" guarantee. This section also carried the sync-fix Run #1 (DRIFT-L3-007) resolution and the Run #2 placement decision that kept these services in `modules/auth/` rather than a new `integrations/` module.
 
-- **Spotify status row** — connected / not connected, last-sync timestamp, account display name
-- **Connect Spotify** CTA (when not connected) → runs the same OAuth flow as onboarding Flow B (§4.1) but skips the auto-import-30-days step until user confirms via the back-fill trigger below
-- **Back-fill diary trigger** → enqueues the 30-day import as an arq job; idempotent; shows progress when running
-- **Disconnect Spotify** CTA → revokes tokens locally (server-side delete of `User.providers.spotify` sub-doc), removes the OAuth grant via Spotify revocation endpoint best-effort, halts polling for just-finished detection, but **leaves the existing diary intact and immutable** (Q19 decision)
+Per CR-001 (2026-05-22), no third-party listening-history provider integration ships at MVP. The Settings → Integrations page is therefore **empty at MVP**: either render an "Integrations coming in v2" placeholder, or hide the nav entry behind a feature flag. Either choice is acceptable; the implementing PR may pick the lower-effort path.
 
-Backend services in `apps/api/src/auxd_api/modules/auth/` (sync-fix Run #2 — placement locked to `auth/` to match §1.2 file tree; `integrations/` module not introduced):
+`disconnect_spotify`, `trigger_diary_backfill`, and the related service surface are NOT implemented at MVP. The `User.music_providers` sub-doc remains `{}` for every user, so there is nothing to disconnect.
 
-```python
-async def disconnect_spotify(user: User) -> None:
-    """Revoke tokens, delete provider sub-doc, halt polling. Diary untouched."""
-
-async def trigger_diary_backfill(user: User) -> str:
-    """Enqueue arq job to back-fill 30 days; return job id for progress polling."""
-```
-
-Frontend route is gated behind authenticated session; the disconnect action requires a confirm modal that surfaces "your diary will remain visible — disconnecting only stops Spotify auto-features".
+Sync-fix Run #1 (DRIFT-L3-007 → spec.md FR-027) and Run #2 (placement lock) are preserved in the project decision log for v2 context. When v2 lands the listening-history integration, this section will be re-derived from the v2 spec and these sync-fixes re-applied.
 
 ---
 
 ## 5. Provider-Interface Abstraction (Constitution Principle 6)
 
-### 5.1 `MusicProvider` interface
+<!-- CR-001: §5 rewritten — CatalogProvider is the MVP backbone; MusicProvider stays defined but has no impls at MVP -->
+
+### 5.1 `CatalogProvider` interface (MVP) + `MusicProvider` interface (v2 forward-compat)
 
 ```python
 # apps/api/src/auxd_api/providers/base.py
-from abc import ABC, abstractmethod
 from typing import Protocol
+from datetime import datetime
 
-class MusicProvider(Protocol):
-    """Abstract music provider. All concrete providers (Spotify, MusicBrainz, future Apple Music) implement this."""
+class CatalogProvider(Protocol):
+    """Read-only catalog metadata. MVP ships two impls (MusicBrainz + Discogs).
+    No user auth required — pure server-to-server."""
 
     provider_id: str
 
-    async def get_recently_played(self, user: User, since: datetime, limit: int = 50) -> list[Listen]: ...
-    async def get_currently_playing(self, user: User) -> CurrentlyPlaying | None: ...
-    async def search_albums(self, query: str, market: str = "US", limit: int = 20) -> list[AlbumRef]: ...
-    async def get_album(self, external_id: str) -> AlbumDetail | None: ...
-    async def get_user_library(self, user: User, limit: int = 50) -> list[AlbumRef]: ...
-
-class CatalogProvider(Protocol):
-    """For metadata-only providers (MusicBrainz, Discogs) — read-only catalog access."""
-
+    async def search_albums(self, query: str, limit: int = 20) -> list[AlbumRef]: ...
     async def lookup_by_mbid(self, mbid: str) -> AlbumDetail | None: ...
-    async def reconcile_spotify_to_mbid(self, spotify_id: str) -> str | None: ...
+    async def lookup_by_external_id(self, external_id: str) -> AlbumDetail | None: ...
+    async def cover_art_url(self, release_group_mbid: str) -> str | None: ...
+
+class MusicProvider(Protocol):
+    """User-scoped listening-history provider. DEFERRED-TO-V2 (CR-001) — Protocol defined for forward compat;
+    NO concrete impls at MVP. v2 candidates: Last.fm scrobble import, Apple Music MusicKit."""
+
+    provider_id: str
+
+    async def get_recently_played(self, user: "User", since: datetime, limit: int = 50) -> list["Listen"]: ...
+    async def get_currently_playing(self, user: "User") -> "CurrentlyPlaying | None": ...
+    async def get_user_library(self, user: "User", limit: int = 50) -> list["AlbumRef"]: ...
 ```
 
-### 5.2 Concrete implementations
+### 5.2 Concrete implementations (MVP)
 
-- `providers/spotify/SpotifyMusicProvider` — implements `MusicProvider`; wraps `httpx.AsyncClient` with resilience transport (lib/resilience.py).
-- `providers/musicbrainz/MusicBrainzCatalogProvider` — implements `CatalogProvider`.
-- Feature code injects via FastAPI dependency: `def get_music_provider() -> MusicProvider: return SpotifyMusicProvider(...)`.
+- `providers/musicbrainz/MusicBrainzCatalogProvider` — implements `CatalogProvider`. Rate-limited to **1 req/sec per IP** per MusicBrainz policy (enforced client-side via `lib/resilience.rate_limit`). Wraps `httpx.AsyncClient` with the resilience transport (lib/resilience.py). Primary identity source — returns release-group MBID.
+- `providers/discogs/DiscogsCatalogProvider` — implements `CatalogProvider`. Fallback path for releases not in MusicBrainz (e.g., obscure pressings, bootlegs, label-specific reissues). Authenticated via `DISCOGS_API_TOKEN` (60 req/min); unauthenticated (25 req/min) acceptable for MVP scale. Returns Discogs release ID — populated into `Album.discogs_release_id` only when no MBID is found.
+- Cover-art is fetched via Cover Art Archive (CAA) using the MBID returned by `MusicBrainzCatalogProvider`. CAA is a sibling service to MusicBrainz, served directly from `coverartarchive.org/release-group/<mbid>/front`. No S3 cache at MVP — direct hot-link to CAA URLs is permitted by their ToS; revisit if bandwidth cost spikes.
+- Feature code injects via FastAPI dependency: `def get_catalog_providers() -> list[CatalogProvider]: return [MusicBrainzCatalogProvider(...), DiscogsCatalogProvider(...)]`. The albums service iterates providers in order and short-circuits on first hit.
+
+`MusicProvider` has no concrete impl at MVP. v2 candidates (deferred): `LastFmMusicProvider` (scrobble import), `AppleMusicMusicProvider` (MusicKit).
 
 ### 5.3 Resilience pattern
 
 ```python
-# Every provider call is wrapped:
-async with circuit_breaker("spotify"):
+# Every catalog-provider call is wrapped (per-provider circuit breaker):
+async with circuit_breaker("musicbrainz"):  # or "discogs"
     async with retry(attempts=3, backoff="exponential", jitter=True):
         async with timeout(5.0):
             response = await self.client.get(...)
 ```
 
-Circuit breaker per-provider (not per-endpoint) — when Spotify-wide fails, fall through to cached responses or surface "Spotify temporarily unavailable" UI.
+Circuit breaker per-provider (not per-endpoint) — when MusicBrainz-wide fails, fall through to Discogs fallback; when both fail, search surfaces "catalog temporarily unavailable" UI but local Atlas Search results still render.
 
 ### 5.4 Future-proofing
 
-Spotify deprecated audio-features / recommendations / related-artists endpoints on 2024-11-27. **The interface deliberately omits these.** No feature code can call them. Apple Music integration in v2 adds an `AppleMusicProvider` implementing the same interface; switching providers is a config change.
+The interface intentionally omits audio-features, recommendations, and related-artist endpoints — those are not part of the MVP product surface, and historically third-party providers have deprecated these endpoint families without notice. Forward-compat: v2 listening-history integrations implement `MusicProvider`; switching or adding providers is a config change. Catalog-side, the `CatalogProvider` Protocol is provider-vendor-neutral — a future Apple Music catalog provider or a self-hosted catalog snapshot would slot in without feature-code changes.
 
 ---
 
@@ -508,19 +512,26 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 
 | Module | Public service surface | Notes |
 |---|---|---|
-| `auth` | `signup_with_email`, `signup_with_spotify`, `connect_spotify`, `disconnect_spotify`, `trigger_diary_backfill`, `change_handle`, `delete_account`, `request_data_export` | Handle policy + 30d immutability lock; integration disconnect leaves diary intact (§4.6) |
-| `albums` | `get_or_create`, `resolve_identity`, `aggregate_ratings`, `merge_editions` | MBID canonical / Spotify fallback resolution |
+<!-- CR-001: `auth` service surface narrowed — third-party OAuth + diary backfill DEFERRED-TO-V2 -->
+| `auth` | `signup_with_email`, `change_handle`, `delete_account`, `request_data_export` | Handle policy + 30d immutability lock. (`signup_with_spotify`, `connect_spotify`, `disconnect_spotify`, `trigger_diary_backfill` DEFERRED-TO-V2 / CR-001.) |
+<!-- CR-001: `albums` service surface — identity resolves to MBID primary + Discogs fallback (no third-party listening-history fallback) -->
+| `albums` | `get_or_create`, `resolve_identity`, `aggregate_ratings`, `merge_editions` | MBID canonical / Discogs release-ID fallback resolution |
 | `diary` | `log_entry`, `edit_entry`, `delete_entry`, `relist_entry`, `user_diary` | Visibility evaluated on read; write endpoint rate-limited (§4.5) |
 | `reviews` | `write_review`, `edit_review` *(writes `review_edit_history` row per edit — §3.1 + FR-030)*, `like_review`, `unlike_review`, `list_reviews_for_album` | Sort: newest/most-liked/highest-rated; write/like endpoints rate-limited (§4.5) |
 | `backlog` | `add_to_backlog`, `remove_from_backlog`, `reorder`, `auto_remove_on_log` | Private by default |
 | `social` | `follow` *(direct or via request — §4.3)*, `unfollow`, `request_follow`, `respond_to_follow_request` *(approve/decline)*, `list_follow_requests`, `block`, `unblock`, `is_following`, `is_blocked`, `user_profile` | Asymmetric; private-profile creates pending FollowRequest (US-G2 infra, sync-fix L3-002); follow endpoint rate-limited (§4.5) |
 | `feed` | `home_feed`, `friends_who_rated_for_album` | Fan-out-on-read; weighted ordering |
-| `search` | `search_albums`, `search_users` | Atlas Search + Spotify fallback merge |
+<!-- CR-001: `search` service surface — cold-catalog fallback is MusicBrainz live + Discogs -->
+| `search` | `search_albums`, `search_users` | Atlas Search primary; cold-catalog miss → live MusicBrainz lookup → Discogs fallback (§11.1) |
 | `notifications` | `dispatch`, `mark_read`, `list_user_notifications`, `update_preferences` | Dispatcher + adapters |
-| `prompts` | `poll_user_for_just_finished`, `dismiss_prompt`, `disable_for_user` | Just-finished detection |
+<!-- CR-001: `prompts` module DEFERRED-TO-V2 — no listening-history polling at MVP -->
+| `prompts` | **DEFERRED-TO-V2 (CR-001)** | Just-finished detection (`poll_user_for_just_finished`, `dismiss_prompt`, `disable_for_user`) ships with the v2 listening-history integration. Module folder may exist as a stub at MVP for the JustFinishedPrompt collection schema, but no service code or routes are wired in. |
 | `seeding` | `get_critic_seeds_for_onboarding`, `record_card_response`, `compute_suggestions` | Pre-checked card ordering |
 | `moderation` | `submit_report`, `daily_scan_for_flagged_users`, `action_report` | Daily cron |
 | `data_export` | `enqueue_export`, `process_export`, `mail_export` | GDPR pipeline |
+<!-- CR-001: providers/spotify row dropped; providers/musicbrainz + providers/discogs rows added -->
+| `providers/musicbrainz` | `search_albums`, `lookup_by_mbid`, `lookup_by_external_id`, `cover_art_url` | Primary `CatalogProvider`. Rate-limited 1 req/sec per IP (MusicBrainz policy). Cover art via Cover Art Archive sibling service. |
+| `providers/discogs` | `search_albums`, `lookup_by_external_id` | Fallback `CatalogProvider` for releases not in MusicBrainz. Authenticated via `DISCOGS_API_TOKEN`. |
 
 ---
 
@@ -559,11 +570,10 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 - Review field collapsed by default; tap "Add a review" expands inline (no keyboard pop on initial sheet open).
 - Visibility select defaulted to user's `default_entry_visibility` (per FR-013).
 
-### 7.5 Just-finished prompt
+### 7.5 Just-finished prompt — DEFERRED-TO-V2 (CR-001)
 
-`components/just-finished-prompt/` renders at the top of `/` (home feed) when a `JustFinishedPrompt` is in `pending` state for the user.
-- Polling: TanStack Query refetch every 60s while app is foreground; SSE consideration deferred to v1.x (polling is enough at MVP scale).
-- Overflow menu: "Disable auto-prompts" (POSTs to `notifications/update_preferences` toggling `auto_prompt_enabled=false`), "Don't prompt for this album" (POSTs to `prompts/dismiss?album_id=X` with 30d sticky).
+<!-- CR-001: just-finished prompt frontend component DEFERRED — no detection signal exists at MVP without the listening-history provider -->
+**DEFERRED-TO-V2 (CR-001).** The `components/just-finished-prompt/` component was designed to render at the top of `/` (home feed) when a `JustFinishedPrompt` was in `pending` state for the user, with 60s TanStack Query polling, an overflow "Disable auto-prompts" toggle, and a per-album "Don't prompt for this album" dismiss with 30d stickiness. The component is removed from the MVP component tree (the directory may exist as an empty stub for §1.2 file-tree alignment) because the detection signal that fed it (recently-played + currently-playing polling from a third-party listening-history provider) is itself deferred. When v2 reintroduces detection, this component returns unchanged.
 
 ---
 
@@ -601,7 +611,8 @@ notifications.dispatch(user_id, type, payload)
 - **Per-user rate limit (per-type, independent):** ≤5 in-app/hour, ≤25/day. Each notification type has its own counter; e.g., follow notifications and review-like notifications consume separate buckets. Excess events queue into a single coalesced "X new updates today" notification.
 - **Per-actor rate limit (CROSS-TYPE):** notifications from User X to User Y are coalesced if >3 happen in the trailing 24h. This is INTENTIONALLY cross-type — if X follows Y, then likes 3 of Y's reviews in the same hour, the first 3 events fire individually and subsequent events from X collapse into "X did several things on your reviews today". Resolves A-003 from pre-impl-review.
 - **Per-event dedup:** same event-type + same actor + same target within 1h → drop the second.
-- **Fail-mode (locked in Phase 5C — resolves A-004):** If Redis is unreachable, the rate-limiter and coalescer FAIL OPEN — notifications dispatch through without limiting, and a Sentry alert fires with tag `notif_limiter.redis_down`. Spotify upstream enforces its own limits at their edge; our limiter is defensive.
+<!-- CR-001: rationale generalized — defensive layer no longer references a third-party listening-history provider -->
+- **Fail-mode (locked in Phase 5C — resolves A-004):** If Redis is unreachable, the rate-limiter and coalescer FAIL OPEN — notifications dispatch through without limiting, and a Sentry alert fires with tag `notif_limiter.redis_down`. Email and web-push delivery providers enforce their own limits at their edge (Resend rate limits, VAPID server checks); our limiter is defensive.
 - Implementation: Redis sorted-sets keyed by `notif:{user_id}:rate:{type}:{window}` (per-type) and `notif:{actor_id}:{recipient_id}:cross_type:{window}` (cross-type per-actor); TTL'd per-window.
 
 ### 8.3 Adapters
@@ -619,32 +630,15 @@ notifications.dispatch(user_id, type, payload)
 
 ---
 
-## 9. Just-finished Detection (FR-026)
+## 9. Just-finished Detection (FR-026) — DEFERRED-TO-V2 (CR-001)
 
-### 9.1 Polling strategy
+<!-- CR-001: entire §9 deferred — no listening-history polling source exists at MVP -->
+**DEFERRED-TO-V2 (CR-001).** The full just-finished detection cluster ships with the v2 listening-history integration. This includes:
 
-- Cadence:
-  - 5 minutes while user has an active session in the last 24h.
-  - 15 minutes if dormant >24h, capped at 60 minutes.
-  - Stop after 14 days of no activity (resume on next login).
-- Worker: `workers/spotify_poll.py` — arq scheduled task per-user; reads `MusicProvider.get_recently_played(user, since=last_poll)`.
-- Aggregation: identify "completed album" event when ≥4 distinct tracks from the same Spotify album are present in the last hour (heuristic — Spotify doesn't expose a clean "album finished" event).
+- **§9.1 Polling strategy** — cadence (5 min active / 15 min dormant / 60 min cap, stop after 14d idle) and the `workers/spotify_poll.py` arq job that read `MusicProvider.get_recently_played(user, since=last_poll)` and aggregated "completed album" events via the ≥4-distinct-tracks-in-1h heuristic.
+- **§9.2 Prompt lifecycle** — the `pending → logged | dismissed | expired | superseded` state machine on `JustFinishedPrompt`, one-pending-per-user constraint, `auto_prompt_enabled` gate, and quiet-hours interaction.
 
-### 9.2 Prompt lifecycle
-
-```
-DETECTED (new JustFinishedPrompt, state=pending)
-   │
-   ├─→ ACTED (user taps "Log") → state=logged, link to DiaryEntry
-   ├─→ DISMISSED (user taps "Not now") → state=dismissed, 30d sticky per-album
-   ├─→ EXPIRED (>24h with no action) → state=expired (TTL collection)
-   └─→ SUPERSEDED (newer prompt for different album arrives) → state=expired
-```
-
-Constraints:
-- At most one `pending` prompt per user at a time (newest wins).
-- `User.auto_prompt_enabled = false` → no `JustFinishedPrompt` records created (poll still runs for the user but doesn't create prompts; this allows enabling later without backfilling).
-- Quiet hours: if user is in quiet hours when detection fires, prompt is created but no push fires; in-app shows on next foreground out of quiet hours.
+The `JustFinishedPrompt` collection schema remains in §3.1 for forward compat (so v2 lands without a migration), but no writers exist at MVP. FR-026 traceability: at MVP, FR-026 is not implemented; v2 spec must re-anchor against the chosen listening-history provider's capabilities.
 
 ---
 
@@ -684,7 +678,10 @@ async def home_feed(viewer: User, cursor: datetime | None = None, limit: int = 2
     return FeedPage(entries=candidate_entries[:limit], next_cursor=candidate_entries[-1].logged_at if candidate_entries else None)
 ```
 
-### 10.2 Weighting math (locked in Phase 5C)
+<!-- CR-001: feed weighting is 100% social-graph based at MVP — no listening-history signal exists -->
+### 10.2 Weighting math (locked in Phase 5C; CR-001 confirms social-graph-only)
+
+The MVP feed weighting is **100% social-graph based**. There is no listening-history signal (which would have come from the deferred third-party listening-history provider) feeding into the score. All inputs are derived from in-app interactions: review/Aux behaviour, ratings, and the precomputed top-5-interacted-users set. v2 may add a listening-history signal as an additive bonus once a provider integration ships.
 
 For each candidate entry:
 ```
@@ -748,15 +745,22 @@ Search query: `compound`:
 - `should`: boost by `popularity_score`
 - Typo tolerance: built-in via Atlas Search fuzzy matching
 
-### 11.2 Spotify search fallback
+<!-- CR-001: §11.2 — Atlas Search primary; cold-catalog miss → live MusicBrainz lookup → Discogs fallback -->
+### 11.2 Cold-catalog fallback (MusicBrainz live + Discogs)
 
-When Atlas Search returns <5 results, also query Spotify `/search?type=album&q={query}` and merge:
-- Spotify results not yet in `albums` collection are lazy-created with a 7d cache window.
-- Merged results sort by Atlas-Search score first, Spotify results appended.
+When Atlas Search returns <5 results — i.e., the cached MusicBrainz subset hasn't seen this query yet — the search service falls through to two upstream catalogs in order:
 
-### 11.2.1 Report missing album (sync-fix L3-006 → spec.md FR-005 / US-F2)
+1. **Live MusicBrainz lookup.** Query `https://musicbrainz.org/ws/2/release-group?query=...&fmt=json` via `MusicBrainzCatalogProvider.search_albums`. Subject to 1 req/sec per IP — the search service enforces this with a Redis-backed token bucket. Hits are lazy-cached into the `albums` collection (7d TTL via `cache_expires_at`); subsequent identical queries hit Atlas Search directly.
+2. **Discogs fallback.** If MusicBrainz returns no useful match (e.g., obscure pressings, bootlegs, label-specific reissues), query Discogs via `DiscogsCatalogProvider.search_albums`. Discogs results are lazy-cached into `albums` with `discogs_release_id` populated and `mbid = null`. A nightly `mbid_reconcile` worker (already on the worker list — §1.1 / §8) attempts to back-fill an MBID for Discogs-only entries as MusicBrainz coverage grows.
 
-When BOTH Atlas Search AND Spotify search return zero results for a query, the empty-state UI shows a "Report missing album" link. Tapping submits a `POST /api/search/report-missing` request that creates a `reports` document with `target_type: 'missing_album'`, `target_id: query_string`, and submitter user id. Surfaces in the founder admin queue (Compass at MVP per §13.3); founder may add the album manually or extend Atlas Search ranking. No automated resolution at MVP.
+Merged result ordering: Atlas Search score first, live MusicBrainz hits next, Discogs hits last. The frontend shows the first 10 in one list; "load more" extends the merge order. This is the Letterboxd-equivalent search path: a manual search → manual select → manual log workflow.
+
+<!-- CR-001: §11.2.1 — report missing album is now MORE important; only path to surface catalog gaps -->
+### 11.2.1 Report missing album (sync-fix L3-006 → spec.md FR-005 / US-F2 — elevated by CR-001)
+
+When all three search paths (Atlas Search, MusicBrainz live, Discogs) return zero results for a query, the empty-state UI shows a "Report missing album" link. Tapping submits a `POST /api/search/report-missing` request that creates a `reports` document with `target_type: 'missing_album'`, `target_id: query_string`, and submitter user id. Surfaces in the founder admin queue (Compass at MVP per §13.3); founder may add the album manually (insert into `albums` with a curated MBID or `discogs_release_id`) or extend Atlas Search ranking. No automated resolution at MVP.
+
+**CR-001 elevation:** Now that manual search is the only album-discovery path (no listening-history prefill), the "Report missing album" affordance is the sole user-facing safety valve for catalog gaps. The founder admin queue should be reviewed at least weekly during M-2/M-1 — every unresolved missing-album report is a logged user who could not log their album.
 
 ### 11.3 User search
 
@@ -896,23 +900,37 @@ Key product events:
 
 | Event | Properties | Surface |
 |---|---|---|
-| `signup.completed` | `method` (email/spotify), `referrer` | Onboarding |
-| `onboarding.spotify_connected` | `imported_count`, `top5_rated_count` | Onboarding |
-| `onboarding.spotify_skipped` | — | Onboarding |
+<!-- CR-001: signup.completed loses the OAuth method value; spotify-import + listen-on events removed; prompt events DEFERRED; search.executed swaps fallback flag -->
+| `signup.completed` | `method` (always `email` at MVP — `oauth_listening_history` DEFERRED-TO-V2), `referrer` | Onboarding |
 | `onboarding.completed` | `time_to_complete_ms`, `follows_count`, `critic_seed_kept_pct` | Onboarding |
 | `log.commit` | `duration_ms`, `has_rating`, `has_aux`, `has_review`, `source` | Log sheet |
 | `review.published` | `word_count`, `visibility` | Review write |
 | `review.liked` | `reviewer_id`, `liker_id` | Like toggle |
 | `feed.entry_clicked` | `position`, `source_user_id` | Home feed |
-| `album.listen_on_spotify_clicked` | `source` (feed/profile/search/album_detail) | Album detail / feed |
 | `backlog.added` | `source` | Up Next |
-| `prompt.shown` | `album_id`, `delay_minutes` | Just-finished |
-| `prompt.acted` | `action` (logged / dismissed), `delay_minutes` | Just-finished |
 | `digest.sent` | `entries_count`, `digest_week` | Email |
 | `follow.created` | `source` (onboarding / suggestion / profile / invite) | Various |
-| `search.executed` | `query_length`, `result_count`, `via_spotify_fallback` | Search |
+| `search.executed` | `query_length`, `result_count`, `via_musicbrainz_fallback`, `via_discogs_fallback` | Search |
+| `search.album_reported_missing` | `query`, `submitter_id` | Search (CR-001 elevated — track catalog-gap rate) |
+
+**DEFERRED-TO-V2 (CR-001) events** (kept here for v2 reactivation): `onboarding.listening_history_connected` (imported_count, top5_rated_count), `onboarding.listening_history_skipped`, `album.listen_on_external_provider_clicked` (source), `prompt.shown` (album_id, delay_minutes), `prompt.acted` (action, delay_minutes).
 
 Funnels watched daily: signup → onboarding-complete → first-log → 7d-return → 30d-return.
+
+<!-- CR-001: catalog-provider observability metrics — replaces the listening-history-provider metrics from the previous plan version -->
+### 15.2.1 Catalog-provider metrics (CR-001)
+
+Tracked via structured logs (§15.3) and surfaced in a PostHog insight; reviewed weekly during M-2/M-1:
+
+| Metric | Definition | Target |
+|---|---|---|
+| MusicBrainz catalog hit rate | Atlas-Search-hit-count / (Atlas-Search-hit-count + MusicBrainz-live-lookup-count) | ≥70% after first week of beta (Atlas Search cache warming up) |
+| MusicBrainz API latency p95 | `latency_ms` for `provider=musicbrainz`, p95 over 24h trailing | <800ms |
+| Discogs fallback rate | Discogs-live-lookup-count / total-search-executed | <5% (high values indicate MusicBrainz coverage gaps worth investigating) |
+| Cover Art Archive 404 rate | CAA `status_code=404` / total CAA fetches | <10% (high values indicate cold catalog or unmatched MBIDs) |
+| Missing-album report rate | `search.album_reported_missing` events per 100 `search.executed` events | <2% (high values indicate catalog gaps or query-quality issues) |
+
+DEFERRED-TO-V2 (CR-001): listening-history-provider import p99 + listening-history-provider API error rate — re-introduce with the v2 integration.
 
 ### 15.3 Structured logs
 
@@ -944,8 +962,9 @@ GitHub Actions cron every 15 minutes: `curl https://xiejoshua.com` → assert 20
    ┌──────────────────────────────────┐
    │  Unit (pytest / Vitest+RTL)     │   ~300+ tests
    └──────────────────────────────────┘
+<!-- CR-001: contract test scope swap — MusicBrainz + Discogs + Cover Art Archive -->
    ┌──────────────────────────────────┐
-   │  Contract (pytest)               │   ~15 tests (Spotify, MusicBrainz)
+   │  Contract (pytest)               │   ~10 tests (MusicBrainz, Discogs, CAA)
    └──────────────────────────────────┘
 ```
 
@@ -953,12 +972,15 @@ GitHub Actions cron every 15 minutes: `curl https://xiejoshua.com` → assert 20
 
 | Spec TC | Test file |
 |---|---|
-| TC-001..TC-007 (logging + Spotify integration) | `apps/api/tests/integration/test_diary_logging.py` + `test_spotify_provider.py` |
+<!-- CR-001: TC-001..TC-007 scope narrowed — provider integration tests swap to catalog providers -->
+| TC-001..TC-007 (logging + catalog providers) | `apps/api/tests/integration/test_diary_logging.py` + `test_musicbrainz_provider.py` + `test_discogs_provider.py` |
 | TC-008..TC-010 (album identity + Editions) | `apps/api/tests/unit/test_album_identity.py` + `test_editions.py` |
 | TC-011..TC-014 (visibility matrix) | `apps/api/tests/unit/test_visibility.py` (property test with hypothesis) |
 | TC-015..TC-017 (Likes + sort) | `apps/api/tests/unit/test_review_likes.py` + `test_review_sort.py` |
-| TC-018..TC-021 (just-finished prompts) | `apps/api/tests/integration/test_prompts_lifecycle.py` |
-| TC-022 (disconnect immutability) | `apps/api/tests/integration/test_spotify_disconnect.py` |
+<!-- CR-001: just-finished prompt TCs DEFERRED-TO-V2 -->
+| TC-018..TC-021 (just-finished prompts) | **DEFERRED-TO-V2 (CR-001)** — `test_prompts_lifecycle.py` not built at MVP; v2 reintroduces with the listening-history integration |
+<!-- CR-001: disconnect-immutability TC DEFERRED-TO-V2 — no provider to disconnect at MVP -->
+| TC-022 (disconnect immutability) | **DEFERRED-TO-V2 (CR-001)** — no listening-history provider integration at MVP, so disconnect immutability isn't testable; v2 reintroduces as `test_listening_history_disconnect.py` |
 | TC-023..TC-024 (handle policy) | `apps/api/tests/unit/test_handle_policy.py` |
 | TC-025 (review edit) | `apps/api/tests/integration/test_review_edit.py` |
 | TC-026..TC-027 (notifications + digest) | `apps/api/tests/integration/test_notification_dispatch.py` |
@@ -968,16 +990,19 @@ GitHub Actions cron every 15 minutes: `curl https://xiejoshua.com` → assert 20
 | TC-032 (visibility matrix property) | included in `test_visibility.py` (hypothesis-based) |
 | TC-E2E-001..013 | `apps/web/tests/e2e/*.spec.ts` (one file per scenario or grouped by surface) |
 
-### 16.3 Contract tests (against Spotify sandbox / Dev Mode)
+<!-- CR-001: contract test list rewritten — catalog providers only at MVP -->
+### 16.3 Contract tests (against MusicBrainz + Discogs + Cover Art Archive)
 
 Run on PR + nightly:
-- `tests/contract/test_spotify_recently_played.py`
-- `tests/contract/test_spotify_album_detail.py`
-- `tests/contract/test_spotify_search.py`
-- `tests/contract/test_spotify_currently_playing.py`
-- `tests/contract/test_musicbrainz_release_group_lookup.py`
+- `tests/contract/test_musicbrainz_release_group_lookup.py` — MBID-by-lookup and release-group search.
+- `tests/contract/test_musicbrainz_search.py` — query-string search returns release groups.
+- `tests/contract/test_discogs_search.py` — search with `DISCOGS_API_TOKEN`.
+- `tests/contract/test_discogs_release_lookup.py` — release-id direct lookup.
+- `tests/contract/test_cover_art_archive_front.py` — `release-group/<mbid>/front` returns 200 with image bytes.
 
-If contract tests fail = Spotify changed their API; treat as critical.
+If contract tests fail = an upstream catalog provider changed their API; treat as critical and route to the founder triage queue.
+
+**DEFERRED-TO-V2 (CR-001):** `test_spotify_recently_played.py`, `test_spotify_album_detail.py`, `test_spotify_search.py`, `test_spotify_currently_playing.py` (originally part of this list). These return with the v2 listening-history integration, retargeted at whichever provider v2 selects.
 
 ### 16.4 CI workflow
 
@@ -1024,7 +1049,8 @@ jobs:
 - Single app `auxd-api` deployed via `flyctl deploy` on push to `main` (GitHub Actions).
 - Region: `iad` (US-East, Ashburn VA) at MVP to colocate with Atlas + Upstash (both `us-east-1`); add a second region post-M3 if cross-region latency demands.
 - Plan: Hobby ($5/mo minimum; first $5 of compute included). Two-process layout (api + arq worker) on a single shared-cpu-1x VM stays inside the included allowance.
-- Secrets via `fly secrets set`: `MONGODB_URI`, `REDIS_URL`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SESSION_HMAC_KEY`, `TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SENTRY_DSN`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT_URL`, `R2_BUCKET_NAME`. See `docs/infra.md` for the full source-of-truth table.
+<!-- CR-001: Fly secrets list — SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET / SPOTIFY_INTEGRATION_ENABLED removed; DISCOGS_API_TOKEN added; TOKEN_ENCRYPTION_KEY retained for v2 but unused at MVP -->
+- Secrets via `fly secrets set`: `MONGODB_URI`, `REDIS_URL`, `DISCOGS_API_TOKEN` (optional, server-side only), `SESSION_HMAC_KEY`, `TOKEN_ENCRYPTION_KEY` (provisioned for v2 listening-history token encryption; unused at MVP), `RESEND_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SENTRY_DSN`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT_URL`, `R2_BUCKET_NAME`. See `docs/infra.md` for the full source-of-truth table. **DEFERRED-TO-V2 (CR-001):** `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_INTEGRATION_ENABLED` (removed from this list — re-add when v2 selects a listening-history provider; the env-var names should be re-derived per the v2 provider).
 - Health check: `GET /healthz` → returns `{ "status": "ok", "db": "ok", "redis": "ok" }`.
 - Worker process: arq runs in same fly app (separate process group); `fly.toml` defines `[processes]` for api + worker.
 
@@ -1058,37 +1084,39 @@ jobs:
 
 ## 18. Phased Implementation Roadmap
 
-### Phase M-2 (Closed Beta) — ~10 weeks of build
+### Phase M-2 (Closed Beta) — ~8 weeks of build (CR-001: ~2 weeks shorter; OAuth + polling + just-finished cluster removed)
 
-Internal-only + critic-seed onboarding wave. All work inside Spotify Development Mode (25-user quota). No public access.
+<!-- CR-001: build order rewritten — no third-party OAuth, no auto-import, no just-finished detection at MVP -->
+Internal-only + critic-seed onboarding wave. No third-party listening-history provider quota gating. No public access.
 
 **Build order:**
 1. Constitution + scaffolding (Task 0–4)
-2. Auth + Spotify OAuth happy-path (US-A1, US-A2)
-3. Album catalog + provider abstraction (US-F1, US-F2)
-4. Diary + Log sheet (US-B1, US-B2, US-B3, US-B4, US-B5)
+2. Auth (email/password) + handle policy + session middleware (US-A1, US-A2)
+3. Album catalog + `CatalogProvider` abstraction (MusicBrainz + Discogs + Cover Art Archive) (US-F1, US-F2)
+4. Diary + Log sheet — manual search → rate + Aux + review (US-B1, US-B2, US-B3, US-B4, US-B5)
 5. Reviews + Likes + sort (US-C1, US-C2, US-C3, US-C4)
 6. Backlog (US-D1, US-D2, US-D3)
 7. Social graph (US-E1, US-E2, US-E3, US-E4, US-E5)
-8. Auto-import + Onboarding flow (US-A3, US-A4, US-A5)
-9. Just-finished detection (US-B6)
-10. Notifications + preferences (US-G3, all 18 types)
-11. Profile + settings + privacy (US-G1, US-G2, US-G4, US-G5)
-12. GDPR pipeline
-13. Internal observability dashboards + admin
-14. Critic-seed roster onboarded; founder authoring first 30 reviews seeded
+8. Onboarding flow — signup → handle → follow ≥3 critics → critic-seed feed (US-A4, US-A5)
+9. Notifications + preferences (US-G3, all 18 types minus the two CR-001-deferred types)
+10. Profile + settings + privacy (US-G1, US-G2, US-G4, US-G5) — Settings → Integrations renders an "Integrations coming in v2" placeholder per §4.6
+11. GDPR pipeline
+12. Internal observability dashboards + admin
+13. Critic-seed roster onboarded; founder authoring first 30 reviews seeded
+
+**DEFERRED-TO-V2 (CR-001):** Step 8 of the original plan (Auto-import + listening-history OAuth-shortcut Onboarding flow, US-A3) and Step 9 (Just-finished detection, US-B6) — both ship with the v2 listening-history integration.
 
 ### Phase M-1 (Soft Launch) — ~2 weeks
 
 - Waitlist-controlled ramp; public-access wave but invite-only.
 - Real-user testing of all Must-Have stories; bug-bash.
-- Spotify Extended Quota Mode approval (or delay).
+- (CR-001: no third-party listening-history provider quota gate at this phase.)
 
 ### Phase M0 (Public Launch)
 
 - Public signups open.
 - Critic-seed roster live in onboarding.
-- Public-tier Spotify quotas active.
+- (CR-001: no listening-history-provider production-tier quota dependency at launch.)
 
 ### Phase M1–M3
 
@@ -1106,9 +1134,10 @@ Internal-only + critic-seed onboarding wave. All work inside Spotify Development
 | All FRs (FR-001..020, FR-026..032) covered? | ✅ | FR-021..025 correctly NOT covered (Lists deferred to v2) |
 | NFR Measurement Contract instrumentation specified? | ✅ | §15 maps each NFR to PostHog event / Sentry / synthetic check |
 | Aux (🏅) vs Like (👍) semantic split preserved? | ✅ | Aux = DiaryEntry.auxed boolean; Like = ReviewLike collection + counter on Review |
-| Provider-interface abstraction? | ✅ | §5 — `MusicProvider` protocol; all Spotify calls through it |
+<!-- CR-001: provider abstraction row + Spotify-dependency row updated -->
+| Provider-interface abstraction? | ✅ | §5 — `CatalogProvider` Protocol (MusicBrainz + Discogs impls at MVP); `MusicProvider` Protocol defined for v2 |
 | Constitution gap addressed? | ✅ | §0 Task 0 ratifies with 6 principles |
-| Critical Spotify dependencies surfaced? | ✅ | §0 Task 1 = Day-1 Extended Quota Mode application |
+| Critical third-party listening-history dependencies surfaced? | n/a (CR-001) | **DEFERRED-TO-V2 (CR-001):** no listening-history provider at MVP; original §0 Task 1 (Day-1 Extended Quota Mode application) removed per CR-001 (2026-05-22). |
 | Notification dispatcher load-bearing design? | ✅ | §8 — separate dispatcher, coalescer, rate-limit, adapters |
 | Open questions from product-spec? | ✅ | All 30 spec-level questions already resolved (per spec.md §12); Phase 5 technical decisions all locked in this plan |
 | Data model finalized? | ✅ | §3 — collection inventory + indexes + Beanie patterns + visibility check |
@@ -1129,7 +1158,8 @@ Internal-only + critic-seed onboarding wave. All work inside Spotify Development
 | 1. External-call resilience | ✅ | §5.3 — circuit breaker + retry + timeout per-provider |
 | 2. Schema-versioned documents | ✅ | §3.2 — every Beanie Document carries `_schema_version: int = 1` |
 | 3. Library-first modules | ✅ | §6 — each module has a single public service; cross-module via public API only |
-| 4. Test-first for catalog/auth edges | ✅ | §16.3 — contract tests for Spotify + MusicBrainz; written before impl per Phase 5B task ordering |
+<!-- CR-001: Principle 4 evidence — contract tests now cover MusicBrainz + Discogs + Cover Art Archive -->
+| 4. Test-first for catalog/auth edges | ✅ | §16.3 — contract tests for MusicBrainz + Discogs + Cover Art Archive + email/password auth; written before impl per Phase 5B task ordering |
 | 5. Observability mandatory | ✅ | §15 — Sentry + PostHog + structured logs + OTel; every external call instrumented |
 | 6. Provider abstraction | ✅ | §5 — `MusicProvider` interface; concrete providers isolated |
 
@@ -1141,14 +1171,19 @@ Internal-only + critic-seed onboarding wave. All work inside Spotify Development
 
 | Risk / Question | Mitigation / Plan |
 |---|---|
-| Spotify Extended Quota Mode rejection | Closed-beta and M-1 soft launch operate inside Development Mode quotas; if rejected, scale-up plan = re-application after addressing rejection reasons, or partner-app approach |
-| Atlas Search index tuning quality unknown | Spotify search fallback merges results; iterate index post-launch based on PostHog `search.executed.result_count` distribution |
+<!-- CR-001: original Spotify-quota risk DEFERRED-TO-V2; new risks added for catalog coverage + manual-search dropoff -->
+| Listening-history provider quota / availability (DEFERRED-TO-V2 / CR-001) | N/A at MVP — no provider integration ships. Risk re-appears when v2 selects a provider; mitigation will be derived from the v2 spec. |
+| MusicBrainz catalog coverage gaps | Discogs fallback path absorbs most obscure pressings; "report missing album" surface (§11.2.1, elevated by CR-001) captures the residual; founder reviews queue weekly |
+| Manual-search-only logging dropoff vs. OAuth-prefill MVP | Letterboxd evidence shows manual search is workable; instrument `log.commit.duration_ms` and `search.executed.result_count` distributions; if median time-to-first-log >3 minutes, prioritise UX improvements (recent-searches suggestions, top-rated-this-week chips) before considering an emergency v2-listening-history pull-forward |
+| Atlas Search index tuning quality unknown | Live MusicBrainz + Discogs fallback paths absorb cold-catalog misses; iterate index post-launch based on PostHog `search.executed.result_count` + `search.executed.via_musicbrainz_fallback` + `search.executed.via_discogs_fallback` distributions |
 | Feed performance at scale | Fan-out-on-read benchmarked at <100ms for follow-graphs <100; switch to fan-out-on-write only if p95 >200ms; load-modeling tracked weekly |
-| Just-finished detection accuracy | Heuristic (≥4 tracks from same album in 1h) tuned post-launch; user can dismiss + disable to prevent false-positive damage |
+<!-- CR-001: just-finished detection accuracy risk DEFERRED-TO-V2 -->
+| Just-finished detection accuracy (DEFERRED-TO-V2 / CR-001) | N/A at MVP — detection cluster deferred. Heuristic (≥4 tracks from same album in 1h) returns with v2 listening-history integration. |
 | Notification firehose regression | PostHog dashboard "notification rate per user per week" with alert at threshold; rate-limit + coalescer + quiet hours layered |
 | Single-region backend latency for EU/APAC | Multi-region post-M3; static OG image generation can be edge-deployed if needed earlier |
 | PostHog Cloud free-tier event budget (1M/mo) | Monitor monthly event count via PostHog billing UI; if approaching ceiling, drop low-value events first (feed scroll telemetry before commit events); paid tier scales linearly at ~$0.0003/event |
-| Cover-art proxy bandwidth cost via Spotify CDN | Lightweight pass-through; if Fly egress costs spike, move to Cloudflare Worker proxy ($0–$5/mo) |
+<!-- CR-001: cover-art via Cover Art Archive — direct hot-link, no S3 cache at MVP -->
+| Cover-art bandwidth + CAA hot-link permissibility | Cover Art Archive serves cover art directly from `coverartarchive.org/release-group/<mbid>/front`. Their ToS permits hot-linking (it is a public archive). No S3 cache at MVP. If CAA throttles us or bandwidth becomes a frontend perf concern, fall back to Cloudflare Worker proxy ($0–$5/mo). |
 | Reserved-squat handle false positives | Manual verification flow; conservative initial list of 200 (not 500) handles |
 | MusicBrainz rate limits | 1 req/sec per IP — sufficient for our reconcile job which runs offline; we cache aggressively |
 
@@ -1162,14 +1197,16 @@ This plan is the input to **Phase 5B (tasks.md)** which decomposes the work into
 2. Sequence them per the Phase M-2 build order (§18)
 3. Estimate sizes (XS/S/M/L/XL per Product Forge sizing)
 4. Mark dependencies between tasks
-5. Front-load: Task 0 (Constitution), Task 1 (Extended Quota Mode app), Task 2 (Monorepo + scaffolding), Task 3 (CI baseline), Task 4 (Mongo + Redis connect + healthz)
+<!-- CR-001: handoff task list — Extended Quota Mode application removed; Discogs API token provisioning added -->
+5. Front-load: Task 0 (Constitution), Task 1 (Monorepo + scaffolding), Task 2 (CI baseline), Task 3 (Mongo + Redis + Discogs token provisioning + healthz)
 6. Group by capability cluster for parallel-track potential where possible
 
 Cross-cutting non-feature tasks Phase 5B must include:
 - Task 0 — Author and ratify constitution
-- Task 1 — Submit Spotify Extended Quota Mode application
-- Task 2 — Monorepo scaffolding (pnpm + uv + workspaces; lint/format/typecheck/CI baseline)
-- Task 3 — Atlas + Upstash Redis provisioning; Fly.io + Vercel projects
-- Task 4 — Resend + Sentry + PostHog Cloud + Cloudflare R2 accounts; secrets in Fly (full list in docs/infra.md)
-- Task 5 — Domain + DKIM/SPF setup; web push VAPID keys generated
+- Task 1 — Monorepo scaffolding (pnpm + uv + workspaces; lint/format/typecheck/CI baseline)
+- Task 2 — Atlas + Upstash Redis provisioning; Fly.io + Vercel projects
+- Task 3 — Resend + Sentry + PostHog Cloud + Cloudflare R2 accounts; **Discogs API token (CR-001)**; secrets in Fly (full list in docs/infra.md)
+- Task 4 — Domain + DKIM/SPF setup; web push VAPID keys generated
 - (Per-module tasks follow per §6, sequenced per §18)
+
+**DEFERRED-TO-V2 (CR-001):** "Task 1 — Submit Extended Quota Mode application to a third-party listening-history provider" (original Phase 5B Day-1 task) is removed; reintroduce when v2 selects a provider.

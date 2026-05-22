@@ -25,7 +25,9 @@ from auxd_api.modules.backlog.models import Backlog, BacklogItem
 from auxd_api.modules.diary.models import DiaryEntry
 from auxd_api.modules.moderation.models import Report
 from auxd_api.modules.notifications.models import FailedEmail, Notification
-from auxd_api.modules.prompts.models import JustFinishedPrompt
+
+# JustFinishedPrompt deferred to v2 per CR-001; class kept importable for forward compat.
+from auxd_api.modules.prompts.models import JustFinishedPrompt  # noqa: F401
 from auxd_api.modules.reviews.models import Review, ReviewEditHistory, ReviewLike
 from auxd_api.modules.seeding.models import CriticSeed, SuggestedFollow
 from auxd_api.modules.social.models import Block, Follow, FollowRequest
@@ -53,7 +55,8 @@ ALL_DOCUMENT_MODELS: list[type[Document]] = [
     Notification,
     FailedEmail,
     # prompts + seeding
-    JustFinishedPrompt,
+    # CR-001: JustFinishedPrompt deferred to v2 — class kept importable
+    # (see import above) but not registered with Beanie at MVP.
     SuggestedFollow,
     CriticSeed,
 ]

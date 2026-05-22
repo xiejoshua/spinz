@@ -65,21 +65,51 @@ def test_album_required_fields() -> None:
 
 
 def test_album_optional_identifiers() -> None:
-    """Both ``mbid`` and ``spotify_id`` may be ``None`` (rare but supported)."""
+    """Both ``mbid`` and ``discogs_release_id`` may be ``None`` (rare but supported).
+
+    CR-001: replaced ``spotify_id`` with ``discogs_release_id`` as the
+    secondary catalog identifier.
+    """
     album = _minimum_album()
     assert album.mbid is None
-    assert album.spotify_id is None
+    assert album.discogs_release_id is None
     # Either alone is fine.
     only_mbid = _minimum_album(mbid="3f7d5b4e-1234-5678-9abc-def012345678")
     assert only_mbid.mbid is not None
-    assert only_mbid.spotify_id is None
-    only_spotify = _minimum_album(spotify_id="3T4tUhGYeRNVUGevb0wThu")
-    assert only_spotify.mbid is None
-    assert only_spotify.spotify_id is not None
+    assert only_mbid.discogs_release_id is None
+    only_discogs = _minimum_album(discogs_release_id="release-249504")
+    assert only_discogs.mbid is None
+    assert only_discogs.discogs_release_id == "release-249504"
+
+
+def test_album_discogs_release_id_field_and_index() -> None:
+    """CR-001: ``discogs_release_id`` is sparse-unique indexed.
+
+    Direct replacement for the deleted ``spotify_id`` index/field test.
+    """
+    album = _minimum_album(discogs_release_id="release-321321")
+    assert album.discogs_release_id == "release-321321"
+
+    # The sparse-unique index must be declared exactly once and never
+    # alongside a leftover ``spotify_id`` index.
+    indexes = Album.Settings.indexes
+    discogs_indexes = [idx for idx in indexes if "discogs_release_id" in dict(idx.document["key"])]
+    assert len(discogs_indexes) == 1
+    discogs_index = discogs_indexes[0]
+    assert discogs_index.document.get("unique") is True
+    assert discogs_index.document.get("sparse") is True
+
+    # No residual ``spotify_id`` index survived CR-001.
+    for idx in indexes:
+        assert "spotify_id" not in idx.document["key"]
 
 
 def test_album_with_tracklist() -> None:
-    """An ``Album`` with embedded :class:`TrackSubDoc` rows round-trips through JSON."""
+    """An ``Album`` with embedded :class:`TrackSubDoc` rows round-trips through JSON.
+
+    CR-001: tracks no longer carry ``spotify_track_id``; assertions
+    rewritten around ``mbid`` instead.
+    """
     tracks = [
         TrackSubDoc(position=1, title="Fear Not of Man", duration_ms=283000),
         TrackSubDoc(position=2, title="Hip Hop", duration_ms=337000),
@@ -87,42 +117,48 @@ def test_album_with_tracklist() -> None:
             position=3,
             title="Love",
             duration_ms=234000,
-            spotify_track_id="0Ix9X0e9tQK4Y4VqkP5bJL",
+            mbid="11111111-2222-3333-4444-555555555555",
         ),
     ]
     album = _minimum_album(tracklist=tracks)
     assert len(album.tracklist) == 3
     assert album.tracklist[0].position == 1
-    assert album.tracklist[2].spotify_track_id == "0Ix9X0e9tQK4Y4VqkP5bJL"
+    assert album.tracklist[2].mbid == "11111111-2222-3333-4444-555555555555"
     # Default disc_number = 1 must round-trip through serialization.
     dumped = album.model_dump()
     assert all(track["disc_number"] == 1 for track in dumped["tracklist"])
 
 
 def test_album_source_enum() -> None:
-    """``AlbumSource`` accepts the three documented values and rejects junk."""
-    for value in ("spotify", "musicbrainz", "manual"):
+    """``AlbumSource`` accepts the three documented values and rejects junk.
+
+    CR-001: ``SPOTIFY`` member dropped; ``DISCOGS`` replaces it.
+    """
+    for value in ("musicbrainz", "discogs", "manual"):
         album = _minimum_album(source=AlbumSource(value))
         assert album.source.value == value
+    with pytest.raises(ValidationError):
+        _minimum_album(source="spotify")  # CR-001: no longer a valid source
     with pytest.raises(ValidationError):
         _minimum_album(source="lastfm")  # not a valid AlbumSource
 
 
 def test_artist_ref_subdoc() -> None:
-    """``ArtistRefSubDoc`` accepts name-only artists; identifiers stay optional."""
+    """``ArtistRefSubDoc`` accepts name-only artists; identifiers stay optional.
+
+    CR-001: removed ``spotify_id`` assertions — artists are keyed on
+    ``mbid`` only at MVP.
+    """
     # Name-only construction is legal (manual-entry obscure album).
     bare = ArtistRefSubDoc(name="Some Indie Artist")
     assert bare.name == "Some Indie Artist"
     assert bare.mbid is None
-    assert bare.spotify_id is None
-    # Typical case: at least one identifier populated.
+    # Typical case: identifier populated.
     full = ArtistRefSubDoc(
         name="Mos Def",
         mbid="bf710b71-48e5-4e8e-b2c3-aaaaaaaaaaaa",
-        spotify_id="0eDvMgVFoNV3TpwtrVCoTj",
     )
     assert full.mbid is not None
-    assert full.spotify_id is not None
 
 
 def test_album_cache_expires_at_required() -> None:

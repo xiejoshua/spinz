@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-22T23:30:00Z"
+last_updated: "2026-05-22T23:55:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -114,11 +114,12 @@ phases:
     progressive_warnings: 0
     progressive_critical: 0
     tasks_completed: 27
-    tasks_total: 183
+    tasks_total: 170
+    tasks_total_pre_cr001: 183
     autonomous_section_zero_complete: true
-    session_count: 5
-    progressive_checkpoints_run: 9
-    notes: "Session 5 (2026-05-22 evening) — request-path wave: T011 FastAPI app skeleton (versioned /api/v1 router + extended /healthz with db/redis sub-checks + JSON root-logger formatter), T013 Redis client expansion (arq pool + cache fail-open + enqueue_job fail-503 + workers/main.py noop_job + fly.toml two-process layout), T019 session middleware (HMAC-signed cookies + CSRF double-submit + sliding 30d expiry + 401-on-tamper), T020 rate-limit dependency (Redis sorted-set sliding window + per-IP/per-user + fail-open with Sentry tag rate_limit.redis_down), T028 OpenAPI→TS codegen pipeline (packages/shared-types/scripts/codegen.sh + .github/workflows/codegen.yml + initial api.ts committed). 305 backend tests green (was 229; +76 new); ruff + mypy --strict clean across 68 source files. Operator follow-ups GitHub secrets + Atlas IP allowlist now reported resolved by user. 27/183 tasks complete. Prior sessions: 1 (T001/T003/T004/T008), 2 (T014/T015/T015a/T017/T018/T029), 3 (infra swaps), 4 (T009/T010/T010a/T012/T016/T021-T027)."
+    session_count: 6
+    progressive_checkpoints_run: 10
+    notes: "Session 6 (2026-05-22 night) — CR-001 application. Pivot away from Spotify (Extended Quota now requires 250k MAUs — pre-launch unreachable) toward Letterboxd-style manual search via MusicBrainz + Discogs. 16 tasks hard-removed (T002, T042-T047, T054-T056, T114-T116, T121, T122, T177); 9 tasks deferred-to-v2 (T123-T130 + T169); 5 completed tasks amended via code patches (T021/T022/T026/T027/T029); 3 new tasks added (T049a/b Discogs + T053a Report-missing-album). Net 183 → 170 tasks (162 active MVP + 8 §12 deferred). 27/170 tasks completed post-CR (was 27/183 — 5 amended tasks stay [x] since the code patches landed alongside the spec edits; CR-001 reshaped the denominator but not the completed-count numerator). Tests: 306 pass / 3 skip (skips are deferred JustFinishedPrompt instantiation tests). ruff + mypy --strict clean across 68 source files. CR-001 work applied by 5 parallel subagents (product-spec/, spec.md, plan.md, tasks.md, code+tests) with consistent CR-001 markers; cross-agent consensus surfaced critic-seed cold-start as the new High-criticality risk. Prior sessions: 1 (T001/T003/T004/T008), 2 (T014/T015/T015a/T017/T018/T029), 3 (infra swaps), 4 (T009/T010/T010a/T012/T016/T021-T027), 5 (T011/T013/T019/T020/T028 request-path wave)."
   code_review:
     status: "pending"
   verify:
@@ -702,7 +703,33 @@ sync_runs:
         - "ruff check + format + mypy --strict: all clean across 51 source files"
       next_action: "Continue Phase 6 implementation. Next wave candidates: T019 sessions middleware (now unblocked by User.session_version being present), T020 rate-limit middleware, T028 OpenAPI codegen. Re-run sync-verify between Phase 6B (code review) and Phase 7 (full verify) when Layer 6 (spec ↔ code) becomes meaningful — i.e., once first endpoint cluster (T040+) lands."
 
-change_requests: []
+change_requests:
+  - id: "CR-001"
+    title: "Remove all Spotify integration; pivot to Letterboxd-style manual search via MusicBrainz + Discogs"
+    status: "accepted"
+    timestamp: "2026-05-22T23:55:00Z"
+    requested_at_phase: "implement"
+    requested_at_progress: "27/183 tasks completed"
+    rationale: "Spotify Extended Quota Mode now requires 250k MAUs to apply (2026-05 policy change). Pre-launch apps cannot reach the gate; without it, app is capped at Spotify's 25-user Dev Mode bucket forever. Pivot lifts the longest-tail blocker (was 2-6 wk external review) and unblocks public launch."
+    decisions_locked:
+      catalog: "MusicBrainz primary + Discogs fallback; Atlas Search caches MB subset; CAA for cover art"
+      just_finished_cluster: "deferred-to-v2 (kept in tasks.md + product-spec.md with markers; JustFinishedPrompt model class importable but unregistered with Beanie at MVP)"
+      provider_abstraction: "kept (MusicProvider + CatalogProvider Protocols stay; one impl per kind at MVP)"
+      priority: "must-have, in-release"
+    artifacts_affected: 41
+    tasks_removed: 16
+    tasks_deferred_to_v2: 9
+    tasks_amended: 5
+    tasks_added: 3
+    final_task_count: 170
+    code_files_patched: 12
+    test_files_patched: 10
+    test_count_before: 305
+    test_count_after: "306 passed / 3 skipped (skipped = deferred JustFinishedPrompt instantiation tests)"
+    phase_rollback: null
+    change_log_path: "change-log.md"
+    cross_agent_risk_consensus: "All three doc-rewriting agents independently flagged critic-seed cold-start under-delivery as the new High-criticality risk; logged in spec.md §11, plan.md §21, product-spec/seeding-strategy.md."
+    approved_by: "Joshua Xie"
 
 dependencies:
   depends_on: []

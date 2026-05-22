@@ -42,6 +42,8 @@ def _b64(num_bytes: int) -> str:
     return base64.b64encode(secrets.token_bytes(num_bytes)).decode("ascii")
 
 
+# CR-001: removed SPOTIFY_* env keys; DISCOGS_API_TOKEN is the new
+# (optional) catalog-fallback toggle.
 _REQUIRED_ENV_KEYS = (
     "ENVIRONMENT",
     "LOG_LEVEL",
@@ -49,9 +51,7 @@ _REQUIRED_ENV_KEYS = (
     "REDIS_URL",
     "SESSION_HMAC_KEY",
     "TOKEN_ENCRYPTION_KEY",
-    "SPOTIFY_INTEGRATION_ENABLED",
-    "SPOTIFY_CLIENT_ID",
-    "SPOTIFY_CLIENT_SECRET",
+    "DISCOGS_API_TOKEN",
     "SENTRY_DSN",
     "POSTHOG_API_KEY",
     "POSTHOG_HOST",
@@ -122,7 +122,7 @@ def _reset_otel_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterato
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("SESSION_HMAC_KEY", _b64(32))
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", _b64(32))
-    monkeypatch.setenv("SPOTIFY_INTEGRATION_ENABLED", "false")
+    # CR-001: removed SPOTIFY_INTEGRATION_ENABLED=false bootstrap.
     monkeypatch.setenv("ENVIRONMENT", "local")
     settings_module.get_settings.cache_clear()
 

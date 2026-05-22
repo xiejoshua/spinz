@@ -2,9 +2,10 @@
 
 These tests must not touch a real MongoDB. They cover:
 
-* The canonical Beanie Document list is well-formed (17 entries, each a
-  :class:`beanie.Document` subclass) and matches what the test conftest
-  uses — guards the dedupe from regressing.
+* The canonical Beanie Document list is well-formed (16 entries after
+  CR-001 dropped JustFinishedPrompt; each a :class:`beanie.Document`
+  subclass) and matches what the test conftest uses — guards the dedupe
+  from regressing.
 * :func:`get_client` raises before :func:`init_db` is called.
 * :func:`init_db` rejects URIs missing a database name with a clear
   message.
@@ -32,8 +33,9 @@ from auxd_api.db import (
 )
 
 
-def test_all_document_models_has_seventeen_entries() -> None:
-    assert len(ALL_DOCUMENT_MODELS) == 17
+def test_all_document_models_has_sixteen_entries() -> None:
+    """CR-001: count was 17 before; JustFinishedPrompt deferred to v2 → 16."""
+    assert len(ALL_DOCUMENT_MODELS) == 16
 
 
 def test_all_document_models_are_beanie_documents() -> None:
@@ -49,6 +51,9 @@ def test_canonical_list_matches_conftest_expectation() -> None:
     """Regression guard: ``conftest.py`` imports ``ALL_DOCUMENT_MODELS`` from
     :mod:`auxd_api.db`. If the names or count drift, the test suite's
     Beanie init will silently miss models. Pin the exact set here.
+
+    CR-001: ``JustFinishedPrompt`` is intentionally absent (deferred to
+    v2; class kept importable but not registered with Beanie).
     """
     expected_names = {
         "User",
@@ -65,12 +70,21 @@ def test_canonical_list_matches_conftest_expectation() -> None:
         "Report",
         "Notification",
         "FailedEmail",
-        "JustFinishedPrompt",
         "SuggestedFollow",
         "CriticSeed",
     }
     actual_names = {model.__name__ for model in ALL_DOCUMENT_MODELS}
     assert actual_names == expected_names
+
+
+def test_just_finished_prompt_still_importable_but_unregistered() -> None:
+    """CR-001 forward-compat: the class must still import cleanly even
+    though it's no longer registered with Beanie at MVP.
+    """
+    from auxd_api.modules.prompts.models import JustFinishedPrompt  # noqa: PLC0415
+
+    assert issubclass(JustFinishedPrompt, Document)
+    assert JustFinishedPrompt not in ALL_DOCUMENT_MODELS
 
 
 def test_get_client_before_init_raises() -> None:

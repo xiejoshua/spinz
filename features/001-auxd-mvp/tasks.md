@@ -8,6 +8,25 @@
 > - Spec: [spec.md](./spec.md)
 > - Decision Log: [product-spec/decision-log.md](./product-spec/decision-log.md)
 
+<!-- CR-001 (2026-05-22): All Spotify integration deferred to v2. MVP is
+     Letterboxd-style manual search + rating via MusicBrainz + Discogs.
+     Reason: Spotify Extended Quota Mode now requires 250k MAUs to apply —
+     structurally unreachable pre-launch.
+
+     Removed tasks (16):
+       - T002 (Spotify Extended Quota Mode application)
+       - T042-T047 (6 Spotify provider tasks: contract tests, impl, OAuth, recently-played, search, get-album)
+       - T054-T056 (Spotify OAuth signup, Connect-later, Disconnect)
+       - T114-T116 (Onboarding step 2: Spotify connect, Auto-import worker, Confirm last 30 days)
+       - T121-T122 (Settings → Integrations, Last.fm import)
+       - T177 (Extended Quota Mode follow-through — depended on T002)
+     Deferred to v2 (8):
+       - T123-T130 (entire §12 just-finished cluster; bodies preserved for v2 resumption)
+     Amended (5): T021, T022, T026, T027, T029 (code patches land separately).
+     New tasks (3): T049a, T049b (Discogs catalog provider), T053a (Report missing album).
+     Net: 183 − 16 + 3 = 170 task lines in file (162 active MVP + 8 deferred-to-v2).
+     Also retired: §17 T169 (Pull-more-history) marked DEFERRED-TO-V2 since it built on the removed auto-import surface. -->
+
 ## Conventions
 
 - **Task IDs:** `T001`..`TNNN`, unique throughout.
@@ -19,29 +38,31 @@
 
 ## Coverage matrix (verified against plan + spec)
 
+<!-- CR-001: coverage matrix updated — Spotify-only FRs/stories deferred; §4 retitled; §11 narrowed to onboarding; §12 marked DEFERRED. -->
 | Cluster | Tasks | Stories covered |
 |---|---|---|
 | §0 Prerequisites | T001–T010 | (cross-cutting) |
 | §1 Backend foundation + libs | T011–T020 | (cross-cutting) |
 | §2 Lib + shared backend | T021–T030 | Constitution P1, P2, P3, P5, P6 |
 | §3 Frontend foundation | T031–T040 | Cross-cutting |
-| §4 Providers (Spotify + MusicBrainz) | T041–T052 | FR-002, FR-003 (contract-test-first per P4) |
-| §5 Auth | T053–T062 | US-A1, US-A2, US-G1, US-G5; FR-001, FR-002, FR-027, FR-029 |
+| §4 Providers (MusicBrainz + Discogs) | T041, T048–T052, T049a, T049b | FR-005, FR-010, FR-028 (contract-test-first per P4) |
+| §5 Auth | T053, T053a, T057–T062 | US-A1, US-G1, US-G5; FR-001, FR-029 |
 | §6 Albums + Search | T063–T072 | US-F1, US-F2; FR-005, FR-010, FR-028 |
 | §7 Diary + Log sheet (THE wedge) | T073–T084 | US-B1..B5; FR-004, FR-007 |
 | §8 Reviews + Likes + sort | T085–T094 | US-C1..C4; FR-011, FR-030, FR-031, FR-032 |
 | §9 Backlog | T095–T100 | US-D1..D3; FR-006 |
 | §10 Social graph + Feed | T101–T112 | US-E1..E5, US-G4; FR-008, FR-009, FR-014, FR-016 |
-| §11 Onboarding + Auto-import | T113–T122 | US-A2..A5; FR-002, FR-003, FR-015 |
-| §12 Just-finished detection | T123–T130 | US-B6; FR-026 |
+| §11 Onboarding (auto-import portion DEFERRED-TO-V2 per CR-001) | T113, T117–T120 | US-A4, US-A5; FR-015 |
+| §12 Just-finished detection **DEFERRED-TO-V2 (CR-001)** | T123–T130 | (US-B6, FR-026 — DEFERRED in spec.md) |
 | §13 Notifications | T131–T144 | US-G3; FR-012 |
 | §14 Profile, Settings, Privacy | T145–T152 | US-G1..G5; FR-013 |
 | §15 GDPR + Moderation | T153–T161 | US-G4, US-G5; FR-019 |
 | §16 Seeding backend | T162–T166 | US-A4, US-E5; FR-015 |
-| §17 Should-have (Last.fm import etc.) | T167–T170 | US-H1, US-H2 |
+| §17 Should-have | T167–T170 | US-H2, US-H3, US-H5 |
 | §18 Pre-launch hardening | T171–T180 | NFR Measurement Contract; spec.md §10 E2E coverage |
 
-**Total: 183 tasks** (= 180 base + T117a Phase 5C + T010a + T015a both added in sync-fix Run #1 — see [sync-fix-list.md](./sync-fix-list.md)). Sized to deliver M-2 closed-beta scope per plan §18; 30/30 Must-Have user stories addressed; all 27 active FRs covered; all 32 critical TCs + 13 E2E scenarios referenced. Tasks amended in sync-fix Run #1: T013 (Redis fail-modes), T023 (ReviewEditHistory), T025 (FollowRequest), T026 (FailedEmail + missing_album report type), T135 (PostMark failure-mode + retry).
+<!-- CR-001: total recomputed. Removed 16 (T002, T042-T047, T054-T056, T114-T116, T121, T122, T177). Added 3 (T049a, T049b, T053a). 183 − 16 + 3 = 170 task lines in file. Of those, 162 are active MVP + 8 are DEFERRED-TO-V2 (T123-T130) kept in-file for traceability. Note: T169 is also DEFERRED-TO-V2 per CR-001 (built on removed auto-import surface) — counted within the 162 active for line-count purposes but won't ship at MVP. -->
+**Total: 162 active MVP tasks + 8 DEFERRED-TO-V2 (T123–T130 per CR-001) = 170 task lines in file** (= 180 base + T117a Phase 5C + T010a + T015a both added in sync-fix Run #1 + 3 added in CR-001 − 16 removed in CR-001 — see [sync-fix-list.md](./sync-fix-list.md) + CR-001 banner above). Sized to deliver M-2 closed-beta scope per plan §18; Must-Have user stories addressed minus the 3 deferred (US-A2, US-A3, US-B6 — DEFERRED in spec.md per CR-001); 27 active FRs covered minus the 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027 — DEFERRED in spec.md per CR-001); critical TCs (excluding TC-006/TC-018–021/TC-022 which now sit with the deferred tasks) + 13 E2E scenarios referenced. Tasks amended in sync-fix Run #1: T013 (Redis fail-modes), T023 (ReviewEditHistory), T025 (FollowRequest), T026 (FailedEmail + missing_album report type), T135 (PostMark failure-mode + retry). Tasks amended in CR-001: T021, T022, T026, T027, T029 (code patches land separately).
 
 ---
 
@@ -55,13 +76,7 @@
       Description: Replace template placeholders in `.specify/memory/constitution.md` with the 6 principles from plan §0 (external-call resilience, schema-versioned documents, library-first modules, test-first for catalog/auth, observability mandatory, provider abstraction). Founder sign-off required. Commit with message `chore: ratify project constitution`.
       Done: file is non-template; sign-off recorded.
 
-- [ ] **T002 — Submit Spotify Extended Quota Mode application**
-      Paths: docs/spotify-application.md (notes only)
-      Size: S
-      Deps: —
-      Refs: plan §0 Task 1; decision-log Q22
-      Description: Submit application via Spotify Developer Dashboard. Include business description (wedge thesis from spec.md §1.3), required scopes (5 essential per Q22 v1.3 / sync-fix Run #2: `user-read-email`, `user-read-private`, `user-read-recently-played`, `user-read-currently-playing`, `user-library-read`), privacy policy URL placeholder, ToS URL placeholder. **Parallel work** — does not block other tasks but is on the 2–6 week external critical path.
-      Done: application submitted; reference ID captured in `docs/spotify-application.md`.
+<!-- CR-001 removed: T002 (Submit Spotify Extended Quota Mode application) — Spotify Extended Quota Mode now requires 250k MAUs to apply; structurally unreachable pre-launch, so Spotify integration is entirely deferred to v2. -->
 
 - [x] **T003 — Monorepo scaffolding (pnpm + uv + workspaces)** *(verified 2026-05-22: pnpm install ✓, uv sync ✓, both dev servers boot ✓, frontend resolves @auxd/shared-types via workspace:* protocol — implementation-log.md checkpoint #3)*
       Paths: package.json, pnpm-workspace.yaml, .gitignore, README.md, apps/api/pyproject.toml, apps/web/package.json
@@ -100,7 +115,8 @@
       Size: S
       Deps: T005, T006
       Refs: plan §15, §17.6
-      Description: Create accounts: Resend (sending domain `xiejoshua.com` — DKIM/SPF/DMARC records added to Cloudflare DNS); Sentry Developer plan free tier (projects `auxd-api` + `auxd-web`); PostHog Cloud US region free tier (project `auxd`); Cloudflare R2 API token for bucket `auxd-backups` (Object Read & Write, scoped to the one bucket). Set secrets via `fly secrets set` — full list in docs/infra.md: MONGODB_URI, REDIS_URL, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SESSION_HMAC_KEY, TOKEN_ENCRYPTION_KEY, RESEND_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, SENTRY_DSN, POSTHOG_API_KEY, POSTHOG_HOST, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT_URL, R2_BUCKET_NAME. PostHog self-host on Fly was the original plan; swapped to Cloud 2026-05-22 (saves ~$40/mo of RAM-heavy Fly compute).
+<!-- CR-001: T007 secret list updated — SPOTIFY_CLIENT_ID/SECRET removed (no Spotify at MVP); DISCOGS_API_TOKEN added (optional, T029 amendment). -->
+      Description: Create accounts: Resend (sending domain `xiejoshua.com` — DKIM/SPF/DMARC records added to Cloudflare DNS); Sentry Developer plan free tier (projects `auxd-api` + `auxd-web`); PostHog Cloud US region free tier (project `auxd`); Cloudflare R2 API token for bucket `auxd-backups` (Object Read & Write, scoped to the one bucket). Set secrets via `fly secrets set` — full list in docs/infra.md: MONGODB_URI, REDIS_URL, DISCOGS_API_TOKEN (optional per CR-001), SESSION_HMAC_KEY, TOKEN_ENCRYPTION_KEY, RESEND_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, SENTRY_DSN, POSTHOG_API_KEY, POSTHOG_HOST, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT_URL, R2_BUCKET_NAME. (Spotify secrets removed per CR-001 — Spotify integration deferred to v2.) PostHog self-host on Fly was the original plan; swapped to Cloud 2026-05-22 (saves ~$40/mo of RAM-heavy Fly compute).
       Done: secrets present in Fly + Vercel; PostHog Cloud ingest reachable from backend; Resend test-email roundtrip succeeds; R2 bucket accessible via S3-compat API from local dev.
 
 - [x] **T008 — Generate VAPID keypair for Web Push** *(generated 2026-05-22; public key in apps/web/.env.example; private key tracked in docs/infra.md placeholder pending Fly secret)*
@@ -224,14 +240,16 @@
       Size: M
       Deps: T013, T015
       Refs: NFR Security; plan §1.1 (fail-mode); plan §8.2; pre-impl-review A-004
-      Description: Per-user + per-IP rate limits keyed by Redis sorted-sets; configurable per-endpoint. Used by log, follow, review, like endpoints + auth. **Fail-mode (locked in Phase 5C):** when Redis is unreachable, the middleware FAILS OPEN — requests are allowed through and a Sentry alert is emitted with tag `rate_limit.redis_down`. Same fail-open policy applies to the notification rate-limiter (T133). Spotify upstream enforces its own rate limits at the edge, so our limiter is defensive rather than load-bearing.
+<!-- CR-001: T020 description updated — Spotify upstream rate-limit reference dropped; MusicBrainz (1 req/sec) + Discogs (60 req/min) limits are now the defensive backstop. -->
+      Description: Per-user + per-IP rate limits keyed by Redis sorted-sets; configurable per-endpoint. Used by log, follow, review, like endpoints + auth. **Fail-mode (locked in Phase 5C):** when Redis is unreachable, the middleware FAILS OPEN — requests are allowed through and a Sentry alert is emitted with tag `rate_limit.redis_down`. Same fail-open policy applies to the notification rate-limiter (T133). MusicBrainz (1 req/sec per IP) and Discogs (60 req/min authenticated) upstream limits are handled inside the catalog-provider clients (T049, T049b) per CR-001 — our middleware is defensive rather than load-bearing for those providers.
       Done: integration test bursts an endpoint past limit + receives 429. Additional test: simulate Redis disconnect → assert requests succeed AND Sentry alert fires.
 
 ---
 
 ## §2 Shared backend models + OpenAPI codegen pipeline
 
-- [x] **T021 — User Document + handle policy fields** *(completed 2026-05-22; full plan §3 schema incl. handle policy/notif prefs/music providers; indexes on handle/email unique + status partial; tests via mongomock-motor)*
+<!-- CR-001: amendment annotation added — music_providers field becomes empty dict at MVP. -->
+- [x] **T021 — User Document + handle policy fields** *(completed 2026-05-22; full plan §3 schema incl. handle policy/notif prefs/music providers; indexes on handle/email unique + status partial; tests via mongomock-motor)* *(amended CR-001: `music_providers` field type changes from struct-with-spotify-shape to empty dict at MVP; CR-001 code patch lands separately.)*
       Paths: apps/api/src/auxd_api/modules/users/models.py, apps/api/tests/unit/test_users_model.py
       Size: M
       Deps: T012, T018
@@ -239,12 +257,13 @@
       Description: Beanie `User` Document with all fields per data-model.md User entity. Includes `auto_prompt_enabled`, `auto_prompt_push_enabled`, `default_entry_visibility`, `default_backlog_visibility`, `keep_backlog_after_log`, `handle_changed_at` (renamed from `last_handle_change` in sync-fix Run #3 L5-004), `created_at`, `deletion_scheduled_for`, `session_version`, `status`. Indexes: handle unique, email unique, status partial.
       Done: model loads; unit test creates/saves/loads a User; indexes confirmed via aggregate explain.
 
-- [x] **T022 — Album Document + identity fields** *(completed 2026-05-22; Album schema incl. mbid/spotify_id sparse-unique indexes; Atlas Search index JSON at apps/api/migrations/atlas_search/albums_index.json — one-time UI apply documented)*
+<!-- CR-001: amendment annotation added — drop spotify_id sparse-unique index; MBID becomes sole canonical identity at MVP. -->
+- [x] **T022 — Album Document + identity fields** *(completed 2026-05-22; Album schema incl. mbid/spotify_id sparse-unique indexes; Atlas Search index JSON at apps/api/migrations/atlas_search/albums_index.json — one-time UI apply documented)* *(amended CR-001: Drop `spotify_id` sparse-unique index; MBID is the sole canonical identity at MVP. CR-001 code patch lands separately.)*
       Paths: apps/api/src/auxd_api/modules/albums/models.py
       Size: M
       Deps: T012, T018
       Refs: plan §3; data-model.md Album
-      Description: Beanie `Album` Document with all fields. Indexes: `mbid unique sparse`, `spotify_id unique sparse`. Atlas Search index definition (per plan §11.1) added as a migration artifact (`apps/api/migrations/atlas_search/albums_index.json`).
+      Description: Beanie `Album` Document with all fields. Indexes: `mbid unique sparse` (and historically `spotify_id unique sparse` — to be dropped per the CR-001 amendment above; MBID becomes the sole canonical identity at MVP). Atlas Search index definition (per plan §11.1) added as a migration artifact (`apps/api/migrations/atlas_search/albums_index.json`).
       Done: model + indexes; Atlas Search index applied to dev cluster (one-time manual via Atlas UI documented).
 
 - [x] **T023 — DiaryEntry + Review + ReviewLike + ReviewEditHistory Documents** *(completed 2026-05-22; 15/15 tests; DiaryEntry.auxed bool, Review.reactions sub-doc, ReviewLike unique (review_id, user_id), ReviewEditHistory 90d TTL on edited_at per FR-030)*
@@ -271,7 +290,8 @@
       Description: Beanie `Follow` (state: accepted [default for public profiles] / pending / rejected — kept on the Follow doc itself for transition-history) + `FollowRequest` (separate collection — `requester_id`, `requestee_id`, `status: pending/accepted/declined/expired`, `created_at`, `responded_at`) + `Block`. Compound unique indexes; cascade-resolve on block (Block creation dissolves any existing Follow + any pending FollowRequest in either direction).
       Done: models + unique constraints + cascade trigger covered by integration test; FollowRequest status transitions covered by unit test.
 
-- [x] **T026 — Report + Notification + NotificationPreferences + FailedEmail Documents** *(completed 2026-05-22; 18/18 tests; 18-value NotificationType enum; Notification 90d TTL; Report.target_type incl. missing_album; FailedEmail as T135 write target; NotificationPreferences dedupe with T021 reconciled)*
+<!-- CR-001: amendment annotation added — just-finished + Spotify-revoked NotificationType enum values defer; 16 active types remain. -->
+- [x] **T026 — Report + Notification + NotificationPreferences + FailedEmail Documents** *(completed 2026-05-22; 18/18 tests; 18-value NotificationType enum; Notification 90d TTL; Report.target_type incl. missing_album; FailedEmail as T135 write target; NotificationPreferences dedupe with T021 reconciled)* *(amended CR-001: Remove the just-finished + Spotify-revoked NotificationType enum values (those rows in notification-taxonomy.md become DEFERRED-TO-V2 per CR-001). Other 16 active types unchanged.)*
       Paths: apps/api/src/auxd_api/modules/moderation/models.py, apps/api/src/auxd_api/modules/notifications/models.py
       Size: M
       Deps: T021
@@ -279,7 +299,8 @@
       Description: `Report` (target_type/target_id, status, resolution_note — target_type enum extended with `missing_album` per sync-fix L3-006); `Notification` (user_id, type, payload, channel_dispatch_state, read_at, TTL 90d); `NotificationPreferences` (embedded on User per plan §3 — model the embedded sub-document explicitly); `FailedEmail` (user_id, notification_type, payload, attempted_at, last_error — write target for T135 failure-mode wiring). 18 active notification types as `NotificationType` enum.
       Done: models + TTL index on Notification; FailedEmail covered by integration test in T135.
 
-- [x] **T027 — JustFinishedPrompt + SuggestedFollow + CriticSeed Documents** *(completed 2026-05-22; 13/13 tests; JustFinishedPrompt TTL partial-filter (state=pending → 24h expiry), retains LOGGED/DISMISSED for S-B6 30d cooldown + attribution analytics; SuggestedFollow sparse dismissed_at index; CriticSeed strict unique on user_id + separate partial-active index for fast "active critics" reads — sync-fix Run #3 L5-005 clarified intent vs initial status note)*
+<!-- CR-001: amendment annotation added — JustFinishedPrompt collection defers; remove from ALL_DOCUMENT_MODELS in db.py but keep model file for v2 resumption. -->
+- [x] **T027 — JustFinishedPrompt + SuggestedFollow + CriticSeed Documents** *(completed 2026-05-22; 13/13 tests; JustFinishedPrompt TTL partial-filter (state=pending → 24h expiry), retains LOGGED/DISMISSED for S-B6 30d cooldown + attribution analytics; SuggestedFollow sparse dismissed_at index; CriticSeed strict unique on user_id + separate partial-active index for fast "active critics" reads — sync-fix Run #3 L5-005 clarified intent vs initial status note)* *(amended CR-001: JustFinishedPrompt collection becomes DEFERRED-TO-V2 per CR-001; remove from `ALL_DOCUMENT_MODELS` in db.py (keep model file for v2). SuggestedFollow + CriticSeed unchanged.)*
       Paths: apps/api/src/auxd_api/modules/prompts/models.py, apps/api/src/auxd_api/modules/seeding/models.py
       Size: M
       Deps: T021, T022
@@ -295,7 +316,8 @@
       Description: Pipeline that pulls FastAPI's `/openapi.json` at build-time and runs `openapi-typescript` to generate TS types into `packages/shared-types/src/`. Triggered on backend changes via CI.
       Done: a backend schema change produces a TS diff in shared-types; frontend consumes from `@auxd/shared-types`.
 
-- [x] **T029 — Pydantic settings + env validation** *(completed 2026-05-22; 8/8 tests; Environment + LogLevel enums; base64-key validators; conditional Spotify-secret enforcement; emit_startup_audit log)*
+<!-- CR-001: amendment annotation added — remove SPOTIFY_* fields + validator; add optional DISCOGS_API_TOKEN; update .env.example files. -->
+- [x] **T029 — Pydantic settings + env validation** *(completed 2026-05-22; 8/8 tests; Environment + LogLevel enums; base64-key validators; conditional Spotify-secret enforcement; emit_startup_audit log)* *(amended CR-001: Remove all `SPOTIFY_*` fields (`SPOTIFY_INTEGRATION_ENABLED`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`) + their validator. Add optional `DISCOGS_API_TOKEN`. Update `.env.example` + `apps/api/.env.example`.)*
       Paths: apps/api/src/auxd_api/settings.py
       Size: S
       Deps: T011
@@ -397,7 +419,8 @@
 
 ---
 
-## §4 Providers — Spotify + MusicBrainz (contract-test-first per Constitution P4)
+<!-- CR-001: §4 retitled — Spotify provider removed; MusicBrainz primary + Discogs fallback. -->
+## §4 Providers — MusicBrainz + Discogs (contract-test-first per Constitution P4)
 
 - [ ] **T041 — MusicProvider + CatalogProvider protocols**
       Paths: apps/api/src/auxd_api/providers/base.py
@@ -407,57 +430,20 @@
       Description: Abstract `MusicProvider` and `CatalogProvider` Protocol classes defining the interface methods (per plan §5.1). NO concrete implementations yet — that's enforcement of P6 (provider abstraction).
       Done: protocols compile; mypy strict passes.
 
-- [ ] **T042 — Spotify provider — contract tests (FAIL state) [TEST-FIRST]**
-      Paths: apps/api/tests/contract/test_spotify_recently_played.py, apps/api/tests/contract/test_spotify_album_detail.py, apps/api/tests/contract/test_spotify_search.py, apps/api/tests/contract/test_spotify_currently_playing.py
-      Size: M
-      Deps: T041, T002
-      Refs: Constitution P4; plan §16.3
-      Description: Contract tests against Spotify's actual API (Development Mode quota) covering all methods auxd uses. Tests run as `pytest -m contract` and are excluded from normal CI but run nightly + on main. At this stage they MUST FAIL (no implementation yet) — that's the test-first pattern.
-      Done: pytest collects 12+ tests; all fail with import/implementation errors (expected).
-
-- [ ] **T043 — Spotify provider — implementation**
-      Paths: apps/api/src/auxd_api/providers/spotify/__init__.py, apps/api/src/auxd_api/providers/spotify/client.py, apps/api/src/auxd_api/providers/spotify/oauth.py, apps/api/src/auxd_api/providers/spotify/mappings.py
-      Size: L
-      Deps: T042, T014, T015, T017
-      Refs: FR-002, FR-003, FR-026; spec.md §1.3 (provider abstraction)
-      Description: Concrete `SpotifyMusicProvider` implementing `MusicProvider` protocol. OAuth helper for code exchange + refresh. `httpx.AsyncClient` with resilience transport (circuit breaker + retry + timeout per T014). Pydantic models for Spotify responses → internal types.
-      Done: contract tests (T042) PASS against Spotify Dev Mode.
-
-- [ ] **T044 — Spotify provider — token refresh + revoke handling**
-      Paths: apps/api/src/auxd_api/providers/spotify/oauth.py, apps/api/tests/integration/test_spotify_oauth.py
-      Size: M
-      Deps: T043
-      Refs: FR-002, FR-027 (disconnect immutability)
-      Description: Refresh token flow; handle 401 → refresh → retry; detect revoke (refresh fails) → mark `MusicProvider.status = revoked` and emit N-011 notification. On revoke, diary persists (immutability per Q19).
-      Done: integration test simulates token expiry + refresh + revoke; immutability verified.
-
-- [ ] **T045 — Spotify provider — `get_recently_played`**
-      Paths: covered in T043
-      Size: (sub-task of T043)
-      Refs: FR-003, US-A3
-      Description: Paginated recently-played fetch; dedupe to album-grain (≥4 tracks from same album in window = "album listen").
-      Done: covered by T042 contract tests.
-
-- [ ] **T046 — Spotify provider — `search_albums`**
-      Paths: covered in T043
-      Size: (sub-task of T043)
-      Refs: FR-005, US-F2
-      Description: Album search by query; market parameter handling; pagination.
-      Done: covered by T042 contract tests.
-
-- [ ] **T047 — Spotify provider — `get_album` + tracklist**
-      Paths: covered in T043
-      Size: (sub-task of T043)
-      Refs: FR-010, US-F1
-      Description: Single-album fetch with tracklist + metadata; cover-art URL extraction.
-      Done: covered by T042 contract tests.
+<!-- CR-001 removed: T042 (Spotify provider — contract tests) — Spotify provider entirely eliminated; replaced by Discogs contract tests (T049a). -->
+<!-- CR-001 removed: T043 (Spotify provider — implementation) — Spotify provider entirely eliminated. -->
+<!-- CR-001 removed: T044 (Spotify provider — token refresh + revoke handling) — no Spotify OAuth at MVP. -->
+<!-- CR-001 removed: T045 (Spotify provider — get_recently_played) — auto-import deferred to v2 per CR-001. -->
+<!-- CR-001 removed: T046 (Spotify provider — search_albums) — search now MusicBrainz primary + Discogs fallback via T049 + T049b. -->
+<!-- CR-001 removed: T047 (Spotify provider — get_album + tracklist) — album detail now MBID-only via T049. -->
 
 - [ ] **T048 — MusicBrainz catalog provider — contract tests (FAIL state)**
       Paths: apps/api/tests/contract/test_musicbrainz_release_group_lookup.py
       Size: S
       Deps: T041
       Refs: Constitution P4
-      Description: Contract test for MusicBrainz `lookup_by_mbid` and Spotify ID → MBID reconciliation.
+<!-- CR-001: T048 description updated — Spotify ID → MBID reconciliation step removed; MBID is now sole canonical id, reconciliation flows from candidate (Discogs-sourced) → MBID via T065. -->
+      Description: Contract test for MusicBrainz `lookup_by_mbid` and candidate-Album (Discogs-sourced) → MBID reconciliation (per CR-001 — Spotify ID reconciliation path retired).
       Done: tests fail (expected, no implementation).
 
 - [ ] **T049 — MusicBrainz catalog provider — implementation**
@@ -468,6 +454,24 @@
       Description: `MusicBrainzCatalogProvider`. Rate-limited to 1 req/sec per IP (MusicBrainz policy). Reconciliation strategy: query by artist + title, match best release-group MBID.
       Done: contract tests (T048) PASS.
 
+<!-- CR-001: new task — Discogs catalog provider contract tests (FAIL state) per Constitution P4 test-first pattern; fallback for MusicBrainz misses. -->
+- [ ] **T049a — Discogs catalog provider — contract tests (FAIL state) [TEST-FIRST]**
+      Paths: apps/api/tests/contract/test_discogs_release_lookup.py, apps/api/tests/contract/test_discogs_search.py
+      Size: S
+      Deps: T041
+      Refs: Constitution P4; plan §4.4; CR-001
+      Description: Contract tests against Discogs API (token-authenticated free tier) for `search_releases` and `get_release` methods. Tests run as `pytest -m contract`; excluded from normal CI, run nightly + on main. At this stage they MUST FAIL (no implementation yet) — test-first pattern.
+      Done: pytest collects ≥4 tests; all fail with import/implementation errors (expected).
+
+<!-- CR-001: new task — Discogs catalog provider implementation; fallback when MusicBrainz returns nothing for a search; covers FR-005 empty-state edge. -->
+- [ ] **T049b — Discogs catalog provider — implementation**
+      Paths: apps/api/src/auxd_api/providers/discogs/__init__.py, apps/api/src/auxd_api/providers/discogs/client.py, apps/api/src/auxd_api/providers/discogs/mappings.py
+      Size: S
+      Deps: T041, T049, T050
+      Refs: plan §4.4; CR-001
+      Description: `DiscogsCatalogProvider` implementing `CatalogProvider` protocol. Token-authenticated httpx client (token via `DISCOGS_API_TOKEN` from T029 amendment). Rate-limited per Discogs free-tier policy (60 req/min authenticated). Used as fallback in search service (T069) when MusicBrainz Atlas search returns <5 results. Maps Discogs release → internal Album shape with MBID null (candidate flag for later T065 reconcile).
+      Done: contract tests (T049a) PASS against Discogs API.
+
 - [ ] **T050 — Resilience transport — httpx custom Transport**
       Paths: apps/api/src/auxd_api/lib/http_transport.py
       Size: M
@@ -476,10 +480,11 @@
       Description: Custom `httpx.AsyncBaseTransport` that wraps requests with `lib/resilience` (circuit breaker + retry + timeout). Used by all provider clients.
       Done: unit tests assert transport applies all three policies.
 
+<!-- CR-001: T051 deps + paths updated — drop Spotify provider; instrument MusicBrainz + Discogs only. -->
 - [ ] **T051 — Provider observability instrumentation**
-      Paths: apps/api/src/auxd_api/providers/spotify/client.py, apps/api/src/auxd_api/providers/musicbrainz/client.py
+      Paths: apps/api/src/auxd_api/providers/musicbrainz/client.py, apps/api/src/auxd_api/providers/discogs/client.py
       Size: S
-      Deps: T043, T049, T015
+      Deps: T049, T049b, T015
       Refs: Constitution P5; NFR Observability
       Description: Every provider call emits `log_call(provider, endpoint, latency_ms, status, request_id)` via lib/observability.
       Done: log lines present; assertion test verifies structure.
@@ -504,29 +509,18 @@
       Description: `POST /api/v1/auth/signup` (email + password + handle), `POST /api/v1/auth/login` (email + password). bcrypt cost 12. Handle validation: 3–24 chars, `/^[a-z0-9_]+$/`, unique. Suggest 3 alternatives on collision.
       Done: integration tests cover happy path + 5 error cases (handle taken, email taken, weak password, invalid handle chars, account suspended).
 
-- [ ] **T054 — Spotify OAuth signup/login shortcut**
-      Paths: apps/api/src/auxd_api/modules/auth/spotify_oauth.py, apps/api/tests/integration/test_spotify_signup.py
-      Size: M
-      Deps: T053, T043, T044
-      Refs: US-A1, US-A2; FR-001, FR-002
-      Description: `GET /api/v1/auth/spotify/authorize` (returns PKCE-encoded redirect URL); `GET /api/v1/auth/spotify/callback` (exchanges code, creates User if new, attaches `MusicProvider` sub-doc). Auto-handle from Spotify display_name with collision-resolve.
-      Done: integration test simulates OAuth callback; account created; session cookie issued.
+<!-- CR-001 removed: T054 (Spotify OAuth signup/login shortcut) — no Spotify integration at MVP; plain email+password signup covers US-A1 via T053. -->
+<!-- CR-001 removed: T055 (Connect-Spotify-later flow) — no Spotify integration at MVP. -->
+<!-- CR-001 removed: T056 (Disconnect Spotify immutability) — no Spotify integration at MVP. -->
 
-- [ ] **T055 — Connect-Spotify-later flow (post-signup)**
-      Paths: apps/api/src/auxd_api/modules/auth/service.py, apps/api/tests/integration/test_connect_spotify.py
+<!-- CR-001: new task — Report-missing-album workflow surfaces from manual-search empty state per FR-005 (Letterboxd-style fallback path). -->
+- [ ] **T053a — "Report missing album" workflow endpoint + UI**
+      Paths: apps/api/src/auxd_api/modules/moderation/routes.py, apps/api/src/auxd_api/modules/moderation/service.py, apps/web/src/components/search/report-missing-album.tsx, apps/web/src/app/(app)/search/missing/page.tsx
       Size: M
-      Deps: T054, T044
-      Refs: US-A2; FR-002, FR-027; decision-log Q12
-      Description: `POST /api/v1/users/me/integrations/spotify/connect` → returns OAuth URL. Callback attaches `MusicProvider` to existing User. Triggers auto-import (T117).
-      Done: integration test: skip Spotify at signup → use product manually → connect later → diary back-fills with 30 days.
-
-- [ ] **T056 — Disconnect Spotify (immutability)**
-      Paths: apps/api/src/auxd_api/modules/auth/service.py, apps/api/tests/integration/test_disconnect_spotify.py
-      Size: S
-      Deps: T055
-      Refs: FR-027; decision-log Q19; TC-022
-      Description: `DELETE /api/v1/users/me/integrations/spotify` → marks `MusicProvider.status = disconnected`. ALL DiaryEntry / Rating / Review / Aux / Like / Follow persist untouched. Reconnect resumes without gap back-fill.
-      Done: TC-022 integration test passes.
+      Deps: T026, T071, T155
+      Refs: FR-005; CR-001; sync-fix L3-006 (Report.target_type=missing_album)
+      Description: `POST /api/v1/reports/missing-album` accepts `query` (the failed search term), `artist`, `title`, optional `release_year`, `notes`. Reuses Report Document with `target_type=missing_album` (already in T026 model per sync-fix L3-006). Rate-limited per-reporter via T020 (`per_user=5/day`). UI: surfaces from search empty-state (T071) as a "Can't find it? Report missing album" link → opens modal-form. Submission confirmation toast. Admin can later resolve via mongo + reconcile by enqueuing a T065 MBID lookup with the structured hint.
+      Done: integration test covers happy path + rate limit + duplicate-suppression (same user reports same query twice within 24h returns existing report); E2E covers search → empty results → report → confirmation.
 
 - [ ] **T057 — Handle change policy + reserved-squat list**
       Paths: apps/api/src/auxd_api/modules/auth/handle_service.py, apps/api/data/reserved_handles.txt, apps/api/tests/unit/test_handle_policy.py
@@ -560,13 +554,14 @@
       Description: Frontend middleware intercepts `/@oldhandle` requests; backend lookup returns new handle if redirect exists (≤90 days post-change); 301 redirect. Otherwise 404.
       Done: unit + integration tests pass.
 
+<!-- CR-001: T061 deps + description updated — Spotify OAuth button removed; email-only signup at MVP. -->
 - [ ] **T061 — Signup + login UI**
       Paths: apps/web/src/app/(auth)/signup/page.tsx, apps/web/src/app/(auth)/login/page.tsx, apps/web/tests/e2e/auth.spec.ts
       Size: M
-      Deps: T038, T053, T054
+      Deps: T038, T053
       Refs: US-A1; FR-001
-      Description: Wire signup + login forms to backend. Spotify OAuth button initiates flow. Error handling for all 5 error cases from T053.
-      Done: E2E test signs up via email + via Spotify OAuth.
+      Description: Wire signup + login forms to backend. Email + password only at MVP (per CR-001 — Spotify OAuth deferred to v2). Error handling for all 5 error cases from T053.
+      Done: E2E test signs up via email + logs in.
 
 - [ ] **T062 — Auth E2E + session persistence**
       Paths: apps/web/tests/e2e/session.spec.ts
@@ -580,20 +575,22 @@
 
 ## §6 Albums + Search
 
+<!-- CR-001: T063 deps + description updated — Spotify ID identity path dropped; MBID-first + Discogs candidate fallback. -->
 - [ ] **T063 — Album identity normalization service**
       Paths: apps/api/src/auxd_api/modules/albums/identity.py, apps/api/tests/unit/test_album_identity.py
       Size: M
-      Deps: T022, T043, T049
+      Deps: T022, T049, T049b
       Refs: US-F1; FR-010; decision-log Q15, Q21; TC-008, TC-009, TC-010
-      Description: `resolve_identity(spotify_id=None, mbid=None)` → canonical Album. If MBID known → use it; else Spotify ID; else create `candidate` Album flagged for MBID reconciliation. Lazy-fetch from providers; cache 7d.
+      Description: `resolve_identity(mbid=None, discogs_id=None)` → canonical Album. If MBID known → use it; else if Discogs ID known → create `candidate` Album flagged for MBID reconciliation (T065). Lazy-fetch from MusicBrainz; cache 7d. CR-001: legacy `spotify_id` parameter removed; existing `Album.spotify_id` sparse index dropped per T022 amendment.
       Done: TC-008/009/010 unit tests pass.
 
+<!-- CR-001: T064 description updated — cache refresh from MusicBrainz, not Spotify. -->
 - [ ] **T064 — Album cache + TTL refresh worker**
       Paths: apps/api/src/auxd_api/workers/album_cache_refresh.py
       Size: S
       Deps: T063, T013
-      Refs: NFR Spotify rate limits
-      Description: Daily arq job that finds Albums with `cache_expires_at < now()` and refreshes from Spotify (rate-limited).
+      Refs: NFR catalog-provider rate limits (MusicBrainz 1 req/sec + Discogs 60 req/min)
+      Description: Daily arq job that finds Albums with `cache_expires_at < now()` and refreshes metadata from MusicBrainz (rate-limited per provider policy in T049).
       Done: worker runs; refresh observed.
 
 - [ ] **T065 — MBID reconciliation worker**
@@ -628,20 +625,22 @@
       Description: Index definition with `lucene.standard` analyzer + edgeNgram on title; popularity boost. Applied to Atlas via UI or `atlas-cli`. Documented for future migrations.
       Done: search query returns relevant results.
 
-- [ ] **T069 — Search endpoint (Atlas + Spotify fallback merge)**
+<!-- CR-001: T069 retitled + deps/description updated — Atlas + MusicBrainz primary + Discogs fallback merge; Spotify fallback dropped. -->
+- [ ] **T069 — Search endpoint (Atlas + MusicBrainz + Discogs fallback merge)**
       Paths: apps/api/src/auxd_api/modules/search/routes.py, apps/api/src/auxd_api/modules/search/service.py, apps/api/tests/integration/test_search.py
       Size: M
-      Deps: T068, T043
-      Refs: US-F2; FR-005; TC-031
-      Description: `GET /api/v1/search?q=...&type=album` → Atlas Search results merged with Spotify search (Spotify only if Atlas returns <5 results). Debounce on client side; results sorted by relevance.
+      Deps: T068, T049, T049b
+      Refs: US-F2; FR-005; TC-031; CR-001
+      Description: `GET /api/v1/search?q=...&type=album` → Atlas Search results first; on <5 hits, fall back to MusicBrainz (T049); on still <5, fall back to Discogs (T049b). Debounce on client side; results sorted by relevance. On final-empty, surface T053a "Report missing album" link.
       Done: TC-031 integration test passes; results in <200ms p95.
 
+<!-- CR-001: T070 description updated — "Listen on Spotify" CTA dropped (no integration); deep-link to album page on streaming services TBD in v2. -->
 - [ ] **T070 — Album detail page (frontend, SSR)**
       Paths: apps/web/src/app/(app)/album/[id]/page.tsx, apps/web/src/components/album-detail/*
       Size: L
       Deps: T067, T037
       Refs: US-F1; FR-010, FR-028; wireframes/04-album-detail.html
-      Description: SSR page rendering wireframes/04 design. Edition selector chip + dropdown. Friends section (avatars + ratings + 🏅 Aux'd). Ratings histogram. Reviews list with sort selector (Newest / Most Liked / Highest-Rated — wired in T093). Log + Up Next + Listen-on-Spotify CTAs. Open Graph meta tags.
+      Description: SSR page rendering wireframes/04 design. Edition selector chip + dropdown. Friends section (avatars + ratings + 🏅 Aux'd). Ratings histogram. Reviews list with sort selector (Newest / Most Liked / Highest-Rated — wired in T093). Log + Up Next CTAs. ("Listen on" streaming-service deep-link deferred to v2 per CR-001 — no Spotify integration at MVP.) Open Graph meta tags.
       Done: page renders matching wireframe; OG card previews correctly in social shares.
 
 - [ ] **T071 — Search page + UI**
@@ -652,12 +651,13 @@
       Description: Search page with input + autocomplete; 200ms debounce; "Report missing album" link on empty state.
       Done: E2E test covers typed query → results → album navigation.
 
+<!-- CR-001: T072 description updated — Spotify CDN replaced with Cover Art Archive (MusicBrainz CAA) + Discogs image URLs. -->
 - [ ] **T072 — Cover-art proxy (route handler)**
       Paths: apps/web/src/app/api/cover/[size]/[albumId]/route.ts
       Size: S
       Deps: T067
-      Refs: plan §17.5; DM-2
-      Description: Next.js route handler proxying Spotify CDN with caching headers (`Cache-Control: public, max-age=604800`). Optional blurhash placeholder generation.
+      Refs: plan §17.5; DM-2; CR-001
+      Description: Next.js route handler proxying Cover Art Archive (`https://coverartarchive.org/release-group/{mbid}/front-{size}.jpg`) with Discogs image-URL fallback when CAA returns 404. Caching headers (`Cache-Control: public, max-age=604800`). Optional blurhash placeholder generation.
       Done: proxy serves cover art; CDN caching verified.
 
 ---
@@ -711,13 +711,14 @@
       Description: Persistent "+" button in bottom-right of app shell; opens log sheet.
       Done: button present on all authenticated routes.
 
-- [ ] **T079 — Prefill album from Spotify recently-played (Log sheet)**
-      Paths: apps/web/src/components/log-sheet/album-prefill.tsx, apps/api/src/auxd_api/modules/diary/routes.py
+<!-- CR-001: T079 fully rewritten — Spotify recently-played prefill replaced with manual MusicBrainz-backed search + prefill flow (Letterboxd model). -->
+- [ ] **T079 — Manual album search + prefill in Log sheet**
+      Paths: apps/web/src/components/log-sheet/album-search.tsx, apps/web/src/components/log-sheet/album-prefill.tsx, apps/api/src/auxd_api/modules/diary/routes.py
       Size: M
-      Deps: T077, T043
-      Refs: US-B1; FR-004; UJ-1 decision
-      Description: When Spotify connected: fetch most-recently-FINISHED album (per UJ-1 — not most-recently-played track) on log-sheet open; pre-fill album card. User can tap "Change" to search.
-      Done: prefill works; analytics tracks % of logs that accept prefill (PostHog `log.prefill_accepted`).
+      Deps: T077, T069
+      Refs: US-B1; FR-004; FR-005; CR-001
+      Description: MusicBrainz-backed search field at the top of the log sheet; type ≥3 chars + 200ms debounce; pick from results to prefill rating/Aux/review form. Uses T069 search endpoint (Atlas → MusicBrainz → Discogs fallback chain). On empty-result, surface "Report missing album" link (T053a) per FR-005 empty-state. Recent-searches stored locally for quick re-pick. CR-001: replaces the original Spotify recently-played auto-prefill model.
+      Done: search → prefill flow works in <2s p95; analytics tracks % of logs that accept first prefill result (PostHog `log.search_accepted`).
 
 - [ ] **T080 — Diary view on profile**
       Paths: apps/web/src/app/(app)/@[handle]/page.tsx, apps/web/src/components/diary/*
@@ -751,12 +752,13 @@
       Description: Confirm-delete modal with text-confirm; undo via Toast for 8 seconds (server-side recovery within 30d also possible).
       Done: undo path works.
 
+<!-- CR-001: T084 description updated — wedge target relaxed acknowledges manual-search adds ~1s vs auto-prefill; <8s budget still applies and now includes search-pick time. -->
 - [ ] **T084 — Wedge NFR validation (commit time <8s)**
       Paths: apps/web/tests/e2e/log-wedge.spec.ts, apps/api/tests/integration/test_log_perf.py
       Size: S
       Deps: T077, T079
-      Refs: spec.md §6.1 NFR; TC-001; TC-E2E-003
-      Description: E2E test measures commit time across 10 trials; asserts p95 <8s. Backend integration test asserts server-side handling <500ms p95.
+      Refs: spec.md §6.1 NFR; TC-001; TC-E2E-003; CR-001
+      Description: E2E test measures full commit time across 10 trials (search → pick → rate → save); asserts p95 <8s including manual search-pick step (Letterboxd-style flow per CR-001). Backend integration test asserts server-side handling <500ms p95.
       Done: NFR target verified.
 
 ---
@@ -862,12 +864,13 @@
       Description: On `log_entry`, if album is in user's backlog AND `User.keep_backlog_after_log == false` (default), remove from backlog. Toast confirms.
       Done: integration test confirms behavior.
 
+<!-- CR-001: T097 description updated — "Listen on Spotify" menu item removed; no streaming-service integration at MVP. -->
 - [ ] **T097 — Up Next page (frontend)**
       Paths: apps/web/src/app/(app)/up-next/page.tsx, apps/web/src/components/up-next/*
       Size: M
       Deps: T095, T037
-      Refs: US-D1, US-D2; FR-006
-      Description: Backlog list with drag-reorder (using `@dnd-kit/sortable`), per-item context menu (Remove, Listen on Spotify, Open album, Edit blurb).
+      Refs: US-D1, US-D2; FR-006; CR-001
+      Description: Backlog list with drag-reorder (using `@dnd-kit/sortable`), per-item context menu (Remove, Open album, Edit blurb). ("Listen on" streaming-service deep-link deferred to v2 per CR-001.)
       Done: page renders; drag works on mobile + web.
 
 - [ ] **T098 — Add-to-backlog from album detail**
@@ -953,12 +956,13 @@
       Description: Synthetic load test with ~500 followed users; assert p95 query time <200ms at DB layer (per plan §10.3 fan-out-switch trigger).
       Done: perf test passes; baseline recorded for regression checks.
 
+<!-- CR-001: T108 description updated — "Listen on Spotify" button removed; entry-card CTA simplifies to album-page navigation. -->
 - [ ] **T108 — Feed UI (home page)**
       Paths: apps/web/src/app/(app)/page.tsx, apps/web/src/components/feed/feed-entry.tsx
       Size: L
       Deps: T106, T037, T032
-      Refs: US-E3; FR-009; TC-E2E-004; wireframes/02-home-feed.html
-      Description: SSR home feed; entry cards per wireframe (avatar, stars, 🏅 Aux badge if applied, album cover thumb, review snippet, 👍 like count, Listen on Spotify button). "Latest" tab toggle. Infinite scroll via cursor pagination. Lazy-load cover art (Next.js Image with blur placeholder).
+      Refs: US-E3; FR-009; TC-E2E-004; wireframes/02-home-feed.html; CR-001
+      Description: SSR home feed; entry cards per wireframe (avatar, stars, 🏅 Aux badge if applied, album cover thumb, review snippet, 👍 like count, tap-album-art-or-title to open album page). "Latest" tab toggle. Infinite scroll via cursor pagination. Lazy-load cover art (Next.js Image with blur placeholder). ("Listen on" streaming-service button deferred to v2 per CR-001.)
       Done: TC-E2E-004 passes.
 
 - [ ] **T109 — Profile + diary page**
@@ -995,7 +999,8 @@
 
 ---
 
-## §11 Onboarding + Auto-import
+<!-- CR-001: §11 header updated — auto-import portion deferred to v2; cluster is now onboarding-only (Letterboxd-style: no auto-import, no Spotify connect step). -->
+## §11 Onboarding + Auto-import *(auto-import portion **DEFERRED-TO-V2 (CR-001)** — see removed T114/T115/T116/T121/T122 placeholders below)*
 
 - [ ] **T113 — Onboarding step 1: Sign up (already covered)**
       Paths: covered in T061
@@ -1004,29 +1009,9 @@
       Description: First step of onboarding routes through signup page.
       Done: covered.
 
-- [ ] **T114 — Onboarding step 2: Spotify connect (with prominent Skip)**
-      Paths: apps/web/src/app/(onboarding)/connect-spotify/page.tsx
-      Size: M
-      Deps: T054, T055, T039
-      Refs: US-A2; FR-002, FR-027; decision-log Q12
-      Description: Page with "Connect Spotify" primary CTA + equally visible "Skip — connect later" link + explanation of what Spotify enables (auto-import + auto-prompt + log prefill). Skip routes to step 4 (Follow 3) with critic-seed-only. Skip does NOT use "degraded mode" framing.
-      Done: E2E test covers both paths.
-
-- [ ] **T115 — Auto-import worker (30-day Spotify history)**
-      Paths: apps/api/src/auxd_api/workers/spotify_import.py, apps/api/tests/integration/test_spotify_import.py
-      Size: M
-      Deps: T043, T073
-      Refs: US-A2, US-A3; FR-003; TC-006
-      Description: arq job triggered after Spotify connect; fetches `get_recently_played(since=now-30d, limit=50)`; aggregates to album-grain; creates DiaryEntry records with `source=spotify_import`. p99 <8s end-to-end. Idempotent (re-imports merge).
-      Done: TC-006 passes.
-
-- [ ] **T116 — Onboarding step 3: Confirm last 30 days (top-5 rate)**
-      Paths: apps/web/src/app/(onboarding)/confirm-listens/page.tsx
-      Size: M
-      Deps: T115, T077, T039
-      Refs: US-A3; wireframes/01-onboarding.html
-      Description: Show top-5 imported albums (by play count) as cards with ½-star widgets. Skip allowed. Save = optimistic; advance to step 4.
-      Done: E2E test covers happy path + skip.
+<!-- CR-001 removed: T114 (Onboarding step 2: Spotify connect) — no Spotify integration; onboarding step 2 is now the optional "Rate a few albums to seed your taste" Letterboxd-style step (covered by T117a + T118; the explicit T114 page is no longer needed since onboarding compresses from 5 steps to 4). -->
+<!-- CR-001 removed: T115 (Auto-import worker — 30-day Spotify history) — no Spotify auto-import at MVP. -->
+<!-- CR-001 removed: T116 (Onboarding step 3: Confirm last 30 days) — depended on T115 auto-import; no source to confirm at MVP. Letterboxd-style "rate a handful at signup" flow is left optional via the search-driven log-sheet (T079) before the user lands on the feed. -->
 
 - [ ] **T117 — Critic-seed batch precompute algorithm (backend, scheduled)**
       Paths: apps/api/src/auxd_api/modules/seeding/service.py, apps/api/tests/unit/test_seeding_algorithm.py
@@ -1036,13 +1021,14 @@
       Description: `get_card_recommendations_for_user(user_id)` runs as part of `T104` suggested-follow precompute job; returns the scored list of critic-seeds (and mutual-taste candidates) cached for the user. Used for routine "Suggested follows" surfaces (Discover tab post-onboarding).
       Done: unit test on card distribution; mutual-taste algorithm covered.
 
-- [ ] **T117a — Critic-seed SYNCHRONOUS card-ordering for onboarding** *(added in Phase 5C Revision)*
+<!-- CR-001: T117a deps + description updated — T115 auto-import dependency removed; signal source changes from imported diary to optional inline rate-a-few-albums in the truncated onboarding step. Genre fallback when user skips the optional rating step. -->
+- [ ] **T117a — Critic-seed SYNCHRONOUS card-ordering for onboarding** *(added in Phase 5C Revision; CR-001: signal source updated)*
       Paths: apps/api/src/auxd_api/modules/seeding/onboarding_service.py, apps/api/tests/unit/test_onboarding_card_ordering.py
       Size: M
-      Deps: T117, T115, T163
-      Refs: US-A4; FR-015; A-005 from pre-impl-review (architecture findings table; pre-impl-review.md line 141)
-      Description: `get_onboarding_cards(user, diary_signal)` — runs INLINE during onboarding step 4 (cannot wait for T104's nightly precompute, which has no signal for a brand-new user). Given the user's just-imported 30-day diary, computes genre signature → scores active critic-seeds → returns top 6 (with ≥3 critics in top 6 enforcement per UJ-2) + 4 mutual-taste candidates. Latency target: <1s p95. All 6 critic cards marked pre-checked=true; 4 mutual-taste cards pre-checked=false.
-      Done: unit test covers (a) ≥3 critic guarantee in top 6, (b) <1s p95 with 80-seed roster, (c) deterministic ordering given fixed diary signal.
+      Deps: T117, T163
+      Refs: US-A4; FR-015; A-005 from pre-impl-review (architecture findings table; pre-impl-review.md line 141); CR-001
+      Description: `get_onboarding_cards(user, optional_seed_ratings=None)` — runs INLINE during the onboarding step where the user picks who to follow. CR-001: source signal is now the optional handful of ratings the user enters via T079 search-driven log-sheet during onboarding (instead of an imported 30-day diary). When user provides no signal, fall back to a default "popular across active critics" ordering — still enforces ≥3 critics in top 6 per UJ-2. Given the signal, compute genre signature → score active critic-seeds → return top 6 + 4 mutual-taste candidates. Latency target: <1s p95. All 6 critic cards marked pre-checked=true; 4 mutual-taste cards pre-checked=false.
+      Done: unit test covers (a) ≥3 critic guarantee in top 6 with AND without seed-ratings signal, (b) <1s p95 with 80-seed roster, (c) deterministic ordering given fixed signal.
 
 - [ ] **T118 — Onboarding step 4: Follow 3 to fill your feed**
       Paths: apps/web/src/app/(onboarding)/follow-3/page.tsx
@@ -1068,32 +1054,22 @@
       Description: PostHog event `onboarding.completed` with `time_to_complete_ms`, `follows_count`, `critic_seed_kept_pct`, `top5_rated_count`.
       Done: event fires correctly.
 
-- [ ] **T121 — Settings → Integrations (Spotify connect-later + back-fill)**
-      Paths: apps/web/src/app/(app)/settings/integrations/page.tsx
-      Size: M
-      Deps: T055, T056, T115
-      Refs: US-A2; FR-027
-      Description: Spotify connect status; Connect button (for skipped-at-signup users); Disconnect button (with "diary persists" confirmation); "Back-fill diary" trigger.
-      Done: E2E covers connect → disconnect → reconnect → diary persists.
-
-- [ ] **T122 — Last.fm import (Should-Have)**
-      Paths: apps/api/src/auxd_api/workers/lastfm_import.py, apps/web/src/app/(onboarding)/lastfm-import/page.tsx
-      Size: M
-      Deps: T039, T115
-      Refs: US-H1
-      Description: Alternative to Spotify: user provides Last.fm username; fetch up to 365d of scrobbles via Last.fm API; dedupe to album-grain; populate diary with ratings null.
-      Done: integration test.
+<!-- CR-001 removed: T121 (Settings → Integrations) — no integrations at MVP; Settings pane reduced to Profile/Account/Privacy/Notifications/Data per CR-001. -->
+<!-- CR-001 removed: T122 (Last.fm import — Should-Have) — was a Spotify-alternative auto-import path; per CR-001 all auto-import paths defer to v2 (manual search + rate is the MVP model). -->
 
 ---
 
-## §12 Just-finished detection (auto-prompt)
+<!-- CR-001: §12 header updated — entire cluster deferred to v2; implementation can resume when streaming-platform integration becomes available. -->
+## §12 Just-finished detection (auto-prompt) **DEFERRED-TO-V2 (CR-001)**
 
-- [ ] **T123 — Spotify polling worker**
+<!-- CR-001: T123-T130 all deferred but kept in tasks.md for traceability. Implementation can resume when streaming-platform integration (Spotify Extended Quota or alternative) becomes available in v2. -->
+
+- [ ] **T123 — Spotify polling worker → just-finished polling worker (deferred)**
       Paths: apps/api/src/auxd_api/workers/spotify_poll.py
       Size: L
       Deps: T043, T027
       Refs: US-B6; FR-026
-      Description: arq scheduled per-user polling. Cadence: 5min if active <24h, 15min if dormant, capped at 60min. Stop after 14d dormancy. Fetches `get_recently_played(since=last_poll)` + `get_currently_playing`. Persists `last_poll_at` on User.
+      Description: **DEFERRED-TO-V2 (CR-001):** Requires Spotify provider (T043) which is deferred to v2; resume when streaming-platform integration becomes available. (Original: arq scheduled per-user polling. Cadence: 5min if active <24h, 15min if dormant, capped at 60min. Stop after 14d dormancy. Fetches `get_recently_played(since=last_poll)` + `get_currently_playing`. Persists `last_poll_at` on User.)
       Done: worker runs; cadence transitions verified.
 
 - [ ] **T124 — Just-finished detection heuristic**
@@ -1101,7 +1077,7 @@
       Size: M
       Deps: T123
       Refs: US-B6
-      Description: Heuristic: ≥4 distinct tracks from the same Spotify album appear in last hour AND last track of album just finished → "album finished" event. Generates JustFinishedPrompt in `pending` state.
+      Description: **DEFERRED-TO-V2 (CR-001):** Depends on T123 polling worker (deferred). Resume when streaming-platform integration becomes available. (Original: Heuristic: ≥4 distinct tracks from the same Spotify album appear in last hour AND last track of album just finished → "album finished" event. Generates JustFinishedPrompt in `pending` state.)
       Done: unit test covers heuristic edges (partial album, shuffled, paused, multi-album session).
 
 - [ ] **T125 — JustFinishedPrompt lifecycle endpoints**
@@ -1109,7 +1085,7 @@
       Size: M
       Deps: T027, T124
       Refs: US-B6; FR-026; TC-018, TC-019, TC-020, TC-021
-      Description: `GET /api/v1/users/me/just-finished/pending` (current active prompt); `POST .../dismiss?album_id=X` (30d sticky); `POST .../disable` (sets `User.auto_prompt_enabled=false`).
+      Description: **DEFERRED-TO-V2 (CR-001):** JustFinishedPrompt collection itself is removed from `ALL_DOCUMENT_MODELS` at MVP (per T027 amendment); resume when streaming-platform integration becomes available. (Original: `GET /api/v1/users/me/just-finished/pending` (current active prompt); `POST .../dismiss?album_id=X` (30d sticky); `POST .../disable` (sets `User.auto_prompt_enabled=false`).)
       Done: TC-018, 019, 020, 021 pass.
 
 - [ ] **T126 — Quiet hours enforcement (prompts + push)**
@@ -1117,7 +1093,7 @@
       Size: S
       Deps: T026
       Refs: FR-026; NT-3
-      Description: `is_in_quiet_hours(user, now)` helper. Suppresses push and in-app prompts during user-local quiet window. Email/digest unaffected.
+      Description: **DEFERRED-TO-V2 (CR-001):** Prompt-specific portion defers along with §12 cluster. NOTE: the general quiet-hours infrastructure required by other notification channels (push, in-app coalescing windows) is still needed at MVP — pull the `is_in_quiet_hours(user, now)` helper into §13 notifications (e.g. inline within T132 `is_notifiable`) when the time comes; just the just-finished-prompt suppression branch defers. (Original: `is_in_quiet_hours(user, now)` helper. Suppresses push and in-app prompts during user-local quiet window. Email/digest unaffected.)
       Done: unit test covers tz boundaries.
 
 - [ ] **T127 — Just-finished prompt component (frontend)**
@@ -1125,7 +1101,7 @@
       Size: M
       Deps: T125, T037
       Refs: US-B6
-      Description: Hero card at top of home feed when prompt is `pending`. "Log" primary CTA opens log sheet pre-filled. "Not now" dismisses. Overflow menu: "Don't prompt for this album" + "Disable auto-prompts". Polls every 60s when foreground.
+      Description: **DEFERRED-TO-V2 (CR-001):** Depends on T125 prompt endpoints (deferred). Resume when streaming-platform integration becomes available. (Original: Hero card at top of home feed when prompt is `pending`. "Log" primary CTA opens log sheet pre-filled. "Not now" dismisses. Overflow menu: "Don't prompt for this album" + "Disable auto-prompts". Polls every 60s when foreground.)
       Done: component works; TC-E2E-008 covered.
 
 - [ ] **T128 — Web push notification dispatch (for auto-prompt)**
@@ -1133,7 +1109,7 @@
       Size: M
       Deps: T008, T126
       Refs: US-B6; FR-026
-      Description: VAPID-signed push notification adapter. Auto-prompt push fires only if `User.auto_prompt_push_enabled=true` (default false). Click action deep-links to home.
+      Description: **DEFERRED-TO-V2 (CR-001):** Auto-prompt-specific portion defers along with §12. NOTE: the general web-push infrastructure (VAPID-signed adapter for follow/review notifications etc.) is still needed at MVP and lives under T136 in §13; that general adapter is not deferred. (Original: VAPID-signed push notification adapter. Auto-prompt push fires only if `User.auto_prompt_push_enabled=true` (default false). Click action deep-links to home.)
       Done: push delivered when opt-in; respects quiet hours.
 
 - [ ] **T129 — Disable auto-prompts UI (Settings + inline)**
@@ -1141,7 +1117,7 @@
       Size: S
       Deps: T127
       Refs: US-B6, US-G3; TC-E2E-009
-      Description: One-tap "Disable auto-prompts" from prompt overflow + Settings toggle. Both POST to `notifications/update_preferences`.
+      Description: **DEFERRED-TO-V2 (CR-001):** Depends on T127 prompt component (deferred). Resume when streaming-platform integration becomes available. (Original: One-tap "Disable auto-prompts" from prompt overflow + Settings toggle. Both POST to `notifications/update_preferences`.)
       Done: TC-E2E-009 passes.
 
 - [ ] **T130 — Auto-prompt analytics**
@@ -1149,7 +1125,7 @@
       Size: XS
       Deps: T127
       Refs: success-metrics
-      Description: PostHog events `prompt.shown`, `prompt.acted` (action: logged/dismissed/disabled-from-prompt).
+      Description: **DEFERRED-TO-V2 (CR-001):** Depends on T127 prompt component (deferred). Resume when streaming-platform integration becomes available. (Original: PostHog events `prompt.shown`, `prompt.acted` (action: logged/dismissed/disabled-from-prompt).)
       Done: events fire.
 
 ---
@@ -1196,12 +1172,14 @@
       Description: Resend client wrapper (Python `resend` SDK; configure with `RESEND_API_KEY` from Settings); per-type HTML templates; one-click unsubscribe in footer; never tracking pixels. **Failure-mode wiring (sync-fix L4-003):** wrap send calls in `retry(attempts=3, backoff=exponential)` from T014. On final failure, write a `failed_emails` document `(user_id, notification_type, payload, attempted_at, last_error)` to the `failed_emails` collection for manual retry; emit Sentry alert with tag `email.send_failed`. The `FailedEmail` Beanie Document model lives alongside `Notification` in T026's module — extend T026 to include it.
       Done: test email sent + received via Resend sandbox. Plus integration test: mock Resend to 5xx three times → assert `failed_emails` document created with all metadata + Sentry tag fired.
 
-- [ ] **T136 — Web push notification adapter**
-      Paths: apps/api/src/auxd_api/modules/notifications/adapters/web_push.py
-      Size: (already in T128)
-      Refs: FR-012
-      Description: See T128.
-      Done: covered.
+<!-- CR-001: T136 rewritten as the load-bearing web-push adapter — was previously a stub pointing at T128 (now deferred along with §12). T136 now owns the general VAPID-signed push adapter used by follow/review/digest notifications. -->
+- [ ] **T136 — Web push notification adapter (general, VAPID-signed)**
+      Paths: apps/api/src/auxd_api/modules/notifications/adapters/web_push.py, apps/api/tests/integration/test_web_push.py
+      Size: M
+      Deps: T008, T131, T132
+      Refs: FR-012; plan §15.2 push; CR-001
+      Description: VAPID-signed push notification adapter for the general notification fan-out (follow, review-liked, mentions, etc.). Reads VAPID keypair from settings (T008 generated). Send-and-forget via `pywebpush` (or equivalent). Click action deep-links to the originating context (review → album page; follow → follower's profile). Respects per-user-per-type push preferences via T132 `is_notifiable`. CR-001 NOTE: this absorbs what was previously a stub task pointing at T128 — T128's auto-prompt-specific path defers to v2.
+      Done: integration test: send notification to a registered subscriber via test endpoint; assert payload + click_url.
 
 - [ ] **T137 — Notification types (all 18 actives)**
       Paths: apps/api/src/auxd_api/modules/notifications/types.py, apps/api/tests/integration/test_notification_types.py
@@ -1235,10 +1213,11 @@
       Description: Bell icon in top bar with unread count; clicking opens notification list (paginated). Mark-read on view + explicit mark-all-read.
       Done: works end-to-end.
 
+<!-- CR-001: T141 deps updated — T128 deferred; T136 is the new owner of the web-push adapter. -->
 - [ ] **T141 — Web push subscribe flow (prompt at right time)**
       Paths: apps/web/src/components/notifications/push-prompt.tsx
       Size: S
-      Deps: T140, T128
+      Deps: T140, T136
       Refs: plan §15 push
       Description: Push permission prompt shown after user's 3rd follow OR 7d of activity (whichever first), not on first session.
       Done: prompt logic verified.
@@ -1473,12 +1452,13 @@
       Description: Vercel OG image generation for album and review URLs; pre-rendered at write time and cached.
       Done: share-link previews on Twitter/X show expected card.
 
-- [ ] **T169 — Pull-more-history (Should-Have)**
+<!-- CR-001: T169 marked DEFERRED-TO-V2 alongside the rest of the auto-import surface; this task built on T115 which was removed. -->
+- [ ] **T169 — Pull-more-history (Should-Have) **DEFERRED-TO-V2 (CR-001)****
       Paths: apps/web/src/app/(app)/settings/integrations/page.tsx, apps/api/src/auxd_api/workers/spotify_import.py
       Size: M
-      Deps: T115
-      Refs: decision-log Q14 (v1.x progressive enhancement)
-      Description: "Pull more history" button (Settings → Integrations) extends import window by paging deeper or via Last.fm import. Marked as v1.x — defer if M-2 capacity tight.
+      Deps: (was T115 — removed per CR-001)
+      Refs: decision-log Q14 (v1.x progressive enhancement); CR-001
+      Description: **DEFERRED-TO-V2 (CR-001):** Depends on the auto-import surface (T115, T121, T122) which CR-001 removed. Resume when streaming-platform integration becomes available. (Original: "Pull more history" button (Settings → Integrations) extends import window by paging deeper or via Last.fm import. Marked as v1.x — defer if M-2 capacity tight.)
       Done: deferred OK if needed.
 
 - [ ] **T170 — Friend-request flow (US-H3)**
@@ -1541,13 +1521,7 @@
       Description: Document runbook: who to invite (critic-seed + close friends), how invites get generated, how to monitor early signals (PostHog dashboards), what we're watching for.
       Done: runbook authored.
 
-- [ ] **T177 — Extended Quota Mode follow-through**
-      Paths: docs/spotify-application.md
-      Size: S
-      Deps: T002
-      Refs: plan §0 Task 1
-      Description: Follow up with Spotify reviewers as needed; address any feedback; ensure approval before public launch.
-      Done: Extended Quota Mode approved or known-rejected.
+<!-- CR-001 removed: T177 (Extended Quota Mode follow-through) — T002 was removed; no Spotify application to follow up on. Recorded here so T179 dependency chain is auditable; T179 no longer references T177. -->
 
 - [ ] **T178 — Final wireframe → design polish pass**
       Paths: apps/web/src/components/* (design tokens, polish)
@@ -1557,10 +1531,11 @@
       Description: Design polish: typography scale, color palette tuning, micro-interaction animations, haptic feedback on rating/Aux/Like, mobile responsiveness verification. Founder + (optional) designer involvement.
       Done: visual quality at launch-ready bar.
 
+<!-- CR-001: T179 deps updated — T177 removed (was the Spotify quota-mode follow-through dependency). -->
 - [ ] **T179 — Pre-launch checklist + readiness review**
       Paths: docs/launch-checklist.md
       Size: M
-      Deps: T171, T172, T173, T174, T177
+      Deps: T171, T172, T173, T174
       Refs: plan §18 Phase M-2 → M0
       Description: Comprehensive checklist (modeled on Product Forge Phase 9 release-readiness). Founder + Phase 6B + Phase 7 cover most items; this consolidates.
       Done: checklist complete; all items ✅.
@@ -1583,30 +1558,34 @@ For a greenfield project, "migration" at MVP is the initial collection creation 
 
 ---
 
+<!-- CR-001: Parallel-track table updated — T002 (Spotify app) removed; §12 row reframed since cluster is deferred; §11 narrowed to onboarding-only. -->
 ## Parallel-track opportunities
 
 | Group | Tasks | Can parallelize with |
 |---|---|---|
-| §0 Prereqs (T001 + T002) | Constitution + Spotify app | Can run concurrently with each other; T001 needed before T003 |
+| §0 Prereqs | T001 (Constitution) + T003 monorepo + T005/T006/T007 provisioning | Constitution must land first; provisioning tasks run in parallel after T001 |
 | §1 Backend libs + §3 Frontend foundation | T011..T030 + T031..T040 | Two engineers can split backend / frontend after T003 |
+| §4 Catalog providers (MVP scope per CR-001) | T041 + T048/T049 (MusicBrainz) + T049a/T049b (Discogs) + T050/T051/T052 | Contract-test pairs (T048/T049 and T049a/T049b) can run sequentially within their pair; the pairs are independent |
 | §6 Albums + §8 Reviews + §9 Backlog | T063..T072 + T085..T094 + T095..T100 | Once auth (§5) is done, these three modules touch independent collections — can parallelize across 2-3 engineers |
-| §13 Notifications + §12 Just-finished detection | T123..T130 + T131..T144 | Have a shared dependency (T128 web push) but otherwise independent |
-| §11 Onboarding + §10 Feed | T113..T122 + T101..T112 | Onboarding consumes feed but feed work can complete first |
+| §13 Notifications | T131..T144 | Independent of §12 (deferred per CR-001); push adapter is now T136 (not T128); §12 ↔ §13 cross-link no longer applies at MVP |
+| §11 Onboarding + §10 Feed | T113 + T117..T120 + T101..T112 | Onboarding consumes feed but feed work can complete first |
 | §18 Hardening | T171..T180 | Must run after most feature work; some tasks parallelize within §18 |
 
 ---
 
+<!-- CR-001: Constitution coverage summary updated — T042/T043 (Spotify) replaced with T048/T049 (MusicBrainz) + T049a/T049b (Discogs); FR/story counts reflect deferral. -->
 ## Constitution + decision-log + NFR coverage summary
 
 - **Constitution Principle 1 (resilience):** T014 + T050 + T051 (provider-level + transport-level); enforced by lint rule in T004 CI.
 - **Constitution Principle 2 (schema versioning):** T012 + T030 (runner) + every model task includes `_schema_version: int = 1`.
 - **Constitution Principle 3 (library-first):** Module structure throughout (each module has `routes.py`, `service.py`, `models.py` only).
-- **Constitution Principle 4 (test-first):** T042 + T048 (contract tests before T043 + T049 implementations).
-- **Constitution Principle 5 (observability):** T015 (lib) + T051 (provider) + woven throughout (each task adds its PostHog events).
-- **Constitution Principle 6 (provider abstraction):** T041 + T043 + T049.
-- **All 32 Must-Have user stories** → each maps to ≥1 task per coverage matrix.
-- **All 27 active FRs** → each maps to ≥1 task per coverage matrix.
-- **All 32 critical TCs + 13 E2E scenarios** → mapped per plan §16.2 + woven into tasks above.
+- **Constitution Principle 4 (test-first):** T048 + T049a (contract tests before T049 + T049b implementations per CR-001 — MusicBrainz + Discogs are the two MVP catalog providers).
+- **Constitution Principle 5 (observability):** T015 (lib) + T051 (provider — MusicBrainz + Discogs per CR-001) + woven throughout (each task adds its PostHog events).
+- **Constitution Principle 6 (provider abstraction):** T041 (Protocols) + T049 (MusicBrainz impl) + T049b (Discogs impl) per CR-001 — MVP ships one impl per kind.
+- **Must-Have user stories per CR-001:** original 32 minus 3 deferred (US-A2, US-A3, US-B6 — DEFERRED in spec.md) — each remaining story maps to ≥1 task per coverage matrix.
+- **Active FRs per CR-001:** original 27 minus 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027 — DEFERRED in spec.md) — each remaining FR maps to ≥1 task per coverage matrix.
+- **Critical TCs + 13 E2E scenarios:** mapped per plan §16.2 + woven into tasks above; TC-006/TC-018/TC-019/TC-020/TC-021/TC-022 sit with deferred tasks per CR-001.
 - **NFR Measurement Contract (spec.md §6.1)** → instrumentation woven (T015, T077 wedge timing, T107 feed perf, T144 notification rate, T172 perf audit).
 - **Aux (🏅) vs Like (👍) split preserved:** T023 (separate fields), T073 (Aux on DiaryEntry), T088 (Like on Review via ReviewLike), T090 (UI distinct icons), notification N-001 (follow) vs N-004 (review.liked).
 - **Lists deliberately ABSENT:** No tasks for Lists per R3 deferral; out-of-scope.md and decision-log row 7 confirm v2 deferral.
+- **Spotify integration ABSENT per CR-001:** No tasks for any Spotify provider, OAuth, auto-import, just-finished polling, or auto-prompt at MVP. Transition is to Letterboxd-style manual search + rating via MusicBrainz primary + Discogs fallback. Deferred cluster (§12 T123-T130) kept in-file for traceability and v2 resumption.

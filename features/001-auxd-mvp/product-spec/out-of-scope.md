@@ -8,9 +8,13 @@ This document lists capabilities deliberately **out of scope** for the MVP. Each
 
 ## v2 candidates — re-evaluate after M6
 
+<!-- CR-001: Spotify integration entirely deferred to v2; Letterboxd-style manual log is MVP. Streaming-history rows below replace the prior Spotify-only-at-MVP framing. -->
+
 | Feature | Why deferred | Re-eval trigger |
 |---|---|---|
-| **Apple Music integration** | Spotify-only at MVP. Apple Music adds 2–3 weeks of work for marginal addressable-market gain on a casual-streamer wedge. | Onboarding drop at Spotify OAuth >25%, OR ≥30% of waitlist users specify Apple Music primary |
+| **Spotify integration** (auto-import + just-finished prompt) | Spotify Extended Quota Mode requires 250k MAUs to apply (2026-05 policy change). The gate is structurally unreachable pre-launch; the app would be capped at 25 users forever. Deferred until either Spotify policy changes or auxd organically passes 250k MAU via the manual-log path. | Spotify lowers MAU gate OR auxd MAU >250k |
+| **Apple Music integration** | Same MAU-gate dynamic doesn't apply to Apple Music, but native cohort is a 3–4 week build with marginal value over MusicBrainz catalog. Re-evaluated in v1.x. | ≥25% of feedback specifies Apple Music as a missing primary integration |
+| **Last.fm scrobble import** | Was originally a Should-Have alternative to Spotify (FR-017); now also deferred since the catalog flow itself shifted to MusicBrainz-canonical at MVP. Lower priority now that the MVP doesn't depend on imported history at all. | Power-user cohort emerges asking for back-fill of historical scrobbles |
 | **Native iOS / Android apps** | PWA + responsive web at MVP. Native apps add ~6 months of work + platform-policy surface. | PWA install rate <20% of MAU and qualitative feedback consistently asks for native |
 | **Curated user-created Lists (Letterboxd-style)** | Significant UI/data complexity (drag-order, collab, cover-pickers, list-of-the-week surfacing). De-elevated from MVP back to v2 in Revision #3 after weighing scope cost vs wedge focus — the wedge (log + rate + Aux + review + backlog + social-feed) holds without Lists at MVP. *Revision history:* elevated to MVP in R1, returned to v2 in R3. | M3 milestone hit AND ≥10% of users ask for lists in feedback |
 
@@ -52,7 +56,7 @@ These could plausibly land in a v1.1, v1.2, v1.3 incremental release before a "v
 - Weekly emailed digest UI improvements (user story S-H4)
 - Share-card design refinements (user story S-H5)
 <!-- Removed in R3 since Lists themselves moved back to v2 — collaborative-lists and auto-list-generation roll up into the v2 Lists capability instead of being v1.x. -->
-- Spotify scope reduction (start with read-only listening, ask for library when needed)
+<!-- CR-001: Spotify-scope-reduction bullet removed; Spotify itself is now a v2 candidate. -->
 - A `/critics` directory page
 - Profile "pinned reviews" feature
 - A "review of the week" newsletter

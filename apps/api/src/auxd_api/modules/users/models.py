@@ -22,6 +22,13 @@ Indexes are declared via :class:`pymongo.operations.IndexModel` rather than
 the Beanie ``Indexed`` annotation because two of the four indexes require
 ``partialFilterExpression`` / ``sparse=True`` options that ``Indexed``
 cannot express compactly.
+
+CR-001 (2026-05-22): removed Spotify integration from
+``music_providers`` (provider-specific subclass shape gone — the dict now
+holds neutral :class:`MusicProviderState` values keyed by provider name).
+Also dropped ``auto_prompt_enabled`` / ``auto_prompt_push_enabled`` (the
+just-finished feature is DEFERRED-TO-V2). See
+``features/001-auxd-mvp/change-log.md``.
 """
 
 from __future__ import annotations
@@ -61,22 +68,22 @@ class UserStatus(str, Enum):  # noqa: UP042 — spec mandates `(str, Enum)` form
     SUSPENDED = "suspended"
 
 
-class MusicProviderSubDoc(BaseModel):
-    """Per-user, per-provider credential block (embedded on :class:`User`).
+class MusicProviderState(BaseModel):
+    """Per-user, per-provider linkage state (embedded on :class:`User`).
 
-    One entry per connected provider. Tokens are **always** stored encrypted
-    via :class:`auxd_api.lib.secrets.TokenEncryptor` — this model has no
-    plaintext-token field by design.
+    CR-001 (2026-05-22): the original ``MusicProviderSubDoc`` carried
+    Spotify OAuth fields (``provider_user_id``, ``access_token_encrypted``,
+    ``refresh_token_encrypted``, ``token_expires_at``, ``scopes``). With
+    Spotify removed at MVP, ``music_providers`` now holds neutral linkage
+    metadata keyed by provider name (``"musicbrainz"``, ``"discogs"``,
+    future providers). Token fields stay out of this shape entirely; any
+    future OAuth provider can extend with its own model and store encrypted
+    tokens via :class:`auxd_api.lib.secrets.TokenEncryptor`.
     """
 
-    provider: str  # "spotify" | "lastfm" | future providers
-    provider_user_id: str
+    provider: str  # "musicbrainz" | "discogs" | future providers
     display_name: str | None = None
     connected_at: datetime
-    access_token_encrypted: str  # base64 ciphertext from TokenEncryptor.encrypt()
-    refresh_token_encrypted: str | None = None
-    token_expires_at: datetime | None = None
-    scopes: list[str] = Field(default_factory=list)
 
 
 class NotificationPreferencesSubDoc(BaseModel):
@@ -137,8 +144,9 @@ class User(Document):
     status: UserStatus = UserStatus.ACTIVE
 
     # Feature opt-ins --------------------------------------------------------
-    auto_prompt_enabled: bool = True  # FR-026 just-finished in-app prompt
-    auto_prompt_push_enabled: bool = False  # FR-026 push surface for prompt
+    # CR-001: removed ``auto_prompt_enabled`` + ``auto_prompt_push_enabled``
+    # (FR-026 just-finished prompt is DEFERRED-TO-V2; the JustFinishedPrompt
+    # collection stays importable but is not registered with Beanie at MVP).
     private_profile: bool = False  # US-G2 / FR-013
 
     # Visibility defaults (US-G1 / data-model.md §User) ---------------------
@@ -165,7 +173,12 @@ class User(Document):
     quiet_hours_tz: str = "UTC"  # IANA timezone string
 
     # Embedded sub-documents -------------------------------------------------
-    music_providers: list[MusicProviderSubDoc] = Field(default_factory=list)
+    # CR-001: ``music_providers`` switched from
+    # ``list[MusicProviderSubDoc]`` (Spotify-shaped) to a neutral
+    # ``dict[str, MusicProviderState]`` keyed by provider name. The
+    # provider-abstraction layer (Phase-5 plan §6) reads from this dict so
+    # future providers can be added without schema migrations.
+    music_providers: dict[str, MusicProviderState] = Field(default_factory=dict)
     notification_preferences: NotificationPreferencesSubDoc = Field(
         default_factory=NotificationPreferencesSubDoc
     )
@@ -206,7 +219,7 @@ __all__: Annotated[list[str], "public surface for from-imports"] = [
     "DISPLAY_NAME_MAX_LEN",
     "HANDLE_MAX_LEN",
     "HANDLE_MIN_LEN",
-    "MusicProviderSubDoc",
+    "MusicProviderState",
     "NotificationPreferencesSubDoc",
     "User",
     "UserStatus",
