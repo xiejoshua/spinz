@@ -186,7 +186,7 @@ The album-identity problem — "is *Songs in the Key of Life* (1976, US LP) the 
 | **Last.fm** | Decent for scrobbling-era data; metadata quality variable | Artist name + album name (no stable ID) | OK REST; 5 req/sec | CC BY-SA on some data | Useful for tag-based discovery / "similar artists" since Spotify killed `/related-artists`. |
 | **TheAudioDB** | Decent indie coverage; community-curated | Free integer IDs | Patreon-only above free tier | Mixed; check per endpoint | Niche. Skip unless a specific gap appears. |
 | **Genius** | Excellent for lyrics + annotations; weak for "is this a different release" | Genius song/album IDs | REST + GraphQL; rate-limited | Genius ToS | Useful only if auxd adds lyrics; **lyrics display has copyright liabilities — defer to v3+.** |
-| **Wikipedia / Wikidata** | Excellent for top ~10k albums | Wikidata QID | SPARQL + REST | CC BY-SA | Useful for enrichment (background, awards, certifications). Free, slow. |
+| **Wikipedia / Wikidata** | Excellent for top ~10k albums | Wikidata QID | SPARQL + REST | CC BY-SA | Useful for enrichment (background, auxes, certifications). Free, slow. |
 
 **Sources to verify:**
 - MusicBrainz API: <https://musicbrainz.org/doc/MusicBrainz_API>
@@ -221,7 +221,7 @@ The choice has cost and UX implications:
 | Discogs | Optional enrichment | Skip MVP. |
 | Last.fm | Tag-based discovery (since Spotify `/related-artists` died) | **Investigate in MVP** as a free signal for "similar artists." Rate limits low; cache aggressively. |
 | Genius | Lyrics | Skip MVP. |
-| Wikidata | Enrichment (notable awards, etc.) | Skip MVP. |
+| Wikidata | Enrichment (notable auxes, etc.) | Skip MVP. |
 
 ### Gotchas / caveats
 

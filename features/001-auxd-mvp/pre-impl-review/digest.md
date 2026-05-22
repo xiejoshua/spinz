@@ -36,5 +36,5 @@
 - **D-003 + D-004** (wireframes missing empty/loading/error states + 4 surfaces without wireframes) are intentional design tradeoffs from Phase 2. They land in Phase 6 as "design + implement" combined tasks, not as separate wireframing tasks. T178 (Final design polish) consolidates.
 - **Constitution enforcement gaps (A-007, A-009, A-010)** are convention-only at MVP. Add lint rules to T004 backlog if/when team grows beyond founder.
 - **C-3 (feed weighting tiebreak)** is a 15-min clarification but has subtle implications for testing — T107 (perf benchmark) should include tiebreak determinism in its test cases. Note for Phase 6.
-- **No regression in product-spec/decision-log decisions** — pre-impl review didn't surface any decision-log issue. R3's Award/Like split + Lists deferral + skippable Spotify all remain sound.
+- **No regression in product-spec/decision-log decisions** — pre-impl review didn't surface any decision-log issue. R3's Aux/Like split + Lists deferral + skippable Spotify all remain sound.
 - **No regression in plan technical choices** — fan-out-on-read, provider abstraction, monorepo topology, Vercel + Fly + Atlas + Upstash all hold up under review.

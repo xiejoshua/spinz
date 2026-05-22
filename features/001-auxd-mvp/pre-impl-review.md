@@ -39,7 +39,7 @@ Design intent for empty/loading/error states EXISTS in user-stories.md acceptanc
 
 | UX recommendation | Addressed? | Notes |
 |---|:---:|---|
-| Bottom-sheet log with ½-star + Award + optional review (<8s commit) | ✅ | T077 (Log sheet) implements; T084 validates timing |
+| Bottom-sheet log with ½-star + Aux + optional review (<8s commit) | ✅ | T077 (Log sheet) implements; T084 validates timing |
 | Chronological diary (no algorithmic reorder) | ✅ | S-B5, S-E2 |
 | Recency-ordered feed weighted by review + extreme ratings | ✅ | S-E3, T106; **see A-002 finding on tiebreak** |
 | Goodreads-style notification firehose AVOIDED | ✅ | notification-taxonomy.md conservative defaults; T133 coalescer |

@@ -137,14 +137,14 @@ Produced 12 artifacts:
 ## Part 5 — Phase 3: Revalidation (3 revisions)
 
 ### Revision #1 — User feedback (verbatim):
-> "Onboarding flow should prompt for Spotify auth + auto-import last 30 days, but this step should be skippable. The rating scale should be 1/2 star, like Letterboxd. Enable auto-prompt for MVP. Lists should not be deferred. Ratings/reviews are public by default. 'Liked' hearts are public signals - they should be called 'Awards'."
+> "Onboarding flow should prompt for Spotify auth + auto-import last 30 days, but this step should be skippable. The rating scale should be 1/2 star, like Letterboxd. Enable auto-prompt for MVP. Lists should not be deferred. Ratings/reviews are public by default. 'Liked' hearts are public signals - they should be called 'Aux'd'."
 
 I confirmed scope (Lists in MVP, full Letterboxd-parity per user choice via AskUserQuestion), then applied 4 changes:
 
 1. Spotify connect made explicitly skippable (no "degraded mode" framing)
 2. Auto-prompt for just-finished detection ENABLED at MVP
 3. Curated Lists added to MVP (6 user stories Cluster I, List + ListItem entities, Journey 4.5)
-4. "Liked" / "heart" renamed → "Awarded" / "Award" globally
+4. "Liked" / "heart" renamed → "Aux'd" / "Aux" globally
 
 Touched 13 files across product-spec/ + wireframes/ + README + review.md.
 
@@ -179,9 +179,9 @@ Expanded user stories S-A4, S-C3, S-F1, S-G1, S-G4 with new ACs.
 ### Revision #3 — User feedback (verbatim):
 > "No need for the soft prompt to 'say more' if review <20 chars. Users should also be able to like reviews, and reviews should be able to be sorted by Most Liked. Let's also push Lists to v2."
 
-This had a meaningful semantic implication — I surfaced it as a "split Award/Like terminology" choice:
+This had a meaningful semantic implication — I surfaced it as a "split Aux/Like terminology" choice:
 
-- **Award (🏅)** = self-directed personal-curation on YOUR own DiaryEntry (boolean)
+- **Aux (🏅)** = self-directed personal-curation on YOUR own DiaryEntry (boolean)
 - **Like (👍)** = other-directed social engagement on OTHER users' Reviews (per-user toggle + counter)
 
 User approved the split via AskUserQuestion (full Lists deferral confirmed).
@@ -263,7 +263,7 @@ Highlights:
 - Parallel-track opportunities documented
 - 10 XL tasks flagged for decomposition (T043, T077, T106, T123, T131, T138, T153, T174, T178, T104)
 - Lists DELIBERATELY absent (R3 deferral)
-- Award/Like distinction preserved (separate fields, separate UI icons, separate notification types)
+- Aux/Like distinction preserved (separate fields, separate UI icons, separate notification types)
 - Phase 5.5 trigger fires (plan has Data Model section)
 
 Coverage:
@@ -358,11 +358,11 @@ Phase 5C gate: **APPROVED with conditions (all applied)**.
 **On product decisions:** Three revisions in Phase 3 produced a meaningfully better spec than locking on first draft would have. Key moves:
 - Revision #1 elevated Lists + Auto-prompt to MVP (founder ambition)
 - Revision #2 closed 30 open questions with explicit decisions (founder accepting recommendations)
-- Revision #3 reverted Lists to v2 + split Award/Like semantics (founder recalibrating after seeing the cost)
+- Revision #3 reverted Lists to v2 + split Aux/Like semantics (founder recalibrating after seeing the cost)
 
 This is what Phase 3 (Revalidation) exists for — give the founder a structured way to iterate before locking.
 
-**On the Award/Like split (R3):** This was the biggest design refinement of the session. Initially R1 unified everything under "Award" (heart on log + heart on review). R3 split them — Award is self-directed on own DiaryEntry, Like is other-directed on someone else's Review. This matches the Letterboxd model and is cleaner semantically. Two distinct icons (🏅 vs 👍), two distinct data fields, two distinct notification types.
+**On the Aux/Like split (R3):** This was the biggest design refinement of the session. Initially R1 unified everything under "Aux" (heart on log + heart on review). R3 split them — Aux is self-directed on own DiaryEntry, Like is other-directed on someone else's Review. This matches the Letterboxd model and is cleaner semantically. Two distinct icons (🏅 vs 👍), two distinct data fields, two distinct notification types.
 
 **On the H1 risk:** Despite three Phase 3 revisions + Phase 5C review, the H1 risk (user-research validation) cannot be resolved pre-launch. It was acknowledged from Phase 0 and carried forward through every subsequent phase. Only live signal post-launch will close it. The plan is correctly designed to validate H1 within 6 months via the M3 KPI gate.
 

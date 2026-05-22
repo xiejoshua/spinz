@@ -39,7 +39,7 @@ The wedge is the *unhad combination* of four things none of the 13 prior Letterb
 10. **Heuristic social-graph recs** only at MVP — no ML
 11. **PWA + responsive web only** — no native mobile
 12. **Atlas Search** for catalog search
-13. **Award (🏅) vs Like (👍) split** — Award = self-curation on your own DiaryEntry; Like = social engagement on others' Reviews — *R3 split; R1 had unified them*
+13. **Aux (🏅) vs Like (👍) split** — Aux = self-curation on your own DiaryEntry; Like = social engagement on others' Reviews — *R3 split; R1 had unified them*
 14. **No soft prompt on short reviews** — *R3*
 15. **Reviews are Likeable + sortable by Most Liked / Newest / Highest-Rated** — *R3*
 16. **Critic seeds: pre-checked cards on Follow 3 (opt-in default-tick)** — *R2*
@@ -81,7 +81,7 @@ Technical decisions (not spec-level) deliberately deferred:
 
 All open questions raised in Phase 2 and surfaced during Phase 3 review have been resolved. Summary:
 
-- **Revision #1** locked the 4 main user-facing defaults (Lists in MVP, auto-prompt enabled, Spotify skippable, Heart→Award rename).
+- **Revision #1** locked the 4 main user-facing defaults (Lists in MVP, auto-prompt enabled, Spotify skippable, Heart→Aux rename).
 - **Revision #2** locked the 10 product-spec.md §10 questions (Q13–Q22) and 20 supporting-doc questions (NT-1..5, SS-1..5, DM-1..5, UJ-1..5).
 
 See [decision-log.md](./decision-log.md) for the full resolution table with rationale.

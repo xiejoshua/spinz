@@ -132,7 +132,7 @@ Two items are explicitly **DEFERRED** (not on the Phase 6 critical path).
   C-5 rate-limiter fail-open) were verified present and correct.
 - Lists deferral (R3 reversion) was applied cleanly to spec.md, plan.md, and tasks.md.
   One residual "Lists" mention in product-spec was cleaned in this run (DRIFT-L2-008).
-- Award/Like semantic split (R3) is correctly bridged. One stale "hearted" label
+- Aux/Like semantic split (R3) is correctly bridged. One stale "hearted" label
   in spec.md was cleaned in this run (DRIFT-L2-002).
 - Story count claim reconciled to 30 across spec.md, product-spec/user-stories.md,
   and product-spec/digest.md (DRIFT-L2-003).

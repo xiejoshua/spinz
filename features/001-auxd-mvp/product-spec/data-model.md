@@ -56,7 +56,7 @@ User {
   auto_prompt_push_enabled # bool, default false — also send push for auto-prompts
   notification_preferences # ref → NotificationPreferences
   music_providers          # array<MusicProvider> (embedded or referenced)
-  counts (derived/cached): { followers, following, entries, awarded, backlog_size, reviews, likes_given }
+  counts (derived/cached): { followers, following, entries, auxed, backlog_size, reviews, likes_given }
 }
 ```
 
@@ -111,7 +111,7 @@ DiaryEntry {
   album_id                 # FK → Album
   logged_at                # datetime (the listen date, not creation date)
   rating                   # decimal 0.5–5.0 in 0.5 increments, nullable
-  awarded                  # bool, default false — user's "this is one of my standouts" signal
+  auxed                    # bool, default false — user's "this is one of my standouts" signal
                            # (renamed from "hearted" in Revision #1, 2026-05-21)
   review_id                # FK → Review, nullable
   visibility               # enum: public | followers | private, default = user's default
@@ -137,10 +137,10 @@ Review {
   word_count               # derived
   reactions                # nested: { likes_count, recent_likers: [user_ids] }
                            # rename history: heart_count (v1.0)
-                           #   → award_count (Revision #1)
-                           #   → likes_count (Revision #3 — Award/Like semantic split)
+                           #   → aux_count (Revision #1)
+                           #   → likes_count (Revision #3 — Aux/Like semantic split)
                            # Likes are social engagement from OTHER users on this review.
-                           # The DiaryEntry.awarded field is a separate concept (self-curation).
+                           # The DiaryEntry.auxed field is a separate concept (self-curation).
 }
 
 ### ReviewLike
@@ -405,9 +405,9 @@ Decisions previously deferred have been resolved at spec level. Final implementa
 
 - **DM-1 — Fan-out-on-read at MVP.** Switch to fan-out-on-write only if feed query p95 exceeds 200ms (re-evaluate in Phase 5 from load model).
 - **DM-2 — Cover-art: proxy Spotify CDN.** No S3 cache; client-side blurhash placeholders only.
-- **DM-3 — Reactions on Reviews (award_count): ship visible at MVP.** No feature-flag gating; volume will be low and that's fine.
+- **DM-3 — Reactions on Reviews (aux_count): ship visible at MVP.** No feature-flag gating; volume will be low and that's fine.
 - **DM-4 — Tracklist denormalized into Album docs at MVP.** Revisit if Album docs balloon (>~20KB).
-- **DM-5 — Soft-deleted DiaryEntry: cascade reactions.** Don't leave orphan award counts.
+- **DM-5 — Soft-deleted DiaryEntry: cascade reactions.** Don't leave orphan aux counts.
 
 ## Remaining Phase 5 (technical) decisions
 

@@ -166,7 +166,7 @@ auxd/
 │       │   ├── log-sheet/              (THE wedge interaction)
 │       │   ├── just-finished-prompt/
 │       │   ├── rating-widget/          (½-star)
-│       │   ├── award-toggle/           (🏅)
+│       │   ├── aux-toggle/           (🏅)
 │       │   ├── review-card/            (with 👍 like button)
 │       │   ├── feed-entry/
 │       │   ├── critic-badge/
@@ -293,7 +293,7 @@ class DiaryEntry(Document):
     album_id: Indexed(str)
     logged_at: datetime
     rating: float | None = None  # 0.5–5.0 in 0.5 increments
-    awarded: bool = False
+    auxed: bool = False
     review_id: str | None = None
     visibility: Visibility = Visibility.PUBLIC
     source: DiaryEntrySource = DiaryEntrySource.MANUAL
@@ -548,7 +548,7 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 - Album prefill fetched eagerly on app load (cached for 60s).
 - Rating commit is optimistic; server reconciles in background.
 - Server-measured commit time: emit PostHog event `log.commit` with `duration_ms` from sheet-open to commit-success; aggregate p50/p95 dashboards.
-- Award icon: 🏅 medal; one-tap toggle independent of rating.
+- Aux icon: 🏅 medal; one-tap toggle independent of rating.
 - Review field collapsed by default; tap "Add a review" expands inline (no keyboard pop on initial sheet open).
 - Visibility select defaulted to user's `default_entry_visibility` (per FR-013).
 
@@ -834,14 +834,14 @@ async def process_export(user_id: str, export_id: str):
     user = await User.get(user_id)
     diary = await DiaryEntry.find({"user_id": user_id}).to_list()
     reviews = await Review.find({"user_id": user_id}).to_list()
-    awards = [d for d in diary if d.awarded]
+    auxes = [d for d in diary if d.auxed]
     likes_given = await ReviewLike.find({"user_id": user_id}).to_list()
     backlog = await Backlog.get_with_items(user_id)
     follows = await Follow.find_pair_for_user(user_id)
     notifications = await Notification.find({"user_id": user_id}).to_list()
 
     # Generate JSON + CSV
-    json_blob = serialize_user_data(user, diary, reviews, awards, likes_given, backlog, follows, notifications)
+    json_blob = serialize_user_data(user, diary, reviews, auxes, likes_given, backlog, follows, notifications)
     csv_files = generate_csv_per_collection(...)
 
     # Email via Postmark with attachment-or-link
@@ -887,7 +887,7 @@ Key product events:
 | `onboarding.spotify_connected` | `imported_count`, `top5_rated_count` | Onboarding |
 | `onboarding.spotify_skipped` | — | Onboarding |
 | `onboarding.completed` | `time_to_complete_ms`, `follows_count`, `critic_seed_kept_pct` | Onboarding |
-| `log.commit` | `duration_ms`, `has_rating`, `has_award`, `has_review`, `source` | Log sheet |
+| `log.commit` | `duration_ms`, `has_rating`, `has_aux`, `has_review`, `source` | Log sheet |
 | `review.published` | `word_count`, `visibility` | Review write |
 | `review.liked` | `reviewer_id`, `liker_id` | Like toggle |
 | `feed.entry_clicked` | `position`, `source_user_id` | Home feed |
@@ -1087,7 +1087,7 @@ Internal-only + critic-seed onboarding wave. All work inside Spotify Development
 | Tech stack matches research recommendations? | ✅ | Every research recommendation confirmed; no substitutions |
 | All FRs (FR-001..020, FR-026..032) covered? | ✅ | FR-021..025 correctly NOT covered (Lists deferred to v2) |
 | NFR Measurement Contract instrumentation specified? | ✅ | §15 maps each NFR to PostHog event / Sentry / synthetic check |
-| Award (🏅) vs Like (👍) semantic split preserved? | ✅ | Award = DiaryEntry.awarded boolean; Like = ReviewLike collection + counter on Review |
+| Aux (🏅) vs Like (👍) semantic split preserved? | ✅ | Aux = DiaryEntry.auxed boolean; Like = ReviewLike collection + counter on Review |
 | Provider-interface abstraction? | ✅ | §5 — `MusicProvider` protocol; all Spotify calls through it |
 | Constitution gap addressed? | ✅ | §0 Task 0 ratifies with 6 principles |
 | Critical Spotify dependencies surfaced? | ✅ | §0 Task 1 = Day-1 Extended Quota Mode application |

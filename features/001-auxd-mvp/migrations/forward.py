@@ -62,7 +62,7 @@ COLLECTIONS: dict[str, list[dict[str, Any]]] = {
         {"keys": [("user_id", ASCENDING), ("album_id", ASCENDING), ("logged_at", DESCENDING)], "options": {"name": "ix_diary_user_album_logged"}},
         {"keys": [("album_id", ASCENDING), ("visibility", ASCENDING), ("rating", DESCENDING)], "options": {"name": "ix_diary_album_visibility_rating"}},
         {"keys": [("visibility", ASCENDING), ("logged_at", DESCENDING)], "options": {"partialFilterExpression": {"visibility": "public"}, "name": "ix_diary_public_logged"}},
-        {"keys": [("user_id", ASCENDING), ("awarded", ASCENDING)], "options": {"partialFilterExpression": {"awarded": True}, "name": "ix_diary_user_awarded"}},
+        {"keys": [("user_id", ASCENDING), ("auxed", ASCENDING)], "options": {"partialFilterExpression": {"auxed": True}, "name": "ix_diary_user_auxed"}},
         {"keys": [("deleted_at", ASCENDING)], "options": {"sparse": True, "name": "ix_diary_soft_delete_grace"}},
     ],
     "reviews": [

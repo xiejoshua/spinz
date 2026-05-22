@@ -68,7 +68,7 @@
   },
   "verified_clean": {
     "lists_deferral": "No FR-021..025, no S-I*, no List/ListItem entities, no Journey 4.5 anywhere",
-    "award_like_split": "R3 Decision #9 preserved; one isolated stale 'hearted' label remains (DRIFT-L2-002)",
+    "aux_like_split": "R3 Decision #9 preserved; one isolated stale 'hearted' label remains (DRIFT-L2-002)",
     "task_traceability": "181/181 tasks carry a Refs: line; zero orphan tasks",
     "link_integrity": "All 157 file links resolve; all anchors resolve"
   }

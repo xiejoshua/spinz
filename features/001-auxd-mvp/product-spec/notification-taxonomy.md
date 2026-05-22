@@ -27,7 +27,7 @@ Each row defines: identifier, trigger event, surfaces (default ON channels), rec
 | N-001 | `follow.new` | Someone follows you | ✅ ON | ❌ OFF | ✅ ON | Coalesced if >3/hr. Real-time. |
 | N-002 | `follow.request_pending` | Someone requested to follow your private profile | ✅ ON | ❌ OFF | ✅ ON | Real-time. Only fires if `is_private_profile=true`. |
 | N-003 | `follow.request_approved` | A user you requested to follow approved you | ✅ ON | ❌ OFF | ❌ OFF | Quiet — they'll see it on next app open. |
-| N-004 | `review.liked` | Someone liked one of your reviews | ✅ ON | ❌ OFF | ❌ OFF | Coalesced aggressively (per-review per-day). Rename history: `review.hearted` (v1.0) → `review.awarded` (R1) → `review.liked` (R3 — Award/Like semantic split). |
+| N-004 | `review.liked` | Someone liked one of your reviews | ✅ ON | ❌ OFF | ❌ OFF | Coalesced aggressively (per-review per-day). Rename history: `review.hearted` (v1.0) → `review.auxed` (R1) → `review.liked` (R3 — Aux/Like semantic split). |
 | N-005 | `review.reply` | Someone replied to your review *(v2 feature; schema reserved)* | ✅ ON | ❌ OFF | ❌ OFF | Not active at MVP. |
 | N-006 | `friend.logged_album` | A close-friend (top-5 interacted) logged an album you have in your Up Next | ✅ ON | ❌ OFF | ❌ OFF | Useful! Triggers exactly once per album per friend. |
 | N-007 | `friend.high_rated` | A followed user rated an album ≥4.5★ that you don't have in your diary | ❌ OFF | ❌ OFF | ❌ OFF | Deliberately OFF by default. Opt-in for power discovery users. |
@@ -42,7 +42,7 @@ Each row defines: identifier, trigger event, surfaces (default ON channels), rec
 | N-016 | `security.new_session` | New device/browser login | ✅ ON | ✅ ON | ❌ OFF | Security hygiene. Always-on (cannot disable email channel). |
 | N-017 | `security.password_changed` | Password changed | ✅ ON | ✅ ON | ❌ OFF | Always-on email. |
 | N-018 | `just_finished.prompt` | Spotify detected a finished album; prompt user to log it | ✅ ON | ❌ OFF | ❌ OFF | Added in Revision #1 (auto-prompt elevated to MVP). In-app default ON; push default OFF (opt-in). Respects `User.auto_prompt_enabled` and quiet hours. Coalesced — only the latest unacted album is surfaced per user. |
-<!-- N-019 (list.awarded) and N-020 (list.added_to) were added in Revision #1 and removed in Revision #3 — Lists deferred to v2. IDs reserved; not reassigned. -->
+<!-- N-019 (list.auxed) and N-020 (list.added_to) were added in Revision #1 and removed in Revision #3 — Lists deferred to v2. IDs reserved; not reassigned. -->
 
 ---
 
@@ -158,5 +158,5 @@ All 5 prior open questions resolved. See [decision-log.md §Notification taxonom
 1. **NT-1 — Suppress critic-seed N-001 (follow) notifications during onboarding wave.** Otherwise every seed account gets a notification storm from new-user onboarding.
 2. **NT-2 — Weekly digest includes "most-rated album in your follow graph this week" hero entry.** Single hero entry; cheap query; editorial feel.
 3. **NT-3 — Weekly digest fires during quiet hours.** Quiet hours suppress push and in-app prompts only; email/digest fire on their own schedule.
-4. **NT-4 — N-004 (review.awarded) surfaces both in-app AND aggregated into weekly digest.** In-app for immediate feedback; digest aggregates for absent users.
+4. **NT-4 — N-004 (review.auxed) surfaces both in-app AND aggregated into weekly digest.** In-app for immediate feedback; digest aggregates for absent users.
 5. **NT-5 — "Import succeeded" notification fires every time** (not just first time). Users re-trigger imports; want explicit confirmation.

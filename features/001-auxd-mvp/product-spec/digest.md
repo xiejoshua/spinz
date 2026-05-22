@@ -5,19 +5,19 @@
 > **Generated at:** 2026-05-21T23:10:00Z · **Revised at:** 2026-05-21T23:35:00Z
 > **Artifact owner:** speckit.product-forge.product-spec
 >
-> **Revision #1 changes (2026-05-21):** Lists elevated from v2 to MVP (Cluster I, 6 stories, 2 new entities); Auto-prompt for just-finished detection elevated from v2 to MVP (S-B6, N-018, JustFinishedPrompt entity); Spotify connect made explicitly skippable (drops "degraded mode" framing); "Liked" / "Heart" renamed to "Awarded" / "Award" across all docs.
+> **Revision #1 changes (2026-05-21):** Lists elevated from v2 to MVP (Cluster I, 6 stories, 2 new entities); Auto-prompt for just-finished detection elevated from v2 to MVP (S-B6, N-018, JustFinishedPrompt entity); Spotify connect made explicitly skippable (drops "degraded mode" framing); "Liked" / "Heart" renamed to "Aux'd" / "Aux" across all docs.
 >
 > **Revision #2 changes (2026-05-21):** All 10 product-spec.md §10 open questions resolved with locked decisions (Q13–Q22): critic seeds pre-checked, 30-day auto-import, deluxe/remaster merge under release-group + Edition selector, handle policy (30d immutability + change-rate-limit), reviews with hidden edit history, notification real-time vs digest taxonomy, diary-immutable-on-disconnect, critics-only-no-artists seed graph, lazy-fetch for fresh-release albums, OAuth scopes locked. All 20 supporting-doc questions resolved (NT-1..5, SS-1..5, DM-1..5, UJ-1..5). FRs 028–030 added (Edition selector, handle policy, review edit policy). Zero open questions remain at spec level.
 >
-> **Revision #3 changes (2026-05-21):** Removed "say more" soft prompt for short reviews; split unified "Award" terminology into Award (🏅 — self-curation on own DiaryEntry) + Like (👍 — social engagement on others' Reviews); added Likes on reviews (FR-031) + Most Liked sort (FR-032) + user story S-C4 + ReviewLike entity; reverted Lists from MVP to v2 (de-elevates R1's elevation — removed FR-021..025, Cluster I S-I1..S-I6, List+ListItem entities, N-019/N-020, Journey 4.5). Build estimate dropped back to 3–6 months. Net: 30 stories, 27 active FRs, 18 active notification types, 15 entities, 5 journeys.
+> **Revision #3 changes (2026-05-21):** Removed "say more" soft prompt for short reviews; split unified "Aux" terminology into Aux (🏅 — self-curation on own DiaryEntry) + Like (👍 — social engagement on others' Reviews); added Likes on reviews (FR-031) + Most Liked sort (FR-032) + user story S-C4 + ReviewLike entity; reverted Lists from MVP to v2 (de-elevates R1's elevation — removed FR-021..025, Cluster I S-I1..S-I6, List+ListItem entities, N-019/N-020, Journey 4.5). Build estimate dropped back to 3–6 months. Net: 30 stories, 27 active FRs, 18 active notification types, 15 entities, 5 journeys.
 
 ## Key decisions
 
 - **Target users:** Casey (casual Spotify listener 18–35, primary), Maya (engaged listener, secondary), Jamie (tastemaker/critic — also the cold-start seed roster).
-- **Scope (post-Revision #1):** 37 Must-Have user stories across 9 capability clusters (onboarding, log/rate/award, reviews, backlog, social graph, album detail/search, **Lists**, profile/settings/privacy, alternative imports). Apple Music, ALS recs, Wrapped, native mobile, collaborative Lists → v2.
+- **Scope (post-Revision #1):** 37 Must-Have user stories across 9 capability clusters (onboarding, log/rate/aux, reviews, backlog, social graph, album detail/search, **Lists**, profile/settings/privacy, alternative imports). Apple Music, ALS recs, Wrapped, native mobile, collaborative Lists → v2.
 - **Top 3 user stories (load-bearing):** S-A2 (auto-import last 30 days on Spotify connect — gates activation), S-B1 (log album in <8 seconds — the wedge interaction), S-E3 (weighted-reverse-chronological feed — the social-graph thesis surface).
 - **Two first-class supporting docs:** notification-taxonomy.md (17 types, conservative defaults, anti-Goodreads-firehose discipline) and seeding-strategy.md (4-pronged cold-start: critic roster + Last.fm import + invites + mutual-follow nudge).
-- **Structural decisions locked:** Spotify-only at launch (skippable at signup); ½-star rating; public-by-default; **Lists + Auto-prompt in MVP**; "Award" replaces "Heart"; MusicBrainz MBID canonical / Spotify ID fallback; provider-interface abstraction; PWA-only; no paid tier at launch.
+- **Structural decisions locked:** Spotify-only at launch (skippable at signup); ½-star rating; public-by-default; **Lists + Auto-prompt in MVP**; "Aux" replaces "Heart"; MusicBrainz MBID canonical / Spotify ID fallback; provider-interface abstraction; PWA-only; no paid tier at launch.
 
 ## Artifacts produced
 

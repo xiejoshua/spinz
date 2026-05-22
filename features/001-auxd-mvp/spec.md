@@ -24,7 +24,7 @@ These 17 decisions are non-negotiable inputs to Phase 5 (plan). Each links back 
 6. **Onboarding** = Spotify auth + auto-import last 30 days + **prominent Skip option**; skip is a full product, not "degraded mode"
 7. **Album identity** = MusicBrainz release-group MBID canonical, Spotify album ID as fallback
 8. **PWA + responsive web only** at MVP (no native iOS/Android)
-9. **Award (🏅) vs Like (👍) — distinct semantics**: Award is the entry-owner's self-curation signal on their own DiaryEntry; Like is other-user social engagement on a Review. Two icons, two semantics, two data fields, two notification types.
+9. **Aux (🏅) vs Like (👍) — distinct semantics**: Aux is the entry-owner's self-curation signal on their own DiaryEntry; Like is other-user social engagement on a Review. Two icons, two semantics, two data fields, two notification types.
 10. **No "say more" soft prompt** on short reviews — reviews can be ≥1 character without a nudge
 11. **Reviews are Likeable + sortable** by Newest / Most Liked / Highest-Rated
 12. **Critic seeds** appear as PRE-CHECKED checkbox cards on the "Follow 3" onboarding screen (opt-in with default-tick)
@@ -42,7 +42,7 @@ These 17 decisions are non-negotiable inputs to Phase 5 (plan). Each links back 
 
 ### What we're building
 
-auxd is a social album-tracking platform for casual Spotify listeners (18–35). Users log albums they've listened to, rate them on a ½-star scale, write optional reviews, "Award" personal standouts in their own diary, "Like" reviews written by others, maintain a private backlog of "want to listen" albums, and discover music via their social graph rather than algorithmic recommendations. Spotify OAuth on day one auto-imports recently-played history so the diary is never empty.
+auxd is a social album-tracking platform for casual Spotify listeners (18–35). Users log albums they've listened to, rate them on a ½-star scale, write optional reviews, "Aux" personal standouts in their own diary, "Like" reviews written by others, maintain a private backlog of "want to listen" albums, and discover music via their social graph rather than algorithmic recommendations. Spotify OAuth on day one auto-imports recently-played history so the diary is never empty.
 
 ### Why we're building it
 
@@ -68,13 +68,13 @@ This spec is backed by a full research phase (Phase 1) covering:
 
 ### Primary goal
 
-When a casual listener finishes an album, they can record their reaction (rate, optionally Award, optionally review) in under 8 seconds; that signal compounds into a personal diary and a social-graph feed that surfaces what their trusted circle is listening to — creating a music identity and discovery loop that streaming alone doesn't provide.
+When a casual listener finishes an album, they can record their reaction (rate, optionally Aux, optionally review) in under 8 seconds; that signal compounds into a personal diary and a social-graph feed that surfaces what their trusted circle is listening to — creating a music identity and discovery loop that streaming alone doesn't provide.
 
 ### Secondary goals
 
 - Make the first session non-empty via Spotify auto-import of the last 30 days (or critic-seed-only if user skips Spotify).
 - Build a trusted social graph through curated critic-seed roster + mutual-taste suggestions + invite mechanics.
-- Provide the album-detail surface as a social hub (friends' ratings + Awards, public reviews sortable by Newest / Most Liked / Highest-Rated, Editions).
+- Provide the album-detail surface as a social hub (friends' ratings + Aux'd, public reviews sortable by Newest / Most Liked / Highest-Rated, Editions).
 
 ### Non-goals (v1)
 
@@ -131,13 +131,13 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 - [ ] **US-A4** As Casey, I want to follow a starter set during onboarding. **AC:** Mixed cards (≥3 critics in top 6) with critic-seed cards **PRE-CHECKED** by default (Q13); minimum 1 follow to advance.
 - [ ] **US-A5** As Casey, my first home feed must be non-empty. **AC:** ≥5 entries; if follow graph sparse, padded with critic-seed activity from past 7 days.
 
-**Cluster B — Logging, rating, Award, auto-prompt**
+**Cluster B — Logging, rating, Aux, auto-prompt**
 
-- [ ] **US-B1** As Casey, I want to log an album in <8 seconds. **AC:** Persistent "+" Log button → bottom sheet with Spotify-prefilled album; rating + Award + review + visibility; commit time measured server-side.
+- [ ] **US-B1** As Casey, I want to log an album in <8 seconds. **AC:** Persistent "+" Log button → bottom sheet with Spotify-prefilled album; rating + Aux + review + visibility; commit time measured server-side.
 - [ ] **US-B2** As Casey, I want ½-star rating precision (0.5–5.0). **AC:** Tap-between-stars or drag-to-rate; null rating allowed.
-- [ ] **US-B3** As Casey, I want to "Award" (🏅) an album in my diary as one of my standouts. **AC:** Toggle independent of rating; "Awards" filter on profile; appears on album detail "Friends who rated & awarded this" surface (Award is **self-directed-only** — not the same as reviewing/liking).
+- [ ] **US-B3** As Casey, I want to "Aux" (🏅) an album in my diary as one of my standouts. **AC:** Toggle independent of rating; "Aux'd" filter on profile; appears on album detail "Friends who rated & aux'd this" surface (Aux is **self-directed-only** — not the same as reviewing/liking).
 - [ ] **US-B4** As Maya, I want to re-log the same album multiple times. **AC:** New entry; prior entries preserved; album-page shows my full history.
-- [ ] **US-B5** As Casey, I want to edit or delete a diary entry. **AC:** Edit rating/Award/review/visibility; soft-delete with 30d recovery; "edited" badge on changed entries.
+- [ ] **US-B5** As Casey, I want to edit or delete a diary entry. **AC:** Edit rating/Aux/review/visibility; soft-delete with 30d recovery; "edited" badge on changed entries.
 - [ ] **US-B6** As Casey (Spotify connected), I want a prompt when Spotify detects I just finished an album, so I capture the moment. **AC:** In-app prompt 5–15min after detection; opt-in push; per-album dismissal sticks 30d; quiet hours respected; per-user `auto_prompt_enabled` setting (default ON); one-tap "Disable auto-prompts" from the prompt menu.
 
 **Cluster C — Reviews + Likes + sort**
@@ -158,12 +158,12 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 - [ ] **US-E1** As Casey, I want to follow another user. **AC:** Asymmetric follows; existing follow dissolved on block; optimistic count update.
 - [ ] **US-E2** As Casey, I want to browse a follower's diary. **AC:** Reverse-chrono, 25/page; followers-only entries hidden from non-followers; private entries always hidden.
 - [ ] **US-E3** As Casey, my home feed surfaces signal from my follow graph. **AC:** Reverse-chrono with weight boosts (review-attached +20%, ★★★★★/★ +15%, top-5-interacted users +10%); "Latest" toggle disables weights and persists per-device.
-- [ ] **US-E4** As Casey, I want to see "Friends who rated & Awarded" on album pages. **AC:** Avatars + ratings + Award badges (🏅) from followed accounts, sorted by rating desc then date desc.
+- [ ] **US-E4** As Casey, I want to see "Friends who rated & Aux'd" on album pages. **AC:** Avatars + ratings + Aux badges (🏅) from followed accounts, sorted by rating desc then date desc.
 - [ ] **US-E5** As Casey, the app suggests follows based on taste overlap. **AC:** Suggestion job runs after ≥5 ratings; "Discover" tab; dismissed suggestions excluded for 30d.
 
 **Cluster F — Album detail and catalog**
 
-- [ ] **US-F1** As Casey, the album detail page is the social hub. **AC:** SSR; cover, metadata, tracklist, my history, friends' ratings + Awards, public reviews list (sortable), Log + Up Next CTAs, OG meta. **Edition selector** chip when an album has multiple editions under the same release-group MBID (per Q15 / FR-028).
+- [ ] **US-F1** As Casey, the album detail page is the social hub. **AC:** SSR; cover, metadata, tracklist, my history, friends' ratings + Aux'd, public reviews list (sortable), Log + Up Next CTAs, OG meta. **Edition selector** chip when an album has multiple editions under the same release-group MBID (per Q15 / FR-028).
 - [ ] **US-F2** As Casey, I want to search the album catalog. **AC:** Atlas Search (cached) + Spotify search (uncached); ≥3 chars + 200ms debounce; "Report missing album" link on empty result.
 
 **Cluster G — Profile, settings, privacy**
@@ -179,7 +179,7 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 ### Wireframe references
 
 - [wireframes/01-onboarding.html](./product-spec/wireframes/01-onboarding.html) — Confirm-last-30-days screen
-- [wireframes/02-home-feed.html](./product-spec/wireframes/02-home-feed.html) — Default home surface; Award badge + Like count distinguished
+- [wireframes/02-home-feed.html](./product-spec/wireframes/02-home-feed.html) — Default home surface; Aux badge + Like count distinguished
 - [wireframes/03-log-sheet.html](./product-spec/wireframes/03-log-sheet.html) — THE wedge interaction (<8s commit target)
 - [wireframes/04-album-detail.html](./product-spec/wireframes/04-album-detail.html) — Social hub with Editions, friends, sortable reviews
 
@@ -195,7 +195,7 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 | FR-001 | Sign up via email/password or Spotify OAuth shortcut | Must | US-A1 |
 | FR-002 | Connect Spotify via OAuth 2.0 PKCE; optional and skippable. Scopes locked: `user-read-recently-played`, `user-read-currently-playing`, `user-library-read` (per Q22) | Must | US-A2 |
 | FR-003 | Auto-import last 30 days of recently-played on Spotify connect | Must | US-A3 |
-| FR-004 | Log an album with ½-star rating, Award (🏅), and optional review in a single bottom sheet | Must | US-B1, US-B2, US-B3, US-C1 |
+| FR-004 | Log an album with ½-star rating, Aux (🏅), and optional review in a single bottom sheet | Must | US-B1, US-B2, US-B3, US-C1 |
 | FR-005 | Album catalog search (Atlas Search + Spotify search merge) | Must | US-F2 |
 | FR-006 | Add an album to "Up Next" (private backlog) | Must | US-D1 |
 | FR-007 | User has a chronological diary visible on their profile | Must | US-E2 |
@@ -230,7 +230,7 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 | Performance | p95 home feed load <500ms (SSR); p95 album detail <400ms; p99 Spotify 30-day import <8s end-to-end |
 | Availability | 99.5% monthly uptime at MVP; degrade gracefully when Spotify API unavailable (show cached data, queue writes) |
 | Scalability | Sized for 10,000 concurrent users at peak (3× M6 WAL target) without architectural changes |
-| Accessibility | WCAG 2.1 AA — keyboard nav; screen-reader labels on rating widget + Award + Like; contrast ≥4.5:1 on album-art-heavy surfaces; reduced-motion respect; touch targets ≥44pt on mobile |
+| Accessibility | WCAG 2.1 AA — keyboard nav; screen-reader labels on rating widget + Aux + Like; contrast ≥4.5:1 on album-art-heavy surfaces; reduced-motion respect; touch targets ≥44pt on mobile |
 | Privacy | Public-by-default with per-entry opt-out; private-profile toggle; no third-party tracking beyond PostHog (self-hosted) + Sentry (errors); no ad SDKs |
 | Security | OAuth tokens encrypted at rest; no refresh tokens client-side; rate limiting on log/follow/review/like endpoints; CSRF; bcrypt cost ≥12 |
 | Compliance | GDPR (export + erasure); Spotify ToS ("Powered by Spotify" attribution + branding compliance) |
@@ -295,10 +295,10 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 | Frontend | `app/(onboarding)` | 5-step flow with Spotify Skip |
 | Frontend | `app/(feed)` | Home feed; "Latest" toggle; entry cards |
 | Frontend | `app/album/[id]` | Album detail; Edition chip; sortable reviews; friends section |
-| Frontend | `app/@[handle]` | Profile; diary; filters (Awards, public-only) |
+| Frontend | `app/@[handle]` | Profile; diary; filters (Aux'd, public-only) |
 | Frontend | `app/up-next` | Backlog UI |
 | Frontend | `app/settings/*` | Profile, privacy, notifications, integrations, data |
-| Frontend | `components/log-sheet` | THE wedge interaction; bottom-sheet; ½-star widget; Award + review |
+| Frontend | `components/log-sheet` | THE wedge interaction; bottom-sheet; ½-star widget; Aux + review |
 | Frontend | `components/just-finished-prompt` | In-app prompt surface; opt-out menu |
 | Shared | `lib/visibility-check` | Single source of truth for visibility evaluation across all surfaces |
 
@@ -310,7 +310,7 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 |---|---|
 | User, MusicProvider | Embedded music_providers; encrypted tokens; auto_prompt_enabled flag |
 | Album | MBID canonical + Spotify ID fallback; 7d cache; tracklist denormalized at MVP |
-| DiaryEntry | The central activity record; `awarded` boolean (renamed from `hearted` in R1); soft-delete 30d |
+| DiaryEntry | The central activity record; `auxed` boolean (renamed from `hearted` in R1); soft-delete 30d |
 | Review | 1:1 optional with DiaryEntry; `reactions.likes_count` (R3 rename); 90d edit-history retained internally |
 | ReviewLike *(new in R3)* | Per-user-per-review like records for idempotent toggle and Most Liked sort |
 | Backlog, BacklogItem | Singleton per User; private by default |
@@ -366,7 +366,7 @@ The feature is complete when:
 8. Notification rate-limits and quiet hours are verified end-to-end (no Goodreads-firehose regressions).
 9. Spotify OAuth + auto-import + just-finished prompt flows are verified with at least 5 real user-side tests.
 10. Disconnect → diary immutability is verified (data persists; reconnect resumes cleanly without back-fill).
-11. Award (🏅) vs Like (👍) semantics are consistent: never confused in UI, copy, notifications, or API.
+11. Aux (🏅) vs Like (👍) semantics are consistent: never confused in UI, copy, notifications, or API.
 
 ---
 
@@ -413,8 +413,8 @@ The feature is complete when:
 
 | # | Scenario | Expected | Type |
 |---|---|---|---|
-| TC-001 | Log + ½-star + Award an album in <8 seconds (server-measured) | DiaryEntry created with all three; commit time recorded | integration |
-| TC-002 | Log without rating (just confirm album) | Entry saves with null rating, null Award; no errors | unit |
+| TC-001 | Log + ½-star + Aux an album in <8 seconds (server-measured) | DiaryEntry created with all three; commit time recorded | integration |
+| TC-002 | Log without rating (just confirm album) | Entry saves with null rating, null Aux; no errors | unit |
 | TC-003 | Re-log same album | Two DiaryEntry records with different `logged_at`; both visible in user's diary | integration |
 | TC-004 | Spotify OAuth with all three scopes | Tokens stored encrypted; refresh works; revoke handled | integration |
 | TC-005 | Spotify OAuth with permission denied for one scope | Friendly error; user can retry or skip | integration |
@@ -452,7 +452,7 @@ The feature is complete when:
 |---|---|---|---|
 | TC-E2E-001 | Full onboarding (Spotify connected) | Landing page invite link | Home feed with ≥5 entries |
 | TC-E2E-002 | Full onboarding (Spotify skipped) | Landing page direct | Home feed with critic-seed entries only |
-| TC-E2E-003 | Log + rate + Award + review an album in <25s | Home feed | Entry visible in diary |
+| TC-E2E-003 | Log + rate + Aux + review an album in <25s | Home feed | Entry visible in diary |
 | TC-E2E-004 | Discover album via social feed → Listen on Spotify | Home feed | Spotify deep-link fired (mocked) |
 | TC-E2E-005 | Like a review → reviewer sees N-004 notification | Album detail page | Notification visible in reviewer's session |
 | TC-E2E-006 | Sort reviews by Most Liked | Album detail | Result order changes; persistence across reload |
@@ -513,7 +513,7 @@ This spec.md is generated from a product-spec that went through 3 revisions in P
 | Version | Date | Changes |
 |---|---|---|
 | v1.0 | 2026-05-21 | Initial product-spec from Phase 2 |
-| v1.1 | 2026-05-21 | R1: Lists + Auto-prompt elevated to MVP; Spotify skippable; Heart → Award rename |
+| v1.1 | 2026-05-21 | R1: Lists + Auto-prompt elevated to MVP; Spotify skippable; Heart → Aux rename |
 | v1.2 | 2026-05-21 | R2: All 30 open questions resolved with locked decisions; FRs 028–030 added |
-| v1.3 | 2026-05-21 | R3: Removed "say more" prompt; split Award (🏅 self) / Like (👍 social); added Likes + sort; reverted Lists to v2; FRs 031–032 added; ReviewLike entity added |
+| v1.3 | 2026-05-21 | R3: Removed "say more" prompt; split Aux (🏅 self) / Like (👍 social); added Likes + sort; reverted Lists to v2; FRs 031–032 added; ReviewLike entity added |
 | **spec.md** | **2026-05-21** | **Generated by Phase 4 Bridge from product-spec v1.3** |

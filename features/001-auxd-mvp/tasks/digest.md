@@ -15,7 +15,7 @@
 - **Sizing distribution:** roughly 60% Small/Medium, 25% Extra-Small, 12% Large, 3% Extra-Large flagged for decomposition (T043 Spotify provider impl, T077 Log sheet, T106 Home feed, T123 Spotify polling worker, T131 Notification dispatcher, T138 Weekly digest, T153 GDPR export, T174 E2E suite, T178 Design polish, T104 Suggested-follow precompute). XL tasks should be split further in Phase 6 if they prove unwieldy.
 - **Parallel-track opportunities documented** — once auth is done, three engineers can split across Reviews + Backlog + Social clusters; Onboarding + Feed can largely parallel each other.
 - **Lists are deliberately ABSENT** — no tasks for Lists per R3 deferral (out-of-scope.md + decision-log row 7 confirm v2).
-- **Award (🏅) vs Like (👍) semantic split is preserved in tasks** — T023 separates fields (DiaryEntry.awarded vs ReviewLike), T073 implements Award on diary, T088 implements Like on review, T090 distinguishes icons in UI.
+- **Aux (🏅) vs Like (👍) semantic split is preserved in tasks** — T023 separates fields (DiaryEntry.auxed vs ReviewLike), T073 implements Aux on diary, T088 implements Like on review, T090 distinguishes icons in UI.
 
 ## Artifacts produced
 
@@ -41,5 +41,5 @@
 - **Recommended commit granularity:** one commit per task (180 commits over the build). Each commit message references the task ID + the US/FR it implements (e.g., `feat(diary): log entry endpoint (T073, US-B1, FR-004)`).
 - **Tasks are dependency-ordered but parallelizable per the §Parallel-track opportunities table** — Phase 6 implementation can fan out 2–3 engineers once T030 (backend foundation) and T040 (frontend foundation) complete.
 - **Constitution Principle 4 (test-first for catalog/auth) MUST be honored** — T042 and T048 are not optional preludes; they're load-bearing for catching Spotify/MusicBrainz API drift early.
-- **Award vs Like distinction MUST be preserved in implementation** — flag any code-review PR that collapses them. The data model, notifications, and UI icons must stay distinct.
+- **Aux vs Like distinction MUST be preserved in implementation** — flag any code-review PR that collapses them. The data model, notifications, and UI icons must stay distinct.
 - **Lists must NOT appear in any task during Phase 6** — if a task or PR adds Lists, reject as scope creep (per R3 decision).

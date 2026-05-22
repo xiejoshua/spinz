@@ -52,7 +52,7 @@ auxd is a social album-tracking platform for casual Spotify listeners (18–35).
 6. Onboarding = Spotify auth + auto-import 30d, Spotify step explicitly skippable — *R1*
 7. Album identity = MusicBrainz MBID canonical, Spotify ID fallback
 8. PWA + responsive web only at MVP
-9. **Award (🏅) vs Like (👍) — split semantics** — *R1 unified as Award; R3 split into Award (self) + Like (social engagement on reviews)*
+9. **Aux (🏅) vs Like (👍) — split semantics** — *R1 unified as Aux; R3 split into Aux (self) + Like (social engagement on reviews)*
 10. Critic seeds: pre-checked checkbox cards on Follow 3 (opt-in with default-tick) — *R2*
 11. Deluxe / remasters: merged under release-group MBID + Edition selector on album detail — *R2*
 12. Diary persists immutably on Spotify disconnect — *R2*

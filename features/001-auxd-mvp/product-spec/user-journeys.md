@@ -32,7 +32,7 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 |---|---|---|
 | 2a | At the Spotify auth screen | User taps the prominent **Skip — connect later** link (no shame, no "limited features" framing) → skips steps 3 & 4 of import flow |
 | 3a | After skip | User goes directly to "Follow 3 to fill your feed" with critic-seed-only suggestions (mutual-taste suggestions are empty since we have no taste signal yet) |
-| 4a | After follow step | User lands on home feed (populated by critic-seed activity from past 7 days); all features work: manual log, reviews, backlog, awards |
+| 4a | After follow step | User lands on home feed (populated by critic-seed activity from past 7 days); all features work: manual log, reviews, backlog, auxes |
 | Later | From Settings → Integrations | User can connect Spotify any time; the same 30-day auto-import then back-fills the diary |
 
 **Drop-off risk points:**
@@ -209,7 +209,7 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 - **All journeys must stay <3 minutes for first-time use** — this is the casual-user friction floor.
 - **Every journey ends in either (a) a logged diary entry, (b) a backlog item, (c) an outbound Spotify play, or (d) a share event.** If a journey ends in scroll-and-leave, that's a failed journey.
 - **Empty states matter** in every journey — research §State Inventory called out 22 distinct states; the most-failing journeys are those where step 1 hits an empty state without a meaningful CTA.
-- **Award (🏅) and Like (👍) are distinct concepts** — Award is the entry-owner's "this is one of my standouts" personal signal on their own DiaryEntry; Like is other users' social engagement on a Review. Different verbs, different icons, different objects. *(Semantic split locked in Revision #3.)*
+- **Aux (🏅) and Like (👍) are distinct concepts** — Aux is the entry-owner's "this is one of my standouts" personal signal on their own DiaryEntry; Like is other users' social engagement on a Review. Different verbs, different icons, different objects. *(Semantic split locked in Revision #3.)*
 
 ---
 

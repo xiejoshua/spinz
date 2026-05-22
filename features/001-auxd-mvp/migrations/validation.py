@@ -65,7 +65,7 @@ EXPECTED_INDEXES: dict[str, list[str]] = {
         "ix_diary_user_album_logged",
         "ix_diary_album_visibility_rating",
         "ix_diary_public_logged",
-        "ix_diary_user_awarded",
+        "ix_diary_user_auxed",
         "ix_diary_soft_delete_grace",
     ],
     "reviews": [

@@ -252,7 +252,7 @@
       Size: M
       Deps: T021, T022
       Refs: plan §3.1; data-model.md; FR-030; sync-fix L3-003 (ReviewEditHistory = 90d audit log)
-      Description: Beanie `DiaryEntry` (with `awarded: bool` — Award is on DiaryEntry only), `Review` (with `reactions.likes_count: int` + `recent_likers`), `ReviewLike` (new in R3 — per-user-per-review record), `ReviewEditHistory` (per-edit version row — `review_id`, `version`, `body_at_time`, `edited_at`, `edited_by`; TTL 90d on `edited_at` per FR-030 audit window). Indexes per plan §3.1 table.
+      Description: Beanie `DiaryEntry` (with `auxed: bool` — Aux is on DiaryEntry only), `Review` (with `reactions.likes_count: int` + `recent_likers`), `ReviewLike` (new in R3 — per-user-per-review record), `ReviewEditHistory` (per-edit version row — `review_id`, `version`, `body_at_time`, `edited_at`, `edited_by`; TTL 90d on `edited_at` per FR-030 audit window). Indexes per plan §3.1 table.
       Done: models + indexes; unit tests on field constraints.
 
 - [ ] **T024 — Backlog + BacklogItem Documents**
@@ -525,7 +525,7 @@
       Size: S
       Deps: T055
       Refs: FR-027; decision-log Q19; TC-022
-      Description: `DELETE /api/v1/users/me/integrations/spotify` → marks `MusicProvider.status = disconnected`. ALL DiaryEntry / Rating / Review / Award / Like / Follow persist untouched. Reconnect resumes without gap back-fill.
+      Description: `DELETE /api/v1/users/me/integrations/spotify` → marks `MusicProvider.status = disconnected`. ALL DiaryEntry / Rating / Review / Aux / Like / Follow persist untouched. Reconnect resumes without gap back-fill.
       Done: TC-022 integration test passes.
 
 - [ ] **T057 — Handle change policy + reserved-squat list**
@@ -617,7 +617,7 @@
       Size: M
       Deps: T063, T066, T016
       Refs: US-F1; FR-010
-      Description: `GET /api/v1/albums/{id}` returns album + tracklist + my history + friends-who-rated-and-awarded + public reviews + edition list. Visibility-filtered via lib/visibility.
+      Description: `GET /api/v1/albums/{id}` returns album + tracklist + my history + friends-who-rated-and-auxed + public reviews + edition list. Visibility-filtered via lib/visibility.
       Done: integration test covers logged-in/anonymous/blocked/private cases.
 
 - [ ] **T068 — Atlas Search index for albums**
@@ -641,7 +641,7 @@
       Size: L
       Deps: T067, T037
       Refs: US-F1; FR-010, FR-028; wireframes/04-album-detail.html
-      Description: SSR page rendering wireframes/04 design. Edition selector chip + dropdown. Friends section (avatars + ratings + 🏅 Awards). Ratings histogram. Reviews list with sort selector (Newest / Most Liked / Highest-Rated — wired in T093). Log + Up Next + Listen-on-Spotify CTAs. Open Graph meta tags.
+      Description: SSR page rendering wireframes/04 design. Edition selector chip + dropdown. Friends section (avatars + ratings + 🏅 Aux'd). Ratings histogram. Reviews list with sort selector (Newest / Most Liked / Highest-Rated — wired in T093). Log + Up Next + Listen-on-Spotify CTAs. Open Graph meta tags.
       Done: page renders matching wireframe; OG card previews correctly in social shares.
 
 - [ ] **T071 — Search page + UI**
@@ -664,12 +664,12 @@
 
 ## §7 Diary + Log sheet — THE WEDGE INTERACTION
 
-- [ ] **T073 — Diary log endpoint (Award-bool included)**
+- [ ] **T073 — Diary log endpoint (Aux-bool included)**
       Paths: apps/api/src/auxd_api/modules/diary/routes.py, apps/api/src/auxd_api/modules/diary/service.py, apps/api/tests/integration/test_diary_logging.py
       Size: M
       Deps: T023, T021, T063
       Refs: US-B1, US-B2, US-B3; FR-004; TC-001, TC-002, TC-003
-      Description: `POST /api/v1/diary/entries` with `album_id`, `rating` (optional, 0.5–5.0 in halves), `awarded` (bool), `review_body` (optional), `visibility`. Server measures end-to-end commit time; emit PostHog `log.commit` event with `duration_ms`. Idempotent: same album logged twice in 60sec returns existing entry (avoids double-tap dupes).
+      Description: `POST /api/v1/diary/entries` with `album_id`, `rating` (optional, 0.5–5.0 in halves), `auxed` (bool), `review_body` (optional), `visibility`. Server measures end-to-end commit time; emit PostHog `log.commit` event with `duration_ms`. Idempotent: same album logged twice in 60sec returns existing entry (avoids double-tap dupes).
       Done: TC-001, TC-002, TC-003 pass.
 
 - [ ] **T074 — Diary read endpoint (chronological diary)**
@@ -677,7 +677,7 @@
       Size: S
       Deps: T073, T016
       Refs: US-E2; FR-007
-      Description: `GET /api/v1/users/{handle}/diary?cursor=...&limit=25` reverse-chrono; visibility-filtered. Optional filter param: `awarded=true` for "Awards" tab.
+      Description: `GET /api/v1/users/{handle}/diary?cursor=...&limit=25` reverse-chrono; visibility-filtered. Optional filter param: `auxed=true` for "Aux'd" tab.
       Done: integration test covers visibility matrix.
 
 - [ ] **T075 — Diary edit / delete endpoints**
@@ -685,7 +685,7 @@
       Size: M
       Deps: T073
       Refs: US-B5; FR-004
-      Description: `PATCH /api/v1/diary/entries/{id}` (rating/awarded/review/visibility editable). `DELETE` is soft-delete with 30d recovery. Editor must be owner.
+      Description: `PATCH /api/v1/diary/entries/{id}` (rating/auxed/review/visibility editable). `DELETE` is soft-delete with 30d recovery. Editor must be owner.
       Done: integration tests cover edit + soft-delete + recovery + hard-delete after 30d.
 
 - [ ] **T076 — Relisten support (multiple entries for same album)**
@@ -696,11 +696,11 @@
       Done: TC-003 covered.
 
 - [ ] **T077 — Log sheet component (THE wedge interaction)**
-      Paths: apps/web/src/components/log-sheet/index.tsx, apps/web/src/components/log-sheet/rating-widget.tsx, apps/web/src/components/log-sheet/award-toggle.tsx, apps/web/src/components/log-sheet/review-editor.tsx
+      Paths: apps/web/src/components/log-sheet/index.tsx, apps/web/src/components/log-sheet/rating-widget.tsx, apps/web/src/components/log-sheet/aux-toggle.tsx, apps/web/src/components/log-sheet/review-editor.tsx
       Size: L
       Deps: T037, T073, T032
       Refs: US-B1, US-B2, US-B3; FR-004; wireframes/03-log-sheet.html
-      Description: Bottom-sheet component. ALWAYS-MOUNTED in app shell layout (hidden until open) to avoid first-tap render cost. Rating widget = ½-star tap-or-drag. Award toggle = 🏅 medal. Review collapsed by default; tap to expand. Visibility select defaults to user prefs. Commit fires `POST /api/v1/diary/entries` and measures duration. PostHog event `log.commit` with duration_ms.
+      Description: Bottom-sheet component. ALWAYS-MOUNTED in app shell layout (hidden until open) to avoid first-tap render cost. Rating widget = ½-star tap-or-drag. Aux toggle = 🏅 medal. Review collapsed by default; tap to expand. Visibility select defaults to user prefs. Commit fires `POST /api/v1/diary/entries` and measures duration. PostHog event `log.commit` with duration_ms.
       Done: E2E test logs an album in <8 seconds; commit duration_ms tracked.
 
 - [ ] **T078 — Persistent + Log button (FAB in shell)**
@@ -724,7 +724,7 @@
       Size: M
       Deps: T074, T037
       Refs: US-E2; FR-007
-      Description: Profile page with reverse-chrono diary view; "Awards" filter tab. Pagination with cursor.
+      Description: Profile page with reverse-chrono diary view; "Aux'd" filter tab. Pagination with cursor.
       Done: profile page renders.
 
 - [ ] **T081 — "My history" on album detail page**
@@ -913,12 +913,12 @@
       Description: `POST /api/v1/users/{handle}/block`. Dissolves any Follow in either direction. Hides content from blocker (via lib/visibility).
       Done: TC-028 passes.
 
-- [ ] **T103 — Friends-who-rated-and-awarded endpoint**
+- [ ] **T103 — Friends-who-rated-and-auxed endpoint**
       Paths: apps/api/src/auxd_api/modules/feed/service.py
       Size: M
       Deps: T101, T073
       Refs: US-E4; FR-010
-      Description: `GET /api/v1/albums/{id}/friends` returns avatars + ratings + Awards from followed accounts who have rated this album; sort by rating desc then logged_at desc; visibility-filtered.
+      Description: `GET /api/v1/albums/{id}/friends` returns avatars + ratings + Aux'd from followed accounts who have rated this album; sort by rating desc then logged_at desc; visibility-filtered.
       Done: integration test covers visibility matrix.
 
 - [ ] **T104 — Suggested-follow precompute worker**
@@ -958,7 +958,7 @@
       Size: L
       Deps: T106, T037, T032
       Refs: US-E3; FR-009; TC-E2E-004; wireframes/02-home-feed.html
-      Description: SSR home feed; entry cards per wireframe (avatar, stars, 🏅 Award badge if applied, album cover thumb, review snippet, 👍 like count, Listen on Spotify button). "Latest" tab toggle. Infinite scroll via cursor pagination. Lazy-load cover art (Next.js Image with blur placeholder).
+      Description: SSR home feed; entry cards per wireframe (avatar, stars, 🏅 Aux badge if applied, album cover thumb, review snippet, 👍 like count, Listen on Spotify button). "Latest" tab toggle. Infinite scroll via cursor pagination. Lazy-load cover art (Next.js Image with blur placeholder).
       Done: TC-E2E-004 passes.
 
 - [ ] **T109 — Profile + diary page**
@@ -966,7 +966,7 @@
       Size: M
       Deps: T080, T101
       Refs: US-E2, US-G1
-      Description: Public profile with avatar, display_name, bio, handle, follows/followers counts, ratings histogram, diary tab, reviews tab, Awards filter.
+      Description: Public profile with avatar, display_name, bio, handle, follows/followers counts, ratings histogram, diary tab, reviews tab, Aux'd filter.
       Done: page renders.
 
 - [ ] **T110 — Follow button (with optimistic update)**
@@ -1554,7 +1554,7 @@
       Size: L
       Deps: T108, T070, T077, T080
       Refs: wireframes/*, plan §18
-      Description: Design polish: typography scale, color palette tuning, micro-interaction animations, haptic feedback on rating/Award/Like, mobile responsiveness verification. Founder + (optional) designer involvement.
+      Description: Design polish: typography scale, color palette tuning, micro-interaction animations, haptic feedback on rating/Aux/Like, mobile responsiveness verification. Founder + (optional) designer involvement.
       Done: visual quality at launch-ready bar.
 
 - [ ] **T179 — Pre-launch checklist + readiness review**
@@ -1608,5 +1608,5 @@ For a greenfield project, "migration" at MVP is the initial collection creation 
 - **All 27 active FRs** → each maps to ≥1 task per coverage matrix.
 - **All 32 critical TCs + 13 E2E scenarios** → mapped per plan §16.2 + woven into tasks above.
 - **NFR Measurement Contract (spec.md §6.1)** → instrumentation woven (T015, T077 wedge timing, T107 feed perf, T144 notification rate, T172 perf audit).
-- **Award (🏅) vs Like (👍) split preserved:** T023 (separate fields), T073 (Award on DiaryEntry), T088 (Like on Review via ReviewLike), T090 (UI distinct icons), notification N-001 (follow) vs N-004 (review.liked).
+- **Aux (🏅) vs Like (👍) split preserved:** T023 (separate fields), T073 (Aux on DiaryEntry), T088 (Like on Review via ReviewLike), T090 (UI distinct icons), notification N-001 (follow) vs N-004 (review.liked).
 - **Lists deliberately ABSENT:** No tasks for Lists per R3 deferral; out-of-scope.md and decision-log row 7 confirm v2 deferral.

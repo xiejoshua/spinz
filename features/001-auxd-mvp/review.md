@@ -37,7 +37,7 @@
 | Q (decision-log #7) | Curated user-created Lists in MVP or v2? | **MVP** (full Letterboxd parity) | Founder elevated Lists as load-bearing for the wedge — without Lists, the social-graph discovery loses an expressive surface | Revision #1 |
 | Q (decision-log #10) | Just-finished auto-detection: manual only, or auto-prompt? | **Auto-prompt at MVP** (opt-out default ON) | Founder accepted privacy tradeoff; moments captured by auto-prompt are highest-value moments | Revision #1 |
 | Q (decision-log #12) | Onboarding Spotify connect required or skippable? | **Skippable, no degraded-mode framing** | Forcing OAuth at signup tanks signups; product works fully without Spotify | Revision #1 |
-| Q (decision-log structural) | Terminology — "Liked" / "Heart" vs alternative? | **Renamed to "Awarded" / "Award"** | Founder preferred terminology that implies curation, not casual reaction | Revision #1 |
+| Q (decision-log structural) | Terminology — "Liked" / "Heart" vs alternative? | **Renamed to "Aux'd" / "Aux"** | Founder preferred terminology that implies curation, not casual reaction | Revision #1 |
 
 ## Decision Log
 
@@ -46,46 +46,46 @@
 | 2026-05-21 | Lists elevated from v2 to MVP scope | Load-bearing for the social-graph + album-as-unit wedge |
 | 2026-05-21 | Auto-prompt for just-finished detection enabled at MVP (opt-out default ON) | Highest-value moments are immediate post-listen; manual-only loses them silently |
 | 2026-05-21 | Spotify connect explicitly skippable at signup | Avoid OAuth-friction signup loss; product works fully without Spotify |
-| 2026-05-21 | Rename "Liked"/"heart"/"hearted" → "Awarded"/"Award" globally | More-deliberate connotation aligns with curated personal-standouts signal |
+| 2026-05-21 | Rename "Liked"/"heart"/"hearted" → "Aux'd"/"Aux" globally | More-deliberate connotation aligns with curated personal-standouts signal |
 
 ## Change History
 
-v1.0 → v1.1: Lists added to MVP (6 stories, 2 entities, 1 journey); Auto-prompt added (1 story, 1 entity, 1 notification type, 1 journey); Spotify skip elevated to first-class; Heart → Award rename across all docs.
+v1.0 → v1.1: Lists added to MVP (6 stories, 2 entities, 1 journey); Auto-prompt added (1 story, 1 entity, 1 notification type, 1 journey); Spotify skip elevated to first-class; Heart → Aux rename across all docs.
 
 v1.1 → v1.2: All 30 open questions resolved with locked decisions (10 main + 20 supporting-doc). FRs 028–030 added. User stories S-A4, S-C3, S-F1, S-G1, S-G4 expanded with new acceptance criteria. Supporting-doc "Open questions" sections converted to "Resolved decisions". Zero open questions remain at spec level.
 
-v1.2 → v1.3: Removed soft "say more" prompt; split Award/Like terminology (Award = self-curation 🏅, Like = social engagement 👍); added Likes on reviews + Most Liked sort + S-C4 user story + ReviewLike entity + FR-031/032; reverted Lists from MVP back to v2 (de-elevated R1 — removed FR-021..025, Cluster I S-I1..S-I6, List+ListItem entities, N-019/020, Journey 4.5). Net: 32 stories, 15 entities, 5 journeys, 18 active notifications, 27 active FRs.
+v1.2 → v1.3: Removed soft "say more" prompt; split Aux/Like terminology (Aux = self-curation 🏅, Like = social engagement 👍); added Likes on reviews + Most Liked sort + S-C4 user story + ReviewLike entity + FR-031/032; reverted Lists from MVP back to v2 (de-elevated R1 — removed FR-021..025, Cluster I S-I1..S-I6, List+ListItem entities, N-019/020, Journey 4.5). Net: 32 stories, 15 entities, 5 journeys, 18 active notifications, 27 active FRs.
 
 ## Revision History
 
 ## Revision #1 — 2026-05-21
 
 **User feedback (verbatim):**
-> Onboarding flow should prompt for Spotify auth + auto-import last 30 days, but this step should be skippable. The rating scale should be 1/2 star, like Letterboxd. Enable auto-prompt for MVP. Lists should not be deferred. Ratings/reviews are public by default. "Liked" hearts are public signals - they should be called "Awards".
+> Onboarding flow should prompt for Spotify auth + auto-import last 30 days, but this step should be skippable. The rating scale should be 1/2 star, like Letterboxd. Enable auto-prompt for MVP. Lists should not be deferred. Ratings/reviews are public by default. "Liked" hearts are public signals - they should be called "Aux'd".
 
 **Changes applied:**
 
 | File | Change Type | Description |
 |---|---|---|
 | decision-log.md | Modify | Updated rows 7 (Lists → MVP), 10 (auto-prompt enabled), 12 (skippable Spotify); added terminology row; added Revision row v1.1 |
-| product-spec.md | Modify | §3.1 (Award rename), §3.2 (auto-prompt added), §3.6 (skippable Spotify), §3.7 (Lists ref); ADD §3.8 (Lists capability); FR-002 (skippable), FR-004 (Award rename); ADD FR-021–FR-027 (Lists + auto-prompt + Settings→Integrations); §6 out-of-scope (remove Lists + auto-prompt, add collaborative-lists to v1.x); §9 (top decisions reflected) |
-| user-stories.md | Modify + Add | S-A2 reworded for skippable; S-B3 renamed Heart→Award; S-B5 Award rename; S-G3 expanded (auto-prompt opt-out + quiet hours); ADD S-B6 (auto-prompt user story); ADD Cluster I with S-I1–S-I6 (Lists); coverage table + counts updated |
+| product-spec.md | Modify | §3.1 (Aux rename), §3.2 (auto-prompt added), §3.6 (skippable Spotify), §3.7 (Lists ref); ADD §3.8 (Lists capability); FR-002 (skippable), FR-004 (Aux rename); ADD FR-021–FR-027 (Lists + auto-prompt + Settings→Integrations); §6 out-of-scope (remove Lists + auto-prompt, add collaborative-lists to v1.x); §9 (top decisions reflected) |
+| user-stories.md | Modify + Add | S-A2 reworded for skippable; S-B3 renamed Heart→Aux; S-B5 Aux rename; S-G3 expanded (auto-prompt opt-out + quiet hours); ADD S-B6 (auto-prompt user story); ADD Cluster I with S-I1–S-I6 (Lists); coverage table + counts updated |
 | user-journeys.md | Add + Modify | Journey 1 alt-path rewritten (no degraded-mode); ADD Journey 1.5 (auto-prompt); ADD Journey 4.5 (Lists creation); cross-journey notes updated |
-| data-model.md | Modify + Add | Entity inventory + User block + DiaryEntry.hearted→awarded + Review.reactions renamed; ADD List, ListItem, JustFinishedPrompt entities; relationship diagram + indexes updated |
-| notification-taxonomy.md | Modify + Add | N-004 renamed review.hearted→review.awarded; ADD N-018 (just_finished.prompt), N-019 (list.awarded), N-020 (list.added_to); defaults summary + settings UI updated for new types and auto-prompts |
+| data-model.md | Modify + Add | Entity inventory + User block + DiaryEntry.hearted→auxed + Review.reactions renamed; ADD List, ListItem, JustFinishedPrompt entities; relationship diagram + indexes updated |
+| notification-taxonomy.md | Modify + Add | N-004 renamed review.hearted→review.auxed; ADD N-018 (just_finished.prompt), N-019 (list.auxed), N-020 (list.added_to); defaults summary + settings UI updated for new types and auto-prompts |
 | out-of-scope.md | Remove + Add | Removed Lists + Auto-prompt from v2 deferrals; added Collaborative Lists + Auto-list-generation to v1.x candidates |
-| wireframes/03-log-sheet.html | Modify | "Heart" row → "Award" row; ♡ → 🏅 |
-| wireframes/02-home-feed.html | Modify | ♥ heart icons → 🏅 award icons in all 4 feed entries; CSS class heart→award |
-| wireframes/04-album-detail.html | Modify | "Friends who rated this" → "Friends who rated & awarded this" |
+| wireframes/03-log-sheet.html | Modify | "Heart" row → "Aux" row; ♡ → 🏅 |
+| wireframes/02-home-feed.html | Modify | ♥ heart icons → 🏅 aux icons in all 4 feed entries; CSS class heart→aux |
+| wireframes/04-album-detail.html | Modify | "Friends who rated this" → "Friends who rated & aux'd this" |
 | product-spec/README.md | Modify | Counts updated (37 stories, 20 notifications, 16 entities, 6 journeys); top-decisions list reflects Revision #1 |
 | product-spec/digest.md | Modify | Revision #1 changes noted in header; scope + structural decisions updated |
 | README.md (feature root) | Modify | Top-decisions section reflects Revision #1 |
 
 **Agent notes:**
-- "Award" terminology applied to both DiaryEntry-level (personal standout signal, boolean) and Review-level (engagement count from other users) for consistency. Same semantic primitive, contextually distinguished.
+- "Aux" terminology applied to both DiaryEntry-level (personal standout signal, boolean) and Review-level (engagement count from other users) for consistency. Same semantic primitive, contextually distinguished.
 - Auto-prompt scope is conservative: in-app default ON, push default OFF, opt-out is one-tap from the prompt itself.
-- Lists at MVP includes: create, add albums, reorder when ranked, per-list visibility, share with OG card, browse from social graph, award lists. Excludes: collaborative editing (v1.x), auto-generated lists (v1.x), drag-and-drop covers (v1.x — using picker-from-existing-items at MVP).
-- "Awards" on different objects: a User can Award an Album (in their DiaryEntry — personal signal); other Users can Award the User's Review (engagement); other Users can Award a User's List (engagement). Same UI primitive (medal icon), three contexts.
+- Lists at MVP includes: create, add albums, reorder when ranked, per-list visibility, share with OG card, browse from social graph, aux lists. Excludes: collaborative editing (v1.x), auto-generated lists (v1.x), drag-and-drop covers (v1.x — using picker-from-existing-items at MVP).
+- "Aux'd" on different objects: a User can Aux an Album (in their DiaryEntry — personal signal); other Users can Aux the User's Review (engagement); other Users can Aux a User's List (engagement). Same UI primitive (medal icon), three contexts.
 - Out-of-scope.md uses HTML comment markers to preserve the removed rows for audit trail rather than deleting them outright.
 
 ---
@@ -130,24 +130,24 @@ v1.2 → v1.3: Removed soft "say more" prompt; split Award/Like terminology (Awa
 
 | File | Change Type | Description |
 |---|---|---|
-| decision-log.md | Modify | Row 5 (review prompt) updated; row 7 (Lists) reverted to v2; terminology row updated for Award/Like semantic split; Revision v1.3 row added |
-| product-spec.md | Modify + Add | §3.1 (Award clarified as self-only); §3.3 (drop "say more" prompt; add Likes + sort); §3.7 (Lists ref removed); §3.8 (Lists removed); §6 out-of-scope (Lists back to v2); FR-004 wording; REMOVE FR-021..FR-025 (Lists); ADD FR-031 (Like a review) + FR-032 (Sort reviews); top decisions list refreshed |
-| user-stories.md | Modify + Add + Remove | S-B3 reworded (Award = self-only); S-C1 (drop soft prompt AC); S-C2 (add sort options AC); ADD S-C4 (Like a review); REMOVE Cluster I S-I1..S-I6 (Lists); coverage table + counts updated |
-| user-journeys.md | Remove | Journey 4.5 (Lists) removed; cross-journey notes updated to clarify Award/Like distinction |
-| data-model.md | Modify + Add + Remove | Entity inventory: List+ListItem marked removed; Review.reactions renamed (award_count→likes_count, recent_awarders→recent_likers); REMOVE List+ListItem entities; ADD ReviewLike entity; relationship diagram + indexes updated |
-| notification-taxonomy.md | Modify + Remove | N-004 renamed (review.awarded→review.liked); REMOVE N-019 + N-020 (list notifications); settings UI updated; defaults summary recount |
+| decision-log.md | Modify | Row 5 (review prompt) updated; row 7 (Lists) reverted to v2; terminology row updated for Aux/Like semantic split; Revision v1.3 row added |
+| product-spec.md | Modify + Add | §3.1 (Aux clarified as self-only); §3.3 (drop "say more" prompt; add Likes + sort); §3.7 (Lists ref removed); §3.8 (Lists removed); §6 out-of-scope (Lists back to v2); FR-004 wording; REMOVE FR-021..FR-025 (Lists); ADD FR-031 (Like a review) + FR-032 (Sort reviews); top decisions list refreshed |
+| user-stories.md | Modify + Add + Remove | S-B3 reworded (Aux = self-only); S-C1 (drop soft prompt AC); S-C2 (add sort options AC); ADD S-C4 (Like a review); REMOVE Cluster I S-I1..S-I6 (Lists); coverage table + counts updated |
+| user-journeys.md | Remove | Journey 4.5 (Lists) removed; cross-journey notes updated to clarify Aux/Like distinction |
+| data-model.md | Modify + Add + Remove | Entity inventory: List+ListItem marked removed; Review.reactions renamed (aux_count→likes_count, recent_auxers→recent_likers); REMOVE List+ListItem entities; ADD ReviewLike entity; relationship diagram + indexes updated |
+| notification-taxonomy.md | Modify + Remove | N-004 renamed (review.auxed→review.liked); REMOVE N-019 + N-020 (list notifications); settings UI updated; defaults summary recount |
 | out-of-scope.md | Add + Remove | Lists row added back to v2 deferrals (with R1↔R3 history); collaborative-lists + auto-list-generation removed from v1.x (rolls up into v2 Lists capability) |
-| wireframes/02-home-feed.html | Modify | Action-row engagement counts: 🏅 N → 👍 N (4 entries) — entry-owner Award badge in stars row stays as 🏅 |
+| wireframes/02-home-feed.html | Modify | Action-row engagement counts: 🏅 N → 👍 N (4 entries) — entry-owner Aux badge in stars row stays as 🏅 |
 | wireframes/04-album-detail.html | Modify | Reviews section: added "Sort: Newest ▾ · Most Liked · Highest-Rated" header; added 👍 N count per review snippet |
 | product-spec/README.md | Modify | Status v1.2 → v1.3; counts updated (32 stories, 27 active FRs, 15 entities, 5 journeys); top decisions extended |
 | product-spec/digest.md | Modify | Revision #3 changes in header |
 | README.md (feature root) | Modify | Top decisions extended for R3 changes |
 
 **Agent notes:**
-- The Award/Like semantic split is the most consequential change. Award (🏅) is now strictly a self-directed signal on your own DiaryEntry ("this is one of my standouts in my diary"). Like (👍) is strictly an other-directed signal on someone else's Review ("I appreciate this writeup"). The two are unrelated data fields, unrelated icons, unrelated notification types. This matches Letterboxd's "heart on log + like on review" model rather than our unified-Award attempt in R1.
+- The Aux/Like semantic split is the most consequential change. Aux (🏅) is now strictly a self-directed signal on your own DiaryEntry ("this is one of my standouts in my diary"). Like (👍) is strictly an other-directed signal on someone else's Review ("I appreciate this writeup"). The two are unrelated data fields, unrelated icons, unrelated notification types. This matches Letterboxd's "heart on log + like on review" model rather than our unified-Aux attempt in R1.
 - A new entity `ReviewLike` was introduced (separate from the counter on Review) to support idempotent like-toggle, "did this user like this review" check, and un-like behavior. Counter on Review is denormalized for the Most-Liked sort.
 - Lists were elevated → returned: R1's work (Cluster I stories, FR-021..025, List/ListItem entities, N-019/020, Journey 4.5) is preserved in git history at commit-of-R1 if Lists return in a future revision. The current spec deliberately leaves FR-021..025 and N-019/020 as reserved-gaps rather than renumbering, to preserve audit trail.
 - The build estimate is back to 3–6 months — the R3 scope reduction (~5–8 weeks of Lists work) nets out against the small S-C4/FR-031/FR-032 addition.
-- Wireframes were updated to distinguish the two icons: 🏅 next to the rating stars = entry owner's Award badge; 👍 N as a count on the review = social Like engagement.
+- Wireframes were updated to distinguish the two icons: 🏅 next to the rating stars = entry owner's Aux badge; 👍 N as a count on the review = social Like engagement.
 
 ---

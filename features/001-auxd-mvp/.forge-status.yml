@@ -45,7 +45,7 @@ phases:
     completed_at: "2026-05-21T23:55:00Z"
     revisions_applied: 3
     final_version: "v1.3"
-    notes: "3 revisions applied. R1: Lists+Auto-prompt elevated, Spotify skippable, Heart→Award rename. R2: all 30 open questions resolved with locked decisions, FRs 028–030 added. R3: removed soft prompt, split Award/Like semantics, added Likes+sort, Lists reverted to v2."
+    notes: "3 revisions applied. R1: Lists+Auto-prompt elevated, Spotify skippable, Heart→Aux rename. R2: all 30 open questions resolved with locked decisions, FRs 028–030 added. R3: removed soft prompt, split Aux/Like semantics, added Likes+sort, Lists reverted to v2."
   bridge:
     status: "completed"
     started_at: "2026-05-21T23:55:30Z"
@@ -232,14 +232,14 @@ gates:
   - phase: "revalidation"
     decision: "approved"
     timestamp: "2026-05-21T23:55:00Z"
-    notes: "3 revisions of iterative refinement, then explicit APPROVED. R1: Lists+Auto-prompt elevated to MVP, Spotify connect made skippable, Heart→Award rename. R2: all 30 open questions (10 main + 20 supporting-doc) resolved; FRs 028–030 added for newly surfaced behavior. R3: removed soft 'say more' prompt, split Award (🏅 self) / Like (👍 social) semantics, added Likes-on-reviews + Most Liked sort, reverted Lists back to v2. Final spec: 32 stories, 27 active FRs, 18 active notification types, 15 entities, 5 journeys. Zero open questions at spec level. Build estimate: 3–6 months."
+    notes: "3 revisions of iterative refinement, then explicit APPROVED. R1: Lists+Auto-prompt elevated to MVP, Spotify connect made skippable, Heart→Aux rename. R2: all 30 open questions (10 main + 20 supporting-doc) resolved; FRs 028–030 added for newly surfaced behavior. R3: removed soft 'say more' prompt, split Aux (🏅 self) / Like (👍 social) semantics, added Likes-on-reviews + Most Liked sort, reverted Lists back to v2. Final spec: 32 stories, 27 active FRs, 18 active notification types, 15 entities, 5 journeys. Zero open questions at spec level. Build estimate: 3–6 months."
     conditions: []
     sync_result: "clean"
     skip_reason: null
   - phase: "bridge"
     decision: "approved"
     timestamp: "2026-05-22T00:06:00Z"
-    notes: "spec.md generated from product-spec v1.3 (classic SpecKit format). 14 sections; conditional sections (Prerequisites, EDA, Consumer Contract) correctly omitted for end-user feature with no prereqs/EDA. 32 Must-Have stories preserved with AC + IDs. Award/Like semantic split intact. Lists correctly absent (R3 deferral). Phase 5 prereqs surfaced: constitution ratification + Spotify Extended Quota Mode Day-1 application."
+    notes: "spec.md generated from product-spec v1.3 (classic SpecKit format). 14 sections; conditional sections (Prerequisites, EDA, Consumer Contract) correctly omitted for end-user feature with no prereqs/EDA. 32 Must-Have stories preserved with AC + IDs. Aux/Like semantic split intact. Lists correctly absent (R3 deferral). Phase 5 prereqs surfaced: constitution ratification + Spotify Extended Quota Mode Day-1 application."
     conditions: []
     sync_result: "clean"
     skip_reason: null

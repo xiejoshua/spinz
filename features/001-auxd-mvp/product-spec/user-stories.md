@@ -27,7 +27,7 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 
 **AC:**
 - Given I'm on the Spotify auth step, When the screen renders, Then I see a clear primary CTA "Connect Spotify" and an equally visible secondary "Skip — connect later" link, plus an explanation of what Spotify connect enables.
-- Given I tap Skip, When I confirm, Then I advance to "Follow 3" with critic-seed-only suggestions; my account is fully functional (manual log, reviews, backlog, awards all work); no "degraded mode" indicator is shown anywhere.
+- Given I tap Skip, When I confirm, Then I advance to "Follow 3" with critic-seed-only suggestions; my account is fully functional (manual log, reviews, backlog, auxes all work); no "degraded mode" indicator is shown anywhere.
 - Given I authorized Spotify, When the import completes, Then my diary shows up to 50 deduped album entries from the last 30 days with timestamps preserved.
 - Given the import is taking >5s, When I'm on the import screen, Then I see a progress indicator with the count of albums found and a "Continue without waiting" link.
 - Given Spotify returns no recent listens, When the import completes, Then I see a friendly empty state with a "Log your first album manually" CTA.
@@ -80,15 +80,15 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 - Given I'm rating on mobile, When I drag across stars, Then the rating tracks my finger.
 - Given I want no rating, When I close the rating widget without selecting, Then the entry saves without a rating.
 
-### S-B3: Award an album independently of rating
-**As Casey,** I want to "Award" an album that's a standout for me, separate from the star rating, so I have a personal-curation signal that's rarer and more deliberate than a rating.
+### S-B3: Aux an album independently of rating
+**As Casey,** I want to "Aux" an album that's a standout for me, separate from the star rating, so I have a personal-curation signal that's rarer and more deliberate than a rating.
 
 **AC:**
-- Given I'm in the Log sheet, When I tap the Award icon (🏅 medal/badge), Then it toggles on the diary entry independently of the rating; tapping again removes it.
-- Given I want to see all my Awarded albums, When I open my profile → Filters → "Awards", Then I see only Awarded entries in reverse-chronological order.
-- Given another user views an album detail page, When my Award is public, Then my avatar appears in the "Friends who rated &amp; awarded this" section.
+- Given I'm in the Log sheet, When I tap the Aux icon (🏅 medal/badge), Then it toggles on the diary entry independently of the rating; tapping again removes it.
+- Given I want to see all my Aux'd albums, When I open my profile → Filters → "Aux'd", Then I see only Aux'd entries in reverse-chronological order.
+- Given another user views an album detail page, When my Aux is public, Then my avatar appears in the "Friends who rated &amp; aux'd this" section.
 
-> *Award is for diary entries only (your own log).* Reviews can be "Liked" by other users (S-C4) — that's a different concept: Award (🏅) = self-directed curation on your own content; Like (👍) = other-directed social engagement on someone else's review. Semantics split in Revision #3.
+> *Aux is for diary entries only (your own log).* Reviews can be "Liked" by other users (S-C4) — that's a different concept: Aux (🏅) = self-directed curation on your own content; Like (👍) = other-directed social engagement on someone else's review. Semantics split in Revision #3.
 
 ### S-B4: Re-log an album (relisten)
 **As Maya,** I want to log the same album multiple times when I listen to it again, so my diary reflects my real listening history.
@@ -101,7 +101,7 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 **As Casey,** I want to fix typos in a review or remove an entry I logged by mistake, so my diary stays accurate.
 
 **AC:**
-- Given I'm on my diary entry, When I tap Edit, Then I can change rating, Award, review, visibility.
+- Given I'm on my diary entry, When I tap Edit, Then I can change rating, Aux, review, visibility.
 - Given I edited the entry, When I save, Then the entry shows an "edited" badge with timestamp on hover.
 - Given I tap Delete, When I confirm in a modal, Then the entry is soft-deleted (recoverable for 30 days; hard-deleted thereafter).
 
@@ -149,7 +149,7 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 **AC:**
 - Given I'm viewing someone else's review (album detail page, profile, feed), When I tap the Like button (👍), Then it toggles — the review's `likes_count` increments optimistically; the reviewer receives an N-004 (`review.liked`) notification.
 - Given I tap Like again, When it toggles off, Then the count decrements and no extra notification is generated (un-like is silent).
-- Given I'm viewing my OWN review, When I see the Like button, Then it's disabled with a "you can't like your own review" tooltip on hover. (My own diary entry can be Awarded, but my own review can't be self-Liked.)
+- Given I'm viewing my OWN review, When I see the Like button, Then it's disabled with a "you can't like your own review" tooltip on hover. (My own diary entry can be Aux'd, but my own review can't be self-Liked.)
 - Given I previously Liked a review, When I view it again, Then the Like button shows the active state.
 - Likes never appear in the weekly digest individually (per NT-4 they aggregate); they may show as part of the digest's "most-liked reviews from your follow graph this week" hero entry.
 
@@ -240,8 +240,8 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 **As Casey,** I want to see album info, tracklist, friends' ratings, and reviews on one page, so I can decide what to do (log, listen, save).
 
 **AC:**
-- Given I navigate to an album page, When it loads (SSR), Then I see: cover, title, artist, year, label, tracklist, my own log history if any, friends' ratings + awards, public reviews list, "Add to Up Next" + "Log" CTAs.
-- Given the album has multiple editions under the same MusicBrainz release-group MBID (Standard, Deluxe, Bonus, etc.), When the page renders, Then an "Edition" chip near the cover shows "All editions" with a dropdown to filter (per decision Q15 / FR-028). Default view aggregates ratings/reviews/awards across all editions.
+- Given I navigate to an album page, When it loads (SSR), Then I see: cover, title, artist, year, label, tracklist, my own log history if any, friends' ratings + auxes, public reviews list, "Add to Up Next" + "Log" CTAs.
+- Given the album has multiple editions under the same MusicBrainz release-group MBID (Standard, Deluxe, Bonus, etc.), When the page renders, Then an "Edition" chip near the cover shows "All editions" with a dropdown to filter (per decision Q15 / FR-028). Default view aggregates ratings/reviews/auxes across all editions.
 - Given the album has Open Graph metadata, When the URL is shared, Then the preview card shows cover + title + artist + average rating.
 - Given the album is missing from MusicBrainz/Spotify caches, When the page loads, Then it falls through to a cold-fetch (Spotify catalog) and caches the result for 7 days. If MusicBrainz MBID is not yet available, the album is created as a `candidate` record (per decision Q21) flagged for MBID reconciliation when MusicBrainz catches up.
 
@@ -347,7 +347,7 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 
 | Capability (§3 of product-spec) | Stories |
 |---|---|
-| Rate albums | S-B2, S-B3 (Award) |
+| Rate albums | S-B2, S-B3 (Aux) |
 | Log listens (diary) | S-B1, S-B4, S-B5, S-B6 (auto-prompt), S-A2, S-A3 |
 | Write/share reviews | S-C1, S-C2 (sort), S-C3, **S-C4 (Like)**, S-H5 |
 | Backlog / Up Next | S-D1, S-D2, S-D3 |

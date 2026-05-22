@@ -75,12 +75,12 @@ The MVP has **five user-facing capabilities** plus onboarding and social/identit
 
 ### 3.1 Rate albums
 - ½-star rating, 0–5 in halves (e.g., 3.5★).
-- Optional **"Award"** (🏅): a deliberate personal-curation signal on YOUR own diary entry — "this album is one of my standouts in my diary." Rare and intentional. Independent of the star rating. *(Distinct from "Like" — see §3.3 for Likes-on-reviews; the semantic split was finalized in Revision #3.)*
+- Optional **"Aux"** (🏅): a deliberate personal-curation signal on YOUR own diary entry — "this album is one of my standouts in my diary." Rare and intentional. Independent of the star rating. *(Distinct from "Like" — see §3.3 for Likes-on-reviews; the semantic split was finalized in Revision #3.)*
 - Re-rating allowed; history preserved in diary entries.
 - Ratings are public by default; per-entry visibility override (public / followers-only / private-diary).
 
 ### 3.2 Log listens (diary)
-- Each Log = one diary entry with: album, date, rating (optional), Award (optional), review (optional), visibility, source (manual / Spotify auto-import / Spotify just-finished-prompt / Last.fm import).
+- Each Log = one diary entry with: album, date, rating (optional), Aux (optional), review (optional), visibility, source (manual / Spotify auto-import / Spotify just-finished-prompt / Last.fm import).
 - Diary is chronological, never algorithmically reordered.
 - A user can log the same album multiple times (e.g., relistens, with different ratings).
 - When Spotify is connected: the system polls recently-played; on detecting an album was just finished, it surfaces an in-app prompt ("Just listened to {album} — log it?") and (opt-in) push. This is the **auto-prompt** feature. User-level setting `auto_prompt_enabled` (default ON). Quiet hours respected. Per-album dismissal sticks for 30 days.
@@ -92,7 +92,7 @@ The MVP has **five user-facing capabilities** plus onboarding and social/identit
 - Public-by-default visibility; per-review override.
 - No nag prompts on review length (the "say more" hint was removed in Revision #3).
 - Edits preserved with `edited_at` timestamp; latest version shown publicly with "edited" badge; internal 90-day revision history kept for moderation only (per FR-030).
-- **Other users can "Like" a review** (👍): a lightweight social engagement signal — distinct from the entry-owner's Award (🏅 — see §3.1). Reviews surface a Like counter and can be sorted by **Most Liked** in addition to Newest / Highest-Rated. *(Added in Revision #3.)*
+- **Other users can "Like" a review** (👍): a lightweight social engagement signal — distinct from the entry-owner's Aux (🏅 — see §3.1). Reviews surface a Like counter and can be sorted by **Most Liked** in addition to Newest / Highest-Rated. *(Added in Revision #3.)*
 
 ### 3.4 Maintain backlog ("Up Next")
 - A list of albums the user intends to listen to.
@@ -120,7 +120,7 @@ The MVP has **five user-facing capabilities** plus onboarding and social/identit
 - Follow graph: asymmetric (X follows Y, Y doesn't have to follow back; like Twitter, not Facebook).
 - Block (user level) + report (per-content) — minimal moderation surface for MVP.
 
-> **§3.8 Curated Lists was elevated to MVP in Revision #1, then reverted to v2 in Revision #3** (2026-05-21). See [out-of-scope.md](./out-of-scope.md) and [decision-log.md](./decision-log.md) row 7 for the trade-off discussion. The MVP refocuses on the core wedge: log + rate + Award + review + backlog + social-feed.
+> **§3.8 Curated Lists was elevated to MVP in Revision #1, then reverted to v2 in Revision #3** (2026-05-21). See [out-of-scope.md](./out-of-scope.md) and [decision-log.md](./decision-log.md) row 7 for the trade-off discussion. The MVP refocuses on the core wedge: log + rate + Aux + review + backlog + social-feed.
 
 ---
 
@@ -131,7 +131,7 @@ The MVP has **five user-facing capabilities** plus onboarding and social/identit
 | FR-001 | Users can sign up via email/password or Spotify OAuth | Must | OAuth shortcut auto-creates account |
 | FR-002 | Users can connect Spotify account via OAuth 2.0 PKCE (optional — skippable at signup and connectable later from settings) | Must | **Essential scopes at MVP:** `user-read-recently-played`, `user-read-currently-playing`, `user-library-read`. `playlist-read-private` deferred (request lazily if Lists ever ingest from playlists). Skipping = product works fully; no "degraded mode". |
 | FR-003 | System auto-imports last 30 days of recently-played albums on Spotify connect (whether at signup or later) | Must | Albums = aggregated from track-level history; dedup to album-grain |
-| FR-004 | Users can log an album with ½-star rating, Award (🏅), and optional review | Must | Single bottom-sheet UX; <8s commit target. Award is the entry-owner's personal "standout" signal — distinct from Likes on reviews (FR-031). |
+| FR-004 | Users can log an album with ½-star rating, Aux (🏅), and optional review | Must | Single bottom-sheet UX; <8s commit target. Aux is the entry-owner's personal "standout" signal — distinct from Likes on reviews (FR-031). |
 | FR-005 | Users can search the album catalog (Spotify catalog + MusicBrainz fallback) | Must | Atlas Search index on cached metadata |
 | FR-006 | Users can add an album to "Up Next" (backlog) | Must | Private by default |
 | FR-007 | Users have a chronological diary visible on their profile | Must | Public by default; per-entry override |
@@ -150,11 +150,11 @@ The MVP has **five user-facing capabilities** plus onboarding and social/identit
 | FR-020 | All forms validate client + server side | Must | Standard practice |
 <!-- FR-021..FR-025 RESERVED — were Lists FRs in Revision #1, removed in Revision #3 (Lists deferred to v2). IDs preserved for audit; not reassigned. -->
 | FR-026 | When Spotify is connected, the system surfaces a "just-finished" prompt on detecting a finished album | Must | In-app default ON; push opt-in. Per-user `auto_prompt_enabled` and quiet-hours respected. Per-album dismissal sticks for 30 days. |
-| FR-027 | Settings → Integrations exposes Spotify connect/disconnect status and a "back-fill diary" trigger | Must | Skipped-at-signup users use this to connect later. **On disconnect:** the diary persists immutably — all DiaryEntry / Rating / Review / Award / Follow remains; only auto-import + auto-prompt + Log-sheet prefill stop. Reconnect resumes from next polling cycle; no gap back-fill. A small "Disconnected on YYYY-MM-DD" note is shown in Settings only. |
+| FR-027 | Settings → Integrations exposes Spotify connect/disconnect status and a "back-fill diary" trigger | Must | Skipped-at-signup users use this to connect later. **On disconnect:** the diary persists immutably — all DiaryEntry / Rating / Review / Aux / Follow remains; only auto-import + auto-prompt + Log-sheet prefill stop. Reconnect resumes from next polling cycle; no gap back-fill. A small "Disconnected on YYYY-MM-DD" note is shown in Settings only. |
 | FR-028 | Album detail page surfaces an "Edition" chip with dropdown when an album has multiple editions under the same release-group MBID | Must | Default: "All editions" view (aggregates ratings/reviews/likes). Dropdown: Standard / Deluxe / Bonus / etc. Ratings/reviews/likes aggregate across all editions; the chip is filter-only, not data-partition. |
 | FR-029 | Users can change their handle (`@`) at most once per 30 days; first change is locked for the first 30 days after account creation | Must | 200–500 obvious-squat candidates reserved at launch; abandoned handles re-usable 90d post-deletion with redirect to prevent link-rot. No paid claim service. |
 | FR-030 | Users can edit a published review; the latest version is shown publicly with an "edited" badge; an internal 90-day revision history is preserved for moderation | Must | Edit-history is NOT public. Internal log includes prior versions + edit timestamps + edit-event hashes for tamper detection. |
-| FR-031 | Users can "Like" (👍) other users' reviews — a lightweight social engagement signal distinct from the entry-owner's Award | Must | Idempotent toggle; per-user, per-review. Like is on the Review only (not on DiaryEntry); Award stays on the entry owner's DiaryEntry. Notifications generated per N-004 (review.liked). |
+| FR-031 | Users can "Like" (👍) other users' reviews — a lightweight social engagement signal distinct from the entry-owner's Aux | Must | Idempotent toggle; per-user, per-review. Like is on the Review only (not on DiaryEntry); Aux stays on the entry owner's DiaryEntry. Notifications generated per N-004 (review.liked). |
 | FR-032 | Reviews on album-detail and profile surfaces can be sorted by Newest (default), Most Liked, or Highest-Rated | Must | Sort persists per-device; "Most Liked" surfaces engagement-validated reviews; "Highest-Rated" surfaces the reviewer's rating order. Sort applies to the reviews list, not to other surfaces. |
 
 ---
@@ -243,7 +243,7 @@ Top decisions locked across Phase 2 + Phase 3 Revisions #1–#3:
 10. Heuristic social-graph recs only (no ML at MVP)
 11. PWA + responsive web only (no native at MVP)
 12. Atlas Search for catalog search
-13. **Award (🏅) vs Like (👍) — split semantics** — *R1 unified as Award; R3 split into Award (self) + Like (social)*
+13. **Aux (🏅) vs Like (👍) — split semantics** — *R1 unified as Aux; R3 split into Aux (self) + Like (social)*
 14. **No "say more" soft prompt on short reviews** — *R3 removed*
 15. **Reviews are Likeable + sortable by Most Liked** — *R3 added*
 

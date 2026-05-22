@@ -40,5 +40,5 @@
 - **Contract tests (§16.3) for Spotify + MusicBrainz are gating** — Principle 4 says tests-first for catalog/auth edges, so the Spotify provider task chain is contract-test-first.
 - **The 6-principle constitution is the architecture's load-bearing contract** — every module that violates a principle should be flagged in code review (Phase 6B). Phase 5B should reference principles in task descriptions where relevant.
 - **Lists work must NOT appear in tasks.md.** Lists were elevated in R1 and reverted to v2 in R3. The plan correctly omits them; tasks.md should too.
-- **The Award (🏅) vs Like (👍) split must be preserved in implementation.** Don't let a well-meaning task collapse them — they're distinct data fields, distinct UI icons, distinct notification types.
+- **The Aux (🏅) vs Like (👍) split must be preserved in implementation.** Don't let a well-meaning task collapse them — they're distinct data fields, distinct UI icons, distinct notification types.
 - **Phase 5.5 (Migration Plan)** will trigger after tasks.md because the data model has a non-empty "Data Model" section (per plan §3). For greenfield, the "migration" is the initial schema setup; for downstream changes it's the standard schema-versioned migration pattern from Constitution Principle 2.

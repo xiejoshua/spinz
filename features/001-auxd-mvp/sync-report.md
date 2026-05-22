@@ -58,7 +58,7 @@
 
 ## Layer 2 — product-spec ↔ spec.md
 
-**Status:** 0 CRITICAL, 4 WARNING, 5 INFO. R3 Lists reversion correctly applied. Award/Like split correctly bridged.
+**Status:** 0 CRITICAL, 4 WARNING, 5 INFO. R3 Lists reversion correctly applied. Aux/Like split correctly bridged.
 
 ### DRIFT-L2-001 — US-B6 referenced but no story body
 
@@ -81,9 +81,9 @@
 | Severity | WARNING |
 | Category | structural |
 | Source | `spec.md:298` |
-| Source evidence | `\| Frontend \| `app/@[handle]` \| Profile; diary; filters (Awards, hearted, public-only) \|` |
-| Target | R3 Decision #9 (Award/Like split — `spec.md:27`) |
-| Expected | `filters (Awards, public-only)` (no DiaryEntry-level Likes filter; Likes are on Reviews) |
+| Source evidence | `\| Frontend \| `app/@[handle]` \| Profile; diary; filters (Aux'd, hearted, public-only) \|` |
+| Target | R3 Decision #9 (Aux/Like split — `spec.md:27`) |
+| Expected | `filters (Aux'd, public-only)` (no DiaryEntry-level Likes filter; Likes are on Reviews) |
 | Actual | "hearted" relic from pre-R1 naming still present |
 | Resolution | Edit `spec.md:298` — drop "hearted" from filter list |
 
@@ -109,7 +109,7 @@
 | Severity | WARNING |
 | Category | structural |
 | Source | `product-spec/user-stories.md:30` (S-A2 AC); `product-spec/user-journeys.md:35` (Journey 1 alt path) |
-| Source evidence | "manual log, **Lists**, reviews, backlog, awards all work" |
+| Source evidence | "manual log, **Lists**, reviews, backlog, auxes all work" |
 | Target | R3 Lists deferral |
 | Expected | No mention of "Lists" as MVP feature |
 | Actual | "Lists" remains in two PS locations; spec.md correctly omits |
@@ -143,7 +143,7 @@
 |-------|-------|
 | Severity | INFO |
 | Category | structural |
-| Source | spec.md cluster labels enriched ("Cluster B — Logging, rating, Award, auto-prompt") vs PS labels |
+| Source | spec.md cluster labels enriched ("Cluster B — Logging, rating, Aux, auto-prompt") vs PS labels |
 | Resolution | Accept as deliberate enrichment OR normalize. No functional impact |
 
 ### DRIFT-L2-007 — PS S-G3 AC count needs update (INFO, PS is stale)
