@@ -405,9 +405,9 @@ Decisions previously deferred have been resolved at spec level. Final implementa
 
 - **DM-1 — Fan-out-on-read at MVP.** Switch to fan-out-on-write only if feed query p95 exceeds 200ms (re-evaluate in Phase 5 from load model).
 - **DM-2 — Cover-art: proxy Spotify CDN.** No S3 cache; client-side blurhash placeholders only.
-- **DM-3 — Reactions on Reviews (aux_count): ship visible at MVP.** No feature-flag gating; volume will be low and that's fine.
+- **DM-3 — Reactions on Reviews (`likes_count`, R3 rename — was `aux_count` in R1): ship visible at MVP.** No feature-flag gating; volume will be low and that's fine.
 - **DM-4 — Tracklist denormalized into Album docs at MVP.** Revisit if Album docs balloon (>~20KB).
-- **DM-5 — Soft-deleted DiaryEntry: cascade reactions.** Don't leave orphan aux counts.
+- **DM-5 — Soft-deleted DiaryEntry: cascade reactions.** Don't leave orphan ReviewLike rows or stale `likes_count` aggregates.
 
 ## Remaining Phase 5 (technical) decisions
 

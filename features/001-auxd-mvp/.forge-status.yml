@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-22T03:50:00Z"
+last_updated: "2026-05-22T17:30:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -278,16 +278,16 @@ gates:
     skip_reason: null
 
 sync_runs:
-  last_run: "2026-05-22T02:35:00Z"
-  total_runs: 1
-  last_drift_count: 33
+  last_run: "2026-05-22T17:00:00Z"
+  total_runs: 2
+  last_drift_count: 25
   last_critical_count: 0
-  last_warning_count: 19
-  last_info_count: 14
-  last_structural_count: 27
-  last_cosmetic_count: 6
+  last_warning_count: 3
+  last_info_count: 22
+  last_structural_count: 24
+  last_cosmetic_count: 3
   last_verdict: "RESOLVED_WITH_OVERRIDE"
-  last_verdict_note: "Run #1: 0 CRITICAL findings; CRITICAL DRIFT verdict was driven by structural:0 budget rule. User applied recommended split — 10 inline cleanups applied; 10 plan-level items backlogged to sync-fix-list.md for Phase 6; 2 items deferred (i18n + Last.fm Should-Have); 14 INFOs skipped as advisory. Gate overridden — Phase 6 implementation cleared to start."
+  last_verdict_note: "Run #2: 0 CRITICAL findings; 10 inline cleanups applied (incl. L1-003 OAuth scopes widened from 3→5 — added user-read-email + user-read-private to unblock S-A1); 13 advisory recurring items skipped; gate overridden. Run #1 backlog items (10) all verified landed; 10 inline cleanups all hold. Aux + brand rename clean."
   last_report_path: "sync-report.md"
   last_fix_list_path: "sync-fix-list.md"
   runs:
@@ -333,6 +333,77 @@ sync_runs:
         - "DRIFT-L3-008: Last.fm provider scaffolding (Should-Have FR-017)"
       info_skipped: 14
       next_action: "Begin Phase 6 implementation. Re-run sync-verify before Phase 6B code-review."
+    - run: 2
+      date: "2026-05-22"
+      layers_checked: [1, 2, 3, 4, 5, 7]
+      layers_skipped: [6]
+      layers_skipped_reason: "Layer 6 premature — feature only 4/183 implemented"
+      critical: 0
+      warning: 3
+      info: 22
+      structural: 24
+      cosmetic: 3
+      verdict: "DRIFT_DETECTED"
+      run_1_backlog_verified_landed: true
+      run_1_inline_cleanups_holding: true
+      aux_rename_audit: "clean (display Aux'd / code auxed / 🏅 icon all consistent; one stale aux_count in DM-3 still references pre-R3 field name)"
+      brand_rename_audit: "clean (0 spinz/Spinz/spinz_api/001-spinz-mvp residuals)"
+      new_warnings:
+        - "DRIFT-L2-007 (recurring, escalated): PS S-G3 AC says '20 types incl list-related events' — stale post-R3; spec.md correctly says '18 active'"
+        - "DRIFT-L7-011: broken anchor #n-018 in user-stories.md → notification-taxonomy.md (N-018 is a table row, not a heading)"
+        - "DRIFT-L7-012: short-form anchor #drift-l2-003 in spec.md doesn't match GitHub full slug"
+      new_info:
+        - "DRIFT-L1-002: Apple Music re-eval threshold drifted from >15% (research) to >30% (out-of-scope.md) without rationale"
+        - "DRIFT-L1-003: Spotify OAuth essential scopes narrower than research recommends — missing user-read-email + user-read-private needed for S-A1 OAuth-shortcut signup flow"
+        - "DRIFT-L2-010: spec.md §7 prose '15 entities' vs grouped table effectively shows 16 with ReviewLike"
+        - "DRIFT-L2-011: data-model.md DM-3 references `aux_count` — was renamed to `likes_count` in R3"
+        - "DRIFT-L2-012: 'heart row' / '❤️ heart action' terminology in user-journeys.md J2 + J3 — survived both R1 and R3 renames"
+        - "DRIFT-L2-013: product-spec/digest.md body has stale R1-era counts (37 stories / 9 clusters / 17 types / 14 entities); only top revision header tracks R3 state"
+        - "DRIFT-L3-011: plan.md §6 typo `actiion_report` (double-i) → should be `action_report`"
+        - "DRIFT-L3-012: plan.md §4.6 leaves disconnect_spotify/trigger_diary_backfill module placement ambiguous (auth/ vs new integrations/); §1.2 file tree only lists auth/"
+        - "DRIFT-L7-013: implementation-log.md is a new Phase-6 artifact, currently orphan (no markdown link from any other doc)"
+      recurring_info_unchanged:
+        - "DRIFT-L1-001 (W1 activation narrowing)"
+        - "DRIFT-L2-004 / L2-005 (FR trace tags)"
+        - "DRIFT-L2-006 (cluster name enrichment)"
+        - "DRIFT-L2-009 (entity count ambiguity)"
+        - "DRIFT-L3-009 (/critics route in plan, no spec backing)"
+        - "DRIFT-L3-010 (handle collision suggestion algorithm incomplete)"
+        - "DRIFT-L4-005 (4 satellite collections still missing from plan §3.1 inventory)"
+        - "DRIFT-L7-004..008 (5 phase-digest orphans by convention)"
+      resolved_since_run_1:
+        - "DRIFT-L7-009: migrations/digest.md now indexed by migrations/migration-plan.md"
+      disposition: "applied_split_with_override"
+      gate_override:
+        granted: true
+        granted_at: "2026-05-22T17:30:00Z"
+        reason: "0 CRITICAL findings. structural:0 budget is strict by policy; of 25 structural items, 10 are recurring advisory already accepted in Run #1, 10 are now resolved inline this run, 5 are deferred (L1-002 Apple Music threshold + 4 phase-digest orphans). Phase 6 continues at 4/183 tasks complete."
+      inline_applied:
+        - "L2-007: PS S-G3 AC count 20 → 18 active (N-019/N-020 reserved-gap)"
+        - "L2-010: spec.md §7 entity count 15 → 16 (incl. ReviewLike); also propagated to product-spec/README.md"
+        - "L2-011: data-model.md DM-3 aux_count → likes_count; DM-5 + decision-log DM-5 narrative aligned"
+        - "L2-012: user-journeys.md J2 heart row → Aux row (🏅); J2 alt rating/heart/review → rating/Aux/review; J3 ❤️ heart action → 👍 Like action (FR-031)"
+        - "L2-013: product-spec/digest.md body refreshed to R3 state (30/8/18/16 — was 37/9/17/14)"
+        - "L3-011: plan.md §6 typo actiion_report → action_report"
+        - "L3-012: plan.md §4.6 module placement locked to auth/ (removes ambiguity vs §1.2 file tree)"
+        - "L7-011: user-stories.md S-B6 broken anchor #n-018 → links to 'Notification types' + 'Anti-spam guardrails' headings"
+        - "L7-012: spec.md short-form anchor #drift-l2-003 → full GitHub slug"
+        - "L1-003: Spotify OAuth essential scopes widened 3 → 5 (added user-read-email + user-read-private); propagated across product-spec.md FR-002, decision-log Q22 v1.3, spec.md §0 decision #17 + FR-002 row, plan.md §4.4, tasks.md T002"
+      skipped_advisory_recurring:
+        - "L1-001 W1 activation narrowing"
+        - "L2-004 / L2-005 FR trace tags"
+        - "L2-006 cluster name enrichment"
+        - "L2-009 entity inventory ReviewLike row (partially mooted by L2-010 reconciliation)"
+        - "L3-009 /critics route in plan, no spec backing"
+        - "L3-010 handle collision suggestion algorithm incomplete"
+        - "L4-005 4 satellite collections (handle_redirects/gdpr_audit_log/failed_emails/feed_buckets) still missing from plan §3.1 inventory"
+        - "L7-004..008 5 phase-digest orphans (convention question)"
+        - "L7-013 implementation-log.md orphan (same convention class)"
+      deferred:
+        - "L1-002 Apple Music re-eval threshold drift 15% → 30% (no rationale)"
+      resolved_organically_since_run_1:
+        - "L7-009 migrations/digest.md now indexed by migrations/migration-plan.md"
+      next_action: "Continue Phase 6 implementation. Re-run sync-verify between Phase 6B (code review) and Phase 7 (full verify) when Layer 6 (spec ↔ code) becomes meaningful."
 
 change_requests: []
 

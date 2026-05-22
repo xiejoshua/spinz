@@ -60,7 +60,7 @@
       Size: S
       Deps: —
       Refs: plan §0 Task 1; decision-log Q22
-      Description: Submit application via Spotify Developer Dashboard. Include business description (wedge thesis from spec.md §1.3), required scopes (`user-read-recently-played`, `user-read-currently-playing`, `user-library-read`), privacy policy URL placeholder, ToS URL placeholder. **Parallel work** — does not block other tasks but is on the 2–6 week external critical path.
+      Description: Submit application via Spotify Developer Dashboard. Include business description (wedge thesis from spec.md §1.3), required scopes (5 essential per Q22 v1.3 / sync-fix Run #2: `user-read-email`, `user-read-private`, `user-read-recently-played`, `user-read-currently-playing`, `user-library-read`), privacy policy URL placeholder, ToS URL placeholder. **Parallel work** — does not block other tasks but is on the 2–6 week external critical path.
       Done: application submitted; reference ID captured in `docs/spotify-application.md`.
 
 - [x] **T003 — Monorepo scaffolding (pnpm + uv + workspaces)** *(verified 2026-05-22: pnpm install ✓, uv sync ✓, both dev servers boot ✓, frontend resolves @auxd/shared-types via workspace:* protocol — implementation-log.md checkpoint #3)*

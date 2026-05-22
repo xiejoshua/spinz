@@ -115,7 +115,7 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 - Given I tap "Not now", When the prompt dismisses, Then the same album will not re-prompt me for 30 days.
 - Given I tap "⋮ menu", When I select "Don't prompt me for this album" or "Disable auto-prompts", Then per-album mute or global opt-out (`auto_prompt_enabled=false`) applies immediately and persists.
 - Given I am inside my configured quiet hours, When detection fires, Then the prompt is queued and surfaces on the next open outside quiet hours; if it ages past 24h it expires silently.
-- Given I have opted into auto-prompt push (`auto_prompt_push_enabled=true`), When detection fires outside quiet hours, Then at most one push per day is delivered (per N-018 + coalescer rate-limit policy in [notification-taxonomy.md](./notification-taxonomy.md#n-018)).
+- Given I have opted into auto-prompt push (`auto_prompt_push_enabled=true`), When detection fires outside quiet hours, Then at most one push per day is delivered (per N-018 — see the [Notification types table](./notification-taxonomy.md#notification-types-full-enumeration) and [Anti-spam guardrails](./notification-taxonomy.md#anti-spam-guardrails-locked-in-phase-5c--resolves-a-003-from-pre-impl-review) in notification-taxonomy.md).
 - Given `auto_prompt_enabled=false`, When detection fires, Then no prompt card, no push, no entry is ever created from auto-detection.
 
 > See [user-journeys.md § Journey 1.5](./user-journeys.md#journey-15-just-finished-auto-prompt-casey-spotify-connected-returning-added-in-revision-1) for the full happy path and drop-off mitigations, and FR-026 in [product-spec.md](./product-spec.md) for the requirement summary.
@@ -281,7 +281,7 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 **As Casey,** I want to turn off individual notification types (including auto-prompts), so I'm not overwhelmed.
 
 **AC:**
-- Given I'm on Settings → Notifications, When the page renders, Then I see every notification type from [notification-taxonomy.md](./notification-taxonomy.md) (20 types including auto-prompts and list-related events) with per-channel toggles (in-app, email, push).
+- Given I'm on Settings → Notifications, When the page renders, Then I see every notification type from [notification-taxonomy.md](./notification-taxonomy.md) (18 active types including auto-prompts; N-019/N-020 reserved-gap after Lists removal in R3) with per-channel toggles (in-app, email, push).
 - Given I toggle off "weekly digest", When I save, Then I stop receiving the weekly summary email.
 - Given I toggle on "real-time push for follows", When someone follows me, Then I get a push within 30 seconds (best-effort).
 - Given I toggle off "Just-finished prompt", When the auto-prompt detection runs, Then no prompts are surfaced (in-app or push).

@@ -14,18 +14,18 @@
 ## Key decisions
 
 - **Target users:** Casey (casual Spotify listener 18–35, primary), Maya (engaged listener, secondary), Jamie (tastemaker/critic — also the cold-start seed roster).
-- **Scope (post-Revision #1):** 37 Must-Have user stories across 9 capability clusters (onboarding, log/rate/aux, reviews, backlog, social graph, album detail/search, **Lists**, profile/settings/privacy, alternative imports). Apple Music, ALS recs, Wrapped, native mobile, collaborative Lists → v2.
+- **Scope (post-Revision #3, sync-fix Run #1 + Run #2):** 30 Must-Have user stories across 8 active capability clusters (onboarding, log/rate/aux, reviews+likes+sort, backlog, social graph, album detail/search, profile/settings/privacy; Cluster I Lists tombstoned). Apple Music, ALS recs, Wrapped, native mobile, Lists, Last.fm import → v2 or Should-Have.
 - **Top 3 user stories (load-bearing):** S-A2 (auto-import last 30 days on Spotify connect — gates activation), S-B1 (log album in <8 seconds — the wedge interaction), S-E3 (weighted-reverse-chronological feed — the social-graph thesis surface).
-- **Two first-class supporting docs:** notification-taxonomy.md (17 types, conservative defaults, anti-Goodreads-firehose discipline) and seeding-strategy.md (4-pronged cold-start: critic roster + Last.fm import + invites + mutual-follow nudge).
-- **Structural decisions locked:** Spotify-only at launch (skippable at signup); ½-star rating; public-by-default; **Lists + Auto-prompt in MVP**; "Aux" replaces "Heart"; MusicBrainz MBID canonical / Spotify ID fallback; provider-interface abstraction; PWA-only; no paid tier at launch.
+- **Two first-class supporting docs:** notification-taxonomy.md (18 active types, N-019/N-020 reserved-gap, conservative defaults, anti-Goodreads-firehose discipline) and seeding-strategy.md (4-pronged cold-start: critic roster + Last.fm import + invites + mutual-follow nudge).
+- **Structural decisions locked:** Spotify-only at launch (skippable at signup); ½-star rating; public-by-default; **Auto-prompt in MVP; Lists deferred to v2 (R3)**; "Aux" replaces "Heart"; Aux/Like semantic split — Aux (🏅) is self-curation on own DiaryEntry, Like (👍) is social engagement on others' Reviews (R3); MusicBrainz MBID canonical / Spotify ID fallback; provider-interface abstraction; PWA-only; no paid tier at launch.
 
 ## Artifacts produced
 
-- `product-spec/product-spec.md` — main PRD (~2,700 words). Personas, capabilities, FR-001 to FR-020, NFRs, risks, top-level decision log, 10 open questions.
-- `product-spec/user-stories.md` — 35 stories with Given/When/Then ACs, grouped by capability cluster.
-- `product-spec/user-journeys.md` — 5 primary journeys (onboarding, log-in-<8s, social-graph-discover, backlog management, write/share review) with alternatives, drop-off points, metric goals.
-- `product-spec/data-model.md` — 14 entities with field-level sketches, visibility rules, preliminary indexes, deferrals to Phase 5.
-- `product-spec/notification-taxonomy.md` — 17 notification types, per-channel defaults, anti-spam guardrails, settings UI, anti-pattern bans.
+- `product-spec/product-spec.md` — main PRD (~2,700 words). Personas, capabilities, FR-001 to FR-020 + FR-026..FR-032 (27 active; FR-021..025 reserved-gap), NFRs, risks, top-level decision log.
+- `product-spec/user-stories.md` — 30 Must-Have + 2 Should-Have + 3 Could-Have stories with Given/When/Then ACs, grouped by capability cluster.
+- `product-spec/user-journeys.md` — 5 primary journeys (onboarding, just-finished-auto-prompt, log-in-<8s, social-graph-discover, backlog management) with alternatives, drop-off points, metric goals. Journey 4.5 (Lists) tombstoned.
+- `product-spec/data-model.md` — 16 active entities (incl. ReviewLike + FollowRequest) with field-level sketches, visibility rules, preliminary indexes, deferrals to Phase 5.
+- `product-spec/notification-taxonomy.md` — 18 active notification types (N-001 to N-018; N-019/N-020 reserved-gap), per-channel defaults, anti-spam guardrails, settings UI, anti-pattern bans.
 - `product-spec/seeding-strategy.md` — 4-pronged cold-start strategy, founder pre-launch playbook (L-12 to L 0), operational levers.
 - `product-spec/success-metrics.md` — North Star (WAL), M3/M6 targets, leading indicators, guardrails, anti-metrics.
 - `product-spec/out-of-scope.md` — v2 deferrals, permanent exclusions, v1.x candidates.

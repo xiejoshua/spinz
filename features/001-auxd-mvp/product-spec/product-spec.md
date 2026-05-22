@@ -129,7 +129,7 @@ The MVP has **five user-facing capabilities** plus onboarding and social/identit
 | ID | Requirement | Priority | Notes |
 |---|---|---|---|
 | FR-001 | Users can sign up via email/password or Spotify OAuth | Must | OAuth shortcut auto-creates account |
-| FR-002 | Users can connect Spotify account via OAuth 2.0 PKCE (optional — skippable at signup and connectable later from settings) | Must | **Essential scopes at MVP:** `user-read-recently-played`, `user-read-currently-playing`, `user-library-read`. `playlist-read-private` deferred (request lazily if Lists ever ingest from playlists). Skipping = product works fully; no "degraded mode". |
+| FR-002 | Users can connect Spotify account via OAuth 2.0 PKCE (optional — skippable at signup and connectable later from settings) | Must | **Essential scopes at MVP (sync-fix Run #2 — widened from 3 → 5 to support S-A1 OAuth-shortcut signup):** `user-read-email` (populate `User.email` from OAuth), `user-read-private` (populate `display_name` from OAuth), `user-read-recently-played` (auto-import + just-finished), `user-read-currently-playing` (just-finished — confirms completion), `user-library-read` (saved albums for backlog hints). `playlist-read-private`, `user-top-read`, `user-follow-read` deferred (request lazily if features that need them ever ship). Skipping = product works fully; no "degraded mode". |
 | FR-003 | System auto-imports last 30 days of recently-played albums on Spotify connect (whether at signup or later) | Must | Albums = aggregated from track-level history; dedup to album-grain |
 | FR-004 | Users can log an album with ½-star rating, Aux (🏅), and optional review | Must | Single bottom-sheet UX; <8s commit target. Aux is the entry-owner's personal "standout" signal — distinct from Likes on reviews (FR-031). |
 | FR-005 | Users can search the album catalog (Spotify catalog + MusicBrainz fallback) | Must | Atlas Search index on cached metadata |
@@ -266,6 +266,6 @@ For completeness, the resolutions:
 | Q19 | Diary persistence on Spotify disconnect? | **Yes — immutable; reconnect does not back-fill the gap** |
 | Q20 | Seed graph: artists or critics-only? | **Critics + curators only at MVP; artists a separate v1.x cohort** |
 | Q21 | Albums released during reach-back window? | **Included naturally; lazy-fetch from Spotify catalog if not in MusicBrainz yet** |
-| Q22 | Spotify OAuth scopes — essential vs nice-to-have? | **Essential: recently-played, currently-playing, library-read. playlist-read-private deferred** |
+| Q22 | Spotify OAuth scopes — essential vs nice-to-have? | **Essential (sync-fix Run #2 widening): user-read-email, user-read-private, user-read-recently-played, user-read-currently-playing, user-library-read. playlist-read-private, user-top-read, user-follow-read deferred.** |
 
 > Zero open questions remain at spec level. Technical decisions deferred to Phase 5 (fan-out strategy, Atlas Search tuning, etc.) are documented in [decision-log.md §Decisions deferred to Phase 5](./decision-log.md).

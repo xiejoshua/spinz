@@ -32,7 +32,7 @@ These 17 decisions are non-negotiable inputs to Phase 5 (plan). Each links back 
 14. **Diary persists immutably on Spotify disconnect** — reconnect does not back-fill the gap
 15. **Reviews edits** allowed; public surface shows latest version + "edited" badge; 90-day internal audit log preserved
 16. **Handles** immutable for first 30 days after account creation, then changeable once per 30 days; 200–500 obvious-squat candidates reserved at launch
-17. **Spotify OAuth scopes** locked: `user-read-recently-played`, `user-read-currently-playing`, `user-library-read` only at MVP (`playlist-read-private` deferred)
+17. **Spotify OAuth scopes** locked (5 essential, sync-fix Run #2): `user-read-email`, `user-read-private`, `user-read-recently-played`, `user-read-currently-playing`, `user-library-read`. `playlist-read-private`/`user-top-read`/`user-follow-read` deferred.
 
 > **Phase 5 prerequisite — Constitution gap:** `.specify/memory/constitution.md` is currently the unfilled template. Phase 5 MUST either run `/speckit.constitution` to ratify principles OR include constitution ratification as Task 0 before any feature work. Recommended principles from [research/codebase-analysis.md](./research/codebase-analysis.md): external-call resilience, schema-versioned documents, library-first modules, test-first for catalog/auth edges, observability mandatory.
 
@@ -119,7 +119,7 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 > Full G/W/T acceptance criteria for every story: [product-spec/user-stories.md](./product-spec/user-stories.md)
 > User journeys / flow narratives: [product-spec/user-journeys.md](./product-spec/user-journeys.md)
-> 30 Must-Have, 2 Should-Have, 3 Could-Have *(count reconciled in sync-verify Run #1 — see [sync-report.md](./sync-report.md#drift-l2-003))*
+> 30 Must-Have, 2 Should-Have, 3 Could-Have *(count reconciled in sync-verify Run #1 — see [sync-report.md](./sync-report.md#drift-l2-003-story-count-claim-32-vs-enumerated-bodies-30))*
 
 ### Must Have (MVP — 30 stories)
 
@@ -193,7 +193,7 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 | ID | Requirement | Priority | Source story |
 |---|---|---|---|
 | FR-001 | Sign up via email/password or Spotify OAuth shortcut | Must | US-A1 |
-| FR-002 | Connect Spotify via OAuth 2.0 PKCE; optional and skippable. Scopes locked: `user-read-recently-played`, `user-read-currently-playing`, `user-library-read` (per Q22) | Must | US-A2 |
+| FR-002 | Connect Spotify via OAuth 2.0 PKCE; optional and skippable. Scopes locked (5 essential, sync-fix Run #2 — per Q22 v1.3): `user-read-email`, `user-read-private`, `user-read-recently-played`, `user-read-currently-playing`, `user-library-read` | Must | US-A2 |
 | FR-003 | Auto-import last 30 days of recently-played on Spotify connect | Must | US-A3 |
 | FR-004 | Log an album with ½-star rating, Aux (🏅), and optional review in a single bottom sheet | Must | US-B1, US-B2, US-B3, US-C1 |
 | FR-005 | Album catalog search (Atlas Search + Spotify search merge) | Must | US-F2 |
@@ -304,7 +304,7 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 
 ### Data model impact
 
-15 entities (see [product-spec/data-model.md](./product-spec/data-model.md) for field-level sketch). Final indexes + collection layout in Phase 5.
+16 active entities (see [product-spec/data-model.md](./product-spec/data-model.md) for field-level sketch; count reconciled with ReviewLike in sync-verify Run #2). Final indexes + collection layout in Phase 5.
 
 | Entity | Notes |
 |---|---|
@@ -496,7 +496,7 @@ Phase 5 (plan) will surface **technical** decisions (fan-out load model, Atlas S
 Phase 5 (plan) **must** read these supporting docs in addition to this spec.md:
 
 1. [product-spec/decision-log.md](./product-spec/decision-log.md) — the 45+ locked decisions with rationale (THE source of truth on choices)
-2. [product-spec/data-model.md](./product-spec/data-model.md) — 15 entities + relationships + preliminary indexes
+2. [product-spec/data-model.md](./product-spec/data-model.md) — 16 active entities + relationships + preliminary indexes
 3. [product-spec/notification-taxonomy.md](./product-spec/notification-taxonomy.md) — 18 active notification types with defaults (load-bearing — wrong notification design = Goodreads-style churn)
 4. [product-spec/seeding-strategy.md](./product-spec/seeding-strategy.md) — 4-pronged cold-start playbook (launch infrastructure, not marketing)
 5. [research/tech-stack.md](./research/tech-stack.md) — Spotify API audit (H4 critical findings, Extended Quota Mode dependency)

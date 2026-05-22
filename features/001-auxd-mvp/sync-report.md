@@ -1,7 +1,161 @@
 # Sync & Verify Report: auxd MVP — Social Album Platform
 
-> Feature: `001-auxd-mvp` | Date: 2026-05-21
-> Phase: 6 (Implementation, pending) — pre-implementation sync-verify
+> Feature: `001-auxd-mvp` | **Latest run: #2 — 2026-05-22**
+> Phase: 6 (Implementation, in progress) — 4/183 tasks complete
+> Drift budget: cosmetic ≤ 20, structural = 0
+
+---
+
+## Run #2 (2026-05-22)
+
+> Layers checked: 6/7 | Skipped: Layer 6 (spec ↔ code) — feature only 4/183 implemented; Layer 6 premature.
+> Layer 5 runs for the **first time** (code now exists post-§0 scaffold).
+
+### Summary
+
+| Severity | Count | Net of recurring | New this run |
+|----------|-------|-----------------:|-------------:|
+| ❌ CRITICAL | 0 | — | — |
+| ⚠️ WARNING | 3 | 2 new + 1 recurring | L7-011, L7-012 + L2-007 (recurring, severity escalated) |
+| ℹ️ INFO | 22 | 10 recurring + 12 new | L1-002, L1-003, L2-010, L2-011, L2-012, L2-013, L3-011, L3-012, L7-013 + (L7-009 RESOLVED) |
+| ✅ CLEAN | Layer 5 (0 findings) | — | — |
+
+**Verdict: DRIFT DETECTED (NOT CRITICAL)** — 0 individual finding is CRITICAL-severity; the strict `structural: 0` budget would still gate, but the picture is mostly recurring-advisory-INFO + a small set of new fixable items.
+
+### Run #1 backlog disposition — VERIFIED
+
+All 10 active items from Run #1's `sync-fix-list.md` are landed and verified by independent re-scan:
+
+| ID | What it was | Status in Run #2 |
+|----|-------------|------------------|
+| L3-001 | Endpoint rate-limit in plan §4.5 | ✅ landed @ plan §4.5 (token-bucket dep + per-endpoint qpm table + FAIL OPEN) |
+| L3-002 | Follow-request queue (US-G2 infra) | ✅ landed @ plan §3.1 + §6 social.request_follow/respond_to_follow_request |
+| L3-003 | review_edit_history (FR-030 audit) | ✅ landed @ plan §3.1 collection + §6 reviews module |
+| L3-004 | axe-core CI gate | ✅ landed @ plan §16.4 + new §16.5 audit cadence |
+| L3-006 | Report-missing-album path | ✅ landed @ plan §11.2.1 + §13.1 enum extension |
+| L3-007 | Settings → Integrations route + services | ✅ landed @ plan §1.2 + new §4.6 + §6 auth |
+| L4-001 | OpenTelemetry task | ✅ T015a present (deps T011/T015, refs Constitution P5) |
+| L4-002 | Nightly mongodump task | ✅ T010a present (deps T005/T007, refs §17.4) |
+| L4-003 | T135 PostMark failure-mode wiring | ✅ T135 amended (retry + failed_emails + Sentry tag) |
+| L4-004 | T013 Redis fail-mode policy | ✅ T013 amended (cache FAIL OPEN + arq FAIL CLOSED 503) |
+
+Plus the 10 inline cleanups applied in Run #1 (L2-001 S-B6 body, L2-002 hearted label, L2-003 count 32→30, L2-008 Lists residual, L4-006 T117a Refs A-005, L4-007 matrix total, L4-008 §1 label, L7-001 PS digest index, L7-002 research digest index, L7-003 interview-script link) all hold in Run #2.
+
+Plus 2 deferred items: L3-005 (i18n) and L3-008 (Last.fm) — both correctly still absent (deferred as planned).
+
+### Layer-by-layer
+
+| Layer | Pair | Verdict | New findings |
+|-------|------|---------|--------------|
+| 1 | research ↔ product-spec | ⚠️ 3 INFO | L1-001 recurring, L1-002 NEW Apple Music threshold drift, **L1-003 NEW Spotify OAuth scopes narrower than research — potential S-A1 OAuth-signup blocker** |
+| 2 | product-spec ↔ spec.md | ⚠️ 1 WARN + 8 INFO | L2-007 recurring (escalated WARN), L2-010/011/012/013 NEW |
+| 3 | spec.md ↔ plan.md | ⚠️ 4 INFO | L3-009/010 recurring, L3-011 NEW typo, L3-012 NEW module-placement ambiguity |
+| 4 | plan.md ↔ tasks.md | ⚠️ 1 INFO | L4-005 recurring only (satellite collections still missing from §3.1) |
+| 5 | tasks.md ↔ code (NEW LAYER) | ✅ CLEAN | 0 findings; 4/4 completed tasks verified end-to-end |
+| 6 | spec ↔ code | ⏭️ SKIPPED | Feature only 4/183 implemented |
+| 7 | cross-link integrity | ⚠️ 2 WARN + 6 INFO | L7-011/012 NEW broken anchors, L7-013 NEW orphan (implementation-log.md), L7-009 RESOLVED |
+
+### Notable new findings (worth acting on)
+
+#### DRIFT-L1-003 — Spotify OAuth scopes narrower than research recommends
+
+| Field | Value |
+|-------|-------|
+| Severity | INFO (but raises a real runtime concern) |
+| Category | structural |
+| Source | `research/tech-stack.md:61` recommends 8 scopes incl. `user-read-email`, `user-read-private`, `user-top-read` |
+| Target | `product-spec/product-spec.md:132` (FR-002) + decision-log Q22 — lock essentials to 3 scopes only (`recently-played`, `currently-playing`, `library-read`) |
+| Issue | S-A1 says Spotify-OAuth-shortcut signup auto-creates account using Spotify display name + email — but without `user-read-email`/`user-read-private`, Spotify OAuth cannot return those fields. S-A3 "top 5 by play time" prefill arguably needs `user-top-read`. |
+| Resolution | Add `user-read-email` + `user-read-private` to essential scopes in FR-002 + Q22. Clarify whether S-A3 prefill uses `/me/player/recently-played` (already essential) or `/me/top/tracks` (needs `user-top-read`). |
+
+#### DRIFT-L2-012 — "Heart" terminology survived two renames in user-journeys.md
+
+| Field | Value |
+|-------|-------|
+| Severity | INFO (display copy stale) |
+| Category | structural |
+| Source | `product-spec/user-journeys.md:88, 103, 124` — Journey 2 ("heart row"), Journey 2 alt ("rating/heart/review"), Journey 3 ("❤️ heart action") |
+| Issue | These were missed by R1 (Heart→Award rename) AND R3 (Award/Like split). Should now read: J2 "Aux row" (🏅) and J3 "👍 Like action" per FR-031 |
+| Resolution | Replace "heart row" → "Aux row" (🏅) in J2; replace "❤️ heart action" → "👍 Like action" in J3 |
+
+#### DRIFT-L7-011 — Broken anchor `#n-018` in user-stories.md
+
+| Field | Value |
+|-------|-------|
+| Severity | WARNING |
+| Category | structural |
+| Source | `product-spec/user-stories.md:118` links `[notification-taxonomy.md](./notification-taxonomy.md#n-018)` |
+| Issue | N-018 is a table row, not a heading. No anchor `#n-018` exists. |
+| Resolution | Either drop the anchor, point to nearest heading, or add explicit `<a id="n-018"></a>` in the table row |
+
+#### DRIFT-L7-012 — Short-form anchor doesn't match GitHub slug
+
+| Field | Value |
+|-------|-------|
+| Severity | WARNING |
+| Category | structural |
+| Source | `spec.md:122` links `[sync-report.md](./sync-report.md#drift-l2-003)` |
+| Issue | Heading is `### DRIFT-L2-003 — Story count claim…` which GitHub slugifies to `drift-l2-003-story-count-claim-32-vs-enumerated-bodies-30`. Short `#drift-l2-003` matches nothing. Two other callers (product-spec/README.md:56, user-stories.md:363) correctly use long-form. |
+| Resolution | Update to long-form slug for consistency |
+
+#### Smaller new fixes
+- **L2-007 (recurring, escalated)** — PS user-stories.md S-G3 AC says "20 types including auto-prompts and list-related events"; spec.md correctly says "18 active". Fix PS to "18 active types (N-019/N-020 reserved-gap after Lists removal)".
+- **L2-010** — spec.md §7 "15 entities" prose vs grouped table; reconcile to "16 entities (incl. ReviewLike)".
+- **L2-011** — data-model.md DM-3 references stale `aux_count`; was renamed to `likes_count` in R3.
+- **L2-013** — product-spec/digest.md body still echoes pre-R3 counts (37 stories, 9 clusters incl. Lists, 17 notification types, 14 entities). Refresh to R3 state.
+- **L3-011** — plan.md §6 typo: `actiion_report` (double-i) → `action_report`.
+- **L3-012** — plan.md §4.6 ambiguity: `auth/` module vs new `integrations/` module — pick one and align §1.2 file tree.
+
+### Recurring (still INFO/advisory)
+- L1-001 (W1 activation narrowing), L2-004/005 (FR trace tags), L2-006 (cluster names), L2-009 (entity count), L3-009 (/critics route), L3-010 (handle suggestions), L4-005 (satellite collections in §3.1), L7-004/005/006/007/008 (5 phase-digest orphans by convention).
+
+### What's CLEAN
+- ✅ All 30/30 Must-Have stories mapped product-spec ↔ spec.md ↔ plan.md ↔ tasks.md
+- ✅ All 4 pre-impl-review locks (C-1 T117a, C-3 feed weighting, C-4 coalescer cross-type, C-5 rate-limiter fail-open) present
+- ✅ Lists deferral CRITICAL invariant holds (FR-021..025, S-I*, List/ListItem, N-019/N-020, Journey 4.5 — all absent)
+- ✅ Aux rename consistent (display "Aux'd"; code "auxed"; 🏅 icon)
+- ✅ Brand rename complete (no "spinz" or "Spinz" leakage in any tracked file)
+- ✅ Layer 5: T001/T003/T004/T008 all verified end-to-end
+- ✅ No broken file links (only 2 broken anchors and 1 wrong-form short anchor)
+- ✅ All Run #1 backlog items landed + 10 inline cleanups all hold
+
+### Run #2 verdict
+
+**0 individual findings are CRITICAL.** The strict `structural: 0` budget rule would fire on the 22+ structural items, but ~10 of those are recurring INFOs already accepted as advisory in Run #1.
+
+**Final disposition (2026-05-22): RESOLVED WITH OVERRIDE.**
+
+#### ✅ Applied inline (10 items)
+| ID | What changed | File |
+|----|--------------|------|
+| L2-007 | "20 types incl list-related" → "18 active types (N-019/N-020 reserved-gap)" | product-spec/user-stories.md S-G3 AC |
+| L2-010 | spec.md §7 "15 entities" → "16 active entities (incl. ReviewLike)" — also 2nd location at "Must read first" | spec.md |
+| L2-011 | DM-3 `aux_count` → `` `likes_count`, R3 rename ``; DM-5 "orphan aux counts" → "orphan ReviewLike rows or stale `likes_count` aggregates"; decision-log DM-5 same | product-spec/data-model.md + decision-log.md |
+| L2-012 | Journey 2 "heart row" → "Aux row (🏅)"; Journey 2 alt "rating/heart/review" → "rating/Aux/review"; Journey 3 "❤️ heart action" → "👍 Like action (FR-031)" | product-spec/user-journeys.md |
+| L2-013 | digest.md body refreshed to R3 state (30 stories, 8 active clusters, 18 notification types, 16 active entities — was 37/9/17/14) | product-spec/digest.md |
+| L3-011 | typo `actiion_report` → `action_report` | plan.md §6 |
+| L3-012 | module placement locked to `auth/` (matches §1.2 file tree); ambiguity removed | plan.md §4.6 |
+| L7-011 | broken anchor `#n-018` → links to "Notification types (full enumeration)" + "Anti-spam guardrails" headings | product-spec/user-stories.md S-B6 |
+| L7-012 | short-form anchor `#drift-l2-003` → full GitHub slug `#drift-l2-003-story-count-claim-32-vs-enumerated-bodies-30` | spec.md |
+| **L1-003** | **Spotify OAuth scopes widened from 3 to 5: added `user-read-email` + `user-read-private`** (required by S-A1 OAuth-shortcut signup). Decision-log Q22 → v1.3. Propagated to product-spec.md FR-002, spec.md §0 decision #17 + FR-002 row, plan.md §4.4, tasks.md T002. | 5 files |
+
+#### ⏭️ Skipped as advisory (13 items — recurring from Run #1)
+L1-001 (W1 activation narrowing) · L2-004/005 (FR trace tags) · L2-006 (cluster name enrichment) · L2-009 (entity inventory ReviewLike — partially mooted by L2-010 reconciliation) · L3-009 (`/critics` route) · L3-010 (handle collision suggestion) · L4-005 (4 satellite collections still not in plan §3.1) · L7-004..008 (5 phase-digest orphans by convention) · L7-013 (implementation-log.md orphan, same convention class)
+
+#### 🛂 Gate override
+- **Reason:** Same logic as Run #1. 0 individual findings are CRITICAL-severity. Of the 25 structural items, 10 are recurring advisory already accepted, 10 are now resolved inline, and 5 are deferred. Phase 6 continues at 4/183 tasks complete.
+- **Approved by:** Joshua Xie (founder, solo mode)
+- **Approved at:** 2026-05-22
+
+#### Run #2 to Run #3 outlook
+After this commit lands, projected structural drift for next run: ~14 items (the 13 recurring advisories + L1-002 still unaddressed re: Apple Music threshold). All real structural concerns surfaced post-rename are now resolved.
+
+Next sync-verify will likely run between Phase 6B (code review) and Phase 7 (full verify) — Layer 6 (spec ↔ code) becomes meaningful once feature code lands.
+
+---
+
+## Run #1 (2026-05-21) — Historical record
+
 > Layers checked: 5/7 | Skipped: Layer 5 (tasks ↔ code), Layer 6 (spec ↔ code) — no code yet
 > Drift budget: cosmetic ≤ 20, structural = 0
 > Run #1 (first sync-verify on this feature)
@@ -527,6 +681,7 @@ The verdict is CRITICAL DRIFT only because `structural: 0` is a hard zero budget
 | Run | Date | Layers | CRITICAL items | WARNING items | INFO items | Initial verdict | Final disposition |
 |-----|------|--------|---------------:|--------------:|-----------:|------------------|-------------------|
 | #1 | 2026-05-21 | 5/7 | 0 | 19 | 14 | CRITICAL DRIFT (budget rule) | RESOLVED WITH OVERRIDE — 10 applied / 10 backlogged / 2 deferred / 14 INFO skipped |
+| #2 | 2026-05-22 | 6/7 | 0 | 3 | 22 | DRIFT DETECTED | RESOLVED WITH OVERRIDE — 10 applied (incl. L1-003 OAuth scopes widening) / 13 advisory recurring / gate overridden |
 
 ---
 

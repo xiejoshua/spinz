@@ -386,14 +386,20 @@ async def change_handle(user: User, new_handle: str) -> Result:
 
 `is_reserved_squat()` checks against a static list (200–500 entries) deployed alongside backend. Manual review queue + verification flow for claims.
 
-### 4.4 Spotify OAuth scopes (FR-002 / Q22 — LOCKED)
+### 4.4 Spotify OAuth scopes (FR-002 / Q22 — LOCKED v1.3 sync-fix Run #2)
 
-Essential at MVP:
-- `user-read-recently-played` (auto-import + just-finished detection)
-- `user-read-currently-playing` (just-finished detection — confirms album completion event)
-- `user-library-read` (read user's saved albums for backlog hints)
+Essential at MVP (5 scopes):
+- `user-read-email` — populate `User.email` from OAuth (required by S-A1 OAuth-shortcut signup)
+- `user-read-private` — populate `display_name` from OAuth (required by S-A1)
+- `user-read-recently-played` — auto-import + just-finished detection
+- `user-read-currently-playing` — just-finished detection (confirms album completion event)
+- `user-library-read` — read user's saved albums for backlog hints
 
-`playlist-read-private` deferred. Scopes are requested in one round at signup OR in onboarding step 2 (skippable). Token refresh happens server-side; refresh tokens encrypted at rest with envelope key from Fly secret.
+Deferred, requested lazily on first feature need: `playlist-read-private`, `user-top-read`, `user-follow-read`.
+
+All 5 essential scopes are requested in one round at signup OR on Settings → Integrations Connect (skippable). Token refresh happens server-side; refresh tokens encrypted at rest with envelope key from Fly secret.
+
+> **Sync-fix Run #2 — DRIFT-L1-003 resolution.** Original v1.2 lock had only 3 scopes (`recently-played`, `currently-playing`, `library-read`); that lock made the S-A1 OAuth-shortcut signup unrealizable because Spotify won't return email or display name without `user-read-email`/`user-read-private`. Widened on 2026-05-22 per founder decision.
 
 ### 4.5 Endpoint rate-limiting (sync-fix Run #1 — DRIFT-L3-001 → spec.md §6 NFR Security)
 
@@ -430,7 +436,7 @@ Settings → Integrations is the single management surface for music-provider co
 - **Back-fill diary trigger** → enqueues the 30-day import as an arq job; idempotent; shows progress when running
 - **Disconnect Spotify** CTA → revokes tokens locally (server-side delete of `User.providers.spotify` sub-doc), removes the OAuth grant via Spotify revocation endpoint best-effort, halts polling for just-finished detection, but **leaves the existing diary intact and immutable** (Q19 decision)
 
-Backend services in `apps/api/src/auxd_api/modules/auth/` (or new `integrations/` module):
+Backend services in `apps/api/src/auxd_api/modules/auth/` (sync-fix Run #2 — placement locked to `auth/` to match §1.2 file tree; `integrations/` module not introduced):
 
 ```python
 async def disconnect_spotify(user: User) -> None:
@@ -512,7 +518,7 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 | `notifications` | `dispatch`, `mark_read`, `list_user_notifications`, `update_preferences` | Dispatcher + adapters |
 | `prompts` | `poll_user_for_just_finished`, `dismiss_prompt`, `disable_for_user` | Just-finished detection |
 | `seeding` | `get_critic_seeds_for_onboarding`, `record_card_response`, `compute_suggestions` | Pre-checked card ordering |
-| `moderation` | `submit_report`, `daily_scan_for_flagged_users`, `actiion_report` | Daily cron |
+| `moderation` | `submit_report`, `daily_scan_for_flagged_users`, `action_report` | Daily cron |
 | `data_export` | `enqueue_export`, `process_export`, `mail_export` | GDPR pipeline |
 
 ---

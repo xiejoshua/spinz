@@ -56,7 +56,7 @@ See [decision-log.md](./decision-log.md) for the full table with rationale.
 - **30 Must-Have user stories** (~3–6 month build) — net of R1 (+7) + R3 (-6 Lists +1 S-C4 Like); count reconciled in sync-verify Run #1 — see [sync-report.md § DRIFT-L2-003](../sync-report.md#drift-l2-003-story-count-claim-32-vs-enumerated-bodies-30)
 - **27 functional requirements** active (FR-001 to FR-020, FR-026 to FR-032 — FR-021..FR-025 are reserved-gaps after Lists removal in R3)
 - **18 notification types** active (N-001 to N-018; N-019 / N-020 reserved-gaps after Lists removal)
-- **15 data entities** (User, MusicProvider, Album, DiaryEntry, Backlog, BacklogItem, Review, **ReviewLike** *(new R3)*, Follow, Block, Report, Notification, NotificationPreferences, JustFinishedPrompt, SuggestedFollow, CriticSeed) — List/ListItem removed
+- **16 active data entities** (User, MusicProvider, Album, DiaryEntry, Backlog, BacklogItem, Review, **ReviewLike** *(new R3)*, Follow, **FollowRequest** *(new in sync-fix Run #1 — US-G2 private-profile pending queue)*, Block, Report, Notification, NotificationPreferences, JustFinishedPrompt, SuggestedFollow, CriticSeed) — List/ListItem removed; satellite collections `review_edit_history` + `failed_emails` + `handle_redirects` + `gdpr_audit_log` + `feed_buckets` (future) counted separately as feature-owned utility entities.
 - **5 user journeys** (Journey 4.5 Lists removed in R3)
 - **4 critical wireframes**
 - **10 risks** with mitigations

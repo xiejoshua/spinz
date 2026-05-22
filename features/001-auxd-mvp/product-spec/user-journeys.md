@@ -85,7 +85,7 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 |---|---|---|---|---|
 | 1 | Opens auxd (app already running or pinned tab) | App resumes on last surface (or home if cold-start) | 😊 |
 | 2 | Taps the persistent "+" Log button (top-right or FAB) | Bottom sheet slides up; album search prefilled with most recent Spotify listen ("Black Star — Mos Def & Talib Kweli (1998)") | 😊 fast | Prefill is the magic — saves 4–5 seconds |
-| 3 | Confirms the prefill is correct (it is) | Album card highlights; rating row + heart row + review row appear | 😐 focused | If prefill is wrong, user types to search |
+| 3 | Confirms the prefill is correct (it is) | Album card highlights; rating row + Aux row (🏅) + review row appear | 😐 focused | If prefill is wrong, user types to search |
 | 4 | Taps 4 ½-stars | Rating displays "4 ★ ★ ★ ★ ☆" with a faint half-star indicator if applicable | 😊 commit | Single tap to commit; rolling thumb on mobile changes value |
 | 5 | Skips review, taps "Log" | Entry saves, sheet dismisses, toast: "Logged — see in your diary" with link | 😊 done |
 | (T=<8s end-to-end measured from step 2 to step 5) |
@@ -100,7 +100,7 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 
 | 2b | Bottom sheet opens with no prefill | Empty search field with autocomplete |
 | 3b | Types "kendrick gnx" | Search results appear (Atlas Search + Spotify search merged), debounced 200ms |
-| 4b | Taps the right album | Album card highlights, same rating/heart/review rows appear |
+| 4b | Taps the right album | Album card highlights, same rating/Aux/review rows appear |
 | 5b–7b | (continues as 4–5 above) |
 
 **Drop-off risk points:**
@@ -121,7 +121,7 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 | Step | User action | System response | Emotion | Notes |
 |---|---|---|---|---|
 | 1 | Opens home tab | Feed loads (SSR or client-cache): reverse-chrono with weight boosts; ~10 hero entries + lazy-load more on scroll | 😊 |
-| 2 | Sees a 5★ rating with a 50-word review from Jamie (a critic Casey follows) for an album Casey doesn't know | Entry card shows: Jamie avatar, "Jamie rated ★★★★★ • 2h ago", album cover thumb, review snippet, ❤️ heart action | 😊 intrigued |
+| 2 | Sees a 5★ rating with a 50-word review from Jamie (a critic Casey follows) for an album Casey doesn't know | Entry card shows: Jamie avatar, "Jamie rated ★★★★★ • 2h ago", album cover thumb, review snippet, 👍 Like action (FR-031) | 😊 intrigued |
 | 3 | Taps the album cover | Album detail page opens (SSR, fast) | 😊 curious | Page shows cover, metadata, tracklist, friends-who-rated, public reviews |
 | 4 | Sees that 2 other people Casey follows also rated this album 4★+ | "Friends" section shows 3 avatars + their ratings | 😊 validated | Social proof from inside the trusted graph |
 | 5 | Reads Jamie's full review | Review expands inline | 😊 engaged | Spends 30–90 seconds reading |
