@@ -1,11 +1,16 @@
 # Fly.io config — auxd-api backend
 #
-# Two-process layout (T013): `app` runs the FastAPI/uvicorn server, `worker`
+# Two-process layout (T013): `web` runs the FastAPI/uvicorn server, `worker`
 # runs the arq background-job worker. Both processes share the same image
 # and connect to the same Redis (Upstash) for the job queue.
 #
+# Process group names MUST NOT collide with top-level field names in this
+# file — Fly's parser treats e.g. `[processes].app` as ambiguous when the
+# top-level `app = "..."` is also present. We pick `web` for the HTTP-serving
+# group accordingly.
+#
 # Deploy:    fly deploy
-# Logs:      fly logs [--proc app|worker]
+# Logs:      fly logs [--proc web|worker]
 # SSH:       fly ssh console
 # Region:    iad  (Ashburn, VA — colocates with Atlas + Upstash + R2 on US-East)
 
@@ -15,11 +20,11 @@ primary_region = "iad"
 [build]
   dockerfile = "Dockerfile"
 
-# Two-process layout (T013). `app` answers HTTP via uvicorn; `worker` runs the
-# arq event loop and pulls jobs from Redis. http_service binds only to `app`
+# Two-process layout (T013). `web` answers HTTP via uvicorn; `worker` runs the
+# arq event loop and pulls jobs from Redis. http_service binds only to `web`
 # below so the worker is not exposed publicly.
 [processes]
-  app = "uvicorn auxd_api.main:app --host 0.0.0.0 --port 8080 --proxy-headers --forwarded-allow-ips=*"
+  web = "uvicorn auxd_api.main:app --host 0.0.0.0 --port 8080 --proxy-headers --forwarded-allow-ips=*"
   worker = "arq auxd_api.workers.main.WorkerSettings"
 
 # Non-secret runtime env. Anything sensitive goes through `fly secrets set`
@@ -31,7 +36,7 @@ primary_region = "iad"
   R2_BUCKET_NAME = "auxd-backups-prod"
   SPOTIFY_INTEGRATION_ENABLED = "false"
 
-# HTTP service routing applies to the `app` process only. force_https redirects
+# HTTP service routing applies to the `web` process only. force_https redirects
 # 80 → 443. min_machines_running=1 keeps one VM warm so /healthz responds
 # without cold-start latency — that's the entire wedge of the <500ms p95 NFR.
 # Hobby plan's $5/mo allowance covers a single shared-cpu-1x VM running 24/7.
@@ -41,7 +46,7 @@ primary_region = "iad"
   auto_stop_machines = false
   auto_start_machines = true
   min_machines_running = 1
-  processes = ["app"]
+  processes = ["web"]
 
   [http_service.concurrency]
     type = "requests"
@@ -57,8 +62,8 @@ primary_region = "iad"
 
 # VM sizing — shared-cpu-1x with 512MB is enough for FastAPI + observability
 # overhead at MVP. Bump to 1x/1GB if memory pressure shows up under load. The
-# `app` and `worker` processes each get one such VM at this size.
+# `web` and `worker` processes each get one such VM at this size.
 [[vm]]
   size = "shared-cpu-1x"
   memory = "512mb"
-  processes = ["app", "worker"]
+  processes = ["web", "worker"]

@@ -62,8 +62,8 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/healthz', timeout=3).status == 200 else 1)"
 
-# Default CMD — the `app` process from fly.toml's [processes] block. The
-# `worker` process overrides this with `arq auxd_api.workers.main.WorkerSettings`
+# Default CMD — matches the `web` process from fly.toml's [processes] block.
+# The `worker` process overrides this with `arq auxd_api.workers.main.WorkerSettings`
 # (defined in fly.toml). `--proxy-headers --forwarded-allow-ips=*` is required
 # because Fly's edge terminates TLS and forwards via private IPv6; without
 # these flags the app sees the proxy IP instead of the client IP.

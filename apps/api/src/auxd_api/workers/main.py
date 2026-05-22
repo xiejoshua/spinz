@@ -4,8 +4,8 @@ Run with::
 
     uv run arq auxd_api.workers.main.WorkerSettings
 
-The arq worker connects to Redis using :class:`Settings.REDIS_URL`,
-pulls jobs enqueued by the API process via
+The arq worker connects to Redis using ``REDIS_URL`` from the
+environment, pulls jobs enqueued by the API process via
 :func:`auxd_api.redis_client.enqueue_job`, and executes them
 sequentially per the arq job model.
 
@@ -14,18 +14,28 @@ end-to-end pipeline (API enqueue → worker dequeue → log line) can be
 verified before downstream tasks add real jobs (GDPR export, weekly
 digest, just-finished detection, suggested-follows recompute — plan
 §8.4).
+
+REDIS_URL is read directly from :mod:`os.environ` rather than via
+:func:`auxd_api.settings.get_settings` because :class:`WorkerSettings`
+is evaluated at module-import time (arq's discovery mechanism). Going
+through the full :class:`Settings` validator would also require
+``SESSION_HMAC_KEY`` and ``TOKEN_ENCRYPTION_KEY`` to be set just to
+import the module — which breaks CI's collection step. Job code that
+needs the full settings stack should call ``get_settings()`` lazily
+inside the job function.
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any
+import os
+from typing import Any, Final
 
 from arq.connections import RedisSettings
 
-from auxd_api.settings import get_settings
-
 _LOGGER = logging.getLogger("auxd.worker")
+
+_DEFAULT_REDIS_URL: Final[str] = "redis://localhost:6379/0"
 
 
 async def noop_job(ctx: dict[str, Any]) -> str:
@@ -48,8 +58,14 @@ async def noop_job(ctx: dict[str, Any]) -> str:
 
 
 def _redis_settings_from_env() -> RedisSettings:
-    """Build the worker's :class:`RedisSettings` from the standard settings."""
-    return RedisSettings.from_dsn(get_settings().REDIS_URL)
+    """Build the worker's :class:`RedisSettings` from ``REDIS_URL``.
+
+    Reads :envvar:`REDIS_URL` directly from :mod:`os.environ` (not via
+    :func:`get_settings`) so module import does not require the
+    encryption-key env vars to be set. Falls back to the same local
+    default that :class:`Settings.REDIS_URL` would use.
+    """
+    return RedisSettings.from_dsn(os.environ.get("REDIS_URL", _DEFAULT_REDIS_URL))
 
 
 class WorkerSettings:
