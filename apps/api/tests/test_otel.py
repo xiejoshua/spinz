@@ -32,6 +32,7 @@ from opentelemetry.sdk.trace.export import SimpleSpanProcessor
 from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
 from opentelemetry.semconv.resource import ResourceAttributes
 
+from auxd_api import main as main_module
 from auxd_api import settings as settings_module
 from auxd_api.lib import otel as otel_module
 from auxd_api.lib.otel import init_otel
@@ -129,6 +130,19 @@ def _reset_otel_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterato
     otel_module._initialized = False
     _uninstrument_all()
     _reset_global_tracer_provider()
+
+    # Bypass the real DB connect during lifespan — these tests exercise the
+    # OTel side of init only. The conftest-level mongomock fixture handles
+    # any Document instantiation; the lifespan's init_db() call is replaced
+    # with a no-op so we never reach localhost:27017.
+    async def _noop_init_db(_uri: str) -> None:
+        return None
+
+    async def _noop_close_db() -> None:
+        return None
+
+    monkeypatch.setattr(main_module, "init_db", _noop_init_db)
+    monkeypatch.setattr(main_module, "close_db", _noop_close_db)
 
     yield
 

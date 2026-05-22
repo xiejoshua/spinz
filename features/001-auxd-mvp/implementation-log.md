@@ -149,3 +149,74 @@ All carry TBD.app / Postmark / S3 references as time-of-writing record. Future r
 | T007 Resend + Sentry + PostHog Cloud + R2 | 🟡 partial — PostHog ✅, R2 bucket ✅ (tokens pending), Resend ⏸ pending, Sentry ⏸ pending |
 | Domain | ✅ `xiejoshua.com` registered via Cloudflare (DNS records pending creation) |
 | Downstream T009/T010/T010a | ⏸ unchanged — gated on T005/T006/T007 |
+
+---
+
+## Session 3 — 2026-05-22 evening — §0 closeout + backend data layer (Wave A + Wave B)
+
+Blockers (MongoDB Atlas, Upstash, Sentry, PostHog Cloud, Resend, R2, Fly billing, Cloudflare DNS) all resolved earlier in session. All seven integrations pass the smoke check on the user's host (`apps/api/scripts/check_integrations.py` → 7/7 with `truststore` patch for Zscaler MITM). Fly deploy ✅; Vercel deploy ✅; both healthchecks return 200.
+
+### Wave A — §0 deployment automation (committed `743d052`)
+
+| Task | What landed | Operator follow-up |
+|------|-------------|--------------------|
+| T009 | `.github/workflows/deploy-api.yml` — auto-deploy on push to main, `apps/api/**` path filter | Add `FLY_API_TOKEN` GitHub secret |
+| T010 | `.github/workflows/synthetic.yml` — 15-min cron probe of frontend + `/healthz`; Discord webhook on failure | Add `DISCORD_WEBHOOK_URL` GitHub secret |
+| T010a | `.github/workflows/backup-mongo.yml` — 03:30 UTC mongodump\|aws s3 cp to R2; 30-day lifecycle | Add `MONGODB_URI`, `R2_*` secrets; widen Atlas IP allowlist to `0.0.0.0/0` (or self-host runner) |
+
+§0 deployment automation now complete. Three workflows + Dependabot + PR template all live on `main`.
+
+### Wave B — backend data layer (T012 + T016 + T021..T027)
+
+Launched as 8 parallel agents on `main`:
+
+- **T016 — `lib/visibility`** — `can_read(viewer, content)` Visibility × ViewerRelation matrix via Protocols (no Beanie coupling, no service-layer leak). 54 tests, 100% coverage.
+- **T021 — User** — Beanie Document with handle policy + notification preferences + music providers + status. KSUID id. Indexes: handle/email unique, status partial.
+- **T022 — Album** — Beanie Document with mbid/spotify_id sparse-unique indexes. Atlas Search index JSON shipped at `apps/api/migrations/atlas_search/albums_index.json` for one-time UI apply.
+- **T023 — DiaryEntry + Review + ReviewLike + ReviewEditHistory** — `auxed: bool` on DiaryEntry (Aux/Like split R3); Review with `reactions` sub-doc + 1:1 diary_entry_id; ReviewLike unique (review_id, user_id); ReviewEditHistory 90d TTL on edited_at (FR-030).
+- **T024 — Backlog + BacklogItem** — Backlog 1:1 with User (unique user_id); BacklogItem with position + per_item_visibility + notes.
+- **T025 — Follow + FollowRequest + Block** — three Documents with FollowState/FollowRequestStatus/BlockReason enums + compound unique indexes. Cascade-on-block deferred to T101 service layer (model layer is data-only).
+- **T026 — Report + Notification + NotificationPreferences + FailedEmail** — `NotificationType` (18 active per spec v1.4); Notification 90d TTL; FailedEmail as T135 write target; Report.target_type incl. `missing_album` (sync-fix L3-006).
+- **T027 — JustFinishedPrompt + SuggestedFollow + CriticSeed** — JustFinishedPrompt TTL partial-filter (`state=pending` → 24h) so LOGGED/DISMISSED/SUPPRESSED rows survive for S-B6 30d cooldown + attribution analytics.
+
+Then **T012 — Beanie connection** wired it all together:
+
+- `apps/api/src/auxd_api/db.py` — `init_db(uri)` + `close_db()` + `get_client()`; `ALL_DOCUMENT_MODELS` module-level constant as single source of truth (also consumed by `tests/conftest.py`).
+- URI validated via `pymongo.uri_parser` BEFORE opening a socket; password redacted in the error path.
+- Ping admin command verifies the connection (P5: fail loud). `client.close()` called on ping failure to avoid leaked pool.
+- `main.py` lifespan: `init_db` → `init_sentry` → `init_otel` (DB first because it's the most disruptive failure surface).
+
+### Testing strategy for Beanie Documents
+
+Initial test runs hit `CollectionWasNotInitialized` because Beanie 1.x's `Document.__init__` calls `get_motor_collection()`. Two complementary fixes:
+
+1. **`tests/conftest.py`** — session-scope autouse fixture that spins up `AsyncMongoMockClient()` (via `mongomock-motor`) and calls `init_beanie()` against all 17 Document classes once per test session. Pure Python; no real Mongo dependency.
+2. **`Model.model_validate(...)`** instead of `Model(...)` for field-shape tests — bypasses `__init__` entirely and exercises Pydantic validation cleanly.
+
+Result: all 229 tests run in ~11s without a Mongo process.
+
+### Final-sweep cleanups during mini-verify
+
+- `User.id` aligned with the 16-other-Documents convention (`alias="_id"` + `# type: ignore[assignment]`); `Album.id` also aligned.
+- Removed 9 now-unused `# type: ignore[call-arg]` / `[arg-type]` comments in test files (Beanie's runtime registration via the conftest fixture made them redundant — mypy strict mode now resolves the constructor signatures fully).
+- Removed redundant per-test `_stub_motor_collection` monkeypatch from `test_backlog_models.py` (session-scope conftest handles it).
+- `test_otel.py` autouse fixture now monkeypatches `init_db` / `close_db` to no-ops — the OTel-specific tests don't need to traverse the real DB connect path.
+
+### Verification (pre-commit)
+
+- Full backend suite: **229/229 passing** in 11.20s (up from 76/76 in Session 2).
+- `ruff check` + `ruff format --check` across 51 files: clean.
+- `mypy --strict` across 51 source files: 0 errors.
+- Document model class count: 17 across 10 module directories; conftest + `db.py` agree on the canonical list.
+
+### Status snapshot
+
+- Tasks completed: **22 / 183** (Session 2: 10 → Session 3: +12).
+- Foundation complete: §0 deployment automation, §1 lib + shared backend, §2 data layer.
+- Next wave candidates: T019 (sessions middleware) + T020 (rate limit) → T028 (OpenAPI codegen) → §3 services + handlers (T031+).
+
+### Operator follow-up still pending
+
+- GitHub repo secrets: `FLY_API_TOKEN`, `DISCORD_WEBHOOK_URL`, `MONGODB_URI`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT_URL`, `R2_BUCKET_NAME`.
+- Atlas IP allowlist widening to `0.0.0.0/0` (or self-hosted runner).
+- T002 Spotify Extended Quota Mode submission (2-6 week external lead — still the longest-tail blocker for production OAuth scope).

@@ -1,0 +1,34 @@
+{
+  "name": "albums_text_search",
+  "definition": {
+    "mappings": {
+      "dynamic": false,
+      "fields": {
+        "title": {
+          "type": "string",
+          "analyzer": "lucene.standard",
+          "searchAnalyzer": "lucene.standard"
+        },
+        "artist_credit": {
+          "type": "string",
+          "analyzer": "lucene.standard"
+        },
+        "artists": {
+          "type": "document",
+          "fields": {
+            "name": {
+              "type": "string",
+              "analyzer": "lucene.standard"
+            }
+          }
+        },
+        "popularity_score": {
+          "type": "number"
+        }
+      }
+    },
+    "storedSource": {
+      "include": ["title", "artist_credit", "artists.name", "cover_art_url"]
+    }
+  }
+}

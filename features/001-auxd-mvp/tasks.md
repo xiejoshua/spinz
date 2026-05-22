@@ -147,8 +147,8 @@
       Description: App factory with versioned `/api/v1` routing; `GET /healthz` returns `{status, db, redis}`; structured logging via Python logging + JSON formatter.
       Done: `/healthz` returns 200 with all sub-checks ok locally.
 
-- [ ] **T012 — Beanie + MongoDB connection**
-      Paths: apps/api/src/auxd_api/db.py, apps/api/tests/integration/test_db_connection.py
+- [x] **T012 — Beanie + MongoDB connection** *(completed 2026-05-22; AsyncIOMotorClient + `init_db`/`close_db` wired into FastAPI lifespan; ALL_DOCUMENT_MODELS constant single-sources the 17-model list shared with conftest; ping-on-connect P5 fail-loud; URI-parser rejects missing DB name with redacted-password error; 14/14 unit tests; 229/229 full suite)*
+      Paths: apps/api/src/auxd_api/db.py, apps/api/tests/unit/test_db.py
       Size: S
       Deps: T011
       Refs: plan §3
@@ -187,7 +187,7 @@
       Description: Install `opentelemetry-sdk` + `opentelemetry-instrumentation-fastapi` + `opentelemetry-instrumentation-httpx` + `opentelemetry-instrumentation-asyncpg` (or equivalent Beanie/MongoDB instrumentor). Configure OTLP exporter to stdout (captured by Fly logs at MVP — no dedicated tracing backend per plan §15.4). Spans emitted for all HTTP requests, outbound httpx calls, and DB operations. Service name = `auxd-api`; resource attributes include `deployment.environment`.
       Done: a request hitting `/healthz` produces a structured span in Fly logs containing `trace_id`, `span_id`, and `http.route`. Unit test asserts the OTel provider is registered on app start.
 
-- [ ] **T016 — `lib/visibility` (single source of truth for can_read)**
+- [x] **T016 — `lib/visibility` (single source of truth for can_read)** *(completed 2026-05-22; 54/54 tests, 100% coverage; Visibility × ViewerRelation matrix via Protocols — no Beanie coupling)*
       Paths: apps/api/src/auxd_api/lib/visibility.py, apps/api/tests/unit/test_visibility.py
       Size: M
       Deps: T012
@@ -231,15 +231,15 @@
 
 ## §2 Shared backend models + OpenAPI codegen pipeline
 
-- [ ] **T021 — User Document + handle policy fields**
-      Paths: apps/api/src/auxd_api/modules/auth/models.py, apps/api/tests/unit/test_user_model.py
+- [x] **T021 — User Document + handle policy fields** *(completed 2026-05-22; full plan §3 schema incl. handle policy/notif prefs/music providers; indexes on handle/email unique + status partial; tests via mongomock-motor)*
+      Paths: apps/api/src/auxd_api/modules/users/models.py, apps/api/tests/unit/test_users_model.py
       Size: M
       Deps: T012, T018
       Refs: plan §3, §4.3; FR-029; US-G1; data-model.md User
       Description: Beanie `User` Document with all fields per data-model.md User entity. Includes `auto_prompt_enabled`, `auto_prompt_push_enabled`, `default_entry_visibility`, `default_backlog_visibility`, `keep_backlog_after_log`, `last_handle_change`, `created_at`, `deletion_scheduled_for`, `session_version`, `status`. Indexes: handle unique, email unique, status partial.
       Done: model loads; unit test creates/saves/loads a User; indexes confirmed via aggregate explain.
 
-- [ ] **T022 — Album Document + identity fields**
+- [x] **T022 — Album Document + identity fields** *(completed 2026-05-22; Album schema incl. mbid/spotify_id sparse-unique indexes; Atlas Search index JSON at apps/api/migrations/atlas_search/albums_index.json — one-time UI apply documented)*
       Paths: apps/api/src/auxd_api/modules/albums/models.py
       Size: M
       Deps: T012, T018
@@ -247,7 +247,7 @@
       Description: Beanie `Album` Document with all fields. Indexes: `mbid unique sparse`, `spotify_id unique sparse`. Atlas Search index definition (per plan §11.1) added as a migration artifact (`apps/api/migrations/atlas_search/albums_index.json`).
       Done: model + indexes; Atlas Search index applied to dev cluster (one-time manual via Atlas UI documented).
 
-- [ ] **T023 — DiaryEntry + Review + ReviewLike + ReviewEditHistory Documents**
+- [x] **T023 — DiaryEntry + Review + ReviewLike + ReviewEditHistory Documents** *(completed 2026-05-22; 15/15 tests; DiaryEntry.auxed bool, Review.reactions sub-doc, ReviewLike unique (review_id, user_id), ReviewEditHistory 90d TTL on edited_at per FR-030)*
       Paths: apps/api/src/auxd_api/modules/diary/models.py, apps/api/src/auxd_api/modules/reviews/models.py
       Size: M
       Deps: T021, T022
@@ -255,7 +255,7 @@
       Description: Beanie `DiaryEntry` (with `auxed: bool` — Aux is on DiaryEntry only), `Review` (with `reactions.likes_count: int` + `recent_likers`), `ReviewLike` (new in R3 — per-user-per-review record), `ReviewEditHistory` (per-edit version row — `review_id`, `version`, `body_at_time`, `edited_at`, `edited_by`; TTL 90d on `edited_at` per FR-030 audit window). Indexes per plan §3.1 table.
       Done: models + indexes; unit tests on field constraints.
 
-- [ ] **T024 — Backlog + BacklogItem Documents**
+- [x] **T024 — Backlog + BacklogItem Documents** *(completed 2026-05-22; Backlog 1:1 with User, BacklogItem with position/per_item_visibility/notes; tests pure-Pydantic via mongomock conftest)*
       Paths: apps/api/src/auxd_api/modules/backlog/models.py
       Size: S
       Deps: T021, T022
@@ -263,7 +263,7 @@
       Description: Beanie `Backlog` (1:1 with User) + `BacklogItem` with `position`, `per_item_visibility`, `notes`.
       Done: models; backlog auto-create on first user access.
 
-- [ ] **T025 — Follow + FollowRequest + Block Documents**
+- [x] **T025 — Follow + FollowRequest + Block Documents** *(completed 2026-05-22; Follow/FollowRequest/Block models + state enums; compound unique indexes; cascade-on-block deferred to T101 service layer per plan §6.2)*
       Paths: apps/api/src/auxd_api/modules/social/models.py
       Size: S
       Deps: T021
@@ -271,7 +271,7 @@
       Description: Beanie `Follow` (state: accepted [default for public profiles] / pending / rejected — kept on the Follow doc itself for transition-history) + `FollowRequest` (separate collection — `requester_id`, `requestee_id`, `status: pending/accepted/declined/expired`, `created_at`, `responded_at`) + `Block`. Compound unique indexes; cascade-resolve on block (Block creation dissolves any existing Follow + any pending FollowRequest in either direction).
       Done: models + unique constraints + cascade trigger covered by integration test; FollowRequest status transitions covered by unit test.
 
-- [ ] **T026 — Report + Notification + NotificationPreferences + FailedEmail Documents**
+- [x] **T026 — Report + Notification + NotificationPreferences + FailedEmail Documents** *(completed 2026-05-22; 18/18 tests; 18-value NotificationType enum; Notification 90d TTL; Report.target_type incl. missing_album; FailedEmail as T135 write target; NotificationPreferences dedupe with T021 reconciled)*
       Paths: apps/api/src/auxd_api/modules/moderation/models.py, apps/api/src/auxd_api/modules/notifications/models.py
       Size: M
       Deps: T021
@@ -279,7 +279,7 @@
       Description: `Report` (target_type/target_id, status, resolution_note — target_type enum extended with `missing_album` per sync-fix L3-006); `Notification` (user_id, type, payload, channel_dispatch_state, read_at, TTL 90d); `NotificationPreferences` (embedded on User per plan §3 — model the embedded sub-document explicitly); `FailedEmail` (user_id, notification_type, payload, attempted_at, last_error — write target for T135 failure-mode wiring). 18 active notification types as `NotificationType` enum.
       Done: models + TTL index on Notification; FailedEmail covered by integration test in T135.
 
-- [ ] **T027 — JustFinishedPrompt + SuggestedFollow + CriticSeed Documents**
+- [x] **T027 — JustFinishedPrompt + SuggestedFollow + CriticSeed Documents** *(completed 2026-05-22; 13/13 tests; JustFinishedPrompt TTL partial-filter (state=pending → 24h expiry), retains LOGGED/DISMISSED for S-B6 30d cooldown + attribution analytics; SuggestedFollow sparse dismissed_at index; CriticSeed unique on user_id with active=True partial)*
       Paths: apps/api/src/auxd_api/modules/prompts/models.py, apps/api/src/auxd_api/modules/seeding/models.py
       Size: M
       Deps: T021, T022

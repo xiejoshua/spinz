@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-22T18:30:00Z"
+last_updated: "2026-05-22T22:00:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -115,12 +115,12 @@ phases:
     progressive_checkpoints_run: 3
     progressive_warnings: 0
     progressive_critical: 0
-    tasks_completed: 10
+    tasks_completed: 22
     tasks_total: 183
-    autonomous_section_zero_complete: false
-    session_count: 2
-    progressive_checkpoints_run: 5
-    notes: "Session 2 (2026-05-22 PM): foundation-libs wave. T018 KSUID, T029 Settings, T014 resilience (100% cov), T017 secrets — Wave 1 parallel agents. T015 observability, T015a OTel — Wave 2 sequential. All 6 tasks unit-tested + ruff/format/mypy strict clean. Full test suite 76/76 passes. main.py now wires Sentry + OTel via FastAPI lifespan. 10/183 tasks complete. Session 1 (AM) covered T001/T003/T004/T008 + sync-fix-list apply."
+    autonomous_section_zero_complete: true
+    session_count: 3
+    progressive_checkpoints_run: 7
+    notes: "Session 3 (2026-05-22 evening): Wave A §0 closeout + Wave B backend data layer. Wave A: T009 deploy-api workflow, T010 synthetic monitoring, T010a nightly mongodump → R2 (commit 743d052). Wave B: T012 Beanie connection + lifespan wiring (db.py + ALL_DOCUMENT_MODELS single-source; ping-on-connect P5 fail-loud); T016 visibility matrix (54 tests, 100% cov); T021-T027 all 17 Beanie Documents (User, Album, DiaryEntry+Review+ReviewLike+ReviewEditHistory, Backlog+BacklogItem, Follow+FollowRequest+Block, Notification+Report+FailedEmail+NotificationPreferences, JustFinishedPrompt+SuggestedFollow+CriticSeed). mongomock-motor conftest fixture initialises Beanie once per session. Full test suite 229/229 green; ruff + mypy --strict clean. 22/183 tasks complete. Session 2 (PM) covered T014/T015/T015a/T017/T018/T029."
   code_review:
     status: "pending"
   verify:
@@ -259,6 +259,116 @@ task_log:
     started_at: "2026-05-22T18:10:00Z"
     completed_at: "2026-05-22T18:25:00Z"
     notes: "OTel SDK + FastAPIInstrumentor + HTTPXClientInstrumentor. ConsoleSpanExporter→stdout (Fly logs at MVP per plan §15.4; no dedicated tracing backend). FastAPI lifespan added to main.py wires init_sentry + init_otel. Idempotent via module-level _initialized flag. PyMongo instrumentation deferred to T012. **Key finding**: FastAPIInstrumentor doesn't invalidate cached middleware_stack — init_otel forces rebuild via app.middleware_stack = app.build_middleware_stack(), else spans silently never fire from lifespan-init. Documented inline. 8/8 tests; full suite 76/76."
+  - task_id: "T009"
+    status: "completed"
+    paths:
+      - ".github/workflows/deploy-api.yml"
+    commit_sha: "743d052"
+    started_at: "2026-05-22T20:30:00Z"
+    completed_at: "2026-05-22T20:40:00Z"
+    notes: "Fly auto-deploy on push to main with apps/api/** path filter. Requires FLY_API_TOKEN secret (user-side setup)."
+  - task_id: "T010"
+    status: "completed"
+    paths:
+      - ".github/workflows/synthetic.yml"
+    commit_sha: "743d052"
+    started_at: "2026-05-22T20:30:00Z"
+    completed_at: "2026-05-22T20:40:00Z"
+    notes: "Black-box uptime probe every 15 min for xiejoshua.com + api.xiejoshua.com/healthz. Discord webhook on failure. Manual workflow_dispatch trigger included. Requires DISCORD_WEBHOOK_URL secret."
+  - task_id: "T010a"
+    status: "completed"
+    paths:
+      - ".github/workflows/backup-mongo.yml"
+    commit_sha: "743d052"
+    started_at: "2026-05-22T20:30:00Z"
+    completed_at: "2026-05-22T20:40:00Z"
+    notes: "Nightly mongodump (03:30 UTC) | aws s3 cp streaming to R2 bucket. 30-day lifecycle policy configured at bucket-level in Cloudflare dashboard. Discord alert on failure. Atlas IP allowlist must include 0.0.0.0/0 (or self-hosted runner) — documented in workflow header."
+  - task_id: "T016"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/lib/visibility.py"
+      - "backend:apps/api/tests/unit/test_visibility.py"
+    commit_sha: null
+    started_at: "2026-05-22T20:45:00Z"
+    completed_at: "2026-05-22T21:05:00Z"
+    notes: "can_read(viewer, content) implementing Visibility × ViewerRelation matrix. Uses Protocols (Viewer, OwnedContent) to avoid Beanie coupling — service layer derives the viewer relation from Follow/Block reads. Hypothesis property test covers all 16 combinations. 54/54 tests; 100% coverage."
+  - task_id: "T012"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/db.py"
+      - "backend:apps/api/src/auxd_api/main.py"
+      - "backend:apps/api/tests/conftest.py"
+      - "backend:apps/api/tests/unit/test_db.py"
+    commit_sha: null
+    started_at: "2026-05-22T21:30:00Z"
+    completed_at: "2026-05-22T21:55:00Z"
+    notes: "AsyncIOMotorClient + Beanie init_beanie wired into FastAPI lifespan (DB init runs before Sentry/OTel — most-disruptive-first per P5). ALL_DOCUMENT_MODELS module-level constant single-sources the 17-model list shared with tests/conftest.py. pymongo.uri_parser validates DB name presence before opening a socket; password redacted in error path. Ping-on-connect verifies the connection; client.close() called on ping failure to avoid leaked pool. 14/14 unit tests; full suite 229/229; ruff + mypy --strict clean."
+  - task_id: "T021"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/users/models.py"
+      - "backend:apps/api/tests/unit/test_users_model.py"
+    commit_sha: null
+    started_at: "2026-05-22T20:45:00Z"
+    completed_at: "2026-05-22T21:10:00Z"
+    notes: "Beanie User Document with handle policy fields (last_handle_change), notification preferences (embedded), music providers (Spotify/Apple Music/Last.fm), status enum, KSUID id. Indexes: handle/email unique; status partial. mongomock-motor conftest exercises field-shape via Pydantic without needing real Mongo."
+  - task_id: "T022"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/albums/models.py"
+      - "backend:apps/api/migrations/atlas_search/albums_index.json"
+    commit_sha: null
+    started_at: "2026-05-22T20:45:00Z"
+    completed_at: "2026-05-22T21:00:00Z"
+    notes: "Album Document with mbid + spotify_id sparse-unique indexes. Atlas Search index JSON shipped as a migration artifact for one-time UI application against the dev cluster (Atlas Admin API automation deferred to v1.x per migration-plan §A2)."
+  - task_id: "T023"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/diary/models.py"
+      - "backend:apps/api/src/auxd_api/modules/reviews/models.py"
+      - "backend:apps/api/tests/unit/test_diary_review_models.py"
+    commit_sha: null
+    started_at: "2026-05-22T20:45:00Z"
+    completed_at: "2026-05-22T21:00:00Z"
+    notes: "DiaryEntry (with `auxed: bool` per Aux/Like semantic split R3), Review (with `reactions` sub-doc + `diary_entry_id` 1:1 unique), ReviewLike (unique (review_id, user_id) — new in R3), ReviewEditHistory (90-day TTL on edited_at per FR-030 audit window). 15/15 tests; 6 indexes per plan §3.1 incl. L4-002 ix_diary_user_auxed."
+  - task_id: "T024"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/backlog/models.py"
+      - "backend:apps/api/tests/unit/test_backlog_models.py"
+    commit_sha: null
+    started_at: "2026-05-22T20:45:00Z"
+    completed_at: "2026-05-22T21:00:00Z"
+    notes: "Backlog 1:1 with User (unique user_id); BacklogItem with position (compound unique on backlog_id+album_id), per_item_visibility override, notes."
+  - task_id: "T025"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/social/models.py"
+      - "backend:apps/api/tests/unit/test_social_models.py"
+    commit_sha: null
+    started_at: "2026-05-22T20:45:00Z"
+    completed_at: "2026-05-22T21:00:00Z"
+    notes: "Follow + FollowRequest + Block Documents with FollowState/FollowRequestStatus/BlockReason enums. Compound unique indexes. Cascade-on-block (Follow/FollowRequest dissolution) intentionally deferred to T101 service layer — model layer is data-only."
+  - task_id: "T026"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/notifications/models.py"
+      - "backend:apps/api/src/auxd_api/modules/moderation/models.py"
+      - "backend:apps/api/tests/unit/test_notifications_moderation_models.py"
+    commit_sha: null
+    started_at: "2026-05-22T20:45:00Z"
+    completed_at: "2026-05-22T21:05:00Z"
+    notes: "NotificationType enum (18 active types per spec v1.4 / N-001..N-018; N-019/N-020 reserved post-R3 Lists removal). Notification with 90-day TTL on created_at. NotificationPreferences sub-doc reconciled with T021 User. FailedEmail collection as write target for T135 Resend failure-mode wiring. Report.target_type enum includes missing_album per sync-fix L3-006. 18/18 tests."
+  - task_id: "T027"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/prompts/models.py"
+      - "backend:apps/api/src/auxd_api/modules/seeding/models.py"
+      - "backend:apps/api/tests/unit/test_prompts_seeding_models.py"
+    commit_sha: null
+    started_at: "2026-05-22T20:45:00Z"
+    completed_at: "2026-05-22T21:05:00Z"
+    notes: "JustFinishedPrompt with TTL partial-filter ({state: pending} → 24h expiry) so LOGGED/DISMISSED/SUPPRESSED/EXPIRED rows survive for S-B6 30-day per-album cooldown + attribution analytics. SuggestedFollow (score + reason enum + sparse dismissed_at). CriticSeed (unique on user_id partial active=True; priority/category/description). 13/13 tests."
 
 scope:
   paths:
