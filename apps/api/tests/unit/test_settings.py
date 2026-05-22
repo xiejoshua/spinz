@@ -40,7 +40,11 @@ _ALL_ENV_KEYS = (
     "SENTRY_DSN",
     "POSTHOG_API_KEY",
     "POSTHOG_HOST",
-    "POSTMARK_API_KEY",
+    "RESEND_API_KEY",
+    "R2_ACCESS_KEY_ID",
+    "R2_SECRET_ACCESS_KEY",
+    "R2_ENDPOINT_URL",
+    "R2_BUCKET_NAME",
     "VAPID_PUBLIC_KEY",
     "VAPID_PRIVATE_KEY",
 )
@@ -76,11 +80,13 @@ def test_minimal_local_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert cfg.LOG_LEVEL is LogLevel.INFO
     assert cfg.MONGODB_URI == "mongodb://localhost:27017/auxd_dev"
     assert cfg.REDIS_URL == "redis://localhost:6379/0"
-    assert cfg.POSTHOG_HOST == "https://app.posthog.com"
+    assert cfg.POSTHOG_HOST == "https://us.i.posthog.com"
     assert cfg.SPOTIFY_INTEGRATION_ENABLED is False
     assert cfg.SENTRY_DSN is None
     assert cfg.POSTHOG_API_KEY is None
-    assert cfg.POSTMARK_API_KEY is None
+    assert cfg.RESEND_API_KEY is None
+    assert cfg.R2_ACCESS_KEY_ID is None
+    assert cfg.R2_BUCKET_NAME == "auxd-backups"
     assert cfg.VAPID_PRIVATE_KEY is None
 
 

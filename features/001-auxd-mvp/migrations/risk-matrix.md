@@ -38,4 +38,4 @@
 | Beanie's built-in migration support | ⚠️ | Beanie has minimal migration tooling. We use raw motor + Beanie's lazy-upgrade-on-read pattern. |
 | Atlas CLI (`atlas`) | Optional (v1.x) | For automating Atlas Search index application. M0 = manual UI. |
 | Atlas Admin API | Optional (v1.x) | Same as above. |
-| Backup snapshots | Manual at M0 (mongodump) | Atlas M10+ has automatic point-in-time backups. Until then, daily `mongodump` → S3 ($1/mo per [plan §17.4](../plan.md)). |
+| Backup snapshots | Manual at M0 (mongodump) | Atlas M10+ has automatic point-in-time backups. Until then, daily `mongodump` → Cloudflare R2 ($0/mo on 10 GB free tier per [plan §17.4](../plan.md); swapped from S3 on 2026-05-22). |

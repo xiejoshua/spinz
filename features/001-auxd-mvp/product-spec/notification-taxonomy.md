@@ -146,7 +146,7 @@ These are reversible single-tap controls — not destructive.
 - A **notification dispatcher service** (in-process at MVP; can extract to worker later) with explicit per-channel routing.
 - A **dedup + coalescer** layer that runs at write time.
 - A **scheduled job** for weekly digest (Monday 09:00 user-local) — needs per-user-tz handling.
-- Per-channel adapters: `InAppAdapter` (writes to Notification collection), `EmailAdapter` (uses Postmark or Resend), `WebPushAdapter` (uses VAPID).
+- Per-channel adapters: `InAppAdapter` (writes to Notification collection), `EmailAdapter` (uses Resend — sync-fix Run #2 locked Resend over Postmark 2026-05-22 for cost), `WebPushAdapter` (uses VAPID).
 - An `is_notifiable(user, type, channel)` predicate that respects preferences, quiet hours, blocks, and rate limits.
 
 ---

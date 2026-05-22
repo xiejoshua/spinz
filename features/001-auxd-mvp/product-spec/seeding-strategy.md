@@ -72,7 +72,7 @@ Users want to bring their friends. The invite flow is shaped to maximize that co
 
 #### Mechanics
 
-- Every user gets a personal invite link: `TBD.app/i/{handle}` (vanity, redirects to signup with referrer tracking).
+- Every user gets a personal invite link: `xiejoshua.com/i/{handle}` (vanity, redirects to signup with referrer tracking).
 - The link displays the inviter's profile card on the landing page: "Casey invited you to auxd" + their 5 recent ratings.
 - After signup via invite, the new user **automatically gets the inviter and 2 of the inviter's followed accounts pre-suggested** during onboarding (not auto-followed — they still confirm).
 - Both parties see a "Casey joined auxd" notification when the invitee logs their first album (closes the loop, encourages mutual-follow).

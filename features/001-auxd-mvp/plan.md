@@ -77,10 +77,11 @@ The constitution should also include a sixth project-specific principle:
 ┌──────────┐      ┌──────────────┐    ┌───────────────────┐
 │  Redis   │      │ MongoDB Atlas│    │  Spotify API +    │
 │  (arq +  │      │  + Atlas     │    │  MusicBrainz +    │
-│  cache)  │      │  Search      │    │  Postmark (email) │
+│  cache)  │      │  Search      │    │  Resend (email)   │
 └──────────┘      └──────────────┘    └───────────────────┘
 
-Observability: Sentry · PostHog (self-hosted) · OpenTelemetry traces → Fly logs
+Observability: Sentry · PostHog Cloud · OpenTelemetry traces → Fly logs
+Backups: Cloudflare R2 (10 GB free, S3-compatible)
 ```
 
 ### 1.1.1 Cross-cutting fail-modes (locked in Phase 5C)
@@ -95,7 +96,7 @@ The platform makes deliberate fail-mode choices for shared infrastructure:
 | **Redis (arq job queue)** | New jobs cannot enqueue | FAIL CLOSED — API returns 503 for endpoints that enqueue jobs (e.g., GDPR export) | Sentry `jobs.redis_down` |
 | **Spotify API** | Provider returns 503/timeout | Circuit-breaker opens; cached metadata served; auto-prompt + import paused | Sentry `spotify.unavailable` |
 | **MongoDB Atlas** | Connection refused | FAIL CLOSED — 503 on all data-touching endpoints; static pages still load | Sentry `db.unavailable` (paging) |
-| **PostMark (email)** | Send fails | Retry with exponential backoff (3 attempts); on final failure, log to `failed_emails` collection for manual retry | Sentry `email.send_failed` |
+| **Resend (email)** | Send fails | Retry with exponential backoff (3 attempts); on final failure, log to `failed_emails` collection for manual retry | Sentry `email.send_failed` |
 | **PostHog** | Event dispatch fails | FAIL SILENT — events dropped; do not block user actions | Sentry `analytics.posthog_down` |
 | **Sentry** | Sentry itself down | FAIL SILENT — log to stdout (captured by Fly logs) | (none — fallback log channel) |
 
@@ -134,7 +135,7 @@ auxd/
 │   │   │   ├── lib/                    (cross-cutting utilities)
 │   │   │   │   ├── resilience.py       (retry + timeout + circuit breaker)
 │   │   │   │   ├── visibility.py       (single can_read() function)
-│   │   │   │   ├── observability.py    (structured logging, PostHog client)
+│   │   │   │   ├── observability.py    (structured logging, PostHog Cloud client)
 │   │   │   │   └── markdown.py
 │   │   │   ├── workers/
 │   │   │   │   └── (arq job definitions)
@@ -221,10 +222,10 @@ All Phase 1 research recommendations confirmed unchanged.
 | Database | **MongoDB Atlas (Shared M0 tier at MVP)** | Confirmed. Free tier handles M3 target (~500 WAL); upgrade to M10 when WAL crosses ~3k. |
 | Search | **Atlas Search** (native to Atlas) | Confirmed. One less moving part than Meilisearch/Typesense. Spotify search as fallback for cold catalog. |
 | Cache | **Redis (Upstash serverless)** | Album metadata cache (7d TTL), user listening cache (1h TTL), arq job queue, OAuth state. |
-| Email | **Postmark** | Transactional email + weekly digest. Resend was the alternative; Postmark wins on deliverability + clear pricing. |
+| Email | **Resend** | Transactional email + weekly digest. Free tier 3k emails/mo covers MVP. Swapped from Postmark on 2026-05-22 to stay on free tier ($15/mo saved). |
 | Web push | **Standard Web Push API + VAPID keys** | No third-party push service needed at PWA stage. |
 | Observability — errors | **Sentry** (free tier first) | Confirmed. |
-| Observability — product analytics | **PostHog (self-hosted, single container on Fly.io)** | Self-hosted to avoid third-party-tracking compliance surface; single PostHog container is sufficient for M6 scale. |
+| Observability — product analytics | **PostHog Cloud (US region, free tier)** | 1M events/mo + 1yr retention on free tier — easily covers M6 closed-beta scale. Self-host on Fly was the original plan but needs 4 GB RAM (~$40/mo); swapped 2026-05-22 to Cloud to drop MVP run-rate to $5/mo. Migrate to self-host if event volume crosses 1M/mo or compliance forces on-prem. |
 | Observability — traces | **OpenTelemetry → Fly logs** at MVP | No dedicated tracing backend at MVP; Honeycomb/Tempo deferred to post-launch if needed. |
 | Recommendation engine | **Heuristic only (Python, in-process)** | Confirmed. Social-graph walking + mutual-taste overlap; no ML/ALS at MVP. |
 | Music identity | **MusicBrainz release-group MBID canonical, Spotify album ID fallback** | Locked. |
@@ -590,7 +591,7 @@ notifications.dispatch(user_id, type, payload)
 ┌─────────────────────────────┐
 │  fan out to adapters         │
 │   ├─ InAppAdapter (DB write) │
-│   ├─ EmailAdapter (Postmark) │
+│   ├─ EmailAdapter (Resend)   │
 │   └─ WebPushAdapter (VAPID)  │
 └─────────────────────────────┘
 ```
@@ -606,14 +607,14 @@ notifications.dispatch(user_id, type, payload)
 ### 8.3 Adapters
 
 - `InAppAdapter`: writes to `notifications` collection; counts toward rate limit.
-- `EmailAdapter`: sends via Postmark; transactional emails ignore quiet hours; weekly digest fires Monday 09:00 user-local.
+- `EmailAdapter`: sends via Resend (Python SDK `resend`); transactional emails ignore quiet hours; weekly digest fires Monday 09:00 user-local.
 - `WebPushAdapter`: VAPID-signed payloads; respects quiet hours (suppresses push within window); coalesces if multiple events fire close together.
 
 ### 8.4 Weekly digest job
 
 - Scheduled via arq cron: every 5 minutes the worker checks for users whose `Monday 09:00 user-local` is in the current 5-minute window; per-user-tz awareness.
 - For each eligible user: query top 10 entries from their follow graph past 7 days + 1 "most-rated album in your follow graph this week" hero.
-- Render plain HTML email; send via Postmark; emit PostHog event `digest.sent`.
+- Render plain HTML email; send via Resend; emit PostHog event `digest.sent`.
 - Suppression: `weekly_digest` channel must be ON in `NotificationPreferences`.
 
 ---
@@ -761,7 +762,7 @@ When BOTH Atlas Search AND Spotify search return zero results for a query, the e
 
 Out of scope at MVP. Users find each other via:
 - Follow graph (suggestions)
-- Profile URL share (`TBD.app/@handle`)
+- Profile URL share (`xiejoshua.com/@handle`)
 - Critic-seed directory at `/critics`
 
 ---
@@ -850,7 +851,7 @@ async def process_export(user_id: str, export_id: str):
     json_blob = serialize_user_data(user, diary, reviews, auxes, likes_given, backlog, follows, notifications)
     csv_files = generate_csv_per_collection(...)
 
-    # Email via Postmark with attachment-or-link
+    # Email via Resend with attachment-or-link
     await postmark.send_export(user.email, export_id, json_blob, csv_files)
 
     # Record in `gdpr_audit_log` collection
@@ -883,7 +884,13 @@ Every export + deletion request persisted to `gdpr_audit_log` collection with `u
 - Frontend: every uncaught error in React boundary; source maps uploaded on deploy.
 - Sample rate: 100% errors; 10% transactions at MVP.
 
-### 15.2 PostHog (self-hosted single container)
+### 15.2 PostHog Cloud (US region, free tier)
+
+- Host: `https://us.i.posthog.com` (ingest) / `https://us.posthog.com` (dashboard).
+- Free tier: 1M events/mo, 1yr retention — easily covers M6 closed-beta scale.
+- Self-host on Fly was the original plan (single container on Fly.io); swapped 2026-05-22 because PostHog's 4 GB RAM minimum (~$40/mo) blew through the MVP cost budget. Migration path: re-host on self-managed infra when event volume crosses ~1M/mo OR when compliance forces on-prem (neither is true at MVP).
+- Server SDK: `posthog` Python package (already in `apps/api/pyproject.toml`).
+- Wrapper: `auxd_api.lib.observability.emit_event(...)` — fire-and-forget, no-op when `POSTHOG_API_KEY` is unset, never raises into request path.
 
 Key product events:
 
@@ -917,7 +924,7 @@ OTel SDK in backend; instruments FastAPI, httpx, Beanie automatically. Spans exp
 
 ### 15.5 Synthetic monitoring
 
-GitHub Actions cron every 15 minutes: `curl https://TBD.app` → assert 200 + < 500ms. Failure → ping founder via Discord webhook. Pingdom / BetterStack deferred to v1.x.
+GitHub Actions cron every 15 minutes: `curl https://xiejoshua.com` → assert 200 + < 500ms. Failure → ping founder via Discord webhook. Pingdom / BetterStack deferred to v1.x.
 
 ---
 
@@ -1015,32 +1022,37 @@ jobs:
 ### 17.2 Backend — Fly.io
 
 - Single app `auxd-api` deployed via `flyctl deploy` on push to `main` (GitHub Actions).
-- Region: `sjc` (US-West) at MVP; add `iad` (US-East) post-M3.
-- Secrets via `fly secrets set`: `MONGODB_URI`, `REDIS_URL`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SESSION_HMAC_KEY`, `TOKEN_ENCRYPTION_KEY`, `POSTMARK_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SENTRY_DSN`, `POSTHOG_API_KEY`.
+- Region: `iad` (US-East, Ashburn VA) at MVP to colocate with Atlas + Upstash (both `us-east-1`); add a second region post-M3 if cross-region latency demands.
+- Plan: Hobby ($5/mo minimum; first $5 of compute included). Two-process layout (api + arq worker) on a single shared-cpu-1x VM stays inside the included allowance.
+- Secrets via `fly secrets set`: `MONGODB_URI`, `REDIS_URL`, `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SESSION_HMAC_KEY`, `TOKEN_ENCRYPTION_KEY`, `RESEND_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SENTRY_DSN`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT_URL`, `R2_BUCKET_NAME`. See `docs/infra.md` for the full source-of-truth table.
 - Health check: `GET /healthz` → returns `{ "status": "ok", "db": "ok", "redis": "ok" }`.
 - Worker process: arq runs in same fly app (separate process group); `fly.toml` defines `[processes]` for api + worker.
 
 ### 17.3 Domain & TLS
 
-- Domain `TBD.app` (founder-registered pre-launch).
-- Apex → Vercel; `api.TBD.app` → Fly.io.
-- TLS via Vercel + Fly (Let's Encrypt automatic).
+- Domain `xiejoshua.com` (temporary, founder-registered via Cloudflare 2026-05-22; final product domain TBD).
+- Apex → Vercel; `api.xiejoshua.com` → Fly.io.
+- DNS hosted at Cloudflare (proxy OFF on Vercel + Fly records — both providers manage their own SSL via Let's Encrypt).
+- When the final product domain is decided, re-point DNS records — code uses `NEXT_PUBLIC_API_URL` env var, so the swap is config-only.
 
 ### 17.4 Database
 
-- MongoDB Atlas Shared M0 cluster at MVP (free, sufficient for ~M3).
+- MongoDB Atlas Shared M0 cluster at MVP (free, 512 MB storage, sufficient for ~M3 closed-beta).
+- Region `aws-us-east-1` (matches Fly `iad` for sub-10ms backend ↔ DB latency).
 - Connection string in `MONGODB_URI` Fly secret.
-- Backups: Atlas point-in-time (M10+); at M0 manual nightly mongodump → S3 ($1/mo).
+- Backups: Atlas point-in-time available at M10+ tier; at M0 we run a manual nightly `mongodump --gzip --archive` → **Cloudflare R2 bucket `auxd-backups`** via S3-compatible API (10 GB free tier; ~$0/mo at MVP scale — swapped from S3 on 2026-05-22 to stay free). Lifecycle: retain 30 days, expire after. See T010a for the GitHub Actions workflow + restore drill.
 
 ### 17.5 Redis
 
-- Upstash serverless Redis at MVP (free tier covers M3-ish; pay-as-you-go after).
+- Upstash serverless Redis at MVP (free tier: 256 MB, 10k commands/day — covers M3-ish closed-beta).
+- Region `us-east-1` (colocated with Atlas + Fly).
 - Used for: arq job queue, cache layer, Redis-backed rate limiter.
 
 ### 17.6 Email
 
-- Postmark with `TBD.app` domain DKIM/SPF/DMARC configured pre-launch.
-- Free tier (100 emails/mo) covers internal testing; paid tier ($15/mo for 10k emails) when public.
+- **Resend** (resend.com) with `xiejoshua.com` domain DKIM/SPF/DMARC configured pre-launch. Swapped from Postmark on 2026-05-22 to stay on a free tier.
+- Free tier: 3,000 emails/mo — covers M3 closed-beta with significant headroom. Upgrade to Pro ($20/mo for 50k emails) around 500 active users.
+- Server SDK: `resend` Python package (added in T135 implementation).
 
 ---
 
@@ -1135,7 +1147,7 @@ Internal-only + critic-seed onboarding wave. All work inside Spotify Development
 | Just-finished detection accuracy | Heuristic (≥4 tracks from same album in 1h) tuned post-launch; user can dismiss + disable to prevent false-positive damage |
 | Notification firehose regression | PostHog dashboard "notification rate per user per week" with alert at threshold; rate-limit + coalescer + quiet hours layered |
 | Single-region backend latency for EU/APAC | Multi-region post-M3; static OG image generation can be edge-deployed if needed earlier |
-| Self-hosted PostHog operational cost | Single container on Fly.io; if it becomes flaky, migrate to PostHog Cloud (~$0/mo at our scale) |
+| PostHog Cloud free-tier event budget (1M/mo) | Monitor monthly event count via PostHog billing UI; if approaching ceiling, drop low-value events first (feed scroll telemetry before commit events); paid tier scales linearly at ~$0.0003/event |
 | Cover-art proxy bandwidth cost via Spotify CDN | Lightweight pass-through; if Fly egress costs spike, move to Cloudflare Worker proxy ($0–$5/mo) |
 | Reserved-squat handle false positives | Manual verification flow; conservative initial list of 200 (not 500) handles |
 | MusicBrainz rate limits | 1 req/sec per IP — sufficient for our reconcile job which runs offline; we cache aggressively |
@@ -1158,6 +1170,6 @@ Cross-cutting non-feature tasks Phase 5B must include:
 - Task 1 — Submit Spotify Extended Quota Mode application
 - Task 2 — Monorepo scaffolding (pnpm + uv + workspaces; lint/format/typecheck/CI baseline)
 - Task 3 — Atlas + Upstash Redis provisioning; Fly.io + Vercel projects
-- Task 4 — Postmark + Sentry + PostHog accounts; secrets in Fly
+- Task 4 — Resend + Sentry + PostHog Cloud + Cloudflare R2 accounts; secrets in Fly (full list in docs/infra.md)
 - Task 5 — Domain + DKIM/SPF setup; web push VAPID keys generated
 - (Per-module tasks follow per §6, sequenced per §18)

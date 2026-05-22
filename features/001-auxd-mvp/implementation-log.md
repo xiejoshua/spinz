@@ -101,3 +101,51 @@ T002 (Spotify Extended Quota), T005 (Atlas + Upstash), T006 (Fly + Vercel + DNS)
 
 ### Productive-while-blocked work remaining
 Significant feature scope still unblocked: T011 (FastAPI app expansion), T012 (Beanie connection scaffold), T016 (lib/visibility), T019 (session middleware), T021–T027 (7 Beanie Document models), T028 (OpenAPI codegen), T031–T040 (frontend foundation). Next session can pick another wave.
+
+## Session 3 — Infra-decision swaps (2026-05-22 evening)
+
+Founder shared blocker progress: Atlas + Upstash + PostHog accounts created on US-East infra, Cloudflare domain `xiejoshua.com` registered as a temporary domain, R2 bucket spun up. Asked for cost-minimization audit + alternatives.
+
+Applied four architectural decisions that drop projected MVP run-rate from ~$60/mo to **$5/mo**:
+
+| Decision | Was | Now | Savings |
+|----------|-----|-----|---------|
+| Product analytics | PostHog self-hosted on Fly (needs ~4 GB RAM) | PostHog Cloud US (1M events/mo free) | ~$40/mo |
+| Email | Postmark Starter ($15/mo for 10k) | Resend (3k/mo free) | $15/mo |
+| Backups | S3 (~$1-3/mo at MVP scale) | Cloudflare R2 (10 GB free) | ~$2/mo |
+| Fly region | `sjc` (us-west) | `iad` (us-east, colocates with Atlas/Upstash/R2) | latency win |
+
+Plus domain placeholder `TBD.app` → `xiejoshua.com` / `api.xiejoshua.com` across 6 live artifacts.
+
+### Files modified
+
+- **Code (8 files):** `apps/api/src/auxd_api/settings.py` (POSTMARK_API_KEY → RESEND_API_KEY field rename; new R2_* fields; POSTHOG_HOST default updated to `https://us.i.posthog.com`; audit-log payload updated), `apps/api/.env.example` (synced; added R2 section), `apps/api/src/auxd_api/lib/observability.py` (docstring + provider-name comments), 3 test files (env-key allowlists updated for the rename + new R2 fields).
+- **Docs / plan (6 files):** `docs/infra.md` (rewritten with cost-map table + R2 backup runbook + per-secret source table + DNS table for Cloudflare), `features/001-auxd-mvp/plan.md` (§1.1 topology diagram, §1.1.1 fail-mode row, tech-stack table, §15.2 observability rewrite, §17.2 hosting + region change + secrets list, §17.3 domain section, §17.4 backups section, §17.6 email section, risks row updated, §22 handoff bullet), `features/001-auxd-mvp/spec.md` (privacy NFR row), `features/001-auxd-mvp/tasks.md` (T002 / T005 / T006 / T007 / T010a / T135 / T143 / T154 descriptions + Done lines).
+- **Supporting docs:** `features/001-auxd-mvp/migrations/risk-matrix.md` (S3 → R2 ref), `features/001-auxd-mvp/product-spec/notification-taxonomy.md` (EmailAdapter ref), `features/001-auxd-mvp/product-spec/seeding-strategy.md` (invite-link URL), `features/001-auxd-mvp/product-spec/user-journeys.md` (landing-page URL refs).
+
+### Files deliberately not modified (historical snapshots)
+
+- `features/001-auxd-mvp/implement/digest.md` — Phase 6 Session 1 digest, frozen.
+- `features/001-auxd-mvp/plan/digest.md` — Phase 5 plan digest, frozen.
+- Session 1 entries in this implementation-log — frozen.
+- Earlier sync-report entries — frozen.
+
+All carry TBD.app / Postmark / S3 references as time-of-writing record. Future readers should look at the latest plan.md / docs/infra.md as source-of-truth.
+
+### Verification (pre-commit)
+
+- Backend full suite: **76/76 passing** (settings rename didn't break anything).
+- ruff check + format + mypy --strict: all green across 18 source files.
+- No residual `Postmark` / `S3` / `sjc` / `us-west` in live artifacts (only intentional history mentions like "swapped from Postmark on…").
+- 3 TBD.app refs remain in historical-snapshot files (intentional).
+
+### Blockers status snapshot (post-session)
+
+| Blocker | Status |
+|---------|--------|
+| T002 Spotify Extended Quota Mode | ⏸ submit pending |
+| T005 Atlas M0 + Upstash Redis | ✅ accounts created — needs cluster + DB provisioned in `us-east-1`, IP allowlist, connection strings captured |
+| T006 Fly + Vercel + DNS | ⏸ signups pending (Fly Hobby $5/mo billing required) |
+| T007 Resend + Sentry + PostHog Cloud + R2 | 🟡 partial — PostHog ✅, R2 bucket ✅ (tokens pending), Resend ⏸ pending, Sentry ⏸ pending |
+| Domain | ✅ `xiejoshua.com` registered via Cloudflare (DNS records pending creation) |
+| Downstream T009/T010/T010a | ⏸ unchanged — gated on T005/T006/T007 |

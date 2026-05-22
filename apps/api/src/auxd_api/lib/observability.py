@@ -10,7 +10,7 @@ Public surface
 * :func:`log_call` — emit a single structured ``external_call`` JSON log
   line capturing provider, endpoint, latency, status, and optional
   correlation id + arbitrary ``extra`` fields. The plan's contract for
-  every outbound call (provider HTTP, Postmark, even PostHog itself).
+  every outbound call (provider HTTP, Resend, even PostHog itself).
 * :func:`emit_event` — fire-and-forget PostHog wrapper. No-op when the
   ``POSTHOG_API_KEY`` env var is unset, and *never* raises into the
   request path even if PostHog itself fails. Anonymous events are
@@ -158,13 +158,13 @@ def log_call(
     """Emit a structured ``external_call`` log line at INFO.
 
     The single canonical observability event for every outbound call —
-    HTTP to Spotify/MusicBrainz, Postmark email dispatch, even PostHog
+    HTTP to Spotify/MusicBrainz, Resend email dispatch, even PostHog
     failures (yes, we log PostHog failures via this same helper).
 
     Args:
         provider: Stable short name of the external dependency.
-            Examples: ``"spotify"``, ``"musicbrainz"``, ``"postmark"``,
-            ``"posthog"``, ``"sentry"``.
+            Examples: ``"spotify"``, ``"musicbrainz"``, ``"resend"``,
+            ``"posthog"``, ``"sentry"``, ``"r2"``.
         endpoint: Identifier of the specific operation invoked — usually
             a URL path or a logical command name (``"send_email"``).
         latency_ms: Wall-clock duration of the call in milliseconds.

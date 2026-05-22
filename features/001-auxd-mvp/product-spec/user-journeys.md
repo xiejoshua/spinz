@@ -10,11 +10,11 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 
 ## Journey 1: First-time onboarding (Casey)
 
-> Entry point: TBD.app landing page. Exit point: home feed populated, ≥1 album logged. Target completion time: **<3 minutes**.
+> Entry point: xiejoshua.com landing page. Exit point: home feed populated, ≥1 album logged. Target completion time: **<3 minutes**.
 
 | Step | User action | System response | Emotion | Notes |
 |---|---|---|---|---|
-| 1 | Lands on `TBD.app` from a friend's invite link | Shows: "Casey invited you to auxd" hero + Casey's 5 recent ratings + "Get started with Spotify" big button | 😊 curious | Social proof primes commitment |
+| 1 | Lands on `xiejoshua.com` from a friend's invite link | Shows: "Casey invited you to auxd" hero + Casey's 5 recent ratings + "Get started with Spotify" big button | 😊 curious | Social proof primes commitment |
 | 2 | Taps "Get started with Spotify" | Redirects to Spotify OAuth consent page | 😐 mild friction | OAuth screen owned by Spotify; we explain scopes in our pre-screen tooltip |
 | 3 | Approves Spotify scopes | Redirects back to auxd with auth code; exchange for tokens; account auto-created using Spotify display name and email | 😊 quick | Auto-create account avoids form-filling tax |
 | 4 | Sees "Pulling your last 30 days…" screen | Background: import job runs, fetches recently-played, dedupes to ~30 albums, caches metadata | 😊 anticipation | Progress: "Found 28 albums…" |
@@ -190,7 +190,7 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 | 3 | Taps "Add a review" | Textarea expands; full editor surface | 😊 |
 | 4 | Writes 200-word review with line breaks and one emphasis | Save state: draft autosaved every 5s | 😊 in flow |
 | 5 | Reviews own draft, taps "Log" | Entry + Review committed; sheet dismisses to toast: "Review posted to your diary" with a "Share" CTA | 😊 done |
-| 6 | Taps "Share" CTA in toast | OS share sheet opens with prefilled URL (`TBD.app/r/{review_id}`) and OG image preview | 😊 amplifies |
+| 6 | Taps "Share" CTA in toast | OS share sheet opens with prefilled URL (`xiejoshua.com/r/{review_id}`) and OG image preview | 😊 amplifies |
 | 7 | Shares to Twitter/X or copies link | External post happens; OG card renders cover + rating + review snippet | 😊 reach |
 
 **Drop-off risk points:**

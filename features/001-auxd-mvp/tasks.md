@@ -84,7 +84,7 @@
       Size: S
       Deps: —
       Refs: plan §17.4, §17.5
-      Description: Create Atlas M0 cluster (region: us-west); create Upstash Redis (region: us-west); note connection strings; configure IP allow-list for local dev + Fly.io.
+      Description: Create Atlas M0 cluster (region: aws-us-east-1, matching Fly `iad` for low-latency colocation); create Upstash Redis (region: us-east-1); note connection strings; configure IP allow-list for local dev + Fly.io outbound IPs.
       Done: both services reachable from local dev; connection strings captured.
 
 - [ ] **T006 — Provision Fly.io + Vercel projects**
@@ -92,16 +92,16 @@
       Size: S
       Deps: T003
       Refs: plan §17.1, §17.2
-      Description: `flyctl apps create auxd-api`; configure two-process layout (api + worker); link `apps/api/fly.toml`. `vercel init` linking `apps/web` to a Vercel project. Domain `TBD.app` and `api.TBD.app` DNS configured.
+      Description: `flyctl apps create auxd-api --region iad`; configure two-process layout (api + worker) on a single shared-cpu-1x VM (stays inside Hobby $5/mo minimum); link `apps/api/fly.toml`. `vercel init` linking `apps/web` to a Vercel project. Domain `xiejoshua.com` (apex → Vercel) and `api.xiejoshua.com` (CNAME → Fly via `fly certs add`) configured on Cloudflare DNS with proxy OFF for Vercel/Fly records.
       Done: empty hello-world deploys from each host land at expected URLs.
 
-- [ ] **T007 — Configure Postmark + Sentry + PostHog + secrets**
+- [ ] **T007 — Configure Resend + Sentry + PostHog Cloud + Cloudflare R2 + secrets**
       Paths: apps/api/src/auxd_api/settings.py, docs/infra.md
       Size: S
       Deps: T005, T006
       Refs: plan §15, §17.6
-      Description: Create accounts; configure DNS records for Postmark (DKIM/SPF/DMARC on TBD.app). Set secrets via `fly secrets set` (MONGODB_URI, REDIS_URL, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SESSION_HMAC_KEY, TOKEN_ENCRYPTION_KEY, POSTMARK_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, SENTRY_DSN, POSTHOG_API_KEY). Self-host PostHog as a separate Fly app (single container, M0).
-      Done: secrets present in Fly + Vercel; PostHog self-hosted reachable.
+      Description: Create accounts: Resend (sending domain `xiejoshua.com` — DKIM/SPF/DMARC records added to Cloudflare DNS); Sentry Developer plan free tier (projects `auxd-api` + `auxd-web`); PostHog Cloud US region free tier (project `auxd`); Cloudflare R2 API token for bucket `auxd-backups` (Object Read & Write, scoped to the one bucket). Set secrets via `fly secrets set` — full list in docs/infra.md: MONGODB_URI, REDIS_URL, SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, SESSION_HMAC_KEY, TOKEN_ENCRYPTION_KEY, RESEND_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, SENTRY_DSN, POSTHOG_API_KEY, POSTHOG_HOST, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_ENDPOINT_URL, R2_BUCKET_NAME. PostHog self-host on Fly was the original plan; swapped to Cloud 2026-05-22 (saves ~$40/mo of RAM-heavy Fly compute).
+      Done: secrets present in Fly + Vercel; PostHog Cloud ingest reachable from backend; Resend test-email roundtrip succeeds; R2 bucket accessible via S3-compat API from local dev.
 
 - [x] **T008 — Generate VAPID keypair for Web Push** *(generated 2026-05-22; public key in apps/web/.env.example; private key tracked in docs/infra.md placeholder pending Fly secret)*
       Paths: docs/infra.md (private key in Fly secret, public key in repo)
@@ -124,15 +124,15 @@
       Size: XS
       Deps: T009
       Refs: plan §15.5
-      Description: GitHub Actions cron every 15min curls `https://TBD.app` and `https://api.TBD.app/healthz`, posts to Discord webhook on failure.
+      Description: GitHub Actions cron every 15min curls `https://xiejoshua.com` and `https://api.xiejoshua.com/healthz`, posts to Discord webhook on failure.
       Done: synthetic check is live; intentional /healthz outage triggers Discord notification within 15min.
 
-- [ ] **T010a — Nightly mongodump backup to S3** *(added in sync-fix Run #1 — DRIFT-L4-002)*
+- [ ] **T010a — Nightly mongodump backup to Cloudflare R2** *(added in sync-fix Run #1 — DRIFT-L4-002; swapped S3 → R2 on 2026-05-22 to stay on free tier)*
       Paths: .github/workflows/backup-mongo.yml, docs/infra.md (backup-restore runbook)
       Size: S
       Deps: T005, T007
       Refs: plan §17.4; NFR availability/durability
-      Description: GitHub Actions scheduled workflow (daily 03:30 UTC) runs `mongodump --uri $MONGODB_URI --gzip --archive` and uploads to an S3 bucket with 30-day lifecycle policy. Cost target: ~$1/mo at M0 (Atlas point-in-time backup deferred until M10+ tier). On failure, post to Discord webhook with last-success timestamp. Runbook in docs/infra.md describes restore procedure (`mongorestore --gzip --archive < dump.gz`).
+      Description: GitHub Actions scheduled workflow (daily 03:30 UTC) runs `mongodump --uri $MONGODB_URI --gzip --archive` and uploads to a Cloudflare R2 bucket (`auxd-backups`) via the S3-compatible API (boto3 or rclone — R2 endpoint via `R2_ENDPOINT_URL` secret). 30-day lifecycle policy via R2 bucket settings. Cost target: $0/mo at M0 (R2 free tier covers 10 GB storage + 1M Class A ops/mo — well above 30× ~100 MB compressed mongodumps). Atlas point-in-time backup deferred until M10+ tier. On failure, post to Discord webhook with last-success timestamp. Runbook in docs/infra.md describes restore procedure (`mongorestore --gzip --archive < dump.gz`).
       Done: workflow runs successfully against staging cluster; manual smoke-test of restore against a throwaway database succeeds; runbook reviewed.
 
 ---
@@ -1188,13 +1188,13 @@
       Description: Writes to `notifications` collection.
       Done: unit + integration tests.
 
-- [ ] **T135 — Email notification adapter (Postmark) + failure-mode wiring**
+- [ ] **T135 — Email notification adapter (Resend) + failure-mode wiring**
       Paths: apps/api/src/auxd_api/modules/notifications/adapters/email.py, apps/api/src/auxd_api/modules/notifications/models.py (FailedEmail Document), apps/api/src/auxd_api/templates/email/*
       Size: M
       Deps: T131, T007, T026
       Refs: FR-012; plan §1.1.1 PostMark row; notification-taxonomy.md email design rules; sync-fix L4-003
-      Description: Postmark client wrapper; per-type HTML templates; one-click unsubscribe in footer; never tracking pixels. **Failure-mode wiring (sync-fix L4-003):** wrap send calls in `retry(attempts=3, backoff=exponential)` from T014. On final failure, write a `failed_emails` document `(user_id, notification_type, payload, attempted_at, last_error)` to the `failed_emails` collection for manual retry; emit Sentry alert with tag `email.send_failed`. The `FailedEmail` Beanie Document model lives alongside `Notification` in T026's module — extend T026 to include it.
-      Done: test email sent + received. Plus integration test: mock Postmark to 5xx three times → assert `failed_emails` document created with all metadata + Sentry tag fired.
+      Description: Resend client wrapper (Python `resend` SDK; configure with `RESEND_API_KEY` from Settings); per-type HTML templates; one-click unsubscribe in footer; never tracking pixels. **Failure-mode wiring (sync-fix L4-003):** wrap send calls in `retry(attempts=3, backoff=exponential)` from T014. On final failure, write a `failed_emails` document `(user_id, notification_type, payload, attempted_at, last_error)` to the `failed_emails` collection for manual retry; emit Sentry alert with tag `email.send_failed`. The `FailedEmail` Beanie Document model lives alongside `Notification` in T026's module — extend T026 to include it.
+      Done: test email sent + received via Resend sandbox. Plus integration test: mock Resend to 5xx three times → assert `failed_emails` document created with all metadata + Sentry tag fired.
 
 - [ ] **T136 — Web push notification adapter**
       Paths: apps/api/src/auxd_api/modules/notifications/adapters/web_push.py
@@ -1216,7 +1216,7 @@
       Size: L
       Deps: T135, T106
       Refs: FR-012; NT-2, NT-3; TC-027
-      Description: arq cron every 5min; checks for users whose "Monday 09:00 user-local" falls in current 5-min window. Per-user: query top 10 feed entries past 7d + 1 "most-rated album in your follow graph this week" hero. Render + send via Postmark. Quiet hours don't suppress (NT-3).
+      Description: arq cron every 5min; checks for users whose "Monday 09:00 user-local" falls in current 5-min window. Per-user: query top 10 feed entries past 7d + 1 "most-rated album in your follow graph this week" hero. Render + send via Resend. Quiet hours don't suppress (NT-3).
       Done: TC-027 passes.
 
 - [ ] **T139 — Notification preferences UI**
@@ -1343,7 +1343,7 @@
       Size: L
       Deps: T023, T024, T025, T026, T135
       Refs: US-G5; FR-018; TC-030
-      Description: arq job: gather all User-owned content → JSON + CSV → email via Postmark with attachment-or-link → log to `gdpr_audit_log`.
+      Description: arq job: gather all User-owned content → JSON + CSV → email via Resend with attachment-or-link → log to `gdpr_audit_log`.
       Done: TC-030 passes.
 
 - [ ] **T154 — GDPR audit log collection**

@@ -231,7 +231,7 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 | Availability | 99.5% monthly uptime at MVP; degrade gracefully when Spotify API unavailable (show cached data, queue writes) |
 | Scalability | Sized for 10,000 concurrent users at peak (3× M6 WAL target) without architectural changes |
 | Accessibility | WCAG 2.1 AA — keyboard nav; screen-reader labels on rating widget + Aux + Like; contrast ≥4.5:1 on album-art-heavy surfaces; reduced-motion respect; touch targets ≥44pt on mobile |
-| Privacy | Public-by-default with per-entry opt-out; private-profile toggle; no third-party tracking beyond PostHog (self-hosted) + Sentry (errors); no ad SDKs |
+| Privacy | Public-by-default with per-entry opt-out; private-profile toggle; no third-party tracking beyond PostHog Cloud + Sentry (errors); no ad SDKs |
 | Security | OAuth tokens encrypted at rest; no refresh tokens client-side; rate limiting on log/follow/review/like endpoints; CSRF; bcrypt cost ≥12 |
 | Compliance | GDPR (export + erasure); Spotify ToS ("Powered by Spotify" attribution + branding compliance) |
 | Spotify rate limits | All Spotify calls server-side via async httpx; per-user circuit breaker; cache album metadata 7d; cache user listening 1h |

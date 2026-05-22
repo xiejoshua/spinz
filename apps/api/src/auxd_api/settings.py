@@ -139,14 +139,37 @@ class Settings(BaseSettings):
         description="PostHog project API key. Leave unset to disable PostHog.",
     )
     POSTHOG_HOST: str = Field(
-        default="https://app.posthog.com",
-        description="PostHog ingest host (override for self-hosted deployments).",
+        default="https://us.i.posthog.com",
+        description=(
+            "PostHog ingest host. Defaults to PostHog Cloud US ingest endpoint. "
+            "EU Cloud: https://eu.i.posthog.com. Self-hosted is no longer the recommended path."
+        ),
     )
 
     # --- Email (optional) ------------------------------------------------
-    POSTMARK_API_KEY: str | None = Field(
+    RESEND_API_KEY: str | None = Field(
         default=None,
-        description="Postmark server token. Leave unset to log emails locally instead of sending.",
+        description=(
+            "Resend API key (`re_…`). Leave unset to log emails locally instead of sending."
+        ),
+    )
+
+    # --- Backups (R2, S3-compatible) ------------------------------------
+    R2_ACCESS_KEY_ID: str | None = Field(
+        default=None,
+        description="Cloudflare R2 access key ID. Required for nightly mongodump backup (T010a).",
+    )
+    R2_SECRET_ACCESS_KEY: str | None = Field(
+        default=None,
+        description="Cloudflare R2 secret access key. Pair with R2_ACCESS_KEY_ID.",
+    )
+    R2_ENDPOINT_URL: str | None = Field(
+        default=None,
+        description="Cloudflare R2 S3-compatible endpoint URL (https://<account>.r2.cloudflarestorage.com).",
+    )
+    R2_BUCKET_NAME: str = Field(
+        default="auxd-backups",
+        description="R2 bucket name for mongodump backups (T010a).",
     )
 
     # --- Web Push --------------------------------------------------------
@@ -231,7 +254,12 @@ def emit_startup_audit(settings: Settings, logger: logging.Logger) -> None:
             "spotify_enabled": settings.SPOTIFY_INTEGRATION_ENABLED,
             "sentry_enabled": settings.SENTRY_DSN is not None,
             "posthog_enabled": settings.POSTHOG_API_KEY is not None,
-            "postmark_enabled": settings.POSTMARK_API_KEY is not None,
+            "resend_enabled": settings.RESEND_API_KEY is not None,
+            "r2_backups_enabled": (
+                settings.R2_ACCESS_KEY_ID is not None
+                and settings.R2_SECRET_ACCESS_KEY is not None
+                and settings.R2_ENDPOINT_URL is not None
+            ),
             "web_push_enabled": settings.VAPID_PRIVATE_KEY is not None,
             "posthog_host": settings.POSTHOG_HOST,
         },
