@@ -48,6 +48,7 @@ from auxd_api.modules.albums.workers import (
 from auxd_api.modules.users.workers import process_scheduled_deletions
 from auxd_api.providers.musicbrainz import MusicBrainzCatalogProvider
 from auxd_api.settings import get_settings
+from auxd_api.workers.digest_dispatch import dispatch_weekly_digests
 
 _LOGGER = logging.getLogger("auxd.worker")
 
@@ -129,6 +130,7 @@ class WorkerSettings:
         refresh_stale_album_metadata,
         reconcile_candidate_albums,
         process_scheduled_deletions,
+        dispatch_weekly_digests,
     ]
     cron_jobs = [
         # T064 — daily 04:00 UTC album cache refresh.
@@ -151,6 +153,15 @@ class WorkerSettings:
             process_scheduled_deletions,
             hour=2,
             minute=0,
+            run_at_startup=False,
+        ),
+        # T138 — weekly digest sweep. Runs every 5 minutes; the per-user
+        # eligibility predicate (``_is_eligible_now``) filters to users
+        # whose local Monday 09:00–09:04 window aligns with the current
+        # invocation.
+        cron(
+            dispatch_weekly_digests,
+            minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
             run_at_startup=False,
         ),
     ]

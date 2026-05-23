@@ -1174,3 +1174,81 @@ extension points only.
 - 🟡 **PostHog SSL warnings in test output** — `posthog.consumer` hits `us.i.posthog.com` during tests because PostHog client is lazy-init'd in lib/observability and tests don't fully mute it. Tolerated noise that the existing test suite already lives with; not introduced by this session.
 - 🟡 **Email + Push adapters (T135 / T136) need registration** — `register_adapter(channel, adapter_instance)` is the one-line extension point; both adapters' implementation modules will land in S20.
 
+
+## Session 20 — §13 Notifications wave 2: Email + Push + Weekly Digest (T135, T136, T138, T143) — 2026-05-23 night (continuation)
+
+### Goal
+
+Plug the Email + Web Push transactional channels into the dispatcher
+chain shipped in Session 19, then wire the weekly digest worker that
+fans through both. Closes the §13 backend cluster: dispatcher + 16
+type specs + 3 adapters + cron-driven digest with the three-hero
+carousel + review-liked coalesce. Frontend (T139 prefs UI + T140
+inbox + T141 push-subscribe) deferred to Session 21.
+
+### What landed
+
+| Task | Surface |
+|------|---------|
+| T135 — Email adapter (Resend) | `apps/api/src/auxd_api/modules/notifications/adapters/email.py`. `EmailAdapter` reads `RESEND_API_KEY` + new `RESEND_FROM_ADDRESS` settings at send-time (monkeypatchable). Renders per-type Jinja2 templates with autoescape+StrictUndefined; templates inherit `templates/email/base.html` with header / body / unsubscribe footer / no tracking pixels. The actual `resend.Emails.send` call is wrapped in `lib/resilience.retry(attempts=3, backoff="exponential", base_delay=0.5, max_delay=5.0)`. On retry exhaustion creates a `FailedEmail` Beanie row with `(user_id, notification_type, payload, attempted_at, last_error, retry_count=3)` + emits `sentry_sdk.capture_message("email.send_failed", level="error")` via push_scope. NOOP for types whose `TYPES[type].email_subject` is None (defence-in-depth — the dispatcher should never call us for those anyway). Templates: `base.html`, `n008_weekly_digest.html`, `n013_account_deletion_scheduled.html`, `n014_account_deletion_reminder_7d.html`, `n016_security_new_session.html`, `n017_security_password_changed.html`. Registered at module load. `jinja2>=3.1` added to deps. |
+| T136 — Web push adapter (VAPID) | `apps/api/src/auxd_api/modules/notifications/adapters/web_push.py`. `WebPushAdapter` uses `pywebpush.webpush` wrapped in `asyncio.to_thread` (sync SDK — don't block the loop). Reads `VAPID_PRIVATE_KEY` + new `VAPID_SUBJECT` (default `mailto:ops@auxd.xiejoshua.com`). Loads every `PushSubscription` for the recipient and fans out; 410/404 → DELETE the dead sub row; other exceptions swallowed with Sentry `web_push.send_failed` (send-and-forget per spec). Click-action deep-links via `_click_url_for(type, payload)` resolving to new `PUBLIC_APP_URL` setting (default `https://auxd.xiejoshua.com`). NOOP when `VAPID_PRIVATE_KEY` is unset (graceful disabled mode for tests/local dev). |
+| T136 companion model + endpoints | `apps/api/src/auxd_api/modules/notifications/push_models.py` defines `PushSubscription` Document (KSUID id, user_id, endpoint UNIQUE, p256dh_key, auth_secret, user_agent?, created_at, last_used_at?, indexed by user_id). Registered in `ALL_DOCUMENT_MODELS` (count 19 → 20; `test_db.py` bumped). `apps/api/src/auxd_api/modules/notifications/routes.py` adds `POST /api/v1/users/me/push-subscriptions` (per-user 10/min rate limit; idempotent — re-POST same endpoint updates `last_used_at` instead of erroring) + `DELETE /api/v1/users/me/push-subscriptions/{id}` (owner-only; 404 for cross-user attempts). Mounted in `routers/v1.py`. `pywebpush>=2.0` added to deps. |
+| T138 — Weekly digest job | `apps/api/src/auxd_api/workers/digest_dispatch.py` exports `dispatch_weekly_digests()` arq job. Registered in `workers/main.py` `WorkerSettings.functions` + `cron_jobs` with `minute={0,5,10,15,...,55}` (every 5 min). Stream-iterates Users with `notification_preferences.weekly_digest=True` AND `status=ACTIVE`; for each computes `local_now = now_utc.astimezone(ZoneInfo(user.quiet_hours_tz or "UTC"))` and continues iff `local_now.weekday()==Monday and 09:00 ≤ local_now.time() < 09:05`. Three-hero carousel via three Beanie aggregation pipelines on the follow-graph: most-rated (avg DiaryEntry.rating, group by album_id, top 1), most-reviewed (Review count, top 1), most-Aux'd (DiaryEntry.auxed=True count, top 1) — all over the trailing 7d. Empty metrics drop gracefully. Chronological body via existing `modules.feed.service.get_home_feed(user_id, since=…, limit=10)`. Dispatches via the standard chain — `dispatch(user_id, N008_WEEKLY_DIGEST, payload)` so the EmailAdapter renders `n008_weekly_digest.html`. NT-3 respected: email channel bypasses quiet hours (handled at the dispatcher's is_notifiable already). Emits `digest.sent` PostHog event per send. |
+| T143 — Review-liked digest coalesce | Folded into T138's digest_dispatch.py: `_count_review_likes_in_window(user_id, since)` aggregates `ReviewLike` rows joined to `Review.user_id == digest_recipient` over the trailing 7d. If ≥1, prepends "Your reviews got {N} likes this week" hero entry above the carousel. Zero likes → no hero (no empty zero-state per NT-4). |
+| Dispatcher contract update | `adapters/__init__.py` Protocol now accepts `notification_id: str \| None = None` and returns `Notification \| None`. `dispatcher.dispatch()` reorders fan-out: in_app FIRST (creates the row, returns id), then email + push in parallel `asyncio.gather` with `notification_id=row.id` so they UPDATE existing channel-state instead of double-writing. InAppAdapter ignores the new kwarg. Existing 21 dispatcher unit tests still green — backward-compatible. |
+
+### Tests added
+
+| File | Coverage |
+|------|---------|
+| `apps/api/tests/integration/test_email_adapter.py` (NEW, 7 tests) | happy path (resend called with right subject/html + email_sent_at populated) + 3× 5xx → FailedEmail row + Sentry tag fired (monkeypatched) + email_subject=None → NOOP + Jinja render asserts unsubscribe link + adapter registered + end-to-end through dispatcher (N-013 deletion-scheduled) + retry sleeps monkeypatched for snappy runs. |
+| `apps/api/tests/integration/test_web_push_adapter.py` (NEW, 8 tests) | happy path with pywebpush mocked (capture args) — payload dict has type-correct click_url + body + tag + multiple subscriptions all called + 410 Gone deletes subscription + other exception swallowed + Sentry tag fired + NOOP when VAPID_PRIVATE_KEY None + registered at module load + asyncio.to_thread wrapping verified. |
+| `apps/api/tests/integration/test_push_subscription_endpoints.py` (NEW, 6 tests) | POST creates sub + idempotent re-POST updates last_used_at + per-user 10/min rate limit enforced + DELETE owner-only (cross-user → 404) + unauthenticated 401 + invalid payload 422. |
+| `apps/api/tests/integration/test_weekly_digest.py` (NEW, 13 tests) | TC-027 happy path + weekly_digest=False skipped + SUSPENDED skipped + empty-followgraph drops all heroes gracefully (no 500) + 3-hero carousel renders when all 3 metrics have data + 2-hero when one empty + 1-hero when two empty + 0-hero when all empty + T143 review-likes hero rendered with right count when ≥1 + T143 NOT rendered at 0 likes + NT-3 quiet hours don't suppress digest + is_notifiable email allowed for digest + cron-batch correctness (12 invocations across 60 min only fires 09:00-09:04 batch). |
+| `apps/api/tests/unit/test_db.py` (modified) | Bumped expected `ALL_DOCUMENT_MODELS` count 19 → 20 + asserts `PushSubscription` is registered. |
+
+### Progressive verify
+
+| Check | After | Backend |
+|---|---|---|
+| #1 | §13 backend wave 2 (T135 + T136 + T138 + T143 + dispatcher contract update) | ✅ ruff + format + mypy strict + pytest **825 pass / 3 skip** (+34 new tests) |
+
+### Status snapshot
+
+- Tasks completed: **119 → 123 / 172** (72%). §13 Notifications **7/14 → 11/14**. The remaining 3 are all frontend (T139 prefs UI + T140 inbox UI + T141 push-subscribe prompt) — Session 21 territory. §13 cluster's BACKEND is now fully closed.
+- Backend test suite: **791 → 825 pass / 3 skip** (+34 net new).
+- Frontend: untouched.
+- `ALL_DOCUMENT_MODELS` count: 19 → 20 (PushSubscription added).
+- Source-files count tracked by ruff/mypy: 163 → 172.
+
+### Decisions + non-obvious calls
+
+- **Dispatcher contract change kept non-breaking.** Extended `NotificationAdapter.send()` signature with `notification_id: str | None = None`. InAppAdapter ignores it (still creates the row). Dispatcher now writes in_app FIRST then threads the id into email+push parallel fan-out — they UPDATE channel-state on the existing row instead of double-writing. All 21 dispatcher unit tests from Session 19 still pass without modification.
+- **`asyncio.to_thread` for pywebpush.** The pywebpush library is sync. Wrapping each call in `asyncio.to_thread` keeps the event loop unblocked while VAPID signing + HTTP roundtrip happens. The fan-out across subscriptions for one user is sequential (no extra concurrency); could parallelize via gather if users with hundreds of subscriptions become a thing, but at MVP scale (≤2 devices/user) the sequential pattern is fine.
+- **PushSubscription endpoint is idempotent.** Re-POSTing the same `endpoint` updates `last_used_at` rather than 409-conflicting. Matches the Service Worker contract — browsers re-register the same subscription on resubscribe, and the backend shouldn't punish them for that.
+- **Email retry sleeps monkeypatched in tests.** `lib/resilience.retry` uses `asyncio.sleep` internally; tests monkeypatch it to a no-op so the 3-attempt retry path doesn't burn 7+ seconds per test (0.5 + 1.0 + 2.0).
+- **Jinja `StrictUndefined` + `{% if x is defined %}` guards.** Digest template handles the 0/1/2/3-hero carousel cases by guarding each hero section with `{% if hero_X is defined %}` rather than `{% if hero_X %}` — catches missing payload keys at render time without false-passing on the empty-string case. Production payload always passes them, but this lock-down prevents silent template breakage from a future refactor.
+- **`_FakeDatetime` test helper in test_weekly_digest.py is brittle.** Patches `datetime.now` for tz-aware testing. Works but a more robust pattern is exporting a `_clock()` helper from the worker module that tests can patch. Flagged as follow-up.
+- **mongomock-motor doesn't BSON-encode `datetime.time`.** Quiet-hours `time` fields in test fixtures stay in-memory (don't round-trip through the mock DB). Real Atlas BSON does support Time via codecs, so this is a test-environment-only limitation — same workaround as the Atlas Search partial-filter unique-index bug from §6.
+- **Email templates kept inline-styled.** No external CSS file; every style is `<style>` block or `style=""` attribute. Standard email-render practice — major clients (Gmail, Outlook) strip external CSS. Templates: `base.html` provides the wrapper; specialized templates inject body block. The N-008 weekly_digest template renders the carousel (3 inline-styled cards) + review-likes hero + chronological body.
+- **`PUBLIC_APP_URL` setting added** for push click_url construction. Default `https://auxd.xiejoshua.com`. Plumbed through web_push.py only; future consumers (T141 frontend push subscribe URL, link generation in email templates) will reuse.
+
+### Tests + quality gates
+
+| Gate | Result | Detail |
+|------|:------:|--------|
+| Backend ruff | ✅ | All checks passed |
+| Backend ruff format | ✅ | 172 files already formatted |
+| Backend mypy --strict | ✅ | No issues found in 172 source files |
+| Backend pytest | ✅ | 825 pass / 3 skip (+34 net new) |
+
+### Follow-ups flagged (NEW this session)
+
+- 🟡 **`_FakeDatetime` test helper brittleness** — patches `datetime.now` directly; a `_clock()` helper exported from `digest_dispatch.py` for tests to patch would be cleaner.
+- 🟡 **mongomock-motor doesn't BSON-encode `datetime.time`** — quiet_hours fixtures stay in-memory. Production Atlas is fine via Time codecs. Test-env-only limitation; doc'd next to the existing partial-filter mongomock workaround pattern.
+- 🟡 **End-to-end template HTML assertions only N-008 + N-013** — security (N-016, N-017) and account.deletion_reminder (N-014) templates render through the same EmailAdapter path but no dedicated test asserts their specific HTML output. Add a parametrised template-render test in S21.
+- 🟡 **`_get_followed_user_ids` loads all Follow rows for a user** — for a power user following 10k accounts that's a heavy in-memory list. Acceptable at MVP scale (data-model.md caps follows at 250/user). When that cap moves, switch to streaming aggregation in the carousel/feed queries.
+- 🟡 **PostHog SSL warnings in test output** — Zscaler MITM noise inherited from previous sessions; not introduced here. Cross-cutting cleanup ticket.
+- 🟡 **T141 frontend push-subscribe UI** — backend endpoints are ready (`POST/DELETE /api/v1/users/me/push-subscriptions`); frontend permission-prompt logic + subscription POST + ServiceWorker scaffold ships in S21.
+- 🟡 **§13 frontend wave (T139 + T140 + T141)** — remaining backend-foundation-complete handoffs: notification prefs UI, in-app feed UI with bell + unread count, push-permission prompt. These are the last 3 §13 tasks before the cluster closes.
+

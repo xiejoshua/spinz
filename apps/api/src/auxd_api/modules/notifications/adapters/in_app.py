@@ -32,10 +32,11 @@ class InAppAdapter:
         self,
         *,
         user_id: str,
-        type: NotificationType,
+        type: NotificationType,  # noqa: A002 — Protocol param name
         payload: dict[str, Any],
         actor_id: str | None = None,
         coalesced_count: int = 0,
+        notification_id: str | None = None,
     ) -> Notification:
         """Write a :class:`Notification` row and return it.
 
@@ -50,12 +51,17 @@ class InAppAdapter:
                 a rollup of ``coalesced_count`` underlying events; the
                 count is folded into ``payload`` so the in-app UI can
                 render "X new updates today" copy.
+            notification_id: Ignored by the in-app adapter — it always
+                creates a fresh row. The kwarg exists for Protocol
+                conformance with the email + push updater adapters.
 
         Returns:
             The persisted :class:`Notification`. The returned object
             carries the auto-generated KSUID ``id`` and tz-aware
             ``created_at`` for downstream caller use.
         """
+        _ = notification_id  # creator adapter — ignores existing-row hint.
+
         # Make a defensive copy so adapter mutations don't leak back to
         # the caller's payload. Adding the coalesced_count alongside the
         # original payload keeps the in-app UI's "X new updates" branch

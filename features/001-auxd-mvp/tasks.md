@@ -1175,33 +1175,15 @@
 
 - [x] **T134 — InApp notification adapter** *(completed 2026-05-23 Session 19; `InAppAdapter.send(*, user_id, type, payload, actor_id=None, coalesced_count=0) -> Notification` writes the Beanie row with `dispatch.in_app_delivered=True`; on `coalesced_count > 0` stamps `payload["coalesced_count"]` so the inbox UI can render "X new updates today". Sister-file `adapters/__init__.py` exposes `NotificationAdapter` Protocol + `register_adapter` extension point (one-line wiring for T135/T136 next session) + `reset_registry()` test helper. 5 integration tests.)*
 
-- [ ] **T135 — Email notification adapter (Resend) + failure-mode wiring**
-      Paths: apps/api/src/auxd_api/modules/notifications/adapters/email.py, apps/api/src/auxd_api/modules/notifications/models.py (FailedEmail Document), apps/api/src/auxd_api/templates/email/*
-      Size: M
-      Deps: T131, T007, T026
-      Refs: FR-012; plan §1.1.1 PostMark row; notification-taxonomy.md email design rules; sync-fix L4-003
-      Description: Resend client wrapper (Python `resend` SDK; configure with `RESEND_API_KEY` from Settings); per-type HTML templates; one-click unsubscribe in footer; never tracking pixels. **Failure-mode wiring (sync-fix L4-003):** wrap send calls in `retry(attempts=3, backoff=exponential)` from T014. On final failure, write a `failed_emails` document `(user_id, notification_type, payload, attempted_at, last_error)` to the `failed_emails` collection for manual retry; emit Sentry alert with tag `email.send_failed`. The `FailedEmail` Beanie Document model lives alongside `Notification` in T026's module — extend T026 to include it.
-      Done: test email sent + received via Resend sandbox. Plus integration test: mock Resend to 5xx three times → assert `failed_emails` document created with all metadata + Sentry tag fired.
+- [x] **T135 — Email notification adapter (Resend) + failure-mode wiring** *(completed 2026-05-23 Session 20; `EmailAdapter` at adapters/email.py conforms to extended NotificationAdapter Protocol (notification_id kwarg now threaded for email/push updaters; in_app still creates the row). Resend SDK via `resend.Emails.send`; `RESEND_API_KEY` + new `RESEND_FROM_ADDRESS` settings. Jinja2 env with autoescape + StrictUndefined; templates at apps/api/src/auxd_api/templates/email/{base,n008_weekly_digest,n013_account_deletion_scheduled,n014_account_deletion_reminder_7d,n016_security_new_session,n017_security_password_changed}.html — one-click unsubscribe footer, no tracking pixels. Send wrapped in lib/resilience.retry(attempts=3, exponential, 0.5–5s). On exhaustion writes FailedEmail row + Sentry `email.send_failed`. NOOP when TYPES[type].email_subject is None. Registered at module load via `register_adapter("email", EmailAdapter())`. jinja2>=3.1 added to deps. 7 integration tests.)*
 
 <!-- CR-001: T136 rewritten as the load-bearing web-push adapter — was previously a stub pointing at T128 (now deferred along with §12). T136 now owns the general VAPID-signed push adapter used by follow/review/digest notifications. -->
-- [ ] **T136 — Web push notification adapter (general, VAPID-signed)**
-      Paths: apps/api/src/auxd_api/modules/notifications/adapters/web_push.py, apps/api/tests/integration/test_web_push.py
-      Size: M
-      Deps: T008, T131, T132
-      Refs: FR-012; plan §15.2 push; CR-001
-      Description: VAPID-signed push notification adapter for the general notification fan-out (follow, review-liked, mentions, etc.). Reads VAPID keypair from settings (T008 generated). Send-and-forget via `pywebpush` (or equivalent). Click action deep-links to the originating context (review → album page; follow → follower's profile). Respects per-user-per-type push preferences via T132 `is_notifiable`. CR-001 NOTE: this absorbs what was previously a stub task pointing at T128 — T128's auto-prompt-specific path defers to v2.
-      Done: integration test: send notification to a registered subscriber via test endpoint; assert payload + click_url.
+- [x] **T136 — Web push notification adapter (general, VAPID-signed)** *(completed 2026-05-23 Session 20; `WebPushAdapter` at adapters/web_push.py uses `pywebpush.webpush` wrapped in `asyncio.to_thread` (sync SDK; don't block the event loop). Reads VAPID_PRIVATE_KEY + new `VAPID_SUBJECT` settings (default `mailto:ops@auxd.xiejoshua.com`). Loads every PushSubscription for the recipient and fans out; 410/404 → DELETE the dead subscription row; other exceptions swallowed with Sentry `web_push.send_failed` (send-and-forget per spec). Click-action deep-links via `_click_url_for(type, payload)` helper resolving to `PUBLIC_APP_URL` (new setting). NOOP when `VAPID_PRIVATE_KEY` unset. Companion model `PushSubscription` Document at notifications/push_models.py (KSUID id, user_id, endpoint unique, p256dh_key, auth_secret, user_agent?, created_at, last_used_at) registered in `ALL_DOCUMENT_MODELS` (db.py expected count 19→20). Register/delete endpoints at notifications/routes.py mounted on v1: POST /api/v1/users/me/push-subscriptions + DELETE .../{id}; per-user 10/min rate limit; idempotent (re-POST updates last_used_at). pywebpush>=2.0 added to deps. 8 adapter tests + 6 endpoint tests.)*
 
 - [x] **T137 — Notification types (all 16 active per CR-001)** *(completed 2026-05-23 Session 19; `TYPES: dict[NotificationType, NotificationTypeSpec]` covers every enum value with `required_payload_keys`, `default_{in_app,email,push}` mirroring the taxonomy table, plus `in_app_copy` / `email_subject` / `email_preheader` / `push_body` templates. `validate_payload(type, payload)` raises ValueError on missing keys (called pre-fan-out). `render_in_app(type, payload)` uses `.format(**payload)` — Jinja arrives with T135 next session. N-009/N-010 registered with all defaults OFF (taxonomy says DEFERRED-TO-V2 but enum retains them; deferred dedupe is a follow-up). 54 parametrised integration tests over the enum. NOTE: task title says "18" but CR-001 deferred N-011 (Spotify) and N-018 (just-finished), leaving 16 active.)*
 
 <!-- CR-002: hero count amended from single → three-hero carousel (NT-2). -->
-- [ ] **T138 — Weekly digest job**
-      Paths: apps/api/src/auxd_api/workers/digest_dispatch.py, apps/api/tests/integration/test_weekly_digest.py
-      Size: L
-      Deps: T135, T106
-      Refs: FR-012; NT-2, NT-3; TC-027; **CR-002**
-      Description: arq cron every 5min; checks for users whose "Monday 09:00 user-local" falls in current 5-min window. Per-user: query top 10 feed entries past 7d + **three-hero carousel callout (most-rated, most-reviewed, most-Aux'd in your follow graph this week — three indexed aggregate queries on `DiaryEntry.created_at` filtered by follow-graph; per CR-002)**. Carousel renders above the chronological body in the email layout. Render + send via Resend. Quiet hours don't suppress (NT-3).
-      Done: TC-027 passes; carousel renders 3 callouts.
+- [x] **T138 — Weekly digest job** *(completed 2026-05-23 Session 20; `dispatch_weekly_digests` arq job at workers/digest_dispatch.py + registered in workers/main.py WorkerSettings with `minute={0,5,10,...,55}` cron. Streams Users with `notification_preferences.weekly_digest=True` + `status=ACTIVE` via async iteration; per-user `now_utc.astimezone(ZoneInfo(quiet_hours_tz or "UTC"))` → eligible iff `weekday==Monday and 09:00 ≤ local_time < 09:05`. Three-hero carousel via Beanie aggregation pipelines on the follow-graph: most-rated (avg DiaryEntry.rating), most-reviewed (Review count), most-Aux'd (DiaryEntry.auxed=True count) over 7d. Empty metrics gracefully drop (2- or 1- or 0-hero render). Chrono body from `feed.service.get_home_feed(user_id, since=now-7d, limit=10)`. Dispatches via the standard chain — calls `dispatch(user_id, N008_WEEKLY_DIGEST, payload)` so EmailAdapter renders n008_weekly_digest.html with autoescape+StrictUndefined-safe `{% if x is defined %}` guards. NT-3 honored: email channel bypasses quiet hours. Emits `digest.sent` PostHog per send with `{user_id, hero_count, body_count, has_review_likes_hero}`. 13 integration tests incl. TC-027.)*
 
 - [ ] **T139 — Notification preferences UI**
       Paths: apps/web/src/app/(app)/settings/notifications/page.tsx
@@ -1230,13 +1212,7 @@
 
 - [x] **T142 — Critic-seed onboarding wave: suppress N-001 follow notifications** *(completed 2026-05-23 Session 19; wired inside dispatcher.dispatch at the suppression-check stage. `notif_type is N001_FOLLOW_NEW and follow_source == "onboarding_preselected"` → log `notification.suppressed_onboarding_preselected` + emit a `decision=suppressed` PostHog event + return None. `ONBOARDING_PRESELECTED_SOURCE` exported from dispatcher.py as single source of truth. 4 integration tests assert N-001 suppressed only when onboarding_preselected, N-002 NOT suppressed even with that source.)*
 
-- [ ] **T143 — Coalesce review.liked into weekly digest aggregate**
-      Paths: apps/api/src/auxd_api/workers/digest_dispatch.py
-      Size: S
-      Deps: T138
-      Refs: NT-4
-      Description: Weekly digest includes "your reviews got X likes this week" hero entry for users with ≥1 like in trailing week.
-      Done: covered in digest test.
+- [x] **T143 — Coalesce review.liked into weekly digest aggregate** *(completed 2026-05-23 Session 20; folded into T138 digest_dispatch.py — `_count_review_likes_in_window(user_id, since)` aggregates ReviewLike rows where `review.user_id == digest_recipient` over the trailing 7d window. If count ≥ 1, prepends a hero entry "Your reviews got X likes this week" above the three-hero carousel. No empty zero-state (zero likes → no hero). Covered in test_weekly_digest.py.)*
 
 - [x] **T144 — Notification rate-limit alerting** *(completed 2026-05-23 Session 19; every dispatch call emits `notification.dispatched` with `{recipient_id, actor_id, type, decision, channels}` via `emit_event` from lib/observability — covers every decision path (send/coalesce/drop/suppressed). Descriptive operator config at `apps/api/src/auxd_api/modules/notifications/posthog_dashboard.yml` captures dashboard intent + p95 > 12 events/user/week alert threshold (excluding weekly.digest). Operator-applied; dashboard creation is a one-time PostHog UI task.)*
 

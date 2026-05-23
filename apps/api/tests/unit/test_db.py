@@ -33,11 +33,12 @@ from auxd_api.db import (
 )
 
 
-def test_all_document_models_has_nineteen_entries() -> None:
+def test_all_document_models_has_twenty_entries() -> None:
     """CR-001 left 16; T060 (handle redirect) bumped to 17;
-    T104 adds Suggestion + SuggestionDismissal for nineteen total.
+    T104 adds Suggestion + SuggestionDismissal for nineteen total;
+    T136 adds PushSubscription for twenty.
     """
-    assert len(ALL_DOCUMENT_MODELS) == 19
+    assert len(ALL_DOCUMENT_MODELS) == 20
 
 
 def test_all_document_models_are_beanie_documents() -> None:
@@ -73,6 +74,8 @@ def test_canonical_list_matches_conftest_expectation() -> None:
         "Report",
         "Notification",
         "FailedEmail",
+        # T136 — Web Push subscription rows for the push adapter.
+        "PushSubscription",
         "SuggestedFollow",
         "CriticSeed",
         # T104 — precomputed suggestions + dismissals.

@@ -201,6 +201,30 @@ class Settings(BaseSettings):
         default=None,
         description="VAPID private key. Required when push delivery is enabled.",
     )
+    VAPID_SUBJECT: str = Field(
+        default="mailto:ops@auxd.xiejoshua.com",
+        description=(
+            "VAPID 'sub' claim — mailto: address or URL identifying the push originator. "
+            "Sent on every signed push so upstream services can reach the operator if "
+            "anything goes wrong with the subscription."
+        ),
+    )
+
+    # --- Public app URL --------------------------------------------------
+    PUBLIC_APP_URL: str = Field(
+        default="https://auxd.xiejoshua.com",
+        description=(
+            "Public frontend base URL used to build click-action deep-links in "
+            "push payloads and email CTAs. Override per environment."
+        ),
+    )
+    RESEND_FROM_ADDRESS: str = Field(
+        default="auxd <hello@auxd.xiejoshua.com>",
+        description=(
+            "Default 'from' address used by the Resend email adapter. Format follows "
+            "RFC-5322 (e.g. ``auxd <hello@auxd.xiejoshua.com>``)."
+        ),
+    )
 
     # --- Validators ------------------------------------------------------
     @field_validator("ALLOWED_ORIGINS", mode="before")

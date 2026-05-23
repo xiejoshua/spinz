@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ subject }}</title>
+  </head>
+  <body
+    style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a;
+    background: #fafafa;"
+  >
+    <table
+      role="presentation"
+      width="100%"
+      cellpadding="0"
+      cellspacing="0"
+      style="background: #fafafa;"
+    >
+      <tr>
+        <td align="center" style="padding: 32px 16px;">
+          <table
+            role="presentation"
+            width="100%"
+            cellpadding="0"
+            cellspacing="0"
+            style="max-width: 560px; background: #ffffff; border-radius: 12px;
+            border: 1px solid #ececec;"
+          >
+            <!-- Header -->
+            <tr>
+              <td
+                style="padding: 24px 32px; border-bottom: 1px solid #ececec;"
+              >
+                <a
+                  href="{{ public_app_url }}"
+                  style="color: #1a1a1a; font-size: 18px; font-weight: 600;
+                  text-decoration: none; letter-spacing: -0.02em;"
+                  >auxd</a
+                >
+              </td>
+            </tr>
+            <!-- Body -->
+            <tr>
+              <td style="padding: 32px;">
+                {% block body %}{% endblock %}
+              </td>
+            </tr>
+            <!-- Footer -->
+            <tr>
+              <td
+                style="padding: 20px 32px; border-top: 1px solid #ececec;
+                color: #6b6b6b; font-size: 12px; line-height: 1.5;"
+              >
+                Sent to {{ recipient_handle }}.
+                <br />
+                <a
+                  href="{{ unsubscribe_url }}"
+                  style="color: #6b6b6b; text-decoration: underline;"
+                  >Unsubscribe</a
+                >
+                &nbsp;·&nbsp;
+                <a
+                  href="{{ manage_url }}"
+                  style="color: #6b6b6b; text-decoration: underline;"
+                  >Manage all notifications</a
+                >
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

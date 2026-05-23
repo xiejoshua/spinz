@@ -262,12 +262,18 @@ async def _run_adapter(
     payload: dict[str, Any],
     actor_id: str | None,
     coalesced_count: int,
+    notification_id: str | None = None,
 ) -> Notification | None:
     """Invoke the channel adapter if one is registered.
 
     Wrapped here so the dispatcher's ``asyncio.gather`` can pass a clean
     awaitable per channel and so unknown channels (registry miss)
     silently produce ``None`` rather than raising.
+
+    ``notification_id`` is threaded through so updater-shape adapters
+    (email, push) can stamp ``dispatch.email_sent_at`` /
+    ``dispatch.push_sent_at`` on the existing row created by the in-app
+    adapter.
     """
     adapter = get_adapter(channel)
     if adapter is None:
@@ -278,6 +284,7 @@ async def _run_adapter(
         payload=payload,
         actor_id=actor_id,
         coalesced_count=coalesced_count,
+        notification_id=notification_id,
     )
 
 
@@ -532,43 +539,77 @@ async def _dispatch_inner(
         )
         return notif
 
-    # send verdict — fan out to enabled adapters in parallel.
-    awaitables = [
-        _run_adapter(
-            channel,
-            user_id=user_id,
-            notif_type=notif_type,
-            payload=payload,
-            actor_id=actor_id,
-            coalesced_count=0,
-        )
-        for channel in allowed_channels
-    ]
-    results = await asyncio.gather(*awaitables, return_exceptions=True)
-
+    # send verdict — fan out to enabled adapters.
+    #
+    # Ordering: in-app first (creator-shape adapter — writes the
+    # Notification row). The row's id is then threaded into the email +
+    # push updater adapters so they stamp the channel-specific
+    # ``dispatch.*_sent_at`` field on the same Document. When in-app is
+    # NOT in the allowed set (user opted it out for this type), email +
+    # push still run in parallel without a row to update — the audit
+    # trail simply lives in the FailedEmail / log_call streams.
     fanned_out: list[str] = []
     in_app_notif: Notification | None = None
-    for channel, result in zip(allowed_channels, results, strict=True):
-        if isinstance(result, BaseException):
+
+    if "in_app" in allowed_channels:
+        try:
+            in_app_notif = await _run_adapter(
+                "in_app",
+                user_id=user_id,
+                notif_type=notif_type,
+                payload=payload,
+                actor_id=actor_id,
+                coalesced_count=0,
+            )
+            if in_app_notif is not None:
+                fanned_out.append("in_app")
+        except Exception as exc:  # noqa: BLE001 — defensive per adapter
             _LOGGER.exception(
                 "notification.adapter_failed",
                 extra={
                     "event": "notification.adapter_failed",
-                    "channel": channel,
+                    "channel": "in_app",
                     "recipient_id": user_id,
                     "type": notif_type.value,
-                    "error": str(result),
+                    "error": str(exc),
                 },
             )
-            continue
-        if result is None:
-            # Adapter not registered yet (email/push at MVP). Channel was
-            # allowed, but there's no live wire — that's expected during
-            # the staged rollout. Don't count it.
-            continue
-        fanned_out.append(channel)
-        if channel == "in_app":
-            in_app_notif = result
+
+    other_channels = [c for c in allowed_channels if c != "in_app"]
+    if other_channels:
+        notification_id = in_app_notif.id if in_app_notif is not None else None
+        awaitables = [
+            _run_adapter(
+                channel,
+                user_id=user_id,
+                notif_type=notif_type,
+                payload=payload,
+                actor_id=actor_id,
+                coalesced_count=0,
+                notification_id=notification_id,
+            )
+            for channel in other_channels
+        ]
+        results = await asyncio.gather(*awaitables, return_exceptions=True)
+        for channel, result in zip(other_channels, results, strict=True):
+            if isinstance(result, BaseException):
+                _LOGGER.exception(
+                    "notification.adapter_failed",
+                    extra={
+                        "event": "notification.adapter_failed",
+                        "channel": channel,
+                        "recipient_id": user_id,
+                        "type": notif_type.value,
+                        "error": str(result),
+                    },
+                )
+                continue
+            if result is None:
+                # Adapter NOOP (e.g., email adapter on a type with no
+                # email_subject, or push with no VAPID key). Channel was
+                # allowed but no live wire — don't count it.
+                continue
+            fanned_out.append(channel)
 
     _emit_dispatched(
         user_id=user_id,

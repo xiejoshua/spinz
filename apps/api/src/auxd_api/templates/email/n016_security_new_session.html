@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block body %}
+  <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600;
+  letter-spacing: -0.02em;">
+    New sign-in to your auxd account
+  </h1>
+  <p style="margin: 0 0 16px 0; font-size: 15px; color: #4a4a4a;
+  line-height: 1.5;">
+    Hi {{ recipient_handle }},
+  </p>
+  <p style="margin: 0 0 16px 0; font-size: 15px; color: #4a4a4a;
+  line-height: 1.5;">
+    We noticed a new sign-in to your auxd account. Here are the details:
+  </p>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+  style="margin: 0 0 20px 0;">
+    <tr>
+      <td style="padding: 6px 0; font-size: 14px; color: #6b6b6b;">Device</td>
+      <td style="padding: 6px 0; font-size: 14px; color: #1a1a1a;
+      font-weight: 500;">
+        {{ device }}
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; font-size: 14px; color: #6b6b6b;">
+        IP address
+      </td>
+      <td style="padding: 6px 0; font-size: 14px; color: #1a1a1a;
+      font-weight: 500;">
+        {{ ip }}
+      </td>
+    </tr>
+    <tr>
+      <td style="padding: 6px 0; font-size: 14px; color: #6b6b6b;">Location</td>
+      <td style="padding: 6px 0; font-size: 14px; color: #1a1a1a;
+      font-weight: 500;">
+        {{ location }}
+      </td>
+    </tr>
+  </table>
+  <p style="margin: 0; font-size: 14px; color: #4a4a4a; line-height: 1.5;">
+    If this was you, no action is needed. If you don't recognise this
+    sign-in, change your password immediately and review your active
+    sessions in account settings.
+  </p>
+{% endblock %}

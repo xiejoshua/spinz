@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block body %}
+  <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600;
+  letter-spacing: -0.02em;">
+    Your week on auxd
+  </h1>
+  <p style="margin: 0 0 24px 0; color: #4a4a4a; font-size: 15px;
+  line-height: 1.5;">
+    {{ hero_count }} highlights from your follow graph this week.
+  </p>
+
+  {# T143 — review-likes hero, only rendered when count >= 1 #}
+  {% if review_likes_count is defined and review_likes_count > 0 %}
+    <div
+      style="margin: 0 0 28px 0; padding: 16px 20px; background: #f7f4ed;
+      border-radius: 10px; border: 1px solid #efe9d8;"
+    >
+      <p style="margin: 0; font-size: 14px; color: #6b5a1f; font-weight: 500;">
+        Your reviews got {{ review_likes_count }} like{% if review_likes_count != 1 %}s{% endif %} this week.
+      </p>
+    </div>
+  {% endif %}
+
+  {# Three-hero carousel — NT-2 / CR-002 #}
+  {% if heroes is defined and heroes|length > 0 %}
+    <h2 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600;
+    color: #1a1a1a;">
+      Editor's picks
+    </h2>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+    style="margin: 0 0 28px 0;">
+      {% for hero in heroes %}
+        <tr>
+          <td style="padding: 12px 0; border-bottom: 1px solid #ececec;">
+            <p style="margin: 0; font-size: 13px; color: #8a8a8a;
+            text-transform: uppercase; letter-spacing: 0.04em;">
+              {{ hero.label }}
+            </p>
+            <p style="margin: 6px 0 0 0; font-size: 15px; font-weight: 500;
+            color: #1a1a1a;">
+              {{ hero.album_title }}
+              <span style="color: #8a8a8a; font-weight: 400;">
+                — {{ hero.artist_name }}
+              </span>
+            </p>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #6b6b6b;">
+              {{ hero.metric_text }}
+            </p>
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% endif %}
+
+  {# Chronological body — top 10 entries from the trailing week #}
+  {% if entries is defined and entries|length > 0 %}
+    <h2 style="margin: 0 0 12px 0; font-size: 16px; font-weight: 600;
+    color: #1a1a1a;">
+      From the people you follow
+    </h2>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+      {% for entry in entries %}
+        <tr>
+          <td style="padding: 10px 0; border-bottom: 1px solid #f4f4f4;
+          font-size: 14px; color: #4a4a4a; line-height: 1.4;">
+            <strong style="color: #1a1a1a;">@{{ entry.actor_handle }}</strong>
+            logged
+            <strong style="color: #1a1a1a;">{{ entry.album_title }}</strong>
+            {% if entry.rating %}
+              — {{ entry.rating }}/5
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+    </table>
+  {% else %}
+    <p style="margin: 0; font-size: 14px; color: #8a8a8a; line-height: 1.5;">
+      Your follow graph was quiet this week. Check back next Monday.
+    </p>
+  {% endif %}
+{% endblock %}

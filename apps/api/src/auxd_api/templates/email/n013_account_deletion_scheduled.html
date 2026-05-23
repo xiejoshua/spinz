@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block body %}
+  <h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600;
+  letter-spacing: -0.02em;">
+    Your auxd account is scheduled for deletion
+  </h1>
+  <p style="margin: 0 0 16px 0; font-size: 15px; color: #4a4a4a;
+  line-height: 1.5;">
+    Hi {{ recipient_handle }},
+  </p>
+  <p style="margin: 0 0 16px 0; font-size: 15px; color: #4a4a4a;
+  line-height: 1.5;">
+    We received a request to delete your account. Your data will be permanently
+    removed on <strong>{{ scheduled_for_iso }}</strong>.
+  </p>
+  <p style="margin: 0 0 16px 0; font-size: 15px; color: #4a4a4a;
+  line-height: 1.5;">
+    If you change your mind, you can cancel the deletion at any time before
+    the scheduled date by signing in to your account.
+  </p>
+  <p style="margin: 24px 0 0 0;">
+    <a
+      href="{{ cancel_url }}"
+      style="display: inline-block; padding: 10px 18px; background: #1a1a1a;
+      color: #ffffff; text-decoration: none; border-radius: 8px;
+      font-size: 14px; font-weight: 500;"
+      >Cancel deletion</a
+    >
+  </p>
+{% endblock %}
