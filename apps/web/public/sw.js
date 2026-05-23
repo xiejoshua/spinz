@@ -43,16 +43,14 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const click_url = (event.notification.data && event.notification.data.click_url) || "/";
+  const click_url = event.notification.data?.click_url || "/";
   event.waitUntil(
-    self.clients
-      .matchAll({ type: "window", includeUncontrolled: true })
-      .then((wins) => {
-        const existing = wins.find((w) => w.url.includes(click_url));
-        if (existing) {
-          return existing.focus();
-        }
-        return self.clients.openWindow(click_url);
-      })
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const existing = wins.find((w) => w.url.includes(click_url));
+      if (existing) {
+        return existing.focus();
+      }
+      return self.clients.openWindow(click_url);
+    })
   );
 });
