@@ -18,6 +18,7 @@ the versioned namespace and is consumed by the T028 codegen pipeline.
 from __future__ import annotations
 
 import logging
+import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
@@ -80,14 +81,23 @@ app = FastAPI(
     description="auxd backend — social album-tracking platform.",
     lifespan=lifespan,
 )
-# CORS middleware MUST register before SessionMiddleware so its preflight
-# handler intercepts OPTIONS requests before they reach the session
-# validator (which would reject them as unauthenticated). Production
-# frontend is `xiejoshua.com` (Vercel), backend is `api.xiejoshua.com`
-# (Fly) — different origins, so credentialed CORS is required.
+# CORS allow-list — read directly from `os.environ` (not via `get_settings()`)
+# because middleware is registered at module-import time, BEFORE any pytest
+# fixture has a chance to set SESSION_HMAC_KEY + TOKEN_ENCRYPTION_KEY. Going
+# through Settings here would force test collection to require the entire
+# secret env, which broke CI (locally a .env file masks the issue).
+#
+# With the Next.js rewrites pattern in production, the browser actually calls
+# xiejoshua.com/api/v1/* (same-origin), so the API rarely sees a real
+# cross-origin request — CORS stays as defense for direct API access (curl,
+# OG fetchers, future native clients) and dev (localhost:3000 → :8000).
+_ALLOWED_ORIGINS_RAW = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000")
+_ALLOWED_ORIGINS = [
+    origin.strip() for origin in _ALLOWED_ORIGINS_RAW.split(",") if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=get_settings().ALLOWED_ORIGINS,
+    allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Accept", "X-Requested-With"],
