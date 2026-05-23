@@ -141,6 +141,12 @@ class InvalidBlockReasonError(SocialError):
     code = "invalid_block_reason"
 
 
+class InvalidFollowSourceError(SocialError):
+    """Raised when the supplied ``source`` is not in the allowlist."""
+
+    code = "invalid_follow_source"
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -185,7 +191,30 @@ class FollowResult:
     followee_id: str
 
 
-async def follow_user(*, follower_id: str, followee: User) -> FollowResult:
+# Allowed `Follow.source` values. The model field is intentionally a
+# free-form ``str | None`` for forward-compatible analytics, but the
+# write path validates against this set so a typo from the frontend
+# can't quietly corrupt the funnel data. To add a new provenance,
+# extend this set AND document the new value in
+# :class:`Follow`'s docstring.
+ALLOWED_FOLLOW_SOURCES: frozenset[str] = frozenset(
+    {
+        "onboarding_preselected",
+        "onboarding_mutual_taste",
+        "suggestion",
+        "profile",
+        "invite",
+        "manual",
+    }
+)
+
+
+async def follow_user(
+    *,
+    follower_id: str,
+    followee: User,
+    source: str | None = None,
+) -> FollowResult:
     """Follow ``followee`` from ``follower_id``.
 
     Behaviour:
@@ -201,19 +230,28 @@ async def follow_user(*, follower_id: str, followee: User) -> FollowResult:
       returns it. If a previously declined request exists, re-opens it
       (transitions back to PENDING) per the model docstring's
       "re-requests reuse the row" contract.
+
+    ``source`` tags where the follow came from for funnel analytics
+    (e.g. ``onboarding_preselected``). Defaults to ``"profile"`` when
+    omitted. Validated against :data:`ALLOWED_FOLLOW_SOURCES`; unknown
+    values raise :class:`InvalidFollowSourceError`.
     """
     if follower_id == followee.id:
         raise SelfFollowError("cannot follow yourself")
+    if source is not None and source not in ALLOWED_FOLLOW_SOURCES:
+        raise InvalidFollowSourceError(f"unknown follow source: {source!r}")
 
     if await _either_direction_block_exists(follower_id, followee.id):
         raise BlockedError("follow blocked")
 
     if followee.private_profile:
         return await _request_follow_private(follower_id=follower_id, followee=followee)
-    return await _follow_public(follower_id=follower_id, followee=followee)
+    return await _follow_public(
+        follower_id=follower_id, followee=followee, source=source or "profile"
+    )
 
 
-async def _follow_public(*, follower_id: str, followee: User) -> FollowResult:
+async def _follow_public(*, follower_id: str, followee: User, source: str) -> FollowResult:
     """Public-profile follow — direct Follow row with ``state=ACCEPTED``."""
     existing = await Follow.find_one({"follower_id": follower_id, "followee_id": followee.id})
     if existing is not None:
@@ -227,7 +265,7 @@ async def _follow_public(*, follower_id: str, followee: User) -> FollowResult:
         follower_id=follower_id,
         followee_id=followee.id,
         state=FollowState.ACCEPTED,
-        source="profile",
+        source=source,
         created_at=_now(),
     )
     try:

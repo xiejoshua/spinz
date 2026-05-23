@@ -37,7 +37,7 @@ import logging
 import time
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 
 from auxd_api.lib.observability import emit_event, log_call
@@ -49,6 +49,7 @@ from auxd_api.modules.social.service import (
     SUGGESTIONS_DEFAULT_LIMIT,
     BlockedError,
     InvalidBlockReasonError,
+    InvalidFollowSourceError,
     SelfBlockError,
     SelfFollowError,
     SocialError,
@@ -100,6 +101,18 @@ class _BlockRequest(BaseModel):
     notes: str | None = Field(default=None, max_length=BLOCK_OTHER_REASON_MAX_LEN)
 
 
+class _FollowRequestBody(BaseModel):
+    """Optional body for ``POST /users/{handle}/follow``.
+
+    Backwards-compatible: callers may POST with no body (legacy behaviour
+    — defaults ``source`` to ``"profile"`` server-side). The onboarding
+    deck (T118) passes ``source`` here so the funnel-analytics can
+    distinguish pre-selected vs. manual follows.
+    """
+
+    source: str | None = Field(default=None, max_length=64)
+
+
 # ---------------------------------------------------------------------------
 # Error mapping
 # ---------------------------------------------------------------------------
@@ -111,6 +124,7 @@ _SOCIAL_ERROR_STATUS_MAP: dict[type[SocialError], int] = {
     SelfBlockError: status.HTTP_400_BAD_REQUEST,
     BlockedError: status.HTTP_403_FORBIDDEN,
     InvalidBlockReasonError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    InvalidFollowSourceError: status.HTTP_422_UNPROCESSABLE_ENTITY,
 }
 
 
@@ -146,6 +160,7 @@ def _require_session(request: Request) -> Session:
 async def post_follow(
     handle: str,
     session: Annotated[Session, Depends(_require_session)],
+    body: Annotated[_FollowRequestBody | None, Body()] = None,
 ) -> dict[str, Any]:
     """Follow the user identified by ``handle``.
 
@@ -159,7 +174,8 @@ async def post_follow(
 
     * ``400`` self-follow forbidden,
     * ``403`` blocked across either direction,
-    * ``404`` unknown handle.
+    * ``404`` unknown handle,
+    * ``422`` unrecognised ``source``.
     """
     started = time.perf_counter()
     target, _canonical = await resolve_handle(handle)
@@ -170,7 +186,11 @@ async def post_follow(
         )
 
     try:
-        result = await follow_user(follower_id=session.user_id, followee=target)
+        result = await follow_user(
+            follower_id=session.user_id,
+            followee=target,
+            source=body.source if body is not None else None,
+        )
     except SocialError as exc:
         log_call(
             provider="auxd",

@@ -151,6 +151,51 @@ async def test_follow_public_profile_creates_accepted_follow(
     row = await Follow.find_one({"follower_id": follower.id, "followee_id": target.id})
     assert row is not None
     assert row.state == FollowState.ACCEPTED
+    # No body in this request → default source "profile".
+    assert row.source == "profile"
+
+
+@pytest.mark.asyncio
+async def test_follow_records_source_from_body(_clean_env: None, _clean_db: None) -> None:
+    """Body ``{source: ...}`` is persisted on the Follow row.
+
+    Funnel analytics needs to distinguish onboarding pre-selected
+    follows from manual follows from profile-page follows. The
+    onboarding deck (T118) passes ``source=onboarding_preselected``.
+    """
+    follower = _make_user("user-bob", "bob")
+    target = _make_user("user-casey", "casey")
+    await follower.insert()
+    await target.insert()
+    client = TestClient(_make_app())
+
+    response = client.post(
+        "/api/v1/users/casey/follow",
+        headers={"X-User-Id": follower.id},
+        json={"source": "onboarding_preselected"},
+    )
+    assert response.status_code == 200, response.text
+    row = await Follow.find_one({"follower_id": follower.id, "followee_id": target.id})
+    assert row is not None
+    assert row.source == "onboarding_preselected"
+
+
+@pytest.mark.asyncio
+async def test_follow_rejects_unknown_source(_clean_env: None, _clean_db: None) -> None:
+    """Typo'd ``source`` values must 422 — never silently mis-tag a follow."""
+    follower = _make_user("user-bob", "bob")
+    target = _make_user("user-casey", "casey")
+    await follower.insert()
+    await target.insert()
+    client = TestClient(_make_app())
+
+    response = client.post(
+        "/api/v1/users/casey/follow",
+        headers={"X-User-Id": follower.id},
+        json={"source": "totally_made_up_source"},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"] == "invalid_follow_source"
 
 
 @pytest.mark.asyncio

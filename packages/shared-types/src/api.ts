@@ -350,6 +350,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/onboarding/cards": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Cards
+         * @description Synchronous onboarding deck — top 6 pre-checked + 4 unchecked.
+         *
+         *     The viewer's genre signature is not yet computed (T163 follow-up);
+         *     the call passes ``None`` and the algorithm degrades to priority-
+         *     only ordering, which is the documented fallback.
+         */
+        get: operations["get_cards_api_v1_onboarding_cards_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/missing-album": {
         parameters: {
             query?: never;
@@ -902,7 +926,8 @@ export interface paths {
          *
          *     * ``400`` self-follow forbidden,
          *     * ``403`` blocked across either direction,
-         *     * ``404`` unknown handle.
+         *     * ``404`` unknown handle,
+         *     * ``422`` unrecognised ``source``.
          */
         post: operations["post_follow_api_v1_users__handle__follow_post"];
         /**
@@ -1046,6 +1071,19 @@ export interface components {
             visibility?: string | null;
         };
         /**
+         * _FollowRequestBody
+         * @description Optional body for ``POST /users/{handle}/follow``.
+         *
+         *     Backwards-compatible: callers may POST with no body (legacy behaviour
+         *     — defaults ``source`` to ``"profile"`` server-side). The onboarding
+         *     deck (T118) passes ``source`` here so the funnel-analytics can
+         *     distinguish pre-selected vs. manual follows.
+         */
+        _FollowRequestBody: {
+            /** Source */
+            source?: string | null;
+        };
+        /**
          * _HandleChangeRequest
          * @description Wire shape for ``POST /users/me/handle``.
          */
@@ -1165,6 +1203,7 @@ export type BlockRequest = components['schemas']['_BlockRequest'];
 export type CreateReviewRequest = components['schemas']['_CreateReviewRequest'];
 export type EditEntryRequest = components['schemas']['_EditEntryRequest'];
 export type EditReviewRequest = components['schemas']['_EditReviewRequest'];
+export type FollowRequestBody = components['schemas']['_FollowRequestBody'];
 export type HandleChangeRequest = components['schemas']['_HandleChangeRequest'];
 export type LogEntryRequest = components['schemas']['_LogEntryRequest'];
 export type LoginRequest = components['schemas']['_LoginRequest'];
@@ -1553,6 +1592,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_cards_api_v1_onboarding_cards_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -2297,7 +2358,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["_FollowRequestBody"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

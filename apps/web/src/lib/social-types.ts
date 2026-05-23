@@ -24,3 +24,23 @@ export type SuggestionEntry = {
 export type SuggestionsResponse = {
   suggestions: SuggestionEntry[];
 };
+
+export type OnboardingCardUser = {
+  id: string;
+  handle: string;
+  display_name: string;
+  avatar_url: string | null;
+  bio: string | null;
+};
+
+export type OnboardingCard = {
+  user: OnboardingCardUser;
+  pre_checked: boolean;
+  source: "onboarding_preselected" | "onboarding_mutual_taste";
+  score: number;
+  genre_signature: string[];
+};
+
+export type OnboardingCardsResponse = {
+  cards: OnboardingCard[];
+};

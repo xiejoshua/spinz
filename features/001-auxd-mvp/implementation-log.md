@@ -1019,3 +1019,79 @@ T109 needed a profile endpoint that didn't exist. Added inline in `apps/api/src/
 - 🟡 **N-001 + N-002 notifications stubbed** — TODO comments at T101 follow-committed + private-profile paths. Wire when T123 ships.
 - 🟡 **`recent_likers` heuristic for follow-button initial state** — same heuristic family as L6-004 (recent_likers for like state). Acceptable; documented in code.
 
+
+## Session 18 — §11 Onboarding (T117, T117a, T118, T119, T120) — 2026-05-23 late evening
+
+### Goal
+
+Close §11 Onboarding by landing the four CR-001-survivor tasks plus the
+synchronous T117a path introduced in Phase 5C revision: the critic-seed
+scoring algorithm (T117), inline card-ordering for onboarding (T117a),
+the follow-critics deck UI (T118), the success / land-on-feed step
+(T119), and the `onboarding.completed` analytics event (T120).
+
+### What landed
+
+| Task | Surface |
+|------|---------|
+| T117 — Critic-seed batch precompute algorithm | `apps/api/src/auxd_api/modules/seeding/service.py`. Pure function `score_critics_by_genre_signature(critics, viewer_genre_signature)` returns a list of `ScoredCritic` (frozen dataclass) sorted by `score DESC, priority DESC`. Score = `priority + (jaccard_overlap × _GENRE_BONUS_MAX)` where `_GENRE_BONUS_MAX = 20.0` so a perfect-overlap card closes a 20-point priority gap (intentional: founder priority dominates until per-user signal is rich). Inactive critics filtered. `get_card_recommendations_for_user(user_id, viewer_genre_signature, limit)` is the async wrapper that loads `CriticSeed.find({active: True})` and hands off to the scoring function — used by the §10 suggestions worker. |
+| T117a — Synchronous onboarding card-ordering | `apps/api/src/auxd_api/modules/seeding/onboarding_service.py` + `routes.py`. `get_onboarding_cards(user_id, viewer_genre_signature=None)` returns an `OnboardingCardDeck` with up to 10 cards (`_PRIMARY_CARD_COUNT=6` pre-checked + `_SECONDARY_CARD_COUNT=4` unchecked). Smaller rosters → smaller deck, no padding. HTTP surface: `GET /api/v1/onboarding/cards` mounted under v1 with per-user 30/min rate limit + `emit_event("onboarding.cards_loaded", …)`. Defensively drops cards whose underlying User was hard-deleted (orphan critic-seed) instead of 500-ing. Frontend tier classification baked into the response (`pre_checked` boolean + `source: onboarding_preselected | onboarding_mutual_taste`). |
+| Follow source plumbing | `social/service.py` + `social/routes.py`. Added optional `_FollowRequestBody{source}` body to `POST /api/v1/users/{handle}/follow` with allowlist `{onboarding_preselected, onboarding_mutual_taste, suggestion, profile, invite, manual}`. Unknown source → 422 `invalid_follow_source`. `follow_user(source=…)` plumbs into `_follow_public` which persists the value on `Follow.source` for funnel analytics. Backward-compatible: existing callers that POST with no body still get `source="profile"`. |
+| T118 — Onboarding step-2 UI | `apps/web/src/app/(onboarding)/onboarding/step-2/page.tsx` + `components/onboarding/follow-critics-deck.tsx`. Client component: fetches `/api/v1/onboarding/cards` via React Query, seeds local Set from server `pre_checked` flags, toggle via aria-pressed buttons, Continue triggers parallel `Promise.allSettled` of `POST /users/{handle}/follow` calls with the card's `source` in body. Partial failures show toast; total failure keeps the user on the page; partial success advances. Min-1 to advance (task spec). Empty-roster fallback offers a "Skip for now" link. |
+| T119 — Onboarding success page | `apps/web/src/app/(onboarding)/onboarding/step-3/page.tsx` + `components/onboarding/onboarding-complete.tsx`. Brief "You're all set" screen with `setTimeout` auto-redirect to `/` after 1.5s + manual "Go now" button. Backend "non-empty feed guarantee" half is *already done* — `feed/service.py` line 673-696 pads with critic-seed last-7d activity when fan-out is thin (`MIN_FEED_BEFORE_PADDING = 5`). |
+| T120 — `onboarding.completed` analytics | `apps/web/src/lib/analytics.ts`. `markOnboardingStart()` writes a timestamp on step-1 mount; `stashOnboardingFollows()` stores `{follows_count, critic_seed_kept_pct}` from step-2's succeeded follows; `emitOnboardingCompleted()` reads both, fires PostHog `onboarding.completed` with `follows_count + critic_seed_kept_pct + top5_rated_count (0 at MVP) + time_to_complete_ms`, then clears the localStorage stash. Step-3 calls `emitOnboardingCompleted()` exactly once on mount via a ref guard. |
+
+### Tests added
+
+| File | Coverage |
+|------|---------|
+| `apps/api/tests/unit/test_seeding_algorithm.py` (NEW, 8 tests) | priority-only ordering for empty signature, inactive filter, genre-bonus boost closes 15-point priority gap, perfect-match bonus caps at `_GENRE_BONUS_MAX`, case-insensitive tag overlap, empty critic signature → no bonus, tie-break uses priority DESC, `ScoredCritic` frozen-dataclass invariant. |
+| `apps/api/tests/unit/test_onboarding_card_ordering.py` (NEW, 7 tests) | deck capped at 10 cards, 6 primary pre-checked + 4 secondary unchecked, smaller-roster returns smaller deck (no padding), priority-descending ordering, inactive seeds excluded, UJ-2 guarantee (≥3 critics in top 6), deterministic ordering for fixed signal. |
+| `apps/api/tests/integration/test_onboarding_endpoint.py` (NEW, 5 tests) | 401 unauth, 200 happy-path with denormalised user fields, 200 smaller-roster shape, orphan-CriticSeed (deleted User) silently dropped — does NOT 500. |
+| `apps/api/tests/integration/test_follow_endpoints.py` (+2 tests) | `Follow.source` defaults to "profile" when no body, body `{source: "onboarding_preselected"}` is persisted, unknown source returns 422 `invalid_follow_source`. |
+| `apps/web/tests/unit/analytics.test.ts` (NEW, 9 tests) | `markOnboardingStart` writes once + idempotent on repeat, `stashOnboardingFollows` serializes + overwrites, `emitOnboardingCompleted` fires with stash + duration, falls back to zeros without stash, omits `time_to_complete_ms` without start timestamp, clears localStorage after fire, tolerates corrupt JSON in stash. |
+
+### Progressive verify
+
+| Check | After | Backend | Frontend |
+|---|---|---|---|
+| #1 | §11 backend (T117 + T117a + follow source) | ✅ ruff + format + mypy strict + pytest **691 pass / 3 skip** (+24 new) | — |
+| #2 | §11 frontend (T118 + T119 + T120) | — | ✅ Biome 114 files clean (1 auto-formatted) + tsc 0 errors + Vitest **24 pass** (+9 new analytics tests) + `next build` 16 routes |
+
+### Status snapshot
+
+- Tasks completed: **107 → 112 / 172** (65% — §11 cluster CLOSED). Eleven clusters done: §0 §1 §3 §4 §5 §6 §7 §8 §9 §10 §11.
+- Backend test suite: **667 → 691 pass / 3 skip** (+24 net new this session — 20 in seeding tests + 2 in follow-source guards + 2 wider deltas).
+- Frontend routes: **13 → 16** (`/onboarding/step-1` was already there but rebuilt as client; `/onboarding/step-2` NEW; `/onboarding/step-3` NEW).
+- Frontend unit tests: **15 → 24** (+9 analytics).
+
+### Decisions + non-obvious calls
+
+- **Sync card-ordering reuses the batch algorithm.** `score_critics_by_genre_signature` is the single source of truth; both `get_card_recommendations_for_user` (T117, batch) and `get_onboarding_cards` (T117a, inline) call it. Saves drift between the two surfaces and means the genre-bonus tuning lives in one place.
+- **`_GENRE_BONUS_MAX = 20.0`** is the design knob. Set so a perfect genre overlap (Jaccard 1.0) adds 20 score points — enough to outweigh a small priority gap but not enough to drown out editorial intent. Bumping above 30 would let a niche-genre critic with priority=50 outrank a generalist with priority=80, which the founder doesn't want until per-user signal is much richer.
+- **Mutual-taste tier is editorial at MVP.** The 4 "secondary" cards are still pulled from CriticSeed (just by priority below the top-6 cut), not from any mutual-taste algorithm. Documented as a CR-001 simplification in the onboarding service docstring; T163 + the optional rate-a-few-albums intent unlock the real mutual-taste pipeline.
+- **Follow body is optional.** Existing callers (`/discover` "Follow" buttons, T101 profile follow) post with no body and get `source="profile"`. The onboarding deck adds the body to tag follows for the funnel. Backward-compatible: no migration needed.
+- **localStorage handoff between step-2 and step-3.** Step-2 stashes `{follows_count, critic_seed_kept_pct}` after the follow writes; step-3 reads it for the completion event. Survives navigation without needing a new `/me/follows` endpoint AND without prop-drilling. Cleared after emit.
+- **`top5_rated_count` fixed at 0.** Per CR-001 the optional rate-a-few-albums step (T079) is not on the MVP onboarding path; the field stays in the event for forward-compat but always reports 0 at MVP.
+- **`onboarding.completed` fires once per success-page mount** via a `useRef` guard — React 19 effects + Strict Mode re-run effects in dev, so without the guard the event would double-fire in development.
+- **Backend `next-empty-feed` guarantee was already implemented.** `feed/service.py` lines 673-696 (Session 17 / T106) already pad with critic-seed last-7d activity when fan-out is thin. T119's spec mentioned this as a sub-task but no edit was needed — the only T119 surface is the frontend success step. Saved a round-trip.
+
+### Tests + quality gates
+
+| Gate | Result | Detail |
+|------|:------:|--------|
+| Backend ruff + format | ✅ | 153 files formatted, 0 lint issues |
+| Backend mypy --strict | ✅ | 0 errors across 153 source files |
+| Backend pytest | ✅ | 691 pass / 3 skip (+24 net new this session) |
+| Frontend Biome lint | ✅ | 114 files clean (1 auto-formatted) |
+| Frontend typecheck | ✅ | 0 errors |
+| Frontend Vitest | ✅ | 24 pass (+9 new analytics tests) |
+| Frontend `next build` | ✅ | 16 routes; `/onboarding/step-2` + `/onboarding/step-3` new |
+
+### Follow-ups flagged (NEW this session)
+
+- 🟡 **E2E coverage for T118 default-keep + custom-pick paths** — Playwright tests called out in T118's `Done:` line are not yet authored. Add when Playwright harness ships (§17). All AC is currently covered by the unit + integration tests at the service layer.
+- 🟡 **E2E coverage for T119 feed-with-≥5-entries after onboarding** — backend padding is covered by §10 feed tests, but the end-to-end "user lands on /, feed has ≥5 rows" assertion needs Playwright.
+- 🟡 **Mutual-taste tier unlock** — currently every card is critic-seeded with `source: onboarding_preselected`. Wire the true mutual-taste algorithm (T163) + the optional rating intent (T079) so the secondary tier carries real `source: onboarding_mutual_taste`.
+- 🟡 **`onboarding.completed` PostHog dashboard** — event is firing; the funnel chart that consumes it (started → step-2 → step-3 → first-log → first-friend-follow) is not yet wired in PostHog. Founder task; not a code surface.
+

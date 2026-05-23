@@ -41,6 +41,7 @@ from auxd_api.modules.feed.routes import router as feed_router
 from auxd_api.modules.reports.routes import router as reports_router
 from auxd_api.modules.reviews.routes import router as reviews_router
 from auxd_api.modules.search.routes import router as search_router
+from auxd_api.modules.seeding.routes import router as seeding_router
 from auxd_api.modules.social.routes import router as social_router
 from auxd_api.modules.users.routes import router as users_router
 
@@ -53,6 +54,7 @@ router.include_router(feed_router)
 router.include_router(reports_router)
 router.include_router(reviews_router)
 router.include_router(search_router)
+router.include_router(seeding_router)
 router.include_router(social_router)
 router.include_router(users_router)
 

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 const STEPS = [
   { slug: "step-1", label: "Welcome" },
   { slug: "step-2", label: "Follow critics" },
-  { slug: "step-3", label: "First log" },
+  { slug: "step-3", label: "All set" },
 ];
 
 export function OnboardingProgress() {

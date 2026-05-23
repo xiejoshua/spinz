@@ -1048,7 +1048,7 @@
 <!-- CR-001 removed: T115 (Auto-import worker — 30-day Spotify history) — no Spotify auto-import at MVP. -->
 <!-- CR-001 removed: T116 (Onboarding step 3: Confirm last 30 days) — depended on T115 auto-import; no source to confirm at MVP. Letterboxd-style "rate a handful at signup" flow is left optional via the search-driven log-sheet (T079) before the user lands on the feed. -->
 
-- [ ] **T117 — Critic-seed batch precompute algorithm (backend, scheduled)**
+- [x] **T117 — Critic-seed batch precompute algorithm (backend, scheduled)**
       Paths: apps/api/src/auxd_api/modules/seeding/service.py, apps/api/tests/unit/test_seeding_algorithm.py
       Size: M
       Deps: T027, T104
@@ -1057,7 +1057,7 @@
       Done: unit test on card distribution; mutual-taste algorithm covered.
 
 <!-- CR-001: T117a deps + description updated — T115 auto-import dependency removed; signal source changes from imported diary to optional inline rate-a-few-albums in the truncated onboarding step. Genre fallback when user skips the optional rating step. -->
-- [ ] **T117a — Critic-seed SYNCHRONOUS card-ordering for onboarding** *(added in Phase 5C Revision; CR-001: signal source updated)*
+- [x] **T117a — Critic-seed SYNCHRONOUS card-ordering for onboarding** *(added in Phase 5C Revision; CR-001: signal source updated)*
       Paths: apps/api/src/auxd_api/modules/seeding/onboarding_service.py, apps/api/tests/unit/test_onboarding_card_ordering.py
       Size: M
       Deps: T117, T163
@@ -1065,7 +1065,7 @@
       Description: `get_onboarding_cards(user, optional_seed_ratings=None)` — runs INLINE during the onboarding step where the user picks who to follow. CR-001: source signal is now the optional handful of ratings the user enters via T079 search-driven log-sheet during onboarding (instead of an imported 30-day diary). When user provides no signal, fall back to a default "popular across active critics" ordering — still enforces ≥3 critics in top 6 per UJ-2. Given the signal, compute genre signature → score active critic-seeds → return top 6 + 4 mutual-taste candidates. Latency target: <1s p95. All 6 critic cards marked pre-checked=true; 4 mutual-taste cards pre-checked=false.
       Done: unit test covers (a) ≥3 critic guarantee in top 6 with AND without seed-ratings signal, (b) <1s p95 with 80-seed roster, (c) deterministic ordering given fixed signal.
 
-- [ ] **T118 — Onboarding step 4: Follow 3 to fill your feed**
+- [x] **T118 — Onboarding step 4: Follow 3 to fill your feed**
       Paths: apps/web/src/app/(onboarding)/follow-3/page.tsx
       Size: M
       Deps: T117a, T101, T039
@@ -1073,7 +1073,7 @@
       Description: Show cards from T117. Critic-seed cards pre-checked; mutual-taste unchecked. User can untick; minimum 1 to advance. Continue button triggers Follow creates with `source=onboarding_preselected | onboarding_mutual_taste | manual`.
       Done: E2E test covers all default-keep + custom-pick paths.
 
-- [ ] **T119 — Onboarding step 5: Land on feed (non-empty guarantee)**
+- [x] **T119 — Onboarding step 5: Land on feed (non-empty guarantee)**
       Paths: apps/web/src/app/(onboarding)/complete/page.tsx, apps/api/src/auxd_api/modules/feed/service.py
       Size: S
       Deps: T106, T118
@@ -1081,7 +1081,7 @@
       Description: Last step redirects to `/` after a short success animation; backend ensures feed has ≥5 entries by padding with critic-seed last-7d activity.
       Done: E2E covers feed-with-≥5-entries after onboarding.
 
-- [ ] **T120 — Onboarding completion analytics**
+- [x] **T120 — Onboarding completion analytics**
       Paths: apps/web/src/lib/analytics.ts
       Size: XS
       Deps: T119
