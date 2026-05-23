@@ -11,8 +11,13 @@ Fallback flow:
 
 1. Atlas Search via :func:`Album.aggregate` with the ``albums_text_search``
    index (autocomplete on ``title`` + ``artist_credit``). Atlas returns
-   the most-relevant hits in a single round-trip, including the
-   popularity boost from the ``log1p(rating_count)`` score function.
+   the most-relevant hits in a single round-trip. The index also
+   indexes ``rating_count`` as a numeric field so a future query-time
+   popularity boost (``compound.should`` with a ``function`` score
+   clause referencing ``log1p(rating_count)``) can be wired without
+   re-applying the index — see ``apps/api/migrations/atlas_search/
+   albums_index.json``. The current ``_atlas_search`` query is
+   relevance-only at MVP; popularity-boost wiring is a v1.x follow-up.
 
 2. If fewer than :data:`_FALLBACK_THRESHOLD` hits, also query
    MusicBrainz via :meth:`CatalogProvider.search_albums`. New MBIDs are

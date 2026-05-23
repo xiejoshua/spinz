@@ -58,19 +58,6 @@
         "cover_art_url",
         "release_year"
       ]
-    },
-    "scoreDetails": {
-      "popularity": {
-        "function": {
-          "score": "function",
-          "args": {
-            "function": "log1p",
-            "args": {
-              "path": "rating_count"
-            }
-          }
-        }
-      }
     }
   }
 }

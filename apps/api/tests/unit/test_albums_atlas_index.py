@@ -2,8 +2,9 @@
 
 The index JSON is applied out-of-band via the Atlas UI or ``atlas-cli``;
 these tests guard the document shape so that an accidental edit
-(missing analyzer, deleted edgeNgram block, popularity boost removed)
-fails CI before it lands in the migrations runbook.
+(missing analyzer, deleted edgeNgram block, dropped ``rating_count``
+indexing for future popularity boosts) fails CI before it lands in
+the migrations runbook.
 
 We deliberately do NOT attempt to apply the index against mongomock —
 mongomock doesn't implement ``$search`` at all. The route-layer
@@ -69,13 +70,22 @@ def test_definition_indexes_artist_credit_with_autocomplete(
     assert any(entry["type"] == "autocomplete" for entry in artist_fields)
 
 
-def test_definition_has_popularity_boost(index_doc: dict[str, Any]) -> None:
-    """The popularity boost block exists and references ``rating_count``."""
-    score_details = index_doc["definition"]["scoreDetails"]
-    assert isinstance(score_details, dict)
-    popularity = score_details["popularity"]
-    assert isinstance(popularity, dict)
-    function = popularity["function"]["args"]["function"]
-    path = popularity["function"]["args"]["args"]["path"]
-    assert function == "log1p"
-    assert path == "rating_count"
+def test_definition_indexes_rating_count_for_future_popularity_boost(
+    index_doc: dict[str, Any],
+) -> None:
+    """``rating_count`` is indexed as a numeric field so a future query-time
+    popularity boost can reference it.
+
+    NOTE: the popularity boost itself is applied at QUERY time (in a
+    ``$search`` compound stage with a ``function`` score clause), not at
+    index-definition time. An earlier draft of this index put the
+    log1p(rating_count) function inside a top-level ``scoreDetails``
+    block — Atlas Search rejects that as an invalid index-definition
+    field (``scoreDetails`` is a query-level parameter), with a
+    misleading "Please define the mappings document" error from the UI
+    validator. ``modules/search/service.py`` is where the boost lands
+    when wired up.
+    """
+    fields = index_doc["definition"]["mappings"]["fields"]
+    rating_count = fields["rating_count"]
+    assert rating_count == {"type": "number"}
