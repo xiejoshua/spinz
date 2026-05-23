@@ -34,8 +34,15 @@ export function SignupForm() {
       router.push("/onboarding/step-1");
     } catch (error) {
       if (error instanceof ApiError) {
-        setApiFormErrors(form, error.detail as Parameters<typeof setApiFormErrors>[1]);
-        if (!form.formState.errors.root && form.formState.errors.email == null) {
+        // Pass the full ApiError (has `.detail`) — setApiFormErrors expects
+        // {detail: ...} shape; previously we passed error.detail directly
+        // which made the helper see `.detail` as undefined and silently
+        // no-op, falling through to a useless "Signup failed (422)" banner.
+        setApiFormErrors(form, error);
+        const fieldErrors = form.formState.errors;
+        const hasFieldError =
+          fieldErrors.email || fieldErrors.handle || fieldErrors.password || fieldErrors.root;
+        if (!hasFieldError) {
           form.setError("root", { message: `Signup failed (${error.status}).` });
         }
         return;
@@ -95,7 +102,9 @@ export function SignupForm() {
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
-              <FormDescription>At least 12 characters.</FormDescription>
+              <FormDescription>
+                At least 12 characters, including a letter and a digit.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
