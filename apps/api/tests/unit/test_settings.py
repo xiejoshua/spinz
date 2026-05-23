@@ -92,6 +92,41 @@ def test_minimal_local_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
     assert cfg.R2_ACCESS_KEY_ID is None
     assert cfg.R2_BUCKET_NAME == "auxd-backups"
     assert cfg.VAPID_PRIVATE_KEY is None
+    # CORS default targets the Next.js dev server.
+    assert cfg.ALLOWED_ORIGINS == ["http://localhost:3000"]
+
+
+def test_allowed_origins_accepts_comma_separated_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Pydantic-settings v2 parses list types as JSON by default; the
+    BeforeValidator on ALLOWED_ORIGINS lets fly.toml [env] / .env use a
+    simpler comma-separated string. Regression guard — losing this
+    validator crashed the prod backend (5xx on every request) until
+    the field was discovered to require JSON-array form.
+    """
+    _set_minimum_required(monkeypatch)
+    monkeypatch.setenv(
+        "ALLOWED_ORIGINS",
+        "https://xiejoshua.com, https://www.xiejoshua.com ,  ",
+    )
+    cfg = Settings()
+    assert cfg.ALLOWED_ORIGINS == [
+        "https://xiejoshua.com",
+        "https://www.xiejoshua.com",
+    ]
+
+
+def test_allowed_origins_accepts_json_array_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """JSON-array form still works — the validator only intercepts strings."""
+    _set_minimum_required(monkeypatch)
+    monkeypatch.setenv(
+        "ALLOWED_ORIGINS",
+        '["https://xiejoshua.com", "https://staging.xiejoshua.com"]',
+    )
+    cfg = Settings()
+    assert cfg.ALLOWED_ORIGINS == [
+        "https://xiejoshua.com",
+        "https://staging.xiejoshua.com",
+    ]
 
 
 def test_missing_session_hmac_key_fails(monkeypatch: pytest.MonkeyPatch) -> None:

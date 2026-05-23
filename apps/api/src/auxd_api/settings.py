@@ -33,7 +33,7 @@ from functools import lru_cache
 from typing import Annotated
 
 from pydantic import Field, ValidationInfo, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Environment(StrEnum):
@@ -131,13 +131,18 @@ class Settings(BaseSettings):
     )
 
     # --- CORS ------------------------------------------------------------
-    ALLOWED_ORIGINS: list[str] = Field(
+    # `Annotated[..., NoDecode]` opts this field out of pydantic-settings'
+    # default JSON decoding for list types. Without it, an env var like
+    # `https://a.com,https://b.com` raises SettingsError because the source
+    # tries to JSON-parse it before the field validator can intercept.
+    # With NoDecode, the raw string reaches `_split_allowed_origins` below.
+    ALLOWED_ORIGINS: Annotated[list[str], NoDecode] = Field(
         default_factory=lambda: ["http://localhost:3000"],
         description=(
             "Origins permitted to call the API with credentials. "
             "Production: https://xiejoshua.com (the Vercel-deployed frontend). "
             "Local dev: http://localhost:3000 (Next.js dev server). "
-            "Accepts comma-separated string via env var (pydantic auto-splits)."
+            "Accepts comma-separated string OR JSON array via env var."
         ),
     )
 
@@ -198,6 +203,32 @@ class Settings(BaseSettings):
     )
 
     # --- Validators ------------------------------------------------------
+    @field_validator("ALLOWED_ORIGINS", mode="before")
+    @classmethod
+    def _split_allowed_origins(cls, v: object) -> object:
+        """Normalise env-string input into a list[str].
+
+        Pairs with the ``NoDecode`` annotation on the field. With NoDecode,
+        the raw env string reaches this validator instead of being JSON-
+        decoded by the env source. We accept either comma-separated
+        (``a,b,c``) or JSON-array (``["a","b","c"]``) forms; lists pass
+        through untouched (e.g. when an init kwarg is used in tests).
+        """
+        if isinstance(v, str):
+            stripped = v.strip()
+            # Try JSON first for the array form — preserves the legacy contract.
+            if stripped.startswith("["):
+                import json
+
+                try:
+                    parsed = json.loads(stripped)
+                    if isinstance(parsed, list):
+                        return [str(item) for item in parsed]
+                except json.JSONDecodeError:
+                    pass  # fall through to comma-split
+            return [origin.strip() for origin in stripped.split(",") if origin.strip()]
+        return v
+
     @field_validator("SESSION_HMAC_KEY")
     @classmethod
     def _validate_session_hmac_key(cls, v: str, info: ValidationInfo) -> str:
