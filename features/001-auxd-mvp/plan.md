@@ -261,7 +261,8 @@ All Phase 1 research recommendations confirmed unchanged.
 <!-- CR-001: User.music_providers becomes an empty dict at MVP; no provider tokens persisted -->
 | `users` | 5k–10k | `handle` unique sparse · `email` unique sparse · `status` partial | KSUID `_id`. `User.music_providers: dict = {}` at MVP (no provider tokens persisted — v2 may populate). No encrypted token sub-doc required at MVP. |
 <!-- CR-001: `albums` indexes — `spotify_id` dropped; `discogs_release_id` added as fallback identity -->
-| `albums` | 50k–200k | `mbid` unique sparse · `discogs_release_id` unique sparse · Atlas Search index on `title + artist_credit + artists.name` | Lazy-cache; 7d TTL via `cache_expires_at`. MBID is the sole canonical identity; `discogs_release_id` populated only when MusicBrainz returns no match. |
+<!-- sync-fix L3-016 (Run #5): index shape corrected post-commit-66f0403 — sparse unique caused a production E11000 when a second null insert hit the index, because Pydantic serialises None → MongoDB null (not "missing"). Replaced with partialFilterExpression which excludes both missing AND null from the unique constraint. -->
+| `albums` | 50k–200k | `mbid` unique with `partialFilterExpression({mbid: {$exists: true, $ne: null}})` · `discogs_release_id` same partial-filter shape · Atlas Search index on `title + artist_credit + artists.name` with `lucene.standard` analyzer + edgeNgram autocomplete + `log1p(rating_count)` popularity boost | Lazy-cache; 7d TTL via `cache_expires_at`. MBID is the sole canonical identity; `discogs_release_id` populated only when MusicBrainz returns no match. `Album.candidate: bool` flag marks Discogs-sourced rows pending MBID reconciliation by the T065 worker. |
 | `diary_entries` | 50k–500k | `user_id + logged_at desc` · `user_id + album_id + logged_at desc` · `album_id + visibility + rating desc` · `visibility + logged_at desc` (sparse on public) | Soft-delete with `deleted_at`; 30d grace |
 | `reviews` | 10k–100k | `user_id + created_at desc` · `album_id + reactions.likes_count desc` (R3 Most-Liked sort) · `diary_entry_id` unique | 1:1 optional with DiaryEntry |
 | `review_likes` | 50k–500k | `(review_id, user_id)` unique compound · `user_id + created_at desc` | New in R3 |
@@ -726,6 +727,10 @@ Documented in `docs/architecture/feed-fanout.md` (created in Phase 6 Task X):
 
 ## 11. Search Architecture
 
+<!-- sync-fix L7-015 (Run #5): added markdown link to the migrations runbook so the operator-facing apply path is discoverable from the plan. -->
+
+The canonical index definition lives at [`apps/api/migrations/atlas_search/albums_index.json`](../../apps/api/migrations/atlas_search/albums_index.json). The operator runbook for applying it (Atlas UI or `atlas-cli` paths) is at [`apps/api/migrations/README.md`](../../apps/api/migrations/README.md). The JSON below is the indicative shape that ships in code as of the §6 wave — refer to the linked file for the live source of truth.
+
 ### 11.1 Atlas Search index on `albums`
 
 ```javascript
@@ -763,7 +768,8 @@ Merged result ordering: Atlas Search score first, live MusicBrainz hits next, Di
 <!-- CR-001: §11.2.1 — report missing album is now MORE important; only path to surface catalog gaps -->
 ### 11.2.1 Report missing album (sync-fix L3-006 → spec.md FR-005 / US-F2 — elevated by CR-001)
 
-When all three search paths (Atlas Search, MusicBrainz live, Discogs) return zero results for a query, the empty-state UI shows a "Report missing album" link. Tapping submits a `POST /api/search/report-missing` request that creates a `reports` document with `target_type: 'missing_album'`, `target_id: query_string`, and submitter user id. Surfaces in the founder admin queue (Compass at MVP per §13.3); founder may add the album manually (insert into `albums` with a curated MBID or `discogs_release_id`) or extend Atlas Search ranking. No automated resolution at MVP.
+<!-- sync-fix L3-015 (Run #5): URL aligned to the surface used by both code (modules/search/routes.py _REPORT_MISSING_ALBUM_URL constant) and tasks.md T053a — the future "Report missing album" endpoint lives under /api/v1/reports/missing-album, not /api/search/report-missing. -->
+When all three search paths (Atlas Search, MusicBrainz live, Discogs) return zero results for a query, the empty-state UI shows a "Report missing album" link. Tapping submits a `POST /api/v1/reports/missing-album` request that creates a `reports` document with `target_type: 'missing_album'`, `target_id: query_string`, and submitter user id. Surfaces in the founder admin queue (Compass at MVP per §13.3); founder may add the album manually (insert into `albums` with a curated MBID or `discogs_release_id`) or extend Atlas Search ranking. No automated resolution at MVP.
 
 **CR-001 elevation:** Now that manual search is the only album-discovery path (no listening-history prefill), the "Report missing album" affordance is the sole user-facing safety valve for catalog gaps. The founder admin queue should be reviewed at least weekly during M-2/M-1 — every unresolved missing-album report is a logged user who could not log their album.
 

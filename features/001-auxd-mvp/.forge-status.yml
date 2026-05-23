@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-23T02:00:00Z"
+last_updated: "2026-05-23T03:05:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -659,16 +659,16 @@ gates:
     skip_reason: null
 
 sync_runs:
-  last_run: "2026-05-23T01:00:00Z"
-  total_runs: 4
+  last_run: "2026-05-23T03:00:00Z"
+  total_runs: 5
   last_drift_count: 18
   last_critical_count: 0
-  last_warning_count: 4
-  last_info_count: 14
+  last_warning_count: 1
+  last_info_count: 17
   last_structural_count: 7
   last_cosmetic_count: 0
   last_verdict: "DRIFT_DETECTED"
-  last_verdict_note: "Run #4 (post-CR-001 + post-§4): 0 CRITICAL; 4 new WARN + 3 new INFO ALL APPLIED inline (L2-014 FR-033 propagated to product-spec/README.md count + product-spec/product-spec.md FR table + tasks.md T053a Refs; L3-013 plan.md §5.1 Protocol re-aligned to actual code shape (get_album_by_mbid/get_album_by_external_id, cover-art as field not method, ListeningEvent return type, provider_id field dropped) + §6 service surface table updated; L3-014 plan.md §5.2 rate-limit text rewritten to acknowledge MB in-class asyncio.Lock + monotonic provider-specific policy + Discogs graceful-disabled-when-token-unset; L4-006 discogs_id → discogs_release_id renamed in product-spec/data-model.md (4 locations) + tasks.md T063; L2-015 spec.md wireframe label updated; L2-016 entity counts reconciled in spec.md §7 + §13 to 14 active; L4-007 tasks.md FR math fixed — 23 active = 28 base (incl. FR-033) − 5 deferred). All 5 Run #3 backlog items VERIFIED RESOLVED in code (L5-001..005 + L7-014). 11 recurring advisory INFOs from prior runs unchanged. Disposition: applied_split_with_override (carry-forward of Runs #2/#3 pattern). All structural-budget items closed at the doc layer; §6 entry unblocked."
+  last_verdict_note: "Run #5 (post-§6 + post-index-fix): 0 CRITICAL; 1 new WARN + 6 new INFO ALL APPLIED inline (L3-015 plan.md /api/search/report-missing → /api/v1/reports/missing-album; L3-016 sparse-unique → partialFilterExpression in plan §3.1 + product-spec/data-model.md catching up to commit 66f0403; L4-008 §6 wave artifacts (Album.candidate, rating_count denorm, popularity-boost shape) added to data-model.md schema + already in plan §3.1; L2-017 notification count 18 → 14 active in spec.md US-G3 AC + §7 entity table + §13 reading list; L2-018 Album.candidate semantics in data-model.md aligned to Discogs-sourced → T065 reconciliation (was: manual-entered → admin merge); L5-006 Session 8.5 entry appended to implementation-log.md documenting commit 66f0403 + tasks.md T067/T068/T069 inline-noted with their actual landed paths vs original tasks.md Paths declarations; L7-015 plan.md §11 preamble added linking apps/api/migrations/README.md). L6-001 advisory only — first meaningful Layer 6 sweep substantially clean (US-F1/F2/FR-005/010/033 → T067/T069/T053a-stub all traceable). 11 recurring advisory INFOs from prior runs unchanged. Disposition: applied_split_with_override (carry-forward of Runs #2/#3/#4 pattern). All structural-budget items closed at the doc layer; §3 frontend or §5 auth entry unblocked."
   last_report_path: "sync-report.md"
   last_disposition: "applied_split_with_override"
   last_report_path: "sync-report.md"

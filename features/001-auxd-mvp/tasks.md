@@ -611,7 +611,7 @@
       Description: Group albums by release-group MBID; expose "All editions" view that aggregates ratings/reviews/likes across editions. Edition selector returns list of editions for a release-group.
       Done: TC-010 unit test passes.
 
-- [x] **T067 — Album detail endpoint** *(completed 2026-05-23 Session 8; `GET /api/v1/albums/{album_id}` returns `{album, editions, aggregate, my_history, friends, public_reviews}`. Visibility-filtered via `lib/visibility.can_read`; anonymous viewers see public reviews only; owners see own private history; followers see followed-user content per visibility rules. 6 integration tests via FastAPI TestClient + mongomock-motor conftest.)*
+- [x] **T067 — Album detail endpoint** *(completed 2026-05-23 Session 8; `GET /api/v1/albums/{album_id}` returns `{album, editions, aggregate, my_history, friends, public_reviews}`. Visibility-filtered via `lib/visibility.can_read`; anonymous viewers see public reviews only; owners see own private history; followers see followed-user content per visibility rules. 6 integration tests via FastAPI TestClient + mongomock-motor conftest. **Path divergence (sync-fix L5-006 Run #5): tests landed at `tests/integration/test_album_detail_endpoint.py` not `tests/integration/test_album_detail.py` per original Paths line.**)*
       Paths: apps/api/src/auxd_api/modules/albums/routes.py, apps/api/tests/integration/test_album_detail.py
       Size: M
       Deps: T063, T066, T016
@@ -619,7 +619,7 @@
       Description: `GET /api/v1/albums/{id}` returns album + tracklist + my history + friends-who-rated-and-auxed + public reviews + edition list. Visibility-filtered via lib/visibility.
       Done: integration test covers logged-in/anonymous/blocked/private cases.
 
-- [x] **T068 — Atlas Search index for albums** *(completed 2026-05-23 Session 8; extended `apps/api/migrations/atlas_search/albums_index.json` with `lucene.standard` analyzer, dual `string` + `autocomplete` field shapes on title/artist_credit (edgeNgram 2–8 chars, diacritic folding), `rating_count` field, `scoreDetails.popularity` block using `log1p(rating_count)`. New `migrations/README.md` documents manual UI + `atlas-cli` apply paths. 5 unit tests guard the JSON shape. **Operator follow-up: apply the updated index to the Atlas Search cluster via UI or `atlas-cli`.**)*
+- [x] **T068 — Atlas Search index for albums** *(completed 2026-05-23 Session 8; extended `apps/api/migrations/atlas_search/albums_index.json` with `lucene.standard` analyzer, dual `string` + `autocomplete` field shapes on title/artist_credit (edgeNgram 2–8 chars, diacritic folding), `rating_count` field, `scoreDetails.popularity` block using `log1p(rating_count)`. New `migrations/README.md` documents manual UI + `atlas-cli` apply paths. 5 unit tests guard the JSON shape. **Operator follow-up: apply the updated index to the Atlas Search cluster via UI or `atlas-cli`.** **Path divergence (sync-fix L5-006 Run #5): operator runbook landed at `apps/api/migrations/README.md` not `docs/atlas-search-setup.md` per original Paths line — keeps the runbook adjacent to the JSON it documents.**)*
       Paths: apps/api/migrations/atlas_search/albums_index.json, docs/atlas-search-setup.md
       Size: S
       Deps: T022
@@ -628,7 +628,7 @@
       Done: search query returns relevant results.
 
 <!-- CR-001: T069 retitled + deps/description updated — Atlas + MusicBrainz primary + Discogs fallback merge; Spotify fallback dropped. -->
-- [x] **T069 — Search endpoint (Atlas + MusicBrainz + Discogs fallback merge)** *(completed 2026-05-23 Session 8; `GET /api/v1/search?q=...&type=album&limit=N` three-tier search: Atlas $search first (gracefully degrades to [] under mongomock); if <5 hits adds MB results via `resolve_identity` materialization; if still <5 adds Discogs (graceful-disabled when token unset). Dedupe by `mbid` else `(title.casefold(), artist.casefold())`. Sorted by Atlas relevance then `release_year` desc. Empty result returns `{report_missing_album_url: "/api/v1/reports/missing-album"}` hint pointing at future T053a. 7 integration tests via respx.)*
+- [x] **T069 — Search endpoint (Atlas + MusicBrainz + Discogs fallback merge)** *(completed 2026-05-23 Session 8; `GET /api/v1/search?q=...&type=album&limit=N` three-tier search: Atlas $search first (gracefully degrades to [] under mongomock); if <5 hits adds MB results via `resolve_identity` materialization; if still <5 adds Discogs (graceful-disabled when token unset). Dedupe by `mbid` else `(title.casefold(), artist.casefold())`. Sorted by Atlas relevance then `release_year` desc. Empty result returns `{report_missing_album_url: "/api/v1/reports/missing-album"}` hint pointing at future T053a. 7 integration tests via respx. **Path divergence (sync-fix L5-006 Run #5): tests landed at `tests/integration/test_search_endpoint.py` not `tests/integration/test_search.py` per original Paths line.**)*
       Paths: apps/api/src/auxd_api/modules/search/routes.py, apps/api/src/auxd_api/modules/search/service.py, apps/api/tests/integration/test_search.py
       Size: M
       Deps: T068, T049, T049b

@@ -192,7 +192,8 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 - [ ] **US-G1** As Maya, I want to edit my profile (display name, bio, avatar, handle). **AC:** Optimistic save; **handle policy** (per Q16/FR-029): immutable first 30d; thereafter ≤1 change per 30d; 200–500 obvious-squat reservations at launch; verification flow for reserved-squat claims post-launch.
 - [ ] **US-G2** As Casey, I want privacy defaults (per-entry visibility, private profile). **AC:** Default visibility setting; private-profile toggle creates pending follow-requests queue; existing followers stay on visibility downgrade.
-- [ ] **US-G3** As Casey, I want to manage notifications including auto-prompts. **AC:** 18 active notification types with per-channel toggles; quiet hours config; quiet hours suppress push + in-app prompts, not email/digest.
+<!-- sync-fix L2-017 (Run #5): notification count corrected — was "18 active types". Canonical post-CR-001 is 14 active + 6 reserved-gap (N-009/010/011/018 deferred per CR-001 + N-019/020 reserved post-R3 Lists removal). See product-spec/notification-taxonomy.md + product-spec/README.md. -->
+- [ ] **US-G3** As Casey, I want to manage notifications. **AC:** 14 active notification types with per-channel toggles; quiet hours config; quiet hours suppress push + in-app prompts, not email/digest. (Auto-prompts deferred-to-v2 per CR-001 along with the rest of the S-B6 surface.)
 - [ ] **US-G4** As Maya, I want to block and report. **AC:** Block dissolves existing follow + hides content; report queued with reason; ≥3 reports/7d → daily-log-scan flagging (manual review at MVP, no auto-suspension).
 - [ ] **US-G5** As Casey, I want to export my data and delete my account. **AC:** Email JSON+CSV within 24h; 30-day deletion grace period with banner + cancel option.
 
@@ -368,7 +369,8 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 | Backlog, BacklogItem | Singleton per User; private by default |
 | Follow, Block | Asymmetric follows; cascading dissolve on block |
 | Report | Open / reviewing / actioned / dismissed; 90d resolution audit |
-| Notification, NotificationPreferences | 18 active types; per-channel + quiet-hours |
+<!-- sync-fix L2-017 (Run #5): 14 active post-CR-001 (was 18); 4 deferred (N-009/010/011/018) + 2 R3-reserved (N-019/020). -->
+| Notification, NotificationPreferences | 14 active types (+ 6 reserved-gap IDs); per-channel + quiet-hours |
 <!-- CR-001: JustFinishedPrompt entity deferred — cluster moves to v2 with streaming integration -->
 | JustFinishedPrompt *(new in R1)* | **DEFERRED-TO-V2 (CR-001)** — Pending / dismissed / logged / expired lifecycle; entity schema kept in spec for v2 planning, not implemented at MVP. |
 | SuggestedFollow | Precomputed offline; dismissed exclusion 30d |
@@ -581,7 +583,8 @@ Phase 5 (plan) **must** read these supporting docs in addition to this spec.md:
 1. [product-spec/decision-log.md](./product-spec/decision-log.md) — the 45+ locked decisions with rationale (THE source of truth on choices)
 <!-- sync-fix L2-016 (Run #4): mirror of the §7 count correction — 14 active, 2 deferred-to-v2 in schema. -->
 2. [product-spec/data-model.md](./product-spec/data-model.md) — 14 active entities (+2 v2-deferred-but-schema-preserved) + relationships + preliminary indexes
-3. [product-spec/notification-taxonomy.md](./product-spec/notification-taxonomy.md) — 18 active notification types with defaults (load-bearing — wrong notification design = Goodreads-style churn)
+<!-- sync-fix L2-017 (Run #5): mirror of the §4 + §13 count corrections. -->
+3. [product-spec/notification-taxonomy.md](./product-spec/notification-taxonomy.md) — 14 active notification types (+ 6 reserved-gap IDs) with defaults (load-bearing — wrong notification design = Goodreads-style churn)
 4. [product-spec/seeding-strategy.md](./product-spec/seeding-strategy.md) — 4-pronged cold-start playbook (launch infrastructure, not marketing)
 <!-- CR-001: tech-stack reading reframed — original Extended Quota Mode dependency superseded by CR-001 -->
 5. [research/tech-stack.md](./research/tech-stack.md) — streaming-platform API audit (H4 critical findings) is **historical context only** at MVP per CR-001; current catalog stack is MusicBrainz primary + Discogs fallback (no Extended Quota gate to clear).

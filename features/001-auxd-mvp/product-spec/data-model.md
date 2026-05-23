@@ -109,9 +109,14 @@ Album {
   cached_at                # datetime
   cache_expires_at         # datetime (7d default)
   popularity_score         # 0–100, derived (used for search ranking)
+  rating_count             # int, denormalized (used by Atlas Search popularity boost via log1p(rating_count))
   rating_counts_cache      # { 0_5: int, 0_5: int, ... }  (precomputed histogram for album detail page)
+  candidate                # bool, default false — true marks Discogs-sourced rows pending MBID reconciliation by the T065 weekly worker (CR-001 + §6)
 }
 ```
+
+<!-- sync-fix L4-008 (Run #5): inventory caught up to the §6 wave. `Album.candidate` (T063), `rating_count` denormalization (T068 Atlas index popularity boost), and the supporting Atlas Search index runbook at `apps/api/migrations/README.md` are all in code; the schema sketch + index table above now reflect them. -->
+
 
 ### DiaryEntry — the central activity record
 ```
@@ -352,10 +357,11 @@ User 1──0..1 CriticSeed (decoration, not required)
 <!-- CR-001: identity-normalization cascade updated — Discogs ID replaces Spotify ID as the secondary canonical key. -->
 When the system encounters an album reference, it must resolve to a single canonical Album record:
 
+<!-- sync-fix L2-018 (Run #5): Album.candidate semantics aligned to actual T063 + T065 implementation. The candidate flag now marks Discogs-sourced rows pending automated MBID reconciliation by the T065 weekly worker — NOT manually-entered albums waiting on admin merge. (Manual-entry empty-search path lives in T053a "Report missing album" → admin queue, separate flow.) -->
 ```
-1. If MBID is present (or resolvable via MusicBrainz lookup) → use MBID as the canonical key.
-2. Else if Discogs ID is present (or resolvable via Discogs lookup) → use Discogs ID as the canonical key.
-3. Else (rare — e.g., a user manually typed an album title with no provider hit) → create a "candidate" album record flagged for admin merge.
+1. If MBID is present (or resolvable via MusicBrainz lookup) → use MBID as the canonical key; Album persists with mbid set + candidate=false.
+2. Else if Discogs ID is present (or resolvable via Discogs lookup) → use Discogs ID as the canonical key; Album persists with discogs_release_id set + candidate=TRUE (T065 worker periodically searches MusicBrainz by artist+title to find the MBID and merges).
+3. Else (rare — e.g., a user manually typed an album title with no provider hit) → the empty-search-result path surfaces the FR-033 "Report missing album" link instead of auto-creating a candidate; the founder admin queue handles those manually.
 ```
 
 Deluxe / remaster / regional variants: Phase 5 must decide whether to **merge under release-group MBID** (preferred — fewer duplicates, cleaner social signal) or **keep as separate albums** (preferred for power-users tracking specific editions). Default recommendation: **merge under release-group**.
@@ -399,8 +405,9 @@ Every document has `_schema_version: int`. Writers always write the current vers
 | User | `{ handle: 1 } unique` | Handle lookup |
 | User | `{ email: 1 } unique` | Login |
 <!-- CR-001: index on spotify_id replaced with index on discogs_release_id. -->
-| Album | `{ mbid: 1 } sparse unique` | MBID lookup |
-| Album | `{ discogs_release_id: 1 } sparse unique` | Discogs ID lookup (fallback identifier per CR-001) |
+<!-- sync-fix L3-016 (Run #5): index shape corrected post-commit-66f0403. Sparse-unique fired on the second null insert in production because Pydantic serialises None→null (not "missing"); partialFilterExpression excludes both for the unique constraint. -->
+| Album | `{ mbid: 1 } unique partial: {mbid: {$exists, $ne: null}}` | MBID lookup |
+| Album | `{ discogs_release_id: 1 } unique partial: {discogs_release_id: {$exists, $ne: null}}` | Discogs ID lookup (fallback identifier per CR-001) |
 | Album | Atlas Search index on `{ title, artist_credit, artists.name }` | Catalog search |
 | DiaryEntry | `{ user_id: 1, logged_at: -1 }` | User diary timeline |
 | DiaryEntry | `{ user_id: 1, album_id: 1, logged_at: -1 }` | "Have I logged this before?" check |

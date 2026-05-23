@@ -398,3 +398,29 @@ Plus `pyproject.toml` got `respx>=0.21` added to dev deps (resolved → 0.23.1) 
 - ✅ Discogs Personal Access Token (done; live on Fly as of 2026-05-23T01:25Z).
 - 🟡 Apply the updated Atlas Search index JSON to the dev cluster via UI or `atlas-cli` (see `apps/api/migrations/README.md`). The `_atlas_search` fail-soft path means search will still work without this, just without Atlas-tier results.
 
+## Session 8.5 — 2026-05-23 — partial-filter index fix (commit `66f0403`)
+
+Real production bug caught after the §6 deploy: `GET /api/v1/search?q=...` returned HTTP 500 on the second MB-fallback materialise. Root cause: Pydantic serialises `str | None` defaulted to `None` as the BSON value `null` (not "missing field"), so `sparse=True` unique indexes still index null values + the unique constraint then fires on the second null insert.
+
+**Fix (commit `66f0403`, 6 files modified):**
+- `apps/api/src/auxd_api/modules/albums/models.py` — `Album.Settings.indexes`: both `mbid` and `discogs_release_id` switched from `sparse=True` to `partialFilterExpression={field: {$exists: True, $ne: None}}`. The partial filter excludes both missing AND null from the unique constraint.
+- Production reseed: dropped the stale `mbid_1` + `discogs_release_id_1` indexes (plus the leftover `spotify_id_1` from pre-CR-001) via a Motor one-shot against the prod MongoDB URI; the next API restart re-init_beanies and Beanie recreates them with the new partial-filter shape.
+- `apps/api/tests/conftest.py` — added a post-`init_beanie` step that drops the two unique indexes under mongomock-motor (the mock doesn't honor `partialFilterExpression` and treats every unique constraint as plain-unique, so fixture inserts that share a null id collide under the mock even though they work fine in real Atlas).
+- `tests/unit/test_albums_model.py` — assert the partialFilterExpression shape + added a symmetric `test_album_mbid_partial_filter_index_matches_discogs`.
+- `tests/unit/test_albums_workers.py` + `tests/unit/test_albums_editions.py` + `tests/integration/test_search_endpoint.py` — inline-noted the mongomock partial-filter gap on the fixtures that depend on co-resident null-id Albums.
+
+**Verify post-fix:**
+- Backend full suite: **401 / 401 pass + 3 skipped** in 11.54s (was 400/3 → +1 new index assertion).
+- ruff + format + mypy --strict clean across 93 source files.
+- Live deploy: `curl https://api.xiejoshua.com/api/v1/search?q=kendrick%20lamar&limit=3` now returns 3 MB-materialized Albums coexisting with `discogs_release_id: null` — the partial-filter unique index works.
+
+**Lesson + v1.x follow-up flagged:** mongomock-motor's lack of `partialFilterExpression` support meant the entire test suite passed against a semantic that didn't hold in production. Worth adding a `testcontainers`-style smoke test against a real MongoDB instance before any §6+ wave is considered "fully verified". Documented as the "smoke-test against real MongoDB" v1.x candidate in the §6 wave's open-risks list.
+
+**One follow-up bug also surfaced**: live MB-materialised Albums have empty `artist_credit` strings (the MB → CatalogAlbum → Album materialisation in `resolve_identity` doesn't propagate `CatalogAlbum.artist_name` into `Album.artist_credit`). Not a runtime crash; payload-shape issue only. Flagged for the next session.
+
+### Status snapshot (post-Session-8.5)
+
+- Tasks completed: still **42 / 170**. The fix is a Phase 6 stability patch on already-completed §6 tasks, not new task completion.
+- Tests: 401/401 + 3 skip.
+- Live deploy: `/healthz` + `/api/v1/albums/{id}` + `/api/v1/search` all green.
+

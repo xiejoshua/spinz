@@ -1,219 +1,222 @@
 {
   "feature": "001-auxd-mvp",
-  "run_number": 4,
+  "run_number": 5,
   "date": "2026-05-22",
   "phase": "implement_in_progress",
-  "tasks_completed": 35,
+  "tasks_completed": 42,
   "tasks_total": 170,
   "trigger": [
-    "CR-001 application (commit fa43ad8) — Spotify pivot to MusicBrainz + Discogs catalog backbone",
-    "§4 Providers wave (commit d69272c) — T041 + T048/T049 + T049a/T049b + T050/T051/T052"
+    "§6 Albums + Search backend wave (commit 3e8a602) — T063 identity + T064 cache refresh + T065 MBID reconciliation + T066 edition aggregation + T067 album-detail endpoint + T068 Atlas Search index extension + T069 three-tier search endpoint",
+    "shared-types regen (commit bbd1f4e) — packages/shared-types/src/api.ts updated for 2 new OpenAPI endpoints",
+    "post-deploy partial-filter fix (commit 66f0403) — Album.mbid + Album.discogs_release_id unique indexes migrated from sparse=True to partialFilterExpression={$exists: True, $ne: None}"
   ],
-  "layers_checked": [1, 2, 3, 4, 5, 7],
-  "layers_skipped": [6],
-  "layers_skipped_reason": "Layer 6 (spec ↔ code backward) still premature — only data layer + provider scaffolding has landed; no service / route / UI code exists for backward checks.",
-  "focus_per_user_prompt": "Structural-drift detection on Layers 2-5 (recently re-edited boundaries); Layers 1, 6, 7 scanned at lower priority.",
+  "layers_checked": [1, 2, 3, 4, 5, 6, 7],
+  "layers_skipped": [],
+  "layers_skipped_reason": null,
+  "focus_per_user_prompt": "Structural-drift detection on all layers; Layer 6 (spec ↔ code backward) elevated as headline for first meaningful sweep after §6 added end-to-end product surfaces (album-detail endpoint + search endpoint). Verify Run #4 dispositions still hold; check for §6 fallout user pre-suspects (partial-filter not in implementation-log; artist_credit data-shape gap; Atlas Search operator follow-up; data-model.md candidate semantics).",
   "verdict": "DRIFT_DETECTED",
-  "verdict_reason": "0 CRITICAL findings; structural count 7 trips strict structural:0 budget. New drift concentrated on the boundaries CR-001 + §4 wave opened: Layer 2 (FR-033 + wireframe label + entity count not propagated downward); Layer 3 (plan §5.1/§5.2 not reconciled with §4 wave architectural decisions); Layer 4 (discogs_id vs discogs_release_id rename incomplete in product-spec + tasks.md). All Run #3 inline cleanups verified resolved.",
+  "verdict_reason": "0 CRITICAL findings; structural count 7 trips strict structural:0 budget. New drift narrowed materially from Run #4 (was 7 structural with 4 WARN; now 7 structural with 1 WARN). All new drift is documentation-tier (narratives that did not catch up with §6 code + the post-deploy partial-filter fix). All Run #4 inline cleanups verified resolved.",
   "drift_budget": {
     "cosmetic": 20,
     "structural": 0
   },
   "counts": {
     "critical": 0,
-    "warning": 4,
-    "info": 14,
+    "warning": 1,
+    "info": 17,
     "structural": 7,
     "cosmetic": 0,
     "recurring_advisory": 11,
     "new_this_run": 7,
-    "resolved_since_run_3": 6
+    "resolved_since_run_4": 7
   },
-  "run_3_disposition_verified": {
+  "run_4_disposition_verified": {
     "inline_cleanups_holding": true,
     "items_verified": [
-      "L5-001 (5 missing User fields landed in apps/api/src/auxd_api/modules/users/models.py:153-160)",
-      "L5-002 (BacklogItem per_item_visibility + notes field landed in apps/api/src/auxd_api/modules/backlog/models.py:81-83)",
-      "L5-003 (BacklogItem unique compound (backlog_id, album_id) at backlog/models.py:88)",
-      "L5-004 (product-spec/data-model.md aligned to code field names — private_profile, last_seen_at, handle_changed_at)",
-      "L5-005 (CriticSeed shape aligned in data-model.md:314-316; in-line note explains index intent)",
-      "L7-014 (implementation-log.md Sessions 1-7 now sequential; .forge-status.yml session_count: 7)"
+      "L2-014 (FR-033 propagated to product-spec/product-spec.md:174 FR table + product-spec/README.md:62 + tasks.md T053a Refs)",
+      "L3-013 (plan.md §5.1 protocol method names re-aligned to code — get_album_by_mbid + get_album_by_external_id; cover-art-as-field; provider_id dropped; get_user_library out)",
+      "L3-014 (plan.md §5.2 rate-limit text rewritten — in-class asyncio.Lock + time.monotonic; Discogs graceful-disabled-when-token-unset)",
+      "L4-006 (discogs_id → discogs_release_id renamed in product-spec/data-model.md 4 locations + tasks.md T063)",
+      "L2-015 (spec.md wireframe 01 label 'Follow-Critics screen')",
+      "L2-016 (spec.md entity counts reconciled 14 active at MVP)",
+      "L4-007 (tasks.md FR math fixed — 23 active = 28 base (incl FR-033) − 5 deferred)"
     ]
   },
-  "cr_001_verified": {
-    "spotify_code_scrub": "clean (0 production-code residuals; remaining mentions are CR-001 historical docstrings + anti-regression test guards)",
-    "env_example_clean": true,
-    "settings_validators": "discogs_enabled replaces spotify_enabled; SPOTIFY_* fields gone; extra=forbid rejects legacy keys",
-    "user_music_providers_shape": "dict[str, MusicProviderState] (neutral); old Spotify-shaped list retired",
-    "album_spotify_id_dropped": "field + sparse index removed; discogs_release_id sparse-unique added",
-    "albumsource_enum": "MUSICBRAINZ + DISCOGS only (SPOTIFY removed)",
-    "notificationtype_enum": "16 active (down from 18; spotify.revoked + just_finished.prompt deferred)",
-    "justfinishedprompt_deferral": "class importable, NOT in ALL_DOCUMENT_MODELS; test_db asserts len == 16 + JustFinishedPrompt absence",
-    "wireframes_redesigned": "01-onboarding.html title 'Follow Critics'; 03-log-sheet.html rewritten for manual search",
-    "pytest_backbone": "352/352 pass + 3 skip per Session 7 close-out"
-  },
-  "providers_wave_verified": {
-    "t041": "providers/base.py + providers/__init__.py + tests/unit/test_providers_base.py landed; canonical types CatalogAlbum + ListeningEvent",
-    "t048": "tests/integration/test_musicbrainz_provider.py — 9 respx contract tests",
-    "t049": "providers/musicbrainz.py — single-file (acknowledged path divergence per CR-001 locked-decision #5)",
-    "t049a": "tests/integration/test_discogs_provider.py — 7 respx contract tests",
-    "t049b": "providers/discogs.py — single-file; disabled-mode when DISCOGS_API_TOKEN unset",
-    "t050": "providers/transport.py — ResilienceTransport(httpx.AsyncBaseTransport); 429 bypasses retry; 5xx through retry; timeout/connect-error → ProviderUnavailable",
-    "t051": "providers/transport.py — log_call per request; single emission point covers both MB + Discogs",
-    "t052": "providers/errors.py — ProviderError + 4 subclasses; each carries optional provider: str; HTTP mapping 503/429/401/404 consistent",
-    "respx_dev_dep": "respx>=0.21 added to apps/api/pyproject.toml; resolved to 0.23.1",
-    "p4_test_first_audit_trail": "T048 + T049a both verified FAILING with ImportError before T049 + T049b written (per Session 7 close-out)"
+  "section_6_wave_verified": {
+    "t063": "modules/albums/identity.py + modules/albums/errors.py + Album.candidate field + 8 unit tests",
+    "t064": "modules/albums/workers.py:refresh_stale_album_metadata + workers/main.py cron @ daily 04:00 UTC; provider shared via _on_startup",
+    "t065": "modules/albums/workers.py:reconcile_candidate_albums + cron @ weekly Sun 03:00 UTC; fuzzy 0.8 threshold",
+    "t066": "modules/albums/editions.py + 11 unit tests; canonical-edition = earliest year + longest tracklist tiebreak",
+    "t067": "modules/albums/routes.py + routers/v1.py mount + 6 integration tests; visibility-filtered via can_read_with_relation",
+    "t068": "migrations/atlas_search/albums_index.json extended (lucene.standard + edgeNgram + popularity boost) + migrations/README.md NEW + 5 unit tests",
+    "t069": "modules/search/routes.py + modules/search/service.py + 7 integration tests; three-tier Atlas→MB→Discogs fallback with dedupe + empty-result hint",
+    "shared_types_regen": "packages/shared-types/src/api.ts regenerated for 2 new endpoints (commit bbd1f4e)",
+    "partial_filter_fix": "Album.Settings.indexes migrated sparse=True → partialFilterExpression (commit 66f0403); conftest drops indexes post-init_beanie since mongomock-motor does not honor partial filters; test count 400 → 401",
+    "path_divergences_acknowledged": "providers/musicbrainz.py + providers/discogs.py single-file vs tasks.md package paths; modules/albums/workers.py vs tasks.md workers/album_cache_refresh.py + workers/mbid_reconcile.py paths — inline-noted on tasks.md [x] lines per locked decision #5",
+    "test_path_divergences_not_yet_inline_noted": "T067 Paths -> tests/integration/test_album_detail.py (actual: test_album_detail_endpoint.py); T068 Paths -> docs/atlas-search-setup.md (actual: apps/api/migrations/README.md); T069 Paths -> tests/integration/test_search.py (actual: test_search_endpoint.py) — captured under L5-006"
   },
   "findings": [
     {
-      "id": "L2-014",
-      "layer": 2,
-      "severity": "WARNING",
-      "category": "structural",
-      "direction": "backward+forward",
-      "title": "FR-033 (Report missing album) exists only in spec.md — not in product-spec / README / tasks Refs",
-      "source": "spec.md:253 (FR-033 row), :432 (validation criterion 12), :558 (risk row), :603 (CR-001 changelog)",
-      "target": "product-spec/product-spec.md FR table (lines 139-172) + product-spec/README.md:62 + product-spec/data-model.md + tasks.md T053a Refs line",
-      "actual": "grep -n FR-033 product-spec/**/*.md returns 0 hits. README.md says '22 functional requirements active' enumerating FR-001 / FR-004..FR-016 / FR-018..FR-020 / FR-028..FR-032 — excludes FR-033. spec.md has 23 active FRs; product-spec has 22. T053a Refs line is 'FR-005; CR-001; sync-fix L3-006' — no FR-033.",
-      "proposed_resolution": "Add FR-033 to product-spec/product-spec.md FR table aligned to spec.md wording; bump README active-FR count 22 → 23 and update enumeration; update tasks.md T053a Refs to include FR-033",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L3-013",
+      "id": "L3-015",
       "layer": 3,
       "severity": "WARNING",
       "category": "structural",
       "direction": "forward",
-      "title": "plan §5.1 Protocol method names diverge from code",
-      "source": "plan.md:455-480 (§5.1 code block) + plan.md:533 (§6 services table row)",
-      "target": "apps/api/src/auxd_api/providers/base.py:89-140",
-      "expected_per_plan": "CatalogProvider: provider_id: str; search_albums -> list[AlbumRef]; lookup_by_mbid -> AlbumDetail | None; lookup_by_external_id -> AlbumDetail | None; cover_art_url -> str | None. MusicProvider: provider_id: str; get_recently_played(user, since, limit) -> list[Listen]; get_currently_playing(user) -> CurrentlyPlaying | None; get_user_library(user, limit) -> list[AlbumRef].",
-      "actual_in_code": "CatalogProvider has NO provider_id field. Methods: search_albums(query, limit=10) -> list[CatalogAlbum]; get_album_by_mbid(mbid) -> CatalogAlbum | None; get_album_by_external_id(provider, external_id) -> CatalogAlbum | None. NO cover_art_url Protocol method — cover-art is a FIELD on CatalogAlbum. MusicProvider has NO provider_id, NO get_user_library; get_recently_played(user_token: str, limit: int = 50).",
-      "cross_check": "tasks.md T048 Description uses plan-name 'lookup_by_mbid'; T049a uses Discogs-specific 'search_releases'/'get_release' (matches neither plan §5.1 nor code). Session 7 architectural decisions deliberately picked the code-shape — but plan was not re-aligned.",
-      "proposed_resolution": "Update plan §5.1 + §6 services-table row to code-aligned signatures. Code wins per Session 7 architectural decisions.",
+      "title": "plan §11.2.1 POST /api/search/report-missing diverges from code (/api/v1/reports/missing-album) and tasks.md T053a",
+      "source": "plan.md:766 narrative",
+      "target": "apps/api/src/auxd_api/modules/search/routes.py:48 _REPORT_MISSING_ALBUM_URL constant; tasks.md:523 T053a Description; tasks.md:1588 coverage matrix",
+      "authoritative": "/api/v1/reports/missing-album (code + tasks.md align)",
+      "actual": "plan.md narrative uses unversioned /api/search/report-missing — both wrong prefix (outside /api/v1) and wrong module (search vs reports)",
+      "proposed_resolution": "Update plan.md:766 to /api/v1/reports/missing-album; optionally clarify target_id semantics to acknowledge T053a's structured payload (query/artist/title/release_year fields)",
       "decision": null,
       "new_this_run": true
     },
     {
-      "id": "L3-014",
-      "layer": 3,
-      "severity": "WARNING",
-      "category": "structural",
-      "direction": "forward",
-      "title": "plan §5.2 references non-existent lib/resilience.rate_limit symbol",
-      "source": "plan.md:484 — 'enforced client-side via `lib/resilience.rate_limit`'",
-      "target": "apps/api/src/auxd_api/lib/resilience.py",
-      "actual": "lib/resilience.py exports timeout, retry, circuit_breaker, circuit_breaker_decorator, call_with_resilience, CircuitBreakerOpenError, CircuitBreakerState, CircuitBreakerStore, InMemoryCircuitBreakerStore. NO rate_limit function exists. MusicBrainz rate-limiting is implemented inline in MusicBrainzCatalogProvider via asyncio.Lock + time.monotonic() (providers/musicbrainz.py:131-143) — Session 7 architectural decision: 'rate-limit policy stays provider-specific'.",
-      "proposed_resolution": "Update plan.md:484 to describe the chosen inline mechanism; optionally add a one-line architectural note to plan §5.3 capturing the rationale.",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L4-006",
-      "layer": 4,
-      "severity": "WARNING",
-      "category": "structural",
-      "direction": "backward+forward",
-      "title": "discogs_id (product-spec + tasks T063) vs discogs_release_id (code + plan + spec)",
-      "source": "product-spec/data-model.md:88,95,99,403 + tasks.md:584 (T063 Description)",
-      "target": "apps/api/src/auxd_api/modules/albums/models.py:154 + index at :210; plan.md:242,264,485,761; spec.md (FR-005 narrative)",
-      "actual": "Code uses discogs_release_id field + unique sparse index. Plan + spec + change-log all use discogs_release_id. Product-spec/data-model.md introduces discogs_id (4 occurrences). tasks.md:584 T063 Description references discogs_id parameter.",
-      "proposed_resolution": "Rename in product-spec/data-model.md and tasks.md:584. Code is authoritative.",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L2-015",
+      "id": "L2-017",
       "layer": 2,
       "severity": "INFO",
       "category": "structural",
       "direction": "backward",
-      "title": "spec.md:203 wireframe 01 label stale (Confirm-last-30-days → Follow Critics)",
-      "source": "spec.md:203",
-      "target": "product-spec/wireframes/01-onboarding.html:9 (<title>Wireframe: Onboarding — Follow Critics</title>)",
-      "actual": "spec.md cross-references wireframe 01 as 'Confirm-last-30-days screen' — but CR-001 rewrote the wireframe to the Follow Critics step.",
-      "proposed_resolution": "Update spec.md:203 label to 'Follow Critics — minimum 3 to advance' or equivalent.",
+      "title": "spec.md \"18 active notification types\" narrative stale post-CR-001 (should be 14 active)",
+      "source": "spec.md:195 US-G3 AC; spec.md:371 §7 data-model entity narrative; spec.md:584 §13 reading list",
+      "target": "product-spec/notification-taxonomy.md — 14 active (N-001..N-008 + N-012..N-017); reserved-gap N-009/N-010/N-011/N-018/N-019/N-020. product-spec/README.md:64 correctly says \"14 notification types active\". product-spec/user-stories.md:289 correctly references active types with reserved-gap callout.",
+      "actual": "spec.md narrative claims 18 active in 3 places; canonical count is 14 active + 6 reserved-gap. CR-001 deferred N-009/N-010/N-011/N-018; R3 deferred N-019/N-020.",
+      "proposed_resolution": "Update spec.md:195, :371, :584 from \"18 active notification types\" to \"14 active notification types (N-009/N-010/N-011/N-018 deferred-to-v2 per CR-001; N-019/N-020 deferred with R3 Lists; reserved-gap IDs preserved)\"",
       "decision": null,
       "new_this_run": true
     },
     {
-      "id": "L2-016",
+      "id": "L2-018",
       "layer": 2,
       "severity": "INFO",
       "category": "structural",
-      "direction": "inconsistent_internal",
-      "title": "spec.md '16 entities / 15 active' narrative inconsistent with CR-001 deferrals + with itself",
-      "source": "spec.md:355 ('16 entities listed below; 15 active at MVP') vs spec.md:580 ('16 active entities')",
-      "target": "product-spec/data-model.md (16 entity sections; 2 DEFERRED-TO-V2 — MusicProvider + JustFinishedPrompt; 14 active)",
-      "actual": "Internal narrative contradiction: spec.md says both '15 active' (line 355) and '16 active' (line 580). True active count after CR-001 is 14 (MusicProvider also deferred since music_providers always [] at MVP).",
-      "proposed_resolution": "Reconcile both spec.md claims to '14 active' and explain that ALL_DOCUMENT_MODELS contains 16 because of FollowRequest + ReviewEditHistory + FailedEmail (recurring L4-005 closure target).",
+      "direction": "backward",
+      "title": "Album.candidate field semantics drift — data-model.md says 'admin merge', code+T063+S-F1 say 'T065 auto-reconciliation'",
+      "source": "product-spec/data-model.md:355-359 §\"Album identity normalization\" step 3 — \"create a 'candidate' album record flagged for admin merge\"",
+      "target": "apps/api/src/auxd_api/modules/albums/models.py:199-204 docstring; apps/api/src/auxd_api/modules/albums/identity.py:122-137; apps/api/src/auxd_api/modules/albums/workers.py:174-237 (reconcile_candidate_albums); product-spec/user-stories.md:249 S-F1 AC",
+      "actual": "data-model.md narrative case is \"manual album entry → admin merge\". Code uses candidate=True for the Discogs-fallback materialisation path that is automatically reconciled by T065 weekly cron. The manual-entry path does not currently exist in code (T053a future stub handles missing-album reports separately).",
+      "proposed_resolution": "Update data-model.md §\"Album identity normalization\" step 3 to: \"Else if Discogs ID is present → materialise Album(candidate=True, source=DISCOGS) to be reconciled by the weekly T065 MBID-reconciliation worker.\" Also add Album.candidate field to the Album entity sketch lines 89-114.",
       "decision": null,
       "new_this_run": true
     },
     {
-      "id": "L4-007",
+      "id": "L3-016",
+      "layer": 3,
+      "severity": "INFO",
+      "category": "structural",
+      "direction": "backward",
+      "title": "plan §3.1 + data-model.md indexes table say 'unique sparse' but code uses partialFilterExpression (post-66f0403 fix)",
+      "source": "plan.md:264 (`albums` indexes row); product-spec/data-model.md:402-404 (Album indexes rows)",
+      "target": "apps/api/src/auxd_api/modules/albums/models.py:215-237 — both Album.mbid + Album.discogs_release_id use partialFilterExpression={field: {$exists: True, $ne: None}}",
+      "actual": "Plan + data-model still describe pre-fix sparse-unique design. Code reflects the post-deploy partial-filter fix. Pydantic serialises None to BSON null (present, not missing) so sparse-unique still indexes null values — causing the production DuplicateKeyError on the second null insert observed in the §6 search-endpoint deploy. partialFilterExpression excludes both missing AND null, which is the actual MVP intent. The conftest drops both indexes post-init_beanie because mongomock-motor does not honor partial filters.",
+      "proposed_resolution": "Update plan.md:264 + product-spec/data-model.md:402-403 from \"unique sparse\" to \"unique partial-filter ({$exists: true, $ne: null}) — sparse was insufficient because Pydantic serialises None to BSON null\". Add DM-6 decision-log entry capturing the partial-filter index shape decision.",
+      "decision": null,
+      "new_this_run": true
+    },
+    {
+      "id": "L4-008",
       "layer": 4,
       "severity": "INFO",
       "category": "structural",
       "direction": "forward",
-      "title": "tasks.md '27 active FRs covered minus the 5 deferred' stale post-FR-033 addition",
-      "source": "tasks.md:65",
-      "target": "spec.md FR table (28 rows; 5 deferred; 23 active including FR-033)",
-      "actual": "tasks.md claims '27 active FRs covered minus the 5 deferred' — pre-FR-033 count; doesn't add up against current spec.md (28 - 5 = 23, not 27 either way).",
-      "proposed_resolution": "Update tasks.md:65 to '28 active FRs covered minus the 5 deferred' OR defer until L2-014 is resolved.",
+      "title": "§6 wave artifacts (Album.candidate field, Atlas index rating_count + popularity boost, migrations/README.md) not in plan §3.1 + data-model.md inventory",
+      "source": "Album.candidate field (T063 new); apps/api/migrations/atlas_search/albums_index.json extension (T068 — rating_count field + scoreDetails.popularity log1p(rating_count) block); apps/api/migrations/README.md (T068 new doc)",
+      "target": "plan.md:264 (albums indexes row); product-spec/data-model.md:89-114 (Album sketch); product-spec/data-model.md:395-419 (Indexes table)",
+      "actual": "Album.candidate field invisible to data-model.md Album sketch. Atlas Search index has rating_count + popularity boost — neither shows up in plan or data-model. plan.md §3.1 still says \"Atlas Search index on title + artist_credit + artists.name\" — accurate, but understates the actual shape post-T068.",
+      "cross_check": "Narrows but does not replace recurring L4-005 (4 satellite collections inventory gap)",
+      "proposed_resolution": "Add Album.candidate to data-model.md Album sketch. Update plan.md:264 albums indexes row to mention the popularity-boost index field. Optionally add migration-artifact subsection enumerating migrations/atlas_search/albums_index.json + migrations/README.md.",
       "decision": null,
       "new_this_run": true
     },
-    {"id": "L1-001", "layer": 1, "severity": "INFO", "category": "structural", "title": "W1 activation definition narrowed", "decision": null, "recurring": true},
-    {"id": "L1-002", "layer": 1, "severity": "INFO", "category": "structural", "title": "Apple Music re-eval threshold 15% → 30% (no rationale)", "decision": null, "recurring": true, "deferred_in_run_2": true},
-    {"id": "L2-004", "layer": 2, "severity": "INFO", "category": "structural", "title": "FR-003 trace tag US-A3 should be US-A2", "decision": null, "recurring": true, "possibly_mooted_by_cr_001": "FR-003 now DEFERRED-TO-V2 — trace-tag fix may be retire-as-moot"},
-    {"id": "L2-005", "layer": 2, "severity": "INFO", "category": "structural", "title": "FR-027 trace tag US-G2 incorrect", "decision": null, "recurring": true, "possibly_mooted_by_cr_001": "FR-027 now DEFERRED-TO-V2 — trace-tag fix may be retire-as-moot"},
-    {"id": "L2-006", "layer": 2, "severity": "INFO", "category": "structural", "title": "Cluster name enrichment", "decision": null, "recurring": true},
-    {"id": "L2-009", "layer": 2, "severity": "INFO", "category": "structural", "title": "Entity inventory ReviewLike row (partially mooted by Run #2 L2-010)", "decision": null, "recurring": true},
-    {"id": "L3-009", "layer": 3, "severity": "INFO", "category": "structural", "title": "/critics route in plan, not in spec", "decision": null, "recurring": true},
-    {"id": "L3-010", "layer": 3, "severity": "INFO", "category": "structural", "title": "Handle collision suggestion algorithm incomplete", "decision": null, "recurring": true},
-    {"id": "L4-005", "layer": 4, "severity": "INFO", "category": "cosmetic", "title": "Satellite collections (FollowRequest + ReviewEditHistory + FailedEmail) in product-spec/data-model.md inventory still missing; plan §3.1 has them", "decision": null, "recurring": true, "naturally_bundles_with": "L2-016"},
-    {"id": "L7-004", "layer": 7, "severity": "INFO", "category": "structural", "title": "problem-discovery/digest.md orphan", "decision": null, "recurring": true},
-    {"id": "L7-005", "layer": 7, "severity": "INFO", "category": "structural", "title": "product-spec/digest.md orphan", "decision": null, "recurring": true},
-    {"id": "L7-006", "layer": 7, "severity": "INFO", "category": "structural", "title": "research/digest.md orphan", "decision": null, "recurring": true},
-    {"id": "L7-007", "layer": 7, "severity": "INFO", "category": "structural", "title": "plan/digest.md orphan", "decision": null, "recurring": true},
-    {"id": "L7-008", "layer": 7, "severity": "INFO", "category": "structural", "title": "tasks/digest.md orphan", "decision": null, "recurring": true},
-    {"id": "L7-013", "layer": 7, "severity": "INFO", "category": "structural", "title": "implementation-log.md orphan (same convention class as digest orphans)", "decision": null, "recurring": true}
-  ],
-  "verified_locks": {
-    "C-1_T117a_synchronous_critic_seed": {"present": true, "location": "tasks.md T117a"},
-    "C-3_feed_weighting": {"present": true, "location": "plan.md §10.2"},
-    "C-4_coalescer_cross_type": {"present": true, "location": "plan.md §8.2"},
-    "C-5_rate_limiter_fail_open": {"present": true, "location": "plan.md §1.1.1 + tasks.md T020"},
-    "CR-001_decisions_1_through_5": {
-      "decision_1_spotify_deferred_v2": {"present": true, "location": "change-log.md CR-001 + spec.md §0 row #18 + plan.md §0 banner"},
-      "decision_2_musicbrainz_primary_discogs_fallback": {"present": true, "location": "plan.md §3.1 albums row + plan.md §5.2 + spec.md FR-005"},
-      "decision_3_just_finished_deferred_kept_importable": {"present": true, "location": "apps/api/src/auxd_api/modules/prompts/models.py + db.py JustFinishedPrompt import-but-not-registered"},
-      "decision_4_provider_abstraction_kept": {"present": true, "location": "apps/api/src/auxd_api/providers/base.py — both CatalogProvider + MusicProvider Protocols defined"},
-      "decision_5_path_divergence_acknowledged_inline": {"present": true, "location": "tasks.md T041/T048/T049/T049a/T049b/T050 in-line Note: lines on each completed task"}
+    {
+      "id": "L5-006",
+      "layer": 5,
+      "severity": "INFO",
+      "category": "structural",
+      "direction": "backward",
+      "title": "Post-deploy partial-filter fix (commit 66f0403) not in implementation-log.md; tasks.md T067/T068/T069 Paths divergences not inline-noted",
+      "source": "commit 66f0403 body — production incident + partial-filter fix + conftest drop pattern + 400 → 401 test count + v1.x testcontainers note",
+      "target": "features/001-auxd-mvp/implementation-log.md — Session 8 ends at 400/400 + the Operator-follow-up Atlas-index bullet; no Session 8.5 entry. tasks.md T067/T068/T069 [x] lines do not inline-note the test/doc filename divergences (parallel pattern to §4 wave T049/T064 etc).",
+      "actual": "Future readers reconstructing Session 8 from the log alone will see \"shipped, 400/400 green\" and miss the post-deploy production incident + fix. tasks.md T067 Paths says tests/integration/test_album_detail.py (actual: test_album_detail_endpoint.py); T068 Paths says docs/atlas-search-setup.md (actual: apps/api/migrations/README.md); T069 Paths says tests/integration/test_search.py (actual: test_search_endpoint.py).",
+      "proposed_resolution": "Add \"Session 8.5 — Post-deploy partial-filter fix (2026-05-23 morning)\" subsection to implementation-log.md. Add inline path-divergence notes to tasks.md T067/T068/T069 [x] lines per locked decision #5.",
+      "decision": null,
+      "new_this_run": true
+    },
+    {
+      "id": "L6-001",
+      "layer": 6,
+      "severity": "INFO",
+      "category": "advisory",
+      "direction": "backward",
+      "title": "First meaningful Layer 6 sweep: §6 backend endpoints satisfy US-F1/US-F2/FR-005/FR-010/FR-033 backward; frontend-bound concerns deferred to T070+",
+      "source": "US-F1 + US-F2 + FR-005 + FR-010 + FR-033 in spec.md",
+      "target": "apps/api/src/auxd_api/modules/albums/routes.py (T067); apps/api/src/auxd_api/modules/search/routes.py + service.py (T069)",
+      "actual": "T067 response shape (album/editions/aggregate/my_history/friends/public_reviews) covers US-F1 backend concerns. T069 three-tier search (Atlas → MB → Discogs with materialise + dedupe + empty-result hint) covers US-F2 backend concerns. Frontend-bound parts of US-F1 (SSR/OG meta/sort selector/Log+UpNext CTAs) and US-F2 (≥3 chars + 200ms debounce) are deferred to T070+ as expected. FR-033 traceability via tasks.md T053a Refs is now clean. Backward direction substantially clean. No regression-class drift.",
+      "proposed_resolution": "(advisory) No action this run. Surface marker. Revisit in Run #6 once T070+ frontend wave lands and Layer 6 backward gets a second pass.",
+      "decision": null,
+      "new_this_run": true
+    },
+    {
+      "id": "L7-015",
+      "layer": 7,
+      "severity": "INFO",
+      "category": "structural",
+      "direction": "internal",
+      "title": "apps/api/migrations/README.md (NEW this wave) is not indexed by any other markdown doc",
+      "source": "apps/api/migrations/README.md",
+      "target": "apps/api/migrations/migration-plan.md; feature plan.md §11.1; tasks.md T068 Done line; implementation-log.md Session 8 Operator-follow-up bullet — all reference the README only as a path, not a markdown link",
+      "actual": "Same convention class as L7-004..008 + L7-013. Not a user-visible defect; flagged because the Atlas-index apply runbook lives only in the new README and the discoverability path from plan → migrations is currently grep, not link.",
+      "proposed_resolution": "Add markdown link from apps/api/migrations/migration-plan.md §\"Atlas Search indexes\" (or equivalent). Optionally also from plan.md §11.1 + tasks.md T068 Done line.",
+      "decision": null,
+      "new_this_run": true
     }
-  },
-  "verified_clean": {
-    "lists_deferral": "Holds — no FR-021..025, no S-I*, no List/ListItem entities, no Journey 4.5, no N-019/N-020 in active enums",
-    "aux_like_split": "Holds — DiaryEntry.auxed + Review.reactions.likes_count + ReviewLike + R3 J2/J3 copy",
-    "brand_rename": "Holds — zero spinz/Spinz residuals in features/ or apps/",
-    "spotify_code_scrub": "Holds — code-side Spotify residuals are all CR-001 historical docstrings + anti-regression test guards",
-    "completed_task_count": "tasks.md has exactly 35 [x] entries matching .forge-status.yml tasks_completed",
-    "beanie_documents_registered": "16 in ALL_DOCUMENT_MODELS (CR-001 dropped JustFinishedPrompt); mirrored by conftest.py via import",
-    "lifespan_order_p5": "init_db → init_sentry → init_otel",
-    "session_log_sequential": "Sessions 1..7 sequential in implementation-log.md; session_count: 7 in .forge-status.yml",
-    "p4_test_first_audit_trail": "T048 + T049a both verified FAILING before T049 + T049b written"
-  },
-  "outlook_run_5": {
-    "projected_structural_after_warn_fixes": 4,
-    "projected_structural_after_all_fixes": 0,
-    "layer_6_readiness": "Becomes meaningful once first service/route lands — likely cluster §5 Auth (T053, T057-T062) or §6 Albums + Search (T063-T072)"
-  },
-  "sync_history": [
-    {"run": 1, "date": "2026-05-21", "layers_checked": [1,2,3,4,7], "critical": 0, "warning": 19, "info": 14, "verdict": "CRITICAL_DRIFT_BUDGET_RULE", "disposition": "RESOLVED_WITH_OVERRIDE — 10 applied / 10 backlogged / 2 deferred / 14 INFO skipped"},
-    {"run": 2, "date": "2026-05-22", "layers_checked": [1,2,3,4,5,7], "critical": 0, "warning": 3, "info": 22, "verdict": "DRIFT_DETECTED", "disposition": "RESOLVED_WITH_OVERRIDE — 10 applied (incl. L1-003 OAuth widening) / 13 advisory recurring"},
-    {"run": 3, "date": "2026-05-22", "layers_checked": [1,2,3,4,5,7], "critical": 0, "warning": 2, "info": 17, "verdict": "DRIFT_DETECTED", "disposition": "RESOLVED_WITH_OVERRIDE @ 2026-05-22T22:30:00Z — 6 inline cleanups applied (L5-001..005 + L7-014); 13 advisory recurring skipped"},
-    {"run": 4, "date": "2026-05-22", "layers_checked": [1,2,3,4,5,7], "critical": 0, "warning": 4, "info": 14, "verdict": "DRIFT_DETECTED", "disposition": "PENDING — read-only scan; user disposition to follow on L2-014 + L3-013 + L3-014 + L4-006 (+ 3 new INFO + 11 recurring)"}
-  ]
+  ],
+  "recurring_info_unchanged": [
+    {
+      "id": "L1-001",
+      "title": "W1 activation definition narrowed (research said 30%; spec says 30%/35% M3/M6)"
+    },
+    {
+      "id": "L1-002",
+      "title": "Apple Music re-eval threshold drifted 15% → 30% without rationale (DEFERRED since Run #2)"
+    },
+    {
+      "id": "L2-004",
+      "title": "FR-003 trace tag US-A3 → US-A2 (FR-003 DEFERRED-TO-V2 per CR-001 — moot candidate)"
+    },
+    {
+      "id": "L2-005",
+      "title": "FR-027 trace tag US-G2 removal (FR-027 DEFERRED-TO-V2 per CR-001 — moot candidate)"
+    },
+    {
+      "id": "L2-006",
+      "title": "Cluster name enrichment"
+    },
+    {
+      "id": "L2-009",
+      "title": "Entity inventory ReviewLike row (partially mooted by Run #2 L2-010 reconciliation)"
+    },
+    {
+      "id": "L3-009",
+      "title": "/critics route in plan, no spec backing"
+    },
+    {
+      "id": "L3-010",
+      "title": "Handle collision suggestion algorithm incomplete"
+    },
+    {
+      "id": "L4-005",
+      "title": "4 satellite collections (FollowRequest + ReviewEditHistory + FailedEmail + NotificationPreferences-embedded-on-User) still missing from product-spec/data-model.md inventory — narrowed by L4-008 but still distinct"
+    },
+    {
+      "id": "L7-004..008",
+      "title": "5 phase-digest orphans (convention question)"
+    },
+    {
+      "id": "L7-013",
+      "title": "implementation-log.md orphan (convention class)"
+    }
+  ],
+  "next_action": "User to disposition L3-015 (1 new WARN) + 7 new INFO + recurring advisory list. Recommended disposition order: (1) L3-015 plan.md URL fix; (2) L3-016 + L4-008 bundled index-shape + inventory commit (plus DM-6 decision-log entry); (3) L2-017 + L2-018 narrative cleanup; (4) L5-006 Session 8.5 log entry + tasks.md inline divergence notes; (5) L7-015 markdown link; (6) L6-001 no action — advisory; (7) consider retiring L2-004/L2-005 as moot since CR-001; (8) override structural=0 budget rule as in Runs #2/#3/#4. Layer 6 will become more meaningful once frontend wave (T070+) lands and Layer 6 backward gets a second pass.",
+  "honest_assessment": "Artifact set is in a coherent shape post-§6. All new structural items are documentation-tier — narratives that did not catch up with §6 code + the post-deploy partial-filter fix. No misalignment requires human-in-the-loop resolution before the next implementation wave begins. The §6 wave proved the data-layer + provider-scaffolding + route-pattern + visibility-filtering composition all hang together; the next wave can proceed."
 }
