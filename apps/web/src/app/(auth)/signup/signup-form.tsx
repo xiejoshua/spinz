@@ -95,7 +95,7 @@ export function SignupForm() {
               <FormControl>
                 <Input type="password" autoComplete="new-password" {...field} />
               </FormControl>
-              <FormDescription>At least 8 characters.</FormDescription>
+              <FormDescription>At least 12 characters.</FormDescription>
               <FormMessage />
             </FormItem>
           )}

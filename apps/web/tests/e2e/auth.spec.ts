@@ -23,7 +23,7 @@ test.describe("auth — form validation (backend-independent)", () => {
         .getByText("Handle can only contain lowercase letters, numbers, and underscores")
         .or(page.getByText("Handle must be at least 3 characters"))
     ).toBeVisible();
-    await expect(page.getByText("Password must be at least 8 characters")).toBeVisible();
+    await expect(page.getByText("Password must be at least 12 characters")).toBeVisible();
   });
 
   test("login requires a password", async ({ page }) => {

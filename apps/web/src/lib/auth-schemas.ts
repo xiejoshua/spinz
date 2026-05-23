@@ -4,7 +4,10 @@ export const signupSchema = z.object({
   email: z.string().email("Enter a valid email address"),
   password: z
     .string()
-    .min(8, "Password must be at least 8 characters")
+    // Backend authoritative: auth/routes.py Field(min_length=12) AND
+    // auth/service.py _PASSWORD_MIN_LEN = 12. Frontend mirrors so users
+    // see the constraint at the field level instead of a generic 422.
+    .min(12, "Password must be at least 12 characters")
     .max(128, "Password must be at most 128 characters"),
   handle: z
     .string()
