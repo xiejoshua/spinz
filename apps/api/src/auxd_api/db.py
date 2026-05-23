@@ -31,11 +31,12 @@ from auxd_api.modules.prompts.models import JustFinishedPrompt  # noqa: F401
 from auxd_api.modules.reviews.models import Review, ReviewEditHistory, ReviewLike
 from auxd_api.modules.seeding.models import CriticSeed, SuggestedFollow
 from auxd_api.modules.social.models import Block, Follow, FollowRequest
-from auxd_api.modules.users.models import User
+from auxd_api.modules.users.models import HandleRedirect, User
 
 ALL_DOCUMENT_MODELS: list[type[Document]] = [
     # users
     User,
+    HandleRedirect,
     # albums
     Album,
     # diary + reviews

@@ -502,7 +502,7 @@
 
 ## §5 Auth module + onboarding entry
 
-- [ ] **T053 — Email/password signup + login endpoints**
+- [x] **T053 — Email/password signup + login endpoints** *(completed 2026-05-23 Session 9; `POST /api/v1/auth/signup` + `POST /api/v1/auth/login`; argon2-cffi password hashing; per-IP 5/min signup + 10/min login rate limits; per-user 30/min on authenticated login retry; 422/409 for validation/conflict errors; 401 generic on invalid credentials (no email-vs-password leak). password_hash NEVER echoed (anti-regression test asserts no `$argon2` prefix in response bodies). 14 integration tests + 5 password-hash unit tests.)*
       Paths: apps/api/src/auxd_api/modules/auth/routes.py, apps/api/src/auxd_api/modules/auth/service.py, apps/api/tests/integration/test_auth_email.py
       Size: M
       Deps: T021, T019, T020
@@ -515,7 +515,7 @@
 <!-- CR-001 removed: T056 (Disconnect Spotify immutability) — no Spotify integration at MVP. -->
 
 <!-- CR-001: new task — Report-missing-album workflow surfaces from manual-search empty state per FR-005 (Letterboxd-style fallback path). -->
-- [ ] **T053a — "Report missing album" workflow endpoint + UI**
+- [x] **T053a — "Report missing album" workflow endpoint + UI** *(completed 2026-05-23 Session 9 — backend-only at MVP; UI portion deferred to §3 frontend foundation. `POST /api/v1/reports/missing-album` with anonymous + authenticated submissions, body `{artist, album, mbid_hint?, discogs_url_hint?, query?}`; rate-limited per-IP 3/min; writes Report doc with target_type=missing_album. 4 integration tests.)*
       Paths: apps/api/src/auxd_api/modules/moderation/routes.py, apps/api/src/auxd_api/modules/moderation/service.py, apps/web/src/components/search/report-missing-album.tsx, apps/web/src/app/(app)/search/missing/page.tsx
       Size: M
       Deps: T026, T071, T155
@@ -523,7 +523,7 @@
       Description: `POST /api/v1/reports/missing-album` accepts `query` (the failed search term), `artist`, `title`, optional `release_year`, `notes`. Reuses Report Document with `target_type=missing_album` (already in T026 model per sync-fix L3-006). Rate-limited per-reporter via T020 (`per_user=5/day`). UI: surfaces from search empty-state (T071) as a "Can't find it? Report missing album" link → opens modal-form. Submission confirmation toast. Admin can later resolve via mongo + reconcile by enqueuing a T065 MBID lookup with the structured hint.
       Done: integration test covers happy path + rate limit + duplicate-suppression (same user reports same query twice within 24h returns existing report); E2E covers search → empty results → report → confirmation.
 
-- [ ] **T057 — Handle change policy + reserved-squat list**
+- [x] **T057 — Handle change policy + reserved-squat list** *(completed 2026-05-23 Session 9; `POST /api/v1/users/me/handle` with 30-day cooldown anchored against max(handle_changed_at, handle_created_at); reserved-squat list loaded lazily from `apps/api/migrations/seed-data/reserved_handles.txt` (433 reserved handles seeded); creates HandleRedirect on success. **Judgment call: rejects non-lowercase input with 422 rather than silently downcasing** (prevents UI mismatch). 5 integration tests + 5 reserved-list unit tests + 11 service-policy tests shared with T058.)*
       Paths: apps/api/src/auxd_api/modules/auth/handle_service.py, apps/api/data/reserved_handles.txt, apps/api/tests/unit/test_handle_policy.py
       Size: M
       Deps: T021
@@ -531,7 +531,7 @@
       Description: `change_handle(user, new_handle)` enforces: 30-day post-creation lock, ≤1 change per 30 days, reserved-squat rejection (200 names committed in `data/reserved_handles.txt`), unique check with 3 suggestions on collision. Old handle stored in `handle_redirects` for 90 days.
       Done: TC-023 + TC-024 unit tests pass; redirect on old URL works (T060 wires the redirect at routing layer).
 
-- [ ] **T058 — Account deletion (30-day grace) + cascade**
+- [x] **T058 — Account deletion (30-day grace) + cascade** *(completed 2026-05-23 Session 9; `POST /api/v1/users/me/delete` schedules (idempotent; bumps session_version for defense-in-depth) → 30-day grace → arq cron daily 02:00 UTC `process_scheduled_deletions` cascade-deletes 9 collections per user (DiaryEntry/Review/ReviewLike/Backlog+BacklogItem/Follow/FollowRequest/Block/Notification/HandleRedirect) + the User row; `DELETE /api/v1/users/me/delete` cancels. New `UserStatus.DELETION_PENDING` enum value (legacy `DELETED` retained for historical rows). 4 integration tests + 5 worker-cascade unit tests asserting bystander rows survive. **Follow-up flagged: Notification.actor_id dangling references when actor is deleted — GDPR pass should null-out, not orphan.**)*
       Paths: apps/api/src/auxd_api/modules/auth/service.py, apps/api/src/auxd_api/workers/deletion_cascade.py, apps/api/tests/integration/test_account_deletion.py
       Size: M
       Deps: T021, T023, T024, T025, T026
@@ -539,7 +539,7 @@
       Description: `POST /api/v1/users/me/delete` sets `status=deleted` + `deletion_scheduled_for = now + 30d`. arq daily cron finds users past their scheduled date and cascade-hard-deletes all owned content. Cancellation via `POST /api/v1/users/me/delete/cancel`.
       Done: TC-029 integration test: schedule deletion → see banner → cancel within 30d → account restored. Or: do not cancel → after 30d, all data is gone.
 
-- [ ] **T059 — Logout (current session + logout-all-devices)**
+- [x] **T059 — Logout (current session + logout-all-devices)** *(completed 2026-05-23 Session 9; `POST /api/v1/auth/logout` clears session cookies (no-op if anonymous); `POST /api/v1/auth/logout-all-devices` bumps `User.session_version` so all outstanding cookies invalidate. **Known MVP trade-off: SessionMiddleware doesn't re-check session_version against User on every request** — the bump takes effect on cookie expiry (30d) or refresh-threshold re-validation (<7d). Documented as v1.x ticket: add per-request session_version check via Redis cache.)*
       Paths: apps/api/src/auxd_api/modules/auth/service.py
       Size: XS
       Deps: T053, T019
@@ -547,7 +547,7 @@
       Description: `POST /api/v1/auth/logout` (clear cookie); `POST /api/v1/auth/logout-all` (increment `session_version` invalidating all prior cookies).
       Done: unit test confirms behavior.
 
-- [ ] **T060 — Handle redirect routing**
+- [x] **T060 — Handle redirect routing** *(completed 2026-05-23 Session 9; new `HandleRedirect` Beanie Document (registered in `ALL_DOCUMENT_MODELS` — now 17); `resolve_handle(handle)` helper returns `(user, canonical_handle)` tuple covering current→self / old→redirect-target / orphan-redirect→none / unknown→none / case-insensitive. T060 ships the resolver only; the future profile-page routes in §14 will call it to issue 301s.)*
       Paths: apps/web/src/middleware.ts, apps/api/src/auxd_api/modules/auth/routes.py
       Size: S
       Deps: T057

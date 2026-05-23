@@ -57,13 +57,20 @@ class UserStatus(str, Enum):  # noqa: UP042 — spec mandates `(str, Enum)` form
     """Lifecycle state of a user account.
 
     * ``ACTIVE`` — normal, usable account.
-    * ``DELETED`` — soft-deleted, inside the 30-day GDPR grace window
-      (US-G5 / FR-019). Recoverable by the owner; invisible to everyone else.
+    * ``DELETION_PENDING`` — user requested deletion; inside the 30-day
+      grace window (US-G5 / FR-019). The cascade worker (T058) hard-deletes
+      after the grace expires; the user can cancel at any point during
+      the window via :func:`auxd_api.modules.users.service.cancel_account_deletion`.
+    * ``DELETED`` — legacy soft-deleted state retained for any historical
+      rows that pre-dated ``DELETION_PENDING``. New writes never set this
+      value; the cascade worker either deletes the row entirely or leaves
+      it in ``DELETION_PENDING``.
     * ``SUSPENDED`` — moderation action; account is read-only / hidden until
       a moderator restores it.
     """
 
     ACTIVE = "active"
+    DELETION_PENDING = "deletion_pending"
     DELETED = "deleted"
     SUSPENDED = "suspended"
 
@@ -211,6 +218,51 @@ class User(Document):
         ]
 
 
+class HandleRedirect(Document):
+    """Redirect record for a handle the user changed away from (T060).
+
+    When a user changes their handle (T057), the old handle is parked in
+    this collection for the redirect window so links pointing at
+    ``/@oldhandle`` keep resolving. The retention window is governed by
+    FR-029 / Q16 — 90 days post-change — but the cleanup itself runs in a
+    separate sweep job (out of scope for the §5 cluster); this document
+    only stores the row.
+
+    Invariants:
+
+    * ``old_handle`` is unique — a single previous handle resolves to at
+      most one current user. If another user later claims the freed-up
+      handle, the redirect must already have been swept (or the handle
+      change route refuses the claim).
+    * ``user_id`` is the KSUID of the User that *currently* holds
+      ``new_handle``; the resolver dereferences through ``user_id`` so a
+      subsequent handle change still routes old links to the latest
+      identity.
+    """
+
+    id: str = Field(default_factory=new_ksuid, alias="_id")  # type: ignore[assignment]
+    schema_version: int = Field(default=1, alias="_schema_version")
+
+    old_handle: str = Field(..., description="The handle the user moved away from.")
+    new_handle: str = Field(..., description="The handle that replaced ``old_handle``.")
+    user_id: str = Field(..., description="KSUID of the User that owns ``new_handle``.")
+    created_at: datetime = Field(default_factory=_utcnow)
+
+    class Settings:
+        """Beanie collection settings — name + index declarations.
+
+        * ``old_handle`` unique — at most one redirect per previous handle.
+        * ``user_id`` — supports the cascade-delete sweep when a user is
+          hard-deleted (T058) and avoids a collection scan.
+        """
+
+        name = "handle_redirects"
+        indexes: list[IndexModel] = [
+            IndexModel([("old_handle", ASCENDING)], unique=True),
+            IndexModel([("user_id", ASCENDING)]),
+        ]
+
+
 # Re-export the most commonly imported symbols so callers can write
 # ``from auxd_api.modules.users.models import User, UserStatus`` without
 # pulling in the full module surface.
@@ -219,6 +271,7 @@ __all__: Annotated[list[str], "public surface for from-imports"] = [
     "DISPLAY_NAME_MAX_LEN",
     "HANDLE_MAX_LEN",
     "HANDLE_MIN_LEN",
+    "HandleRedirect",
     "MusicProviderState",
     "NotificationPreferencesSubDoc",
     "User",

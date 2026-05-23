@@ -424,3 +424,57 @@ Real production bug caught after the §6 deploy: `GET /api/v1/search?q=...` retu
 - Tests: 401/401 + 3 skip.
 - Live deploy: `/healthz` + `/api/v1/albums/{id}` + `/api/v1/search` all green.
 
+## Session 9 — 2026-05-23 — §5 Auth backend wave (T053/T053a/T057/T058/T059/T060) + artist_credit hotfix
+
+**Pre-wave hotfix (commit `3f9888c`)**: addressed the live-prod `artist_credit: ""` bug that surfaced post-§6 deploy. `MusicBrainzCatalogProvider.get_album_by_mbid` was hitting `/release-group/{mbid}?fmt=json` without `inc=artist-credits`. The MB lookup endpoint returns the minimal record (id/title/type/dates) without artist-credit unless explicitly requested via `inc=`. The search endpoint *does* include it by default, but `_materialize_fallback` re-fetched every search hit through the lookup to populate the canonical cache — and that re-fetch dropped the artist info. Fix: `params={"fmt": "json", "inc": "artist-credits"}` + contract test now asserts the param is present in the outgoing URL so the regression can't reappear silently. 2 files modified, +25/-3 lines.
+
+**Wave: 6 tasks (T053, T053a, T057, T058, T059, T060)**
+
+| Task | Files | Notes |
+|------|-------|-------|
+| T053 | `modules/auth/{__init__,password,service,routes}.py` (648L), `routers/v1.py` (mount), `pyproject.toml` (+argon2-cffi + pydantic[email]), `tests/integration/test_auth_endpoints.py` (332L; 14 tests), `tests/unit/test_auth_password.py` (39L; 5 tests) | `POST /api/v1/auth/signup` + `POST /api/v1/auth/login`. Argon2 (cost params: time=2/memory=65536/parallelism=4). Per-IP 5/min signup; per-IP 10/min + per-user 30/min on login retry. 401 generic on bad creds (no leak). password_hash never echoed (anti-regression test). |
+| T053a | `modules/reports/{__init__,routes}.py` (147L), `routers/v1.py` (mount), `tests/integration/test_reports_endpoint.py` (197L; 4 tests) | `POST /api/v1/reports/missing-album`. Anonymous + authenticated. Per-IP 3/min. Writes Report doc target_type=missing_album, reason=catalog_gap. **UI portion deferred to §3 Next.js scaffold.** |
+| T057 | `modules/users/{reserved,service,routes,models}.py` (548L; service+routes shared with T058), `db.py` (HandleRedirect registered), `migrations/seed-data/reserved_handles.txt` (433 entries), `tests/integration/test_handle_change.py` (207L; 5 tests), `tests/unit/test_users_{reserved,service}.py` (225L; 16 tests) | `POST /api/v1/users/me/handle`. 30-day cooldown anchored against `max(handle_changed_at, handle_created_at)`. 433 reserved handles loaded lazily; missing seed file → empty set + startup warning. **Non-lowercase input rejected with 422** (prevents UI vs DB casing mismatch). Creates HandleRedirect on success. |
+| T058 | `modules/users/{routes,service,workers,models}.py` + `workers/main.py` (cron registration), `tests/integration/test_account_deletion.py` (150L; 4 tests), `tests/unit/test_users_workers.py` (233L; 5 tests) | `POST /api/v1/users/me/delete` schedules (idempotent; bumps session_version for defense-in-depth). `DELETE /api/v1/users/me/delete` cancels. arq cron daily 02:00 UTC `process_scheduled_deletions` cascade-deletes 9 collections per due user + the User row. New `UserStatus.DELETION_PENDING`. |
+| T059 | `modules/auth/routes.py` (extended) | `POST /api/v1/auth/logout` clears cookies; `POST /api/v1/auth/logout-all-devices` bumps User.session_version. **Known MVP trade-off documented inline**: middleware doesn't re-check per request; logout-all takes effect on 30d cookie expiry or <7d refresh threshold. v1.x ticket flagged: per-request Redis-backed session_version check. |
+| T060 | `modules/users/{models,redirect}.py`, `db.py` (registered), `tests/unit/test_users_redirect.py` (92L; 6 tests) | HandleRedirect Beanie Document (KSUID id, old_handle unique, new_handle, user_id, created_at). `resolve_handle(handle) -> (User|None, canonical_handle|None)` returns tuple. Case-insensitive. Resolver only; profile-page 301-issuance lives in §14. |
+
+### New runtime deps
+
+- `argon2-cffi==25.1.0` (password hashing — NFR Security)
+- `email-validator==2.3.0` (Pydantic `EmailStr` extra; transitive of `pydantic[email]>=2.9`)
+
+### Architectural decisions worth flagging
+
+- **Argon2 over bcrypt**: argon2id is the OWASP-recommended modern algorithm; argon2-cffi is the standard Python binding. Memory cost (65536 KiB) tuned for general-server hardware — adjust if latency budgets tighten.
+- **Handle cooldown anchor**: brief's "≥30 days between changes" and decision-log Q16's "immutable first 30 days, ≤1/month after" both collapse cleanly into `max(handle_changed_at, handle_created_at)`. Single check, satisfies both requirements.
+- **Non-lowercase handle rejection** (vs silent downcase): the existing signup service silently downcased; T057 explicitly rejects with 422 + error code `invalid_handle`. Prevents the UI showing `MyHandle` while the DB stores `myhandle` — surface-form mismatch is a common UX gotcha in handle systems.
+- **`session_version` re-check trade-off**: middleware doesn't query the User collection on every authenticated request to compare `session.session_version` against `user.session_version`. That would be a User read per request — expensive at scale. The v1.x mitigation is a Redis cache of `(user_id, session_version)` with a short TTL (~60s); reads hit the cache after the first miss. Documented in `logout_all_devices` route docstring.
+- **Cascade-on-delete via worker, not on-request**: deletion is a long-running fan-out across 9 collections. Doing it synchronously in the DELETE endpoint would block the response. The cron worker model lets the user-facing delete endpoint return immediately (sub-50ms) while the actual cascade runs at off-peak hours.
+- **`UserStatus.DELETION_PENDING` as a separate state**: kept the legacy `DELETED` enum value for any historical rows that might already exist. New writes always use `DELETION_PENDING` until the cron actually deletes the User row (at which point there's no row to carry a status).
+
+### Checkpoint #13 — Post-wave mini-verify
+
+| Check | Status | Notes |
+|-------|:------:|-------|
+| Backend full suite | ✅ | **460/460 pass + 3 skip** in 12.33s (was 401/3 → +59 net tests) |
+| Backend ruff + format | ✅ | 114 source files clean |
+| Backend mypy --strict | ✅ | 0 errors across 113 source files |
+| ALL_DOCUMENT_MODELS count | ✅ | 16 → 17 (HandleRedirect added); `test_db.py` count assertion + canonical-names set updated |
+| New endpoints OpenAPI exposure | ✅ | `/api/v1/auth/{signup,login,logout,logout-all-devices}`, `/api/v1/users/me/handle`, `/api/v1/users/me/delete`, `/api/v1/reports/missing-album` all in `/openapi.json` |
+
+### Status snapshot
+
+- Tasks completed: **48 / 170** (Session 8: 42 → Session 9: +6).
+- §5 Auth **backend** cluster COMPLETE. Frontend portion (T061 signup/login UI + T062 auth E2E) waits for §3 Next.js scaffold.
+- §7 Diary + Log sheet + §8 Reviews + §9 Backlog + §10 Social graph + §11 Onboarding now unblocked at the backend level (every cluster's deps include T019 sessions ✅ + T021 User ✅ + T053 signup/login ✅).
+
+### Follow-ups flagged (carried forward + new)
+
+- 🟡 Apply Atlas Search index JSON to dev cluster (carried from §6).
+- 🟡 Album.mbid release-group migration (v1.x; carried from §6).
+- 🟡 `testcontainers` real-MongoDB smoke test (v1.x; carried).
+- 🟡 **NEW v1.x**: per-request `session_version` re-check via Redis cache (for true logout-all-devices semantics).
+- 🟡 **NEW GDPR**: `Notification.actor_id` orphan-reference cleanup when actor is deleted (T058 cascade currently deletes the recipient's Notifications but leaves dangling actor refs in OTHER users' Notifications).
+- 🟡 **NEW dev-env**: PostHog `POSTHOG_API_KEY=""` env override during pytest to silence SSL-cert-chain warnings on developer machines behind corporate TLS-MITM proxies. Cosmetic only — `emit_event` already swallows the failure.
+

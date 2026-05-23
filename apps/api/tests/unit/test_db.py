@@ -33,9 +33,9 @@ from auxd_api.db import (
 )
 
 
-def test_all_document_models_has_sixteen_entries() -> None:
-    """CR-001: count was 17 before; JustFinishedPrompt deferred to v2 → 16."""
-    assert len(ALL_DOCUMENT_MODELS) == 16
+def test_all_document_models_has_seventeen_entries() -> None:
+    """CR-001 left 16 documents; T060 (handle redirect) bumps to 17."""
+    assert len(ALL_DOCUMENT_MODELS) == 17
 
 
 def test_all_document_models_are_beanie_documents() -> None:
@@ -57,6 +57,7 @@ def test_canonical_list_matches_conftest_expectation() -> None:
     """
     expected_names = {
         "User",
+        "HandleRedirect",  # T060 (handle redirect resolver).
         "Album",
         "DiaryEntry",
         "Review",

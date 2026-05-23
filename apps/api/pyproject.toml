@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
   "fastapi>=0.115",
   "uvicorn[standard]>=0.32",
-  "pydantic>=2.9",
+  "pydantic[email]>=2.9",
   "pydantic-settings>=2.6",
   "cryptography>=44.0",                          # T017 envelope encryption (OAuth tokens, session HMAC)
   "svix-ksuid>=0.6.2",                           # T018 KSUID IDs (chronological-sort guarantee)
@@ -24,6 +24,7 @@ dependencies = [
   "boto3>=1.35",                                 # T010a + T149 R2 (S3-compat) client
   "truststore>=0.10",                            # native OS keychain trust (handles corporate TLS-MITM CAs)
   "httpx>=0.27",                                 # async HTTP client (Spotify/MusicBrainz/Resend) + required by opentelemetry-instrumentation-httpx import
+  "argon2-cffi>=23",                             # T053 password hashing (NFR Security)
 ]
 
 [project.optional-dependencies]

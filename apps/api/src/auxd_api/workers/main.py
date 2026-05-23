@@ -45,6 +45,7 @@ from auxd_api.modules.albums.workers import (
     reconcile_candidate_albums,
     refresh_stale_album_metadata,
 )
+from auxd_api.modules.users.workers import process_scheduled_deletions
 from auxd_api.providers.musicbrainz import MusicBrainzCatalogProvider
 from auxd_api.settings import get_settings
 
@@ -127,6 +128,7 @@ class WorkerSettings:
         noop_job,
         refresh_stale_album_metadata,
         reconcile_candidate_albums,
+        process_scheduled_deletions,
     ]
     cron_jobs = [
         # T064 — daily 04:00 UTC album cache refresh.
@@ -141,6 +143,13 @@ class WorkerSettings:
             reconcile_candidate_albums,
             weekday="sun",
             hour=3,
+            minute=0,
+            run_at_startup=False,
+        ),
+        # T058 — daily 02:00 UTC account-deletion cascade.
+        cron(
+            process_scheduled_deletions,
+            hour=2,
             minute=0,
             run_at_startup=False,
         ),

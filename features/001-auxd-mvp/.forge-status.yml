@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-23T03:05:00Z"
+last_updated: "2026-05-23T04:00:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -113,13 +113,13 @@ phases:
     log_path: "implementation-log.md"
     progressive_warnings: 0
     progressive_critical: 0
-    tasks_completed: 42
+    tasks_completed: 48
     tasks_total: 170
     tasks_total_pre_cr001: 183
     autonomous_section_zero_complete: true
-    session_count: 8
-    progressive_checkpoints_run: 12
-    notes: "Session 8 (2026-05-23 early morning) — §6 Albums + Search backend wave. 7 tasks completed: T063 Album identity normalization service (resolve_identity with 7d TTL cache + Discogs-fallback creates candidate=True) — added Album.candidate field + AlbumNotFoundError; T064 album cache TTL refresh worker (arq cron daily 04:00 UTC, shared MB provider injected via WorkerSettings _on_startup); T065 MBID reconciliation worker (arq cron weekly Sun 03:00 UTC, fuzzy artist+title match); T066 edition aggregation (get_editions + canonical-edition picker + ratings/reviews/likes aggregation across editions — known MVP limitation: Album.mbid unique-sparse collapses editions to 1 row per release-group, follow-up CR documented); T067 album detail endpoint GET /api/v1/albums/{album_id} with full visibility filtering (anonymous=public-only, owner=own-private, follower=followed-content); T068 Atlas Search index JSON extended (lucene.standard + edgeNgram + log1p popularity boost on rating_count) + migrations README; T069 three-tier search endpoint (Atlas → MB-fallback-with-materialize → Discogs-fallback, dedupe by mbid/case-folded-title+artist, empty-result returns report-missing-album-url hint). 15 new files (~2300 lines code + tests), 4 modified files (Album model + workers/main.py + routers/v1.py + atlas_search/albums_index.json). 352→400 tests (+48) + 3 skip; ruff + format + mypy --strict clean across 93 source files. §6 backend cluster COMPLETE — frontend portion (T070/T071/T072) waits for §3 Next.js scaffold. 42/170 tasks done. Operator follow-up: apply updated Atlas Search index to the dev cluster via UI or atlas-cli (migrations/README.md). Prior sessions: 1 (T001/T003/T004/T008), 2 (T014/T015/T015a/T017/T018/T029), 3 (infra swaps), 4 (T009/T010/T010a/T012/T016/T021-T027), 5 (T011/T013/T019/T020/T028), 6 (CR-001), 7 (T041/T048-T052/T049a/b)."
+    session_count: 9
+    progressive_checkpoints_run: 13
+    notes: "Session 9 (2026-05-23 — §5 Auth backend wave). 6 tasks completed: T053 email/password signup + login endpoints (argon2-cffi hash; per-IP 5/min signup + 10/min login + per-user 30/min retry; password_hash never echoed with anti-regression test); T053a /api/v1/reports/missing-album endpoint (FR-033 surface; anonymous + auth; per-IP 3/min); T057 handle change policy + reserved-squat list (30-day cooldown anchored against max(handle_changed_at, handle_created_at); 433 reserved seed handles loaded lazily; non-lowercase input rejected with 422 to prevent UI mismatch); T058 account deletion 30-day grace + arq cron daily 02:00 UTC cascade (9 collections + User row); T059 logout + logout-all-devices (bumps User.session_version — documented v1.x trade-off: middleware doesn't re-check per request, takes effect on cookie expiry or <7d refresh threshold); T060 HandleRedirect Document + resolve_handle helper (case-insensitive resolver returning (user, canonical_handle) tuple). New deps: argon2-cffi==25.1.0 + email-validator==2.3.0 (Pydantic EmailStr support). Pre-Session-9 hotfix `3f9888c` resolved post-§6 artist_credit bug (MB lookup gained inc=artist-credits param + anti-regression test). Tests: 401 → 460 pass + 3 skip (+59 new tests, target was +50ish). 113 source files (up from 93); ruff + format + mypy --strict clean. 48/170 tasks done. Operator follow-ups carried forward: Atlas Search index UI apply, per-request session_version check (v1.x), Notification.actor_id null-out (GDPR), testcontainers smoke test (v1.x), Album.mbid release-group migration (v1.x). Prior sessions logged in implementation-log.md."
   code_review:
     status: "pending"
   verify:
@@ -579,6 +579,83 @@ task_log:
     started_at: "2026-05-23T02:15:00Z"
     completed_at: "2026-05-23T02:25:00Z"
     notes: "GET /api/v1/search?q=...&type=album&limit=N three-tier search. (1) Atlas $search aggregation first — gracefully degrades to [] under mongomock so tests don't fall apart. (2) If <5 hits, MB.search_albums; for each not-already-in-Atlas (dedupe by mbid OR case-folded title+artist) materialize via resolve_identity → adds to results. (3) If still <5 and DISCOGS_API_TOKEN set, Discogs.search_albums + materialize as candidates. Sort: Atlas relevance first, then release_year desc. Empty result returns `{report_missing_album_url: '/api/v1/reports/missing-album'}` hint pointing at future T053a. 7 integration tests via respx mocking. Performance note: tasks.md Done criterion is <200ms p95; MB-fallback path serialises through 1 req/sec etiquette so cold-search may exceed — consider async fan-out + race or 'searching external sources…' UI signal in v2."
+  - task_id: "T053"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/auth/__init__.py"
+      - "backend:apps/api/src/auxd_api/modules/auth/password.py"
+      - "backend:apps/api/src/auxd_api/modules/auth/service.py"
+      - "backend:apps/api/src/auxd_api/modules/auth/routes.py"
+      - "backend:apps/api/src/auxd_api/routers/v1.py"
+      - "backend:apps/api/pyproject.toml"
+      - "backend:apps/api/tests/integration/test_auth_endpoints.py"
+      - "backend:apps/api/tests/unit/test_auth_password.py"
+    commit_sha: null
+    started_at: "2026-05-23T03:30:00Z"
+    completed_at: "2026-05-23T03:45:00Z"
+    notes: "POST /api/v1/auth/signup + POST /api/v1/auth/login. Argon2-cffi password hashing (cost params: time=2, memory=65536, parallelism=4 — argon2-cffi defaults). Per-IP rate limits: 5/min signup, 10/min login. Per-user 30/min on authenticated login retry. password_hash NEVER echoed in any response — anti-regression test asserts no `$argon2` prefix in JSON body. 401 generic on bad credentials (doesn't leak email-vs-password). 14 integration tests + 5 password-hash unit tests. Added deps: argon2-cffi>=23 + pydantic[email]>=2.9 (resolved 25.1.0 + 2.3.0 for the email-validator extra)."
+  - task_id: "T053a"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/reports/__init__.py"
+      - "backend:apps/api/src/auxd_api/modules/reports/routes.py"
+      - "backend:apps/api/src/auxd_api/routers/v1.py"
+      - "backend:apps/api/tests/integration/test_reports_endpoint.py"
+    commit_sha: null
+    started_at: "2026-05-23T03:45:00Z"
+    completed_at: "2026-05-23T03:50:00Z"
+    notes: "POST /api/v1/reports/missing-album backend (FR-033 surface; UI portion deferred to §3 Next.js scaffold). Body: {artist, album, mbid_hint?, discogs_url_hint?, query?}. Anonymous + authenticated both accepted. Per-IP 3/min rate limit. Writes Report document with target_type=missing_album + reason=catalog_gap. 4 integration tests."
+  - task_id: "T057"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/users/reserved.py"
+      - "backend:apps/api/src/auxd_api/modules/users/service.py"
+      - "backend:apps/api/src/auxd_api/modules/users/routes.py"
+      - "backend:apps/api/src/auxd_api/modules/users/models.py"
+      - "backend:apps/api/src/auxd_api/db.py"
+      - "backend:apps/api/src/auxd_api/routers/v1.py"
+      - "backend:apps/api/migrations/seed-data/reserved_handles.txt"
+      - "backend:apps/api/tests/integration/test_handle_change.py"
+      - "backend:apps/api/tests/unit/test_users_reserved.py"
+      - "backend:apps/api/tests/unit/test_users_service.py"
+    commit_sha: null
+    started_at: "2026-05-23T03:50:00Z"
+    completed_at: "2026-05-23T03:55:00Z"
+    notes: "POST /api/v1/users/me/handle. 30-day cooldown anchored against max(handle_changed_at, handle_created_at) — unifies the brief's '>=30 days' with decision-log Q16's 'immutable first 30 days + ≤1/month after'. 433 reserved handles seeded at apps/api/migrations/seed-data/reserved_handles.txt (loaded lazily; missing file falls back gracefully with warning). Non-lowercase input rejected with 422 to prevent UI vs DB mismatch (prior signup silently downcased). Creates HandleRedirect row on success. 5 integration tests + 5 reserved-list unit tests + 11 service-policy unit tests shared with T058."
+  - task_id: "T058"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/users/routes.py"
+      - "backend:apps/api/src/auxd_api/modules/users/service.py"
+      - "backend:apps/api/src/auxd_api/modules/users/workers.py"
+      - "backend:apps/api/src/auxd_api/modules/users/models.py"
+      - "backend:apps/api/src/auxd_api/workers/main.py"
+      - "backend:apps/api/tests/integration/test_account_deletion.py"
+      - "backend:apps/api/tests/unit/test_users_workers.py"
+    commit_sha: null
+    started_at: "2026-05-23T03:55:00Z"
+    completed_at: "2026-05-23T04:00:00Z"
+    notes: "POST /api/v1/users/me/delete schedules (idempotent; bumps session_version for defense-in-depth) → 30-day grace → arq cron daily 02:00 UTC `process_scheduled_deletions` cascade-deletes 9 collections per due user (DiaryEntry + Review + ReviewLike + Backlog + BacklogItem + Follow + FollowRequest + Block + Notification + HandleRedirect) + the User row. DELETE /api/v1/users/me/delete cancels. New UserStatus.DELETION_PENDING enum value (legacy DELETED retained for historical rows). 4 integration tests + 5 worker-cascade tests asserting bystander rows survive. Follow-up: Notification.actor_id refs orphan when actor is deleted — GDPR pass should null-out, not orphan."
+  - task_id: "T059"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/auth/routes.py"
+      - "backend:apps/api/tests/integration/test_auth_endpoints.py"
+    commit_sha: null
+    started_at: "2026-05-23T04:00:00Z"
+    completed_at: "2026-05-23T04:00:00Z"
+    notes: "POST /api/v1/auth/logout clears session cookies (no-op if anonymous). POST /api/v1/auth/logout-all-devices bumps User.session_version + clears current cookies. **Known MVP trade-off documented in route docstring: SessionMiddleware doesn't re-check session_version against User on every request** (would require a User read per authenticated request); logout-all takes effect on cookie expiry (30d) or refresh threshold (<7d remaining). v1.x ticket: add per-request session_version check via Redis cache. Tests extend test_auth_endpoints.py (the 14 tests there cover both signup/login + logout flows)."
+  - task_id: "T060"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/users/models.py"
+      - "backend:apps/api/src/auxd_api/modules/users/redirect.py"
+      - "backend:apps/api/src/auxd_api/db.py"
+      - "backend:apps/api/tests/unit/test_users_redirect.py"
+    commit_sha: null
+    started_at: "2026-05-23T04:00:00Z"
+    completed_at: "2026-05-23T04:00:00Z"
+    notes: "HandleRedirect Beanie Document (registered in ALL_DOCUMENT_MODELS — 16→17). `resolve_handle(handle) -> (User | None, canonical_handle | None)` resolver. Logic: current → (self, handle); old → (target, target.handle); orphan redirect → (None, None); unknown → (None, None). Case-insensitive. T060 ships only the resolver; future profile-page routes (§14) will call it to issue 301s. 6 unit tests."
 
 scope:
   paths:
