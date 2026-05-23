@@ -1,6 +1,229 @@
 # Sync & Verify Report: auxd MVP — Social Album Platform
 
-> Feature: `001-auxd-mvp` | **Latest run: #10 — 2026-05-23 (post-Session 17 §10 social + feed)**
+> Feature: `001-auxd-mvp` | **Latest run: #11 — 2026-05-23 (post-Sessions 18-22: §11 onboarding + §13 notifications + stranded T030/T094)**
+
+---
+
+## Run #11 (2026-05-23, post-§11-§13-and-stranded-cleanup)
+
+> Layers checked: 7/7
+> Phase: 6 (Implementation, in progress) — **128/172** tasks complete (74%)
+> Prior run: #10 (2026-05-23, post-§10) — DRIFT_DETECTED, applied_split_with_override (16 inline applied + 8 deferred)
+> Trigger: user invoked `/speckit.product-forge.sync-verify` after Sessions 18-22 (§11 Onboarding + §13 Notifications full backend + frontend wave + stranded T030 migration runner + T094 reviews-only profile sub-route)
+
+### Summary
+
+| Severity | Count | Notes |
+|----------|-------|-------|
+| ❌ CRITICAL | **0** | |
+| ⚠️ WARNING | **14 NEW + 4 carry-forward = 18** | NEW: L2-028, L2-029, L2-030, L2-031, L3-033, L3-034, L3-035, L3-036, L3-037, L3-038, L4-025, L4-026, L4-027, L5-018. CF: L3-017, L4-009, L6-002, plus L2-017 reaffirmed (14→16 active count). |
+| ℹ️ INFO | **9 NEW + 5 carry-forward = 14** | NEW: L1-004, L3-039, L3-040, L4-028, L4-029, L5-019, L5-020, L6-005, L7-017. CF: L2-019, L4-013, L4-017, L4-020, L5-008 |
+| ✅ CLEAN | **L1 (near-clean)** | Layer 1 (research ↔ product-spec): Sessions 18-22 did not expand the problem definition; notification-taxonomy + critic-seed strategy were already research-anchored. One INFO breadcrumb (L1-004). |
+| ✅ RESOLVED since Run #10 | 0 | (Run #10's 16 inline fixes verified intact; no Run #10 deferrals were converted to resolutions this run) |
+
+**Structural count:** 21 (NEW: 17; CF: 4 — L3-017, L4-009, L6-002, plus L2-019 narrowed). **Over budget of 0.**
+**Cosmetic count:** 11 (NEW: 6; CF: 5 — L4-013, L4-017, L4-020, L5-008, L4-018-subsumed). Under budget of 20.
+
+**Verdict:** **DRIFT_DETECTED**
+
+**Disposition recommendation:** **applied_split_with_override pattern continues.** Sessions 18-22 shipped a very large surface (§11 closeout + the entire §13 14-task cluster including 6 new REST endpoints + Email + WebPush adapters + dispatcher contract change + weekly digest job + frontend prefs/inbox/bell/push UIs + migration runner + reviews sub-route + codegen +630 lines), and the structural fields of the §13 tasks themselves regressed: T131-T144 + T030 are now COMPLETION-ANNOTATION-ONLY, with their original `Paths:/Size:/Deps:/Refs:/Description:/Done:` lines DROPPED in favor of prose annotations. Code is healthy (867 pass / 3 skip; +176 backend tests; +39 frontend tests; 0 orphan files; 16 visible frontend routes + 2 new for §13). Five clusters of doc-catch-up debt:
+
+1. **Notification taxonomy count drift (14 vs 16):** spec.md US-G3 (line 199) + entity inventory (line 381) still say "14 active notification types"; code/registry has 16 active (N-009/N-010 are registered with all defaults OFF). This is the carry-forward of L2-017 from Run #5 that was partially fixed at the time. Now contradicts the code post-S19.
+2. **PushSubscription entity missing from spec + plan:** new collection shipped in S20; not in spec.md entity inventory, not in plan §3.1 collection inventory.
+3. **Plan §6 service surface + §3.1 + §15.2 PostHog table + §4.5 rate-limit table all under-enumerate the shipped notification surface:** 6 new endpoints + ~10 new PostHog events + new rate-limit rows are absent from plan.
+4. **Tasks.md §13 (T131-T144) + T030 lost their structural fields:** completion-annotation prose is now the only source of `Paths:` info, breaking the task-doc convention used for every other task in the file.
+5. **T118/T119 Paths stale post-route-rename:** declared `(onboarding)/follow-3/page.tsx` + `(onboarding)/complete/page.tsx` shipped as `(onboarding)/onboarding/step-2/page.tsx` + `step-3/page.tsx` respectively.
+
+All resolvable in a single coordinated edit pass. Carry-forwards (L3-017, L4-009, L6-002) remain user-deferred under their existing dispositions.
+
+### Sessions 18-22 propagation audit
+
+| Cluster | Code shipped | Plan documented | Spec/product-spec documented | Drift IDs |
+|---------|:---:|:---:|:---:|:--|
+| §11 Onboarding — T117 critic-seed scoring | ✅ | partial (plan §12.2 mentions algorithm but not `_GENRE_BONUS_MAX = 20.0` knob; no scoring formula in plan) | ✅ | L3-039 |
+| §11 — T117a `GET /api/v1/onboarding/cards` HTTP surface | ✅ | ❌ plan §6 seeding row missing route + plan §4.5 missing rate-limit | n/a (HTTP-internal) | L3-034, L3-038 |
+| §11 — T117a `_FollowRequestBody.source` allowlist on `POST /users/{handle}/follow` | ✅ | ❌ plan §6 social row doesn't mention `source` allowlist | partial (product-spec follow-source not enumerated) | L2-031, L3-035 |
+| §11 — T118/T119 onboarding step-2 + step-3 frontend | ✅ | n/a (frontend) | n/a | L4-025 (Paths stale) |
+| §11 — T120 `onboarding.completed` PostHog | ✅ | ✅ (plan §15.2 line 1005 carries the row) | n/a | — |
+| §13 — T131-T134 dispatcher + coalescer + InApp adapter (S19) | ✅ | partial (plan §8.1-§8.3 high-level only; no contract details — `is_notifiable` decision order, `SET NX EX` dedup, `ChannelDecision` types missing) | ✅ (taxonomy doc is canonical) | L3-036, L4-026 (Paths fields stripped) |
+| §13 — T135 Email adapter (S20) | ✅ | partial (plan §8.3 says "Resend" but doesn't mention Jinja templates, FailedEmail retry contract, dispatcher contract change `notification_id` threading) | n/a (taxonomy holds copy) | L3-036, L4-026 |
+| §13 — T136 WebPush adapter + PushSubscription model + endpoints (S20) | ✅ | ❌ plan §3.1 missing `push_subscriptions` row; §6 missing register/delete routes; §4.5 missing rate-limit; §8.3 doesn't mention `asyncio.to_thread` wrap or 410-Gone cleanup | ❌ PushSubscription not in spec.md entity inventory; product-spec/data-model.md not updated | L2-030, L3-033, L3-036, L3-038, L4-026 |
+| §13 — T137 16-active-type registry (S19) | ✅ | n/a (registry is in code; taxonomy is canonical) | ❌ spec.md still says "14 active" in US-G3 + entity table | L2-028 |
+| §13 — T138 + T143 weekly digest + review-likes hero (S20) | ✅ | partial (plan §8.4 mentions three-hero carousel; no T143 review-likes hero; no `digest.sent` properties enumerated) | ✅ (taxonomy NT-2 + NT-4 cover) | L3-036 |
+| §13 — T139 prefs UI + 2 prefs endpoints (S21) | ✅ | ❌ plan §6 notifications row missing `get/update_preferences` (calls are there but route names absent); plan §4.5 missing rate-limit | partial (spec.md US-G3 AC mentions per-channel toggles + quiet hours but not security-types email lock, not coalesced rollup copy, not the curated tz select) | L2-029, L3-034, L3-038 |
+| §13 — T140 inbox + bell + 4 list/read endpoints (S21) | ✅ | ❌ plan §6 missing `list_notifications`, `unread_count`, `mark_read`, `mark_all_read`; §4.5 missing 4 rate-limit rows; §15.2 missing `notifications.opened` + `notifications.mark_all_read` | ❌ spec.md doesn't capture inbox page as a US-G3 acceptance criterion | L2-029, L3-034, L3-038, L4-027 |
+| §13 — T141 push-prompt + sw.js + criteria (S21) | ✅ | ❌ plan doesn't describe the prompt criteria `follows_count>=3 OR 7d activity`, the 14d re-show window, the `markFollow()` counter, or sw.js | ❌ spec.md doesn't mention push-prompt criteria as an AC | L2-029, L3-037 |
+| §13 — T144 `notification.dispatched` + `posthog_dashboard.yml` (S19) | ✅ | partial (plan §15.2 prose mentions "notification dispatch emits PostHog event" but no row in event table; alert threshold p95>12/wk not in plan) | n/a | L3-036 |
+| T030 — migration runner (S22) | ✅ | ❌ Constitution P2 (plan line 25) says `backend/migrations/{collection}_v{N}_to_v{N+1}.py`; shipped `apps/api/src/auxd_api/migrations/00N_*.py` filename-order | n/a (infra) | L3-040 |
+| T030 — Paths field stripped | n/a | n/a | n/a | L4-026 (umbrella) |
+| T094 — reviews-only profile sub-route (S22) | ✅ | partial (plan §6 reviews row mentions `users-sidecar` from Run #9 but doesn't enumerate the new endpoint or albums sidecar; new GET adds `albums` sidecar) | partial (no dedicated FR; US-E2 references diary; T094 reviews-list is implicitly under US-G1/US-E1) | L2-030 (albums sidecar parallel), L3-038 (rate-limit row), L6-005 (no story trace) |
+
+### Key findings
+
+**L2-028 (most material correctness gap):** spec.md US-G3 says "14 active notification types"; entity inventory line 381 says "14 active types (+ 6 reserved-gap IDs)"; code/registry has 16 active types — N-009/N-010 are kept in the `NotificationType` enum with all defaults OFF (taxonomy-doc declares them DEFERRED-TO-V2 but the enum + registry retain them). Either (a) bump spec text 14 → 16 and add a note about N-009/N-010 being "registered but all defaults OFF", or (b) remove N-009/N-010 from the enum + registry (would write a schema migration touchpoint — heavier). Recommended: option (a), one-line fix in two locations.
+
+**L3-033 (data-model PushSubscription gap):** plan §3.1 collection inventory has 19 rows (post-Run #10); code's `ALL_DOCUMENT_MODELS` now has 20 — PushSubscription is the missing row. Fix: add a new row to plan §3.1 with the index spec (`user_id` indexed, `endpoint` unique), volume estimate (5k–20k), and 410-Gone cleanup semantics. Also add `PushSubscription` to spec.md §entity-inventory.
+
+**L3-036 (plan §8 doc-catchup batch — single largest cluster):** plan §8 (Notification Dispatcher) is high-level prose only and predates the shipped contract. At minimum needs:
+- §8.1 architecture diagram updated: in_app adapter writes the row FIRST and threads `notification_id` to email + push adapters (S20 dispatcher contract change).
+- §8.3 Adapters: add `EmailAdapter` Jinja2 template paths + FailedEmail row on retry exhaustion; add `WebPushAdapter` `pywebpush + asyncio.to_thread` pattern + 410-Gone subscription cleanup; document the `TYPES` registry (T137) and `NotificationTypeSpec` as the per-type defaults source.
+- §8.4 Weekly digest: add T143 review-likes hero ("Your reviews got X likes this week" prepended above three-hero carousel) + `digest.sent` properties (`hero_count, body_count, has_review_likes_hero`).
+- New §8.5 needed: `is_notifiable` predicate decision order + security-types email lock for N-016/N-017 + quiet-hours TZ math.
+- New §8.6 needed: `allow_dispatch` four-bucket Redis scheme (per-user/type/hour + day + per-actor/cross-type/day + per-event dedup with `SET NX EX 1h`).
+
+**L4-026 (tasks.md §13 + T030 + T094 lost their structural fields — single largest task-doc gap):** Every task from T131 through T144 plus T030 plus T094 is now annotated as `*(completed... long prose...)*` ONLY. The original `Paths:/Size:/Deps:/Refs:/Description:/Done:` six-field convention is GONE for these 16 tasks. This breaks every Layer 5 forward-sweep that tries to map `[x]` tasks → declared file paths. Other shipped tasks (T101-T112, T085-T100, T070-T084, T031-T040, T011-T029, T053-T062, T063-T069, T073-T078, T117-T120) all preserve the structural fields with parenthetical annotations alongside. The §13/T030 pattern is the outlier. Fix: restore the six-field block for each of those 16 tasks; keep the prose annotation as a `*(completed ...)*` line after the task title (matches the convention from T117 / T101 / T077 etc.).
+
+**L4-025 (T118/T119 Paths stale — single one-line edit each):** T118 declares `apps/web/src/app/(onboarding)/follow-3/page.tsx`; ships `(onboarding)/onboarding/step-2/page.tsx`. T119 declares `(onboarding)/complete/page.tsx`; ships `(onboarding)/onboarding/step-3/page.tsx`. The route layout uses `(onboarding)` route-group + `onboarding/` directory + `step-N/` sub-route. Mirror the T039 convention pattern; missed when CR-001 reflowed the onboarding step count.
+
+**L3-034 (plan §6 + §4.5 + §15.2 — three under-enumerated tables):**
+
+| Plan table | Missing entries | Count |
+|------------|-----------------|:-:|
+| §6 service surface table — `notifications` row | `get_preferences`, `update_preferences`, `list_user_notifications`, `unread_count`, `mark_read`, `mark_all_read`, `register_push_subscription`, `delete_push_subscription` (plus internal `is_notifiable`, `allow_dispatch`, `validate_payload`, `render_in_app`) | 8 public + 4 internal |
+| §6 service surface table — `seeding` row | `score_critics_by_genre_signature`, `get_card_recommendations_for_user`, `get_onboarding_cards`, HTTP route `GET /api/v1/onboarding/cards` | 4 |
+| §4.5 rate-limit table | `GET /api/v1/notifications/unread-count` (120/min); `POST /api/v1/notifications/mark-all-read` (10/min); `PUT /api/v1/users/me/notification-preferences` (per-user); `POST /api/v1/users/me/push-subscriptions` (10/min); `GET /api/v1/onboarding/cards` (30/min); `GET /api/v1/notifications` (list endpoint); `GET /api/v1/users/{handle}/reviews` (T094) | 7 |
+| §15.2 PostHog event table | `notification.dispatched`, `notification.suppressed_onboarding_preselected`, `onboarding.cards_loaded`, `settings.notifications_updated`, `notifications.mark_all_read`, `notifications.opened`, `push.prompt_shown`, `push.permission_granted`, `push.permission_denied`, `push.dismissed`, `push.subscribe_failed` | 11 |
+
+Total: 30 enumeration entries missing across 4 plan tables.
+
+**L3-040 (Constitution P2 phrasing diverges from shipped migration runner):** plan line 25 (Constitution Principle 2): "Migration code lives in `backend/migrations/{collection}_v{N}_to_v{N+1}.py`. No big-bang migrations." Shipped at `apps/api/src/auxd_api/migrations/00N_*.py` with filename-ordered numeric prefix (T030 / Session 22). The shipped pattern is in line with the runner's discovery semantics (it scans `00N_*.py`) but the Constitution text is stale. Fix: update the principle to read "Migration code lives in `apps/api/src/auxd_api/migrations/00N_<name>.py`. Filename-ordered numeric prefix; runner skips already-applied; fail-loud on apply error."
+
+### All Drift Items
+
+#### NEW this run
+
+**L1-004** [INFO / cosmetic] research/ux-patterns.md or research/codebase-analysis.md doesn't carry a breadcrumb about the "non-modal push-prompt banner" criteria (`follows_count >= 3 OR 7d activity`). taxonomy doc covers it but the up-stream UX research doesn't.
+*Proposed:* One-line breadcrumb under the Notifications section in research/ux-patterns.md: "Push permission prompt is non-modal — fires when follows_count ≥ 3 OR 7d active; 14d re-show after dismiss. Avoids first-session interruption (Goodreads anti-pattern)."
+
+**L2-028** [WARNING / structural] spec.md US-G3 (line 199) + entity inventory (line 381) both say "14 active notification types"; shipped `NotificationType` enum + registry has 16 active types (N-009 + N-010 registered with all defaults OFF per taxonomy DEFERRED-TO-V2). Carry-forward of L2-017 (Run #5).
+*Proposed:* Both lines say "16 active notification types (N-009 / N-010 registered with all defaults OFF per CR-001 deferral) + 4 reserved-gap IDs (N-011, N-018, N-019, N-020)". Two-line edit.
+
+**L2-029** [WARNING / structural] spec.md US-G3 AC text doesn't mention three load-bearing facets of the shipped UI: (a) N-008 weekly_digest push is hardcoded-off; (b) N-016/N-017 email is locked-on (cannot be disabled — returns 422 `security_email_locked`); (c) coalesced rollup copy "X and N others did something" in the inbox; (d) curated IANA timezone select (not the full Intl.supportedValuesOf dropdown); (e) push-prompt criteria `follows_count >= 3 OR 7d activity`.
+*Proposed:* Append a bullet to US-G3 AC capturing these constraints, or split into US-G3a (prefs UI semantics) + US-G3b (inbox UX) so future story-vs-code traceability is preserved.
+
+**L2-030** [WARNING / structural] PushSubscription entity missing from spec.md entity inventory (line ~370-385). Shipped collection with KSUID id, user_id, endpoint UNIQUE, p256dh_key, auth_secret, user_agent?, created_at, last_used_at.
+*Proposed:* Add row to spec.md entity inventory: `| PushSubscription | Per-device VAPID push registration. 410-Gone deletes dead sub on send. |`. Mirror in product-spec/data-model.md.
+
+**L2-031** [WARNING / structural] product-spec doesn't enumerate the `Follow.source` field allowlist (`{onboarding_preselected, onboarding_mutual_taste, suggestion, profile, invite, manual}`) that shipped in Session 18. Used by T142 (suppression) and PostHog funnel facets.
+*Proposed:* Add a row to product-spec/data-model.md Follow block: `source: literal allowlist of 6 values; defaults to "profile" when not specified; persisted to drive (a) T142 onboarding-wave N-001 suppression, (b) PostHog `social.follow` funnel facet.`
+
+**L3-033** [WARNING / structural] plan.md §3.1 collection inventory has 19 rows; code's `ALL_DOCUMENT_MODELS` has 20 (PushSubscription added in S20).
+*Proposed:* Add a row to plan §3.1 between `notification_preferences` and `just_finished_prompts`: `| push_subscriptions | 5k–20k | user_id · endpoint unique · last_used_at | Per-device VAPID; 410-Gone DELETE on dead send (web_push adapter cleanup). |`
+
+**L3-034** [WARNING / structural] plan §6 service surface table — `notifications` row + `seeding` row dramatically under-enumerated vs shipped routes (see findings table above; 8 public + 4 internal notifications, 4 seeding).
+*Proposed:* Two edits — append the missing methods to each row's `Verbs` column. Update `Notes` column for `notifications` to flag the in-app-first-then-email+push contract (S20).
+
+**L3-035** [WARNING / structural] plan §6 social row doesn't mention the `source` allowlist body field added to `POST /users/{handle}/follow` in S18.
+*Proposed:* Append parenthetical to the social row Verbs: `follow *(optional body {source: literal allowlist[6]})*`.
+
+**L3-036** [WARNING / structural] plan §8 (Notification Dispatcher) — five-bullet doc-catchup batch:
+1. §8.1 architecture: in-app-first row creation + `notification_id` thread to email/push adapters (S20 contract change).
+2. §8.3 Adapters: Jinja2 template stack + FailedEmail retry retention; `pywebpush + asyncio.to_thread` wrapping + 410-Gone cleanup; `TYPES` registry as the per-type defaults source.
+3. §8.4 Weekly digest: T143 review-likes hero + `digest.sent` properties.
+4. New §8.5: `is_notifiable` decision order + security-types email lock (N-016/N-017) + quiet-hours TZ math.
+5. New §8.6: `allow_dispatch` four-bucket Redis scheme + `SET NX EX 1h` atomic dedup + FAIL-OPEN semantics on Redis down with `notif_limiter.redis_down` Sentry tag.
+*Proposed:* Single coordinated rewrite of plan §8 (5 subsection touches), ~80 lines added.
+
+**L3-037** [WARNING / structural] plan doesn't carry a §7.X subsection for the web-push subscribe flow (criteria, sw.js, markFollow counter, 14d re-show window). Frontend architecture §7 is silent on the bootstrap flow.
+*Proposed:* Add §7.6 "Web push subscribe flow" subsection covering: prompt criteria (`follows_count >= 3 OR 7d`), localStorage counters (`first_visit_at`, `follows_count`, `dismissed_at` with 14d re-show), the `push-bootstrap.tsx` silent SW registration at app boot, and `sw.js` push + notificationclick handlers.
+
+**L3-038** [WARNING / structural] plan §4.5 rate-limit table — 7 missing rows for shipped endpoints (see findings table above).
+*Proposed:* Append 7 rows to the table.
+
+**L3-039** [INFO / structural] plan §12.2 (Pre-checked card algorithm) references "score critic-seeds" but doesn't pin the `_GENRE_BONUS_MAX = 20.0` knob or document the `priority + (jaccard_overlap × _GENRE_BONUS_MAX)` formula.
+*Proposed:* Append one paragraph: "Score = `priority + (jaccard_overlap_with_viewer_genre_signature × _GENRE_BONUS_MAX)` where `_GENRE_BONUS_MAX = 20.0` — caps the genre-overlap bonus so a perfect-match closes a 20-point priority gap; bumping above 30 would let niche-genre critic with priority=50 outrank generalist with priority=80, which the founder doesn't want until per-user signal is much richer (codified in seeding-strategy.md §3)."
+
+**L3-040** [INFO / cosmetic] plan line 25 (Constitution Principle 2): "Migration code lives in `backend/migrations/{collection}_v{N}_to_v{N+1}.py`." Shipped at `apps/api/src/auxd_api/migrations/00N_*.py` with filename-ordered numeric prefix. Stale phrasing.
+*Proposed:* Update P2 text to: "Migration code lives in `apps/api/src/auxd_api/migrations/00N_<name>.py`. Filename-ordered numeric prefix; runner skips already-applied (by `_schema_version` threshold); fail-loud on apply error (re-raises so a botched migration cannot serve traffic)."
+
+**L4-025** [WARNING / structural] tasks.md T118 Paths declares `apps/web/src/app/(onboarding)/follow-3/page.tsx`; ships `(onboarding)/onboarding/step-2/page.tsx`. T119 Paths declares `(onboarding)/complete/page.tsx`; ships `(onboarding)/onboarding/step-3/page.tsx`.
+*Proposed:* Two one-line edits — rename both Paths to the shipped `step-N/` form. Also append the new `apps/web/src/components/onboarding/{follow-critics-deck,onboarding-complete}.tsx` to T118 / T119 Paths respectively.
+
+**L4-026** [WARNING / structural] T131-T144 (14 tasks) + T030 + T094 (16 total) have their structural fields stripped — completion annotation prose replaced the `Paths:/Size:/Deps:/Refs:/Description:/Done:` six-field convention. Other shipped tasks preserve the convention with `*(completed ...)*` annotations alongside.
+*Proposed:* Restore the six-field block for each of T030, T094, T131-T144. Keep the prose annotation as a `*(completed ...)*` line after the task title (matches T117 / T101 / T077 pattern). Heaviest single fix in the inline list but unblocks Layer 5 forward-sweeps for the entire §13 cluster.
+
+**L4-027** [WARNING / structural] T140 inbox endpoints not enumerated in any plan §6 table or §4.5 row (covered above under L3-034/L3-038 but worth a tasks.md cross-reference). T140 ships 4 new public endpoints: `GET /api/v1/notifications`, `GET /api/v1/notifications/unread-count`, `POST /api/v1/notifications/{id}/read`, `POST /api/v1/notifications/mark-all-read` plus the 2 prefs endpoints under T139.
+*Proposed:* When restoring T140's Paths field (per L4-026), explicitly enumerate the 4 new public endpoint paths in the description.
+
+**L4-028** [INFO / cosmetic] T117 Refs claims "decision-log Q13; UJ-2" — file path missing. Should be `product-spec/decision-log.md` (Q13) + `product-spec/user-journeys.md` (UJ-2) for navigability.
+*Proposed:* Expand to fully-qualified relative paths.
+
+**L4-029** [INFO / cosmetic] T117a Refs claims "A-005 from pre-impl-review" — A-005 was the inline-vs-batch architecture finding, but pre-impl-review.md line 141 isn't called out explicitly; could reference pre-impl-review.md A-005 section.
+*Proposed:* No change unless future readers ask; the line-number ref is good enough.
+
+**L5-018** [WARNING / structural] T118 + T119 Paths reference files that DON'T EXIST on disk (`follow-3/page.tsx`, `complete/page.tsx`). Projection of L4-025; flagged here because Layer 5 forward-sweep falsely reports "claimed files missing".
+*Proposed:* Same fix as L4-025 (resolves both L4 and L5 simultaneously).
+
+**L5-019** [INFO / cosmetic] §13 cluster (T131-T144) + T030 + T094 have NO declared Paths fields, so Layer 5 forward-sweep can't run on them at all. All files actually do exist on disk (confirmed via direct `ls`); the convention regression masks them.
+*Proposed:* Subsumed by L4-026 fix.
+
+**L5-020** [INFO / cosmetic] T138 description mentions "templates/email/*" without full path. Templates actually live at `apps/api/src/auxd_api/templates/email/` (NOT under the notifications module). Minor ambiguity.
+*Proposed:* When restoring T138 Paths (per L4-026), use the full path: `apps/api/src/auxd_api/templates/email/{base,n008_weekly_digest,n013_account_deletion_scheduled,n014_account_deletion_reminder_7d,n016_security_new_session,n017_security_password_changed}.html`.
+
+**L6-005** [INFO / structural] T094 reviews-only profile sub-route shipped without a dedicated US-NNN. The story is implicitly under US-E2 (chronological diary) + US-G1 (profile editing) but neither explicitly mentions a reviews-only sub-page. Run #9's L4-019 restored the T094 header; this run finds the story-side gap.
+*Proposed:* Add a new bullet to spec.md US-E2 AC: "Profile diary view has a Reviews tab that filters to entries with attached reviews — backed by `GET /api/v1/users/{handle}/reviews` and the `/profile/{handle}/reviews` SSR route." OR carve a separate US (e.g., US-E2a). Single-line edit recommended.
+
+**L7-017** [INFO / cosmetic] implementation-log.md Session 22 references "T094 — Reviews-only profile sub-route" but the Diary/Reviews tab nav mentioned therein lives in `apps/web/src/components/diary/profile-client.tsx` — Session 22 prose says "Diary/Reviews tab nav added to existing profile-client.tsx" but the canonical implementation-log structure usually carries an "Added files" + "Modified files" enumeration. Cross-link is intact; just convention drift.
+*Proposed:* No edit required; flag for awareness only.
+
+#### Carry-forward (still open from prior runs)
+
+- **L1-002** (Run #10) — research/ux-patterns.md "For You" breadcrumb — RESOLVED in Run #10 inline application; verified intact.
+- **L2-017** (Run #5) — spec.md "14 active types" — PARTIALLY RESOLVED in Run #5 (text was 18 → 14), now REOPENED as L2-028 (14 → 16 needed).
+- **L2-019** (Run #4) — SS-3 cohort signup_cohort undefined — OPEN, DEFER (invite-mechanic cluster).
+- **L3-017** (Run #4) — plan.md §12 missing SS-3 invite-landing — OPEN, DEFER.
+- **L4-009** (Run #4) — tasks.md missing invite-landing tasks — OPEN, DEFER.
+- **L4-013** (Run #7) — Paths under-enumeration convention — OPEN-DEFERRED.
+- **L4-017** (Run #8) — T077/T079 Paths missing helpers — OPEN-DEFERRED.
+- **L4-020** (Run #9) — T093/T092 Paths under-spec — OPEN-DEFERRED.
+- **L5-008** (Run #8) — T080 wildcard absorbs helpers — OPEN-DEFERRED.
+- **L6-002** (Run #7) — US-A1 handle suggestions — OPEN, DEFER (low-priority polish).
+
+### Proposed inline actions (17 items)
+
+| ID | File | Change | Auto-resolvable? |
+|----|------|--------|:--:|
+| L1-004 | research/ux-patterns.md | 1-line breadcrumb on push-prompt criteria | No |
+| L2-028 | spec.md US-G3 + entity inventory | 14 → 16 active types in 2 locations | No |
+| L2-029 | spec.md US-G3 AC | Append 5-bullet sub-list for prefs UI + inbox + push-prompt facets | No |
+| L2-030 | spec.md entity inventory + product-spec/data-model.md | Add PushSubscription row to both | No |
+| L2-031 | product-spec/data-model.md Follow block | Append `source: literal[6]` allowlist line | No |
+| L3-033 | plan.md §3.1 | Insert `push_subscriptions` row between notification_preferences and just_finished_prompts | No |
+| L3-034 | plan.md §6 notifications + seeding rows | Expand Verbs columns (8 public + 4 internal + 4 seeding) | No |
+| L3-035 | plan.md §6 social row | Append `source` body field parenthetical to `follow` verb | No |
+| L3-036 | plan.md §8 (single coordinated rewrite) | 5-subsection batch (§8.1, §8.3, §8.4, new §8.5, new §8.6) | No |
+| L3-037 | plan.md §7 | Add new §7.6 Web push subscribe flow | No |
+| L3-038 | plan.md §4.5 rate-limit table | 7 new rows | No |
+| L3-039 | plan.md §12.2 | Append `_GENRE_BONUS_MAX = 20.0` formula paragraph | No |
+| L3-040 | plan.md Constitution P2 | Update migration code location + filename pattern | No |
+| L4-025 + L5-018 | tasks.md T118 + T119 Paths | Rename to `onboarding/step-N/page.tsx`; add components | No |
+| L4-026 + L5-019 | tasks.md T030, T094, T131-T144 | Restore six-field block for 16 tasks; preserve `*(completed ...)*` annotation as a separate line after the task title | No |
+| L4-028 | tasks.md T117 Refs | Expand to fully-qualified relative paths | No |
+| L6-005 | spec.md US-E2 AC | Append Reviews-tab line | No |
+
+### Defer (5 items, existing dispositions stand)
+
+- L2-019 — invite-mechanic cluster sequencing
+- L3-017 — invite-mechanic cluster
+- L4-009 — invite-mechanic cluster
+- L4-013 / L4-017 / L4-020 / L5-008 — Paths-convention umbrella
+- L6-002 — low-priority polish
+
+### Sync History (updated)
+
+| Run | Date | Layers | CRITICAL | WARN | INFO | Verdict | Disposition |
+|-----|------|:------:|:--------:|:----:|:----:|---------|-------------|
+| #1 | 2026-05-22 | 5/7 | 0 | 19 | 14 | CRITICAL_DRIFT_BUDGET_RULE | applied_split_with_override |
+| #2 | 2026-05-22 PM | 7/7 | 0 | 7 | 5 | DRIFT_DETECTED | applied_split_with_override |
+| #3 | 2026-05-22 (post-T002) | 7/7 | 0 | 6 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #4 | 2026-05-23 (early) | 7/7 | 0 | 6 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #5 | 2026-05-22 (late) | 7/7 | 0 | 7 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #6 | 2026-05-23 (post-CR-002) | 7/7 | 0 | 7 | 6 | DRIFT_DETECTED | applied_split_with_override |
+| #7 | 2026-05-23 (post-frontend-wave) | 7/7 | 0 | 4 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #8 | 2026-05-23 (post-§7-wedge-wave) | 7/7 | 0 | 8 | 9 | DRIFT_DETECTED | applied_split_with_override |
+| #9 | 2026-05-23 (post-§8+§9) | 7/7 | 0 | 12 | 10 | DRIFT_DETECTED | applied_split_with_override |
+| #10 | 2026-05-23 (post-§10) | 7/7 | 0 | 14 | 13 | DRIFT_DETECTED | applied_split_with_override |
+| **#11** | **2026-05-23 (post-§11+§13+stranded)** | **7/7** | **0** | **18** | **14** | **DRIFT_DETECTED** | **applied_split_with_override** (17 inline + 5 deferred — pending user confirmation) |
 
 ---
 

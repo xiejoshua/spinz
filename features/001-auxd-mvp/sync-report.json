@@ -1,104 +1,107 @@
 {
   "feature": "001-auxd-mvp",
-  "run_number": 9,
+  "run_number": 11,
   "date": "2026-05-23",
   "phase": "implement_in_progress",
-  "tasks_completed": 95,
-  "tasks_total": 171,
+  "tasks_completed": 128,
+  "tasks_total": 172,
   "trigger": [
-    "User invoked /speckit.product-forge.sync-verify after Sessions 15-16 (§8 Reviews + Likes + sort and §9 Backlog / Up Next).",
-    "Two clusters completed in succession; nine clusters now done overall (§0 §1 §3 §4 §5 §6 §7 §8 §9)."
+    "User invoked /speckit.product-forge.sync-verify after Sessions 18-22 (§11 Onboarding closeout + entire §13 Notifications cluster + stranded T030 migration runner + T094 reviews-only profile sub-route).",
+    "Three clusters completed in succession; twelve clusters now fully done overall (§0 §1 §3 §4 §5 §6 §7 §8 §9 §10 §11 §13)."
   ],
   "layers_checked": [1, 2, 3, 4, 5, 6, 7],
   "layers_skipped": [],
   "layers_skipped_reason": null,
-  "focus_per_user_prompt": "full 7-layer scan covering Sessions 15-16 changes",
+  "focus_per_user_prompt": "full 7-layer scan covering Sessions 18-22 changes plus Run #10 carry-forwards",
   "verdict": "DRIFT_DETECTED",
-  "verdict_reason": "0 CRITICAL; 9 NEW WARN + 3 carry-forward WARN; 6 NEW INFO + 4 carry-forward INFO. Structural count 13 over budget of 0 (9 NEW + 4 carry-forward), but every NEW WARN is documentation catch-up — the shipped code is healthy. 5 of 9 NEW WARNs are projections of the same root cause: plan.md not amended for the new endpoints, indexes, and PostHog events landed in Sessions 15-16. Single coordinated edit pass resolves L1-001, L2-020, L2-021, L2-022, L3-020, L3-021, L3-022, L3-023, L3-024, L4-019, L5-013, L6-004 across plan.md (5 locations), spec.md (2 FRs + 1 AC), product-spec (3 small edits), tasks.md (1 header insert + 1 Paths fix), and 1 frontend patch (Edit button on review reading-view). Pattern continuation from Runs #2-#8: applied_split_with_override.",
+  "verdict_reason": "0 CRITICAL; 14 NEW WARN + 4 carry-forward WARN; 9 NEW INFO + 5 carry-forward INFO. Structural count 21 over budget of 0. Shipped code is healthy (867 backend pass / 3 skip, +176 tests; 63 frontend tests; 16 visible routes + 2 new). Drift is overwhelmingly downstream doc catch-up: plan.md not amended for §13 dispatcher contract change / 6 new endpoints / 10+ new PostHog events / PushSubscription collection / web-push criteria. spec.md still says '14 active types' (code has 16). tasks.md §13 cluster + T030 + T094 LOST their structural fields entirely (Paths/Size/Deps/Refs/Description/Done replaced by completion-annotation prose). T118/T119 Paths stale post route-rename. All resolvable in a single coordinated edit pass mirroring the Run #2-#10 pattern.",
   "drift_budget": {
     "structural": 0,
     "cosmetic": 20
   },
   "counts": {
     "critical": 0,
-    "warning": 12,
-    "info": 10,
-    "structural": 13,
-    "cosmetic": 9,
-    "new_this_run": 15,
-    "carry_forward_from_run_8": 7,
-    "resolved_since_run_8": 0,
-    "recurring_advisory_unchanged": 11
+    "warning": 18,
+    "info": 14,
+    "structural": 21,
+    "cosmetic": 11,
+    "new_this_run": 23,
+    "carry_forward_from_run_10": 9,
+    "resolved_since_run_10": 0,
+    "recurring_advisory_unchanged": 13
   },
   "sessions_audit": {
-    "sessions_covered": ["15", "16"],
+    "sessions_covered": ["18", "19", "20", "21", "22"],
     "tasks_landed": [
-      "T085", "T086", "T087", "T088", "T089",
-      "T090", "T091 (absorbed into T077)", "T092", "T093", "T093a", "T093b",
-      "T095", "T096", "T097", "T098", "T099 (absorbed into T077)", "T100"
+      "T117", "T117a", "T118", "T119", "T120",
+      "T131", "T132", "T133", "T134", "T135", "T136", "T137", "T138", "T139", "T140", "T141", "T142", "T143", "T144",
+      "T030", "T094"
     ],
     "clusters_completed": [
-      "§8 Reviews + Likes + sort (0/11 → 11/11)",
-      "§9 Backlog / Up Next (0/6 → 6/6)"
+      "§11 Onboarding (5/5 — T113 deferred per CR-001; T117-T120 + T117a all landed)",
+      "§13 Notifications (14/14 — full backend + frontend + dispatcher contract change + weekly digest)",
+      "Stranded T030 (migration runner) + T094 (reviews-only profile sub-route)"
     ],
     "must_have_stories_with_evidence": [
-      "US-C1", "US-C2", "US-C4 (US-C3 partial — see L6-004)",
-      "US-D1", "US-D2", "US-D3"
+      "US-A4 (critic-seed onboarding — T117/T117a/T118)",
+      "US-A5 (first home feed non-empty — pre-existing in §10 padding, validated by T119)",
+      "US-G3 (notification management — T139 prefs UI + T140 inbox + T141 push-subscribe)",
+      "FR-012 (notifications — full taxonomy implementation T131-T144)",
+      "FR-015 (critic-seed pre-checked cards — T117a)"
     ],
     "orphan_files": 0,
-    "headline_check": "All Session 15-16 declared Paths exist on disk; cross-link integrity holds; gap is downstream plan/spec doc catch-up + 1 frontend mount (US-C3 edit affordance)"
+    "headline_check": "All Session 18-22 declared and shipped files exist on disk; cross-link integrity holds (L7-017 informational only). Code is healthy. The drift is structural-doc: plan §8 + §3.1 + §6 + §4.5 + §15.2 + §7 all under-document the shipped notification surface. tasks.md §13 cluster lost its structural fields entirely (T131-T144 + T030 + T094 = 16 tasks). spec.md US-G3 count off by 2 (14 vs 16 active types — carry-forward from L2-017 partial fix in Run #5).",
+    "backend_test_delta": "667 → 867 (+200 across Sessions 18-22: +24 §11 / +100 §13 foundation / +34 §13 wave 2 / +25 §13 close-out / +17 stranded)",
+    "frontend_test_delta": "15 → 63 (+48 across Sessions 18-22: +9 onboarding analytics / +35 notifications / +4 profile-reviews)",
+    "frontend_routes_delta": "13 → 16 visible (+3 new this run: /notifications, /settings/notifications, /profile/[handle]/reviews; onboarding step-2 + step-3 are new but in (onboarding) route group)"
   },
   "new_findings": [
-    {"id": "DRIFT-L1-001", "layer": 1, "severity": "INFO", "category": "cosmetic", "title": "Backlog sort alternatives (rating/year) silently omitted from S-D2 vs research", "proposed_fix": "One-line `<!-- ... -->` breadcrumb under S-D2 in product-spec/user-stories.md deferring rating/year sort modes to v2.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L2-019", "layer": 2, "severity": "INFO", "category": "structural", "title": "(carry-forward) SS-3 cohort signup_cohort undefined", "status": "OPEN_NARROWED", "disposition": "defer_invite_mechanic_cluster"},
-    {"id": "DRIFT-L2-020", "layer": 2, "severity": "WARNING", "category": "structural", "title": "spec.md §5 FR table missing FR-034 (US-D2 drag-reorder) + FR-035 (US-D3 auto-remove)", "proposed_fix": "Add FR-034 + FR-035 rows after FR-006 in spec.md §5.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L2-021", "layer": 2, "severity": "WARNING", "category": "structural", "title": "Review delete capability shipped without product-spec / spec.md AC trace", "proposed_fix": "Append delete-review AC line to S-C3 (product-spec) + US-C3 (spec.md): owner-only soft-delete, 30d grace, confirmation dialog, 410 on double-delete.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L2-022", "layer": 2, "severity": "INFO", "category": "cosmetic", "title": "Review entity in data-model.md omits edited_at + deleted_at field enumeration", "proposed_fix": "Add `edited_at` + `deleted_at` field lines to Review block in data-model.md.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L3-020", "layer": 3, "severity": "WARNING", "category": "structural", "title": "Plan §6 reviews service surface missing delete_review + get_review", "proposed_fix": "Edit plan.md §6 reviews row — append `delete_review` and `get_review` plus users-sidecar note.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L3-021", "layer": 3, "severity": "WARNING", "category": "structural", "title": "Plan §6 backlog service surface missing list_backlog_items + contains_album", "proposed_fix": "Edit plan.md §6 backlog row — append `list_backlog_items` and `contains_album` plus albums-sidecar note.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L3-022", "layer": 3, "severity": "WARNING", "category": "structural", "title": "Plan §3.1 reviews row missing deleted_at sparse index", "proposed_fix": "Edit plan.md §3.1 reviews row — append `deleted_at sparse (T087 cron sweep)` + 30d-grace note.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L3-023", "layer": 3, "severity": "INFO", "category": "cosmetic", "title": "Plan §12.1 references critic_seed_active flag on User; shipped uses CriticSeed FK", "proposed_fix": "Edit plan.md §12.1 — replace flag reference with CriticSeed FK + active-on-CriticSeed truth.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L3-024", "layer": 3, "severity": "WARNING", "category": "structural", "title": "Plan §15.2 PostHog event table missing 4 shipped backlog events", "proposed_fix": "Replace `backlog.added` row with 4 shipped events: backlog.item_added, backlog.item_removed, backlog.reordered, backlog.converted_to_log (T100).", "disposition": "apply_inline"},
-    {"id": "DRIFT-L4-018", "layer": 4, "severity": "INFO", "category": "cosmetic", "title": "T093a Paths declares opengraph-image.tsx that was never shipped", "proposed_fix": "Drop opengraph-image.tsx from T093a Paths; add note pointing to deferred T093c.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L4-019", "layer": 4, "severity": "WARNING", "category": "structural", "title": "tasks.md §8 — orphan task body at line 861 (T094 header eaten)", "proposed_fix": "Insert `- [ ] **T094 — Reviews-only profile sub-route**` at line 860 (matches the §8 index range T085-T094 + the orphan Paths/Refs body).", "disposition": "apply_inline"},
-    {"id": "DRIFT-L4-020", "layer": 4, "severity": "INFO", "category": "cosmetic", "title": "T093 / T092 Paths under-specify helper files", "proposed_fix": "Same disposition as L4-013 (Paths-convention umbrella).", "disposition": "defer_under_convention"},
-    {"id": "DRIFT-L5-012", "layer": 5, "severity": "INFO", "category": "cosmetic", "title": "T093a Paths claims opengraph-image.tsx never shipped (overlaps with L4-018)", "proposed_fix": "Subsumed by L4-018 inline fix.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L5-013", "layer": 5, "severity": "WARNING", "category": "structural", "title": "T100 Paths claims apps/web/src/lib/analytics.ts which does not exist", "proposed_fix": "Edit T100 Paths: drop apps/web/src/lib/analytics.ts; cite apps/api/.../diary/routes.py where emit_event actually fires.", "disposition": "apply_inline"},
-    {"id": "DRIFT-L6-004", "layer": 6, "severity": "WARNING", "category": "structural", "title": "US-C3 EditReviewDialog shipped but not mounted on any live route", "proposed_fix": "Add Edit button to review-reading-view/index.tsx footer when isOwn; opens existing EditReviewDialog component.", "disposition": "apply_inline"}
+    {"id": "DRIFT-L1-004", "layer": 1, "severity": "INFO", "category": "cosmetic", "title": "research/ux-patterns.md doesn't carry push-prompt criteria breadcrumb", "proposed_fix": "Append 1-line breadcrumb to research/ux-patterns.md Notifications section: 'Push permission prompt is non-modal — fires when follows_count ≥ 3 OR 7d active; 14d re-show after dismiss.'", "disposition": "apply_inline"},
+    {"id": "DRIFT-L2-028", "layer": 2, "severity": "WARNING", "category": "structural", "title": "spec.md US-G3 + entity inventory say 14 active notification types; code has 16", "proposed_fix": "spec.md US-G3 (line 199) + entity inventory (line 381): '14 active' → '16 active (N-009 / N-010 registered with all defaults OFF per CR-001 deferral) + 4 reserved-gap IDs (N-011, N-018, N-019, N-020)'.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L2-029", "layer": 2, "severity": "WARNING", "category": "structural", "title": "spec.md US-G3 AC missing 5 load-bearing UI facets", "proposed_fix": "Append 5-bullet sub-list to US-G3 AC capturing: (a) N-008 weekly_digest push hardcoded-off, (b) N-016/N-017 email locked-on, (c) coalesced rollup copy, (d) curated IANA timezone select, (e) push-prompt criteria.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L2-030", "layer": 2, "severity": "WARNING", "category": "structural", "title": "PushSubscription entity missing from spec.md entity inventory + product-spec/data-model.md", "proposed_fix": "Add row to spec.md entity inventory: '| PushSubscription | Per-device VAPID push registration. 410-Gone deletes dead sub on send. |'. Mirror in product-spec/data-model.md.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L2-031", "layer": 2, "severity": "WARNING", "category": "structural", "title": "product-spec/data-model.md Follow block doesn't enumerate the source field allowlist", "proposed_fix": "Append row to product-spec/data-model.md Follow block: 'source: literal allowlist of 6 values; defaults to profile; drives T142 suppression + PostHog social.follow funnel facet.'", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-033", "layer": 3, "severity": "WARNING", "category": "structural", "title": "plan §3.1 collection inventory missing push_subscriptions row", "proposed_fix": "Add row between notification_preferences and just_finished_prompts: '| push_subscriptions | 5k-20k | user_id · endpoint unique · last_used_at | Per-device VAPID; 410-Gone DELETE on dead send. |'", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-034", "layer": 3, "severity": "WARNING", "category": "structural", "title": "plan §6 service surface table — notifications + seeding rows under-enumerated (8 public + 4 internal notif methods + 4 seeding methods missing)", "proposed_fix": "Expand notifications + seeding Verbs columns; update Notes column to flag the in-app-first then email+push contract.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-035", "layer": 3, "severity": "WARNING", "category": "structural", "title": "plan §6 social row missing source body field allowlist", "proposed_fix": "Append parenthetical to social row Verbs: 'follow *(optional body {source: literal allowlist[6]})*'.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-036", "layer": 3, "severity": "WARNING", "category": "structural", "title": "plan §8 Notification Dispatcher — five-bullet doc-catchup batch (in_app-first ordering, Email Jinja stack + FailedEmail retry, WebPush asyncio.to_thread + 410-Gone, weekly digest review-likes hero, missing is_notifiable + allow_dispatch subsections)", "proposed_fix": "Single coordinated rewrite of plan §8 (~80 lines added across §8.1/§8.3/§8.4 + new §8.5/§8.6).", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-037", "layer": 3, "severity": "WARNING", "category": "structural", "title": "plan §7 missing a §7.6 Web push subscribe flow subsection", "proposed_fix": "Add §7.6 covering prompt criteria + localStorage counters + push-bootstrap silent SW registration + sw.js push/notificationclick handlers.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-038", "layer": 3, "severity": "WARNING", "category": "structural", "title": "plan §4.5 rate-limit table missing 7 rows", "proposed_fix": "Append 7 rows: unread-count (120/min), mark-all-read (10/min), prefs PUT, push-subscriptions POST (10/min), onboarding/cards (30/min), notifications list, /users/{handle}/reviews.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-039", "layer": 3, "severity": "INFO", "category": "structural", "title": "plan §12.2 missing _GENRE_BONUS_MAX = 20.0 formula", "proposed_fix": "Append paragraph: 'Score = priority + (jaccard_overlap × _GENRE_BONUS_MAX) where _GENRE_BONUS_MAX = 20.0 — caps the genre bonus so perfect match closes a 20-point priority gap.'", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-040", "layer": 3, "severity": "INFO", "category": "cosmetic", "title": "plan Constitution P2 says backend/migrations/{collection}_v{N}_to_v{N+1}.py; shipped apps/api/src/auxd_api/migrations/00N_*.py", "proposed_fix": "Update P2 text: 'Migration code lives in apps/api/src/auxd_api/migrations/00N_<name>.py. Filename-ordered numeric prefix; runner skips already-applied; fail-loud on apply error.'", "disposition": "apply_inline"},
+    {"id": "DRIFT-L4-025", "layer": 4, "severity": "WARNING", "category": "structural", "title": "T118 + T119 Paths stale (declare follow-3/page.tsx + complete/page.tsx; ship onboarding/step-2/page.tsx + step-3/page.tsx)", "proposed_fix": "Two one-line edits — rename T118 + T119 Paths to onboarding/step-N/page.tsx form; append components/onboarding/{follow-critics-deck,onboarding-complete}.tsx.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L4-026", "layer": 4, "severity": "WARNING", "category": "structural", "title": "T030 + T094 + T131-T144 (16 tasks) lost their structural fields (Paths/Size/Deps/Refs/Description/Done)", "proposed_fix": "Restore the six-field block for each of T030, T094, T131-T144; keep the prose annotation as a separate *(completed ...)* line after the task title (matches T117/T101/T077 pattern).", "disposition": "apply_inline"},
+    {"id": "DRIFT-L4-027", "layer": 4, "severity": "WARNING", "category": "structural", "title": "T140 inbox endpoints not enumerated (4 new public endpoints + 2 prefs endpoints)", "proposed_fix": "Subsumed by L4-026 fix — explicitly enumerate the 4 new public endpoint paths in restored T140 description.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L4-028", "layer": 4, "severity": "INFO", "category": "cosmetic", "title": "T117 Refs claims 'decision-log Q13; UJ-2' without fully-qualified paths", "proposed_fix": "Expand to product-spec/decision-log.md (Q13) + product-spec/user-journeys.md (UJ-2).", "disposition": "apply_inline"},
+    {"id": "DRIFT-L4-029", "layer": 4, "severity": "INFO", "category": "cosmetic", "title": "T117a Refs to A-005 from pre-impl-review could be fully-qualified", "proposed_fix": "No change unless future readers ask; the line-number ref is good enough.", "disposition": "no_action"},
+    {"id": "DRIFT-L5-018", "layer": 5, "severity": "WARNING", "category": "structural", "title": "T118 + T119 declared file paths don't exist on disk", "proposed_fix": "Subsumed by L4-025 fix.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L5-019", "layer": 5, "severity": "INFO", "category": "cosmetic", "title": "§13 cluster + T030 + T094 have NO declared Paths fields, so Layer 5 forward-sweep can't run", "proposed_fix": "Subsumed by L4-026 fix.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L5-020", "layer": 5, "severity": "INFO", "category": "cosmetic", "title": "T138 description mentions templates/email/* without full path", "proposed_fix": "When restoring T138 Paths per L4-026, use full path apps/api/src/auxd_api/templates/email/{base,n008_weekly_digest,n013_account_deletion_scheduled,n014_account_deletion_reminder_7d,n016_security_new_session,n017_security_password_changed}.html.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L6-005", "layer": 6, "severity": "INFO", "category": "structural", "title": "T094 reviews-only profile sub-route shipped without dedicated US-NNN trace", "proposed_fix": "Append a bullet to spec.md US-E2 AC: 'Profile diary view has a Reviews tab backed by GET /api/v1/users/{handle}/reviews and the /profile/{handle}/reviews SSR route.'", "disposition": "apply_inline"},
+    {"id": "DRIFT-L7-017", "layer": 7, "severity": "INFO", "category": "cosmetic", "title": "implementation-log Session 22 doesn't enumerate Added/Modified files in canonical structure (informational only)", "proposed_fix": "No edit required; flag for awareness only.", "disposition": "no_action"}
   ],
-  "carry_forward_from_run_8": [
+  "carry_forward_from_run_10": [
+    {"id": "DRIFT-L1-002", "severity": "WARNING", "category": "structural", "status": "RESOLVED_IN_RUN_10", "disposition": "verified_intact"},
+    {"id": "DRIFT-L2-017", "severity": "WARNING", "category": "structural", "status": "PARTIAL_REOPENED_AS_L2-028", "disposition": "see_L2-028"},
     {"id": "DRIFT-L2-019", "severity": "INFO", "category": "structural", "status": "OPEN_NARROWED", "disposition": "defer_invite_mechanic_cluster"},
     {"id": "DRIFT-L3-017", "severity": "WARNING", "category": "structural", "status": "OPEN", "disposition": "defer_invite_mechanic_cluster"},
     {"id": "DRIFT-L4-009", "severity": "WARNING", "category": "structural", "status": "OPEN", "disposition": "defer_invite_mechanic_cluster"},
     {"id": "DRIFT-L4-013", "severity": "INFO", "category": "cosmetic", "status": "OPEN_DEFERRED", "disposition": "defer_convention_umbrella"},
     {"id": "DRIFT-L4-017", "severity": "INFO", "category": "cosmetic", "status": "OPEN_DEFERRED", "disposition": "defer_convention_umbrella"},
+    {"id": "DRIFT-L4-020", "severity": "INFO", "category": "cosmetic", "status": "OPEN_DEFERRED", "disposition": "defer_convention_umbrella"},
     {"id": "DRIFT-L5-008", "severity": "INFO", "category": "cosmetic", "status": "OPEN_DEFERRED", "disposition": "defer_convention_umbrella"},
     {"id": "DRIFT-L6-002", "severity": "WARNING", "category": "structural", "status": "OPEN", "disposition": "defer_low_priority_polish"}
   ],
-  "resolved_since_run_8": [],
-  "disposition": "applied_split_with_override",
+  "resolved_since_run_10": [],
+  "disposition": "applied_split_with_override_pending_user_confirmation",
   "gate_override": {
-    "granted": true,
+    "granted": false,
     "granted_at_iso": null,
-    "reason": "0 CRITICAL findings; every NEW WARN is documentation catch-up — plan.md / spec.md / product-spec not amended for the Session 15-16 shipped code (9 new endpoints, sidecar pattern, Review.deleted_at index, 4 new PostHog events, drag-reorder UX). Material gaps: (1) FR-034/FR-035 missing in spec for US-D2/D3, (2) Review delete AC missing for US-C3, (3) US-C3 edit affordance not mounted on any live route (L6-004 — code exists, not wired). All resolvable in coordinated edit pass. Carry-forwards (L2-019, L3-017, L4-009, L6-002) remain user-deferred under existing dispositions. Sessions 15-16 themselves landed cleanly: 0 orphan files, every Must Have story has route + component + test evidence except US-C3 partial."
+    "reason": "Awaiting user decision. 0 CRITICAL findings; every NEW WARN is documentation catch-up — plan.md / spec.md / product-spec / tasks.md not amended for the very large Sessions 18-22 shipped surface (§11 closeout + entire §13 14-task cluster + dispatcher contract change + migration runner + reviews sub-route). Material gaps: (1) spec.md says 14 active notification types; code has 16, (2) PushSubscription entity missing from spec + plan, (3) plan §8 dispatcher prose hasn't caught up to the shipped contract (in_app-first row creation, notification_id threading, FailedEmail retry, asyncio.to_thread wrap, 410-Gone subscription cleanup, TYPES registry, security email lock, quiet-hours TZ math, 4-bucket Redis scheme), (4) tasks.md §13 cluster + T030 + T094 (16 tasks) lost their structural fields entirely, (5) T118/T119 Paths stale post route-rename. Carry-forwards (L3-017, L4-009, L6-002) remain user-deferred under existing dispositions. Code is healthy: 867 backend pass / 3 skip across 179 source files; 63 frontend Vitest pass; Biome 131 files + tsc 0 errors + next build 16+2 routes; zero orphan files."
   },
-  "honest_assessment": "Sessions 15-16 are healthier than the doc-drift count suggests. Code shipped clean (+62 tests for §8 reviews; +30 for §9 backlog; 592 backend pass / 3 skip; 11 frontend routes; zero orphan files). The drift is downstream: plan.md hasn't tracked the new endpoints / indexes / events that landed inline, and US-C3 edit is built but not surfaced. Both are recoverable in a single pass. The most material true gap is L6-004 (edit-review dialog needs ~10 lines to mount on the reading-view footer) — that's a code change, not a doc fix.",
-  "next_action": "Continue to §10 Social graph + Feed (T101-T108). Re-run sync-verify after the next cluster lands.",
-  "applied_inline_resolutions": [
-    "L1-001: product-spec/user-stories.md S-D2 — sort-mode v2-defer breadcrumb added.",
-    "L2-020: spec.md §5 — FR-034 (drag-reorder for US-D2) and FR-035 (auto-remove on log for US-D3) inserted.",
-    "L2-021: product-spec/user-stories.md S-C3 retitled 'Edit (or delete)'; delete AC line added. spec.md US-C3 AC updated with delete semantics (soft-delete + 30d grace + 410 on double-delete).",
-    "L2-022: product-spec/data-model.md Review block — `edited_at` + `deleted_at` field lines added.",
-    "L3-020: plan.md §6 reviews row — appended `delete_review` + `get_review` + users-sidecar note + soft-delete semantics.",
-    "L3-021: plan.md §6 backlog row — appended `list_backlog_items` + `contains_album` + albums-sidecar note.",
-    "L3-022: plan.md §3.1 reviews row — appended `deleted_at sparse` index and 30d-grace note (parallels diary_entries).",
-    "L3-023: plan.md §12.1 — replaced `critic_seed_active=true` with CriticSeed table FK as truth; explained denormalisation rejection.",
-    "L3-024: plan.md §15.2 PostHog table — replaced `backlog.added` row with 4 shipped events (item_added, item_removed, reordered, converted_to_log).",
-    "L4-019: tasks.md §8 — restored orphan `**T094 — Reviews-only profile sub-route**` header at line 860 with full Description tying it to T092 owner-controls + L6-004 interim mount.",
-    "L4-018 + L5-012: tasks.md T093a Paths — dropped `opengraph-image.tsx`; cited the backend GET /reviews/{id} addition; documented T093c follow-up.",
-    "L5-013: tasks.md T100 Paths — dropped `apps/web/src/lib/analytics.ts`; cited `apps/api/.../diary/routes.py` where emit_event actually fires.",
-    "L6-004: apps/web/src/components/review-reading-view/index.tsx — added owner-only Edit button (Pencil icon) that opens the existing EditReviewDialog. Build green after the change (96 files lint, 0 tsc errors, 11 routes build)."
-  ],
+  "honest_assessment": "Sessions 18-22 shipped a remarkable amount of code (~200 backend tests + ~50 frontend tests + 6 new endpoints + 3 adapters + 1 worker + 6 frontend components + 2 new pages + migration runner + reviews sub-route). The code is healthy across every quality gate. The drift is downstream and structural-documentary: 30+ enumeration entries missing across plan §3.1/§6/§4.5/§15.2/§8/§7; spec.md notification count off by 2; tasks.md §13 cluster lost its convention. The single biggest task-doc problem is L4-026 (16 tasks lost their structural fields) — that's a heavy single fix but it unblocks all future Layer 5 forward-sweeps for the §13 cluster. The L2-028 count drift (14 vs 16) is a 2-line edit. The L3-036 plan §8 doc-catchup is the heaviest plan edit but resolves the conceptual core of the §13 design surface. Nothing here is a bug; it's all 'what we shipped vs what we promised in our docs' alignment.",
+  "next_action": "User reviews Run #11 findings + chooses disposition. Recommended: apply 17 inline edits in a single coordinated pass mirroring Run #10. After that — continue Phase 6 implementation toward §14 Profile/Settings (T145-T152) or §15 Observability (T153-T161). Re-run sync-verify after the next cluster lands.",
+  "applied_inline_resolutions": [],
   "deferred_resolutions": [
     "L2-019 (INFO structural) — invite-mechanic cluster sequencing",
     "L3-017 (WARN structural) — invite-mechanic cluster",
@@ -108,5 +111,10 @@
     "L4-020 (INFO cosmetic) — Paths-convention umbrella",
     "L5-008 (INFO cosmetic) — Paths-convention umbrella",
     "L6-002 (WARN structural) — low-priority polish (US-A1 handle suggestions on collision)"
+  ],
+  "history": [
+    {"run": 9, "date": "2026-05-23", "verdict": "DRIFT_DETECTED", "critical": 0, "warning": 12, "info": 10, "tasks_completed_at_run": 95},
+    {"run": 10, "date": "2026-05-23", "verdict": "DRIFT_DETECTED", "critical": 0, "warning": 14, "info": 13, "tasks_completed_at_run": 107, "disposition": "applied_split_with_override (16 inline + 8 deferred)"},
+    {"run": 11, "date": "2026-05-23", "verdict": "DRIFT_DETECTED", "critical": 0, "warning": 18, "info": 14, "tasks_completed_at_run": 128, "disposition": "applied_split_with_override_pending_user_confirmation (17 inline + 5 deferred — recommended)"}
   ]
 }

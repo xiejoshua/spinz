@@ -26,6 +26,8 @@ This is the **conceptual** data model — entities, relationships, and key field
 | **Report** | User-filed report of content or another user | User → system |
 | **Notification** | A notification record (in-app/email/push surfaces derived) | User |
 | **NotificationPreferences** | Per-user, per-type notification settings | User |
+<!-- sync-fix L2-030 (Run #11): PushSubscription added — shipped Session 20 (T136 WebPush adapter). -->
+| **PushSubscription** | Per-device VAPID push registration; 410-Gone deletes dead sub on send | User |
 <!-- CR-001: JustFinishedPrompt marked DEFERRED-TO-V2 — entity preserved in schema; nothing wires it at MVP. -->
 | **JustFinishedPrompt** | *(DEFERRED-TO-V2)* Pending or dismissed "just-finished" auto-prompt for the user — preserved as deferred surface area for v2 streaming integration | User |
 | **SuggestedFollow** | A precomputed follow suggestion (refreshed offline) | system |
@@ -187,6 +189,8 @@ Follow {
   state                    # enum: active | pending (if followee is private) | rejected
   created_at
   approved_at              # datetime, nullable
+  # sync-fix L2-031 (Run #11): source allowlist added — shipped Session 18 on POST /users/{handle}/follow body.
+  source                   # literal allowlist of 6 values {onboarding_preselected, onboarding_mutual_taste, suggestion, profile, invite, manual}; defaults to "profile" when not specified. Drives (a) T142 onboarding-wave N-001 suppression and (b) PostHog `social.follow` funnel facet.
 }
 ```
 
@@ -297,6 +301,23 @@ NotificationPreferences {
   email_address: # falls back to User.email when unset
 }
 ```
+
+<!-- sync-fix L2-030 (Run #11): PushSubscription entity added — shipped Session 20 (T136 WebPush adapter). Adapter deletes the row on 410-Gone responses; one row per device endpoint. -->
+### PushSubscription
+Per-device VAPID web-push registration. The web-push adapter loads these rows per-recipient and fans out a push for each; the adapter DELETEs any row that returns 410 Gone (the browser revoked the subscription). One row per device per user.
+```
+PushSubscription {
+  id                       # KSUID
+  user_id                  # FK → User; indexed
+  endpoint                 # str — browser-provided push URL; UNIQUE
+  p256dh_key               # str — client public key
+  auth_secret              # str
+  user_agent               # str | None — diagnostic
+  created_at               # datetime
+  last_used_at             # datetime | None — bumped on successful send (re-POST is idempotent: updates last_used_at instead of inserting)
+}
+```
+Indexes: `(user_id)` indexed for fan-out; `(endpoint)` UNIQUE for dedup.
 
 <!-- sync-fix L2-026 (Run #10): SuggestedFollow → Suggestion + separate SuggestionDismissal. Session 17 T104 shipped two collections (suggestions + suggestion_dismissals) with TTL indexes 7d / 30d. The original single-entity sketch is preserved below as historical note. -->
 ### Suggestion

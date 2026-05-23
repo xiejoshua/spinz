@@ -181,6 +181,8 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 - [ ] **US-E1** As Casey, I want to follow another user. **AC:** Asymmetric follows; existing follow dissolved on block; optimistic count update.
 - [ ] **US-E2** As Casey, I want to browse a follower's diary. **AC:** Reverse-chrono, 25/page; followers-only entries hidden from non-followers; private entries always hidden.
+  <!-- sync-fix L6-005 (Run #11): T094 reviews-only sub-route shipped Session 22 — anchored under US-E2 AC for story-side traceability. -->
+  - Profile diary view has a Reviews tab that filters to entries with attached reviews — backed by `GET /api/v1/users/{handle}/reviews` and the `/profile/{handle}/reviews` SSR route.
 - [ ] **US-E3** As Casey, my home feed surfaces signal from my follow graph. **AC:** Two modes via `GET /api/v1/feed?mode=for_you|latest` — **"For You"** (default, weighted reverse-chrono with review-attached +20%, ★★★★★/★ +15%, top-5-interacted users +10%, 3-day half-life decay) and **"Latest"** (strict chronological — weights disabled); toggle persists per-device. (sync-fix L2-023, Run #10)
 - [ ] **US-E4** As Casey, I want to see "Friends who rated & Aux'd" on album pages. **AC:** Avatars + ratings + Aux badges (🏅) from followed accounts, sorted by rating desc then date desc.
 - [ ] **US-E5** As Casey, the app suggests follows based on taste overlap. **AC:** Suggestion job runs after ≥5 ratings; "Discover" tab; dismissed suggestions excluded for 30d.
@@ -196,7 +198,14 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 - [ ] **US-G1** As Maya, I want to edit my profile (display name, bio, avatar, handle). **AC:** Optimistic save; **handle policy** (per Q16/FR-029): immutable first 30d; thereafter ≤1 change per 30d; 200–500 obvious-squat reservations at launch; verification flow for reserved-squat claims post-launch.
 - [ ] **US-G2** As Casey, I want privacy defaults (per-entry visibility, private profile). **AC:** Default visibility setting; private-profile toggle creates pending follow-requests queue (creation side ships at MVP via T101); existing followers stay on visibility downgrade. **Approver side (approve / decline / list pending) tracked under S-H3 (Could-have) — MVP ships request creation only** (sync-fix L2-025, Run #10).
 <!-- sync-fix L2-017 (Run #5): notification count corrected — was "18 active types". Canonical post-CR-001 is 14 active + 6 reserved-gap (N-009/010/011/018 deferred per CR-001 + N-019/020 reserved post-R3 Lists removal). See product-spec/notification-taxonomy.md + product-spec/README.md. -->
-- [ ] **US-G3** As Casey, I want to manage notifications. **AC:** 14 active notification types with per-channel toggles; quiet hours config; quiet hours suppress push + in-app prompts, not email/digest. (Auto-prompts deferred-to-v2 per CR-001 along with the rest of the S-B6 surface.)
+<!-- sync-fix L2-028 (Run #11): count bumped 14 → 16; N-009/N-010 are registered with all defaults OFF per CR-001 deferral rather than removed from the enum. -->
+<!-- sync-fix L2-029 (Run #11): US-G3 AC expanded with 5 shipped facets (N-008 push hardcoded-off, N-016/N-017 email lock, coalesced rollup copy, curated tz select, push-prompt criteria). -->
+- [ ] **US-G3** As Casey, I want to manage notifications. **AC:** 16 active notification types (N-009 / N-010 registered with all defaults OFF per CR-001 deferral) + 4 reserved-gap IDs (N-011, N-018, N-019, N-020) with per-channel toggles; quiet hours config; quiet hours suppress push + in-app prompts, not email/digest. (Auto-prompts deferred-to-v2 per CR-001 along with the rest of the S-B6 surface.)
+  - N-008 weekly_digest push is hardcoded-off (UI shows the switch as disabled-off).
+  - N-016/N-017 (security.new_session, security.password_changed) email channel is locked-on — cannot be disabled (server returns 422 `security_email_locked` if PUT prefs attempts to set it false).
+  - Inbox bell coalesced rollup copy: "X and N others did something" when a coalesced parent notification has `payload.coalesced_count > 0`.
+  - Quiet-hours timezone select is a curated IANA shortlist with browser-resolved fallback (NOT the full `Intl.supportedValuesOf("timeZone")` dropdown).
+  - Push permission prompt criteria: shown only after `follows_count >= 3 OR 7d activity`; banner is non-modal; "Not now" sets a 14d re-show timer.
 - [ ] **US-G4** As Maya, I want to block and report. **AC:** Block dissolves existing follow + hides content; report queued with reason; ≥3 reports/7d → daily-log-scan flagging (manual review at MVP, no auto-suspension).
 - [ ] **US-G5** As Casey, I want to export my data and delete my account. **AC:** Email JSON+CSV within 24h; 30-day deletion grace period with banner + cancel option.
 
@@ -378,7 +387,10 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 | Follow, Block | Asymmetric follows; cascading dissolve on block |
 | Report | Open / reviewing / actioned / dismissed; 90d resolution audit |
 <!-- sync-fix L2-017 (Run #5): 14 active post-CR-001 (was 18); 4 deferred (N-009/010/011/018) + 2 R3-reserved (N-019/020). -->
-| Notification, NotificationPreferences | 14 active types (+ 6 reserved-gap IDs); per-channel + quiet-hours |
+<!-- sync-fix L2-028 (Run #11): count bumped 14 → 16; N-009/N-010 are registered with all defaults OFF per CR-001 deferral rather than removed from the enum. -->
+| Notification, NotificationPreferences | 16 active notification types (N-009 / N-010 registered with all defaults OFF per CR-001 deferral) + 4 reserved-gap IDs (N-011, N-018, N-019, N-020); per-channel + quiet-hours |
+<!-- sync-fix L2-030 (Run #11): PushSubscription entity added — shipped in Session 20 (T136 WebPush adapter). -->
+| PushSubscription | Per-device VAPID push registration. 410-Gone deletes dead sub on send. Indexed (user_id, endpoint UNIQUE). |
 <!-- CR-001: JustFinishedPrompt entity deferred — cluster moves to v2 with streaming integration -->
 | JustFinishedPrompt *(new in R1)* | **DEFERRED-TO-V2 (CR-001)** — Pending / dismissed / logged / expired lifecycle; entity schema kept in spec for v2 planning, not implemented at MVP. |
 | SuggestedFollow | Precomputed offline; dismissed exclusion 30d |

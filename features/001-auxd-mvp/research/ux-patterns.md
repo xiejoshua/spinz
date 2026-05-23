@@ -139,6 +139,7 @@ The third pattern, and the one most prior music-tracking attempts botched, is **
   - *Push (default ON):* new follower, reply on review, mention.
   - *Push (default OFF, opt-in in settings):* friend logged an album you've also logged ("Brat — 4 of your friends rated it 4★+"), weekly digest.
   - *Email (default OFF):* weekly digest, security only.
+  - *Push permission prompt is non-modal* — fires when follows_count ≥ 3 OR 7d active; 14d re-show after dismiss. Avoids first-session interruption (Goodreads anti-pattern).
   - Source anti-pattern: Goodreads default-on email digests + "X added a book to their shelf" emails — top App Store complaint cluster 2023–24.
 - **Visibility controls:**
   - Profile: *Public / Followers only / Private*.

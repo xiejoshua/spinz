@@ -22,7 +22,8 @@
 
 1. **External-call resilience.** Every provider/API call wraps in retry + timeout + circuit-breaker. No bare `httpx.get(...)` in feature code; all external calls go through `lib/resilience` helpers. Failures degrade gracefully with documented fallback behavior, never propagate to the user as raw 500s.
 
-2. **Schema-versioned MongoDB documents.** Every Mongo document carries `_schema_version: int`. Readers tolerate `current_version` and `current_version − 1`; lazy-upgrade on next write. Migration code lives in `backend/migrations/{collection}_v{N}_to_v{N+1}.py`. No big-bang migrations.
+<!-- sync-fix L3-040 (Run #11): migration path + filename pattern updated to match shipped runner (T030, Session 22). -->
+2. **Schema-versioned MongoDB documents.** Every Mongo document carries `_schema_version: int`. Readers tolerate `current_version` and `current_version − 1`; lazy-upgrade on next write. Migration code lives in `apps/api/src/auxd_api/migrations/00N_<name>.py`. Filename-ordered numeric prefix; runner skips already-applied (by `_schema_version` threshold); fail-loud on apply error (re-raises so a botched migration cannot serve traffic). No big-bang migrations.
 
 3. **Library-first modules.** Backend organized as composable libraries, not god-objects. Each `backend/<module>/` exposes a single public service (`<module>.service.<verb>(...)`); internals are private. Cross-module calls go through public services, not internal helpers.
 
@@ -276,6 +277,8 @@ All Phase 1 research recommendations confirmed unchanged.
 <!-- CR-001: notification type enum — `just_finished` + listening-history-provider-revoked types removed at MVP -->
 | `notifications` | 100k–1M | `user_id + created_at desc` · `user_id + read_at` (sparse) · TTL 90d | Hard-delete via TTL after 90d. **CR-001:** the `just_finished` notification type and the `listening_history_provider_revoked` notification type are NOT emitted at MVP (deferred to v2 with the listening-history integration). All other notification types remain. |
 | `notification_preferences` | 5k–10k (embedded on User) | — | Embedded; no separate collection |
+<!-- sync-fix L3-033 (Run #11): push_subscriptions added — shipped Session 20 (T136 WebPush adapter). -->
+| `push_subscriptions` | 5k–20k | `user_id` · `endpoint` unique · `last_used_at` | Per-device VAPID; 410-Gone DELETE on dead send (web_push adapter cleanup). |
 <!-- CR-001: `just_finished_prompts` collection — kept for forward compat; not used at MVP -->
 | `just_finished_prompts` | **DEFERRED-TO-V2 (CR-001)** | `user_id + state + detected_at desc` · TTL 24h on `pending` | **Status: DEFERRED-TO-V2.** Collection schema and indexes are kept in this plan so the v2 listening-history integration can land without a migration; no writers exist at MVP. |
 <!-- sync-fix L3-025 (Run #10): SuggestedFollow → Suggestion + separate SuggestionDismissal — Session 17 T104 shipped two collections with TTL semantics that differ (Suggestions 7d, Dismissals 30d). -->
@@ -438,6 +441,14 @@ Per-endpoint limits (defaults, tunable via `Settings`):
 | `GET /albums/{id}/friends` (`friends_read`) | 120 | 240 | Album-detail rollup surface; high frequency |
 | `GET /feed?mode=for_you\|latest` (`home_feed_read`) | 180 | 360 | Home feed is the hot path — generous ceiling for infinite-scroll |
 | `GET /api/v1/users/{handle}` (`profile_read`) | 120 | 240 | Profile-page reads; default ceiling matches album-detail |
+<!-- sync-fix L3-038 (Run #11): 7 new rows for Sessions 19-22 endpoints (notifications inbox + bell badge + prefs + push subs + onboarding cards + reviews-only sub-route). -->
+| `GET /api/v1/notifications/unread-count` | 120 | 240 | Badge poll; cheapest endpoint |
+| `POST /api/v1/notifications/mark-all-read` | 10 | 20 | Bulk action |
+| `PUT /api/v1/users/me/notification-preferences` | 10 | 20 | Writes prefs subdoc + quiet-hours fields |
+| `POST /api/v1/users/me/push-subscriptions` | 10 | 20 | Idempotent re-POST updates `last_used_at` |
+| `GET /api/v1/onboarding/cards` | 30 | 60 | Inline critic-seed card ordering |
+| `GET /api/v1/notifications` | 60 | 120 | Inbox list pagination |
+| `GET /api/v1/users/{handle}/reviews` | 60 | 120 | T094 reviews-only profile sub-route |
 
 Fail-mode is **FAIL OPEN** (see §1.1.1 — same policy as notification rate-limit). Sentry alert tag `endpoint_rate_limit.redis_down` fires on Redis unavailability. 429 responses include `Retry-After` header.
 
@@ -532,15 +543,17 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 | `reviews` | `write_review`, `edit_review` *(writes `review_edit_history` row per edit — §3.1 + FR-030)*, `delete_review` *(T087 — soft-delete via `deleted_at` with 30d grace; cron-swept thereafter cascading ReviewLike rows)*, `like_review`, `unlike_review`, `list_reviews_for_album`, `get_review` *(T093a SSR backing — single-review fetch with reviewer + album + viewer-entry sidecars; 404 to non-readers to avoid existence-leak)* | Sort: newest/most-liked/highest-rated; write/like endpoints rate-limited (§4.5). List endpoint returns `users: {[id]: UserCard}` sidecar (one author lookup per page, deduped on `_id`) — parallels the diary `albums` sidecar (sync-fix L3-020/L4-015, Run #9). |
 | `backlog` | `add_to_backlog`, `remove_from_backlog`, `reorder`, `auto_remove_on_log`, `list_backlog_items` *(paginated; default sort by `position` asc)*, `contains_album` *(GET /users/me/backlog/contains?album_id=… — frontend convenience helper for the +Up Next button)* | Private by default. List endpoint returns `albums: {[id]: AlbumCard}` sidecar (deduped on `_id`) — same pattern as diary `§6` row (sync-fix L3-021, Run #9). |
 <!-- sync-fix L3-026 + L3-027 (Run #10): social row updated to match shipped surface; respond_to_follow_request + list_follow_requests marked DEFERRED until private-profile responder UI ships (T101a follow-up). list_suggestions + dismiss_suggestion + list_blocks + get_user_profile appended. -->
-| `social` | `follow`, `unfollow`, `block`, `unblock`, `list_blocks`, `list_suggestions`, `dismiss_suggestion`, `get_user_profile` *(viewer-relation classifier — see FR-036)*, `is_following`, `is_blocked` · **DEFERRED:** `respond_to_follow_request` *(approve/decline)* + `list_follow_requests` (T101a follow-up — private-profile request creation ships at MVP via T101 writing `FollowRequest` rows with `state=pending`; responder UI deferred to v1.x — S-H3 Could-have). | Asymmetric; private-profile creates pending FollowRequest (US-G2 infra); follow + block endpoints rate-limited (§4.5). |
+<!-- sync-fix L3-035 (Run #11): `follow` body now accepts an optional `source` literal allowlist (6 values) — shipped Session 18; drives T142 suppression + PostHog funnel facet. -->
+| `social` | `follow` *(optional body {source: literal allowlist[6] = {onboarding_preselected, onboarding_mutual_taste, suggestion, profile, invite, manual}; defaults to "profile"})*, `unfollow`, `block`, `unblock`, `list_blocks`, `list_suggestions`, `dismiss_suggestion`, `get_user_profile` *(viewer-relation classifier — see FR-036)*, `is_following`, `is_blocked` · **DEFERRED:** `respond_to_follow_request` *(approve/decline)* + `list_follow_requests` (T101a follow-up — private-profile request creation ships at MVP via T101 writing `FollowRequest` rows with `state=pending`; responder UI deferred to v1.x — S-H3 Could-have). | Asymmetric; private-profile creates pending FollowRequest (US-G2 infra); follow + block endpoints rate-limited (§4.5). |
 <!-- sync-fix L3-027 (Run #10): feed row covers the shipped surface; T103 + T106. -->
 | `feed` | `home_feed` *(`?mode=for_you|latest` — see §10.1)*, `friends_who_rated_for_album` *(T103 — dedicated endpoint for surfaces that don't fetch the full album rollup)* | Fan-out-on-read; weighted ordering for `for_you` mode. List endpoints carry `users: {[id]: UserCard}` + `albums: {[id]: AlbumCard}` + `reviews: {[id]: ReviewSnippet}` sidecars (parallels diary/reviews sidecars). |
 <!-- CR-001: `search` service surface — cold-catalog fallback is MusicBrainz live + Discogs -->
 | `search` | `search_albums`, `search_users` | Atlas Search primary; cold-catalog miss → live MusicBrainz lookup → Discogs fallback (§11.1) |
-| `notifications` | `dispatch`, `mark_read`, `list_user_notifications`, `update_preferences` | Dispatcher + adapters |
+<!-- sync-fix L3-034 (Run #11): notifications + seeding rows expanded — Sessions 19-21 shipped the full dispatcher + 6 public HTTP endpoints + push subscription endpoints; T117a shipped GET /api/v1/onboarding/cards. -->
+| `notifications` | **Public HTTP:** `list_user_notifications`, `unread_count`, `mark_read`, `mark_all_read`, `get_preferences`, `update_preferences`, `register_push_subscription`, `delete_push_subscription` · **Internal:** `dispatch`, `is_notifiable`, `allow_dispatch`, `validate_payload`, `render_in_app` | Dispatcher + adapters. **Dispatcher writes in-app row FIRST, then threads `notification_id` to email + push adapters (S20 contract change).** |
 <!-- CR-001: `prompts` module DEFERRED-TO-V2 — no listening-history polling at MVP -->
 | `prompts` | **DEFERRED-TO-V2 (CR-001)** | Just-finished detection (`poll_user_for_just_finished`, `dismiss_prompt`, `disable_for_user`) ships with the v2 listening-history integration. Module folder may exist as a stub at MVP for the JustFinishedPrompt collection schema, but no service code or routes are wired in. |
-| `seeding` | `get_critic_seeds_for_onboarding`, `record_card_response`, `compute_suggestions` | Pre-checked card ordering |
+| `seeding` | `get_critic_seeds_for_onboarding`, `record_card_response`, `compute_suggestions`, `score_critics_by_genre_signature`, `get_card_recommendations_for_user`, `get_onboarding_cards` · **Public HTTP:** `GET /api/v1/onboarding/cards` | Pre-checked card ordering; T117a Session 18 surfaced the HTTP endpoint for the inline critic-seed deck. |
 | `moderation` | `submit_report`, `daily_scan_for_flagged_users`, `action_report` | Daily cron |
 | `data_export` | `enqueue_export`, `process_export`, `mail_export` | GDPR pipeline |
 <!-- CR-001: providers/spotify row dropped; providers/musicbrainz + providers/discogs rows added -->
@@ -601,6 +614,11 @@ The public share URL is `/@handle` (plan §11.3, e.g. `auxd.app/@casey`), but th
 <!-- CR-001: just-finished prompt frontend component DEFERRED — no detection signal exists at MVP without the listening-history provider -->
 **DEFERRED-TO-V2 (CR-001).** The `components/just-finished-prompt/` component was designed to render at the top of `/` (home feed) when a `JustFinishedPrompt` was in `pending` state for the user, with 60s TanStack Query polling, an overflow "Disable auto-prompts" toggle, and a per-album "Don't prompt for this album" dismiss with 30d stickiness. The component is removed from the MVP component tree (the directory may exist as an empty stub for §1.2 file-tree alignment) because the detection signal that fed it (recently-played + currently-playing polling from a third-party listening-history provider) is itself deferred. When v2 reintroduces detection, this component returns unchanged.
 
+<!-- sync-fix L3-037 (Run #11): new §7.6 web push subscribe flow — Session 21 shipped T141 push-prompt + sw.js + criteria gates. -->
+### 7.6 Web push subscribe flow
+
+Push permission prompt is **non-modal** — banner on `/notifications` page. Criteria: `follows_count >= 3 OR (now - first_visit_at) >= 7d`. `markFollow()` increments `follows_count` from FollowButton mutation onSuccess + onboarding step-2 follow loop. `push-bootstrap.tsx` silently registers the service worker + stamps `first_visit_at` in localStorage at app boot. "Not now" sets `dismissed_at` (re-show after 14d). VAPID public key via `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. `public/sw.js` minimal: `push` event → `self.registration.showNotification(title, {body, tag, data:{click_url, type}, icon, badge})`; `notificationclick` handler focuses an existing matching tab or opens a new window.
+
 ---
 
 ## 8. Notification Dispatcher (load-bearing — Goodreads-firehose prevention)
@@ -632,6 +650,9 @@ notifications.dispatch(user_id, type, payload)
 └─────────────────────────────┘
 ```
 
+<!-- sync-fix L3-036 (Run #11): §8.1 architecture clarified — in-app-FIRST contract, S20 dispatcher change. -->
+The dispatcher creates the in-app Notification row **first** (via `InAppAdapter`), then threads the resulting `notification_id` to email and push adapters which UPDATE existing channel-state rather than write new rows. This S20 contract change keeps the audit trail single-row-per-dispatch (one `Notification` row aggregates the per-channel `channel_dispatch_state` rather than fanning out N rows per channel).
+
 ### 8.2 Coalescer + rate limiter (locked in Phase 5C)
 
 - **Per-user rate limit (per-type, independent):** ≤5 in-app/hour, ≤25/day. Each notification type has its own counter; e.g., follow notifications and review-like notifications consume separate buckets. Excess events queue into a single coalesced "X new updates today" notification.
@@ -644,16 +665,54 @@ notifications.dispatch(user_id, type, payload)
 ### 8.3 Adapters
 
 - `InAppAdapter`: writes to `notifications` collection; counts toward rate limit.
-- `EmailAdapter`: sends via Resend (Python SDK `resend`); transactional emails ignore quiet hours; weekly digest fires Monday 09:00 user-local.
-- `WebPushAdapter`: VAPID-signed payloads; respects quiet hours (suppresses push within window); coalesces if multiple events fire close together.
+<!-- sync-fix L3-036 (Run #11): EmailAdapter expanded — Jinja2 templates, retry contract, FailedEmail audit row, NOOP-when-subject-None semantics. -->
+- `EmailAdapter`: sends via Resend (Python SDK `resend`); transactional emails ignore quiet hours; weekly digest fires Monday 09:00 user-local. Renders per-type Jinja2 templates with `autoescape` + `StrictUndefined` from `apps/api/src/auxd_api/templates/email/*.html` (`base` + `n008_weekly_digest` + `n013_account_deletion_scheduled` + `n014_account_deletion_reminder_7d` + `n016_security_new_session` + `n017_security_password_changed`). Wraps `resend.Emails.send` in `lib/resilience.retry(attempts=3, backoff=exponential, 0.5–5s)`. On retry exhaustion writes a `FailedEmail` audit row + Sentry `email.send_failed`. **NOOP** for types whose `TYPES[type].email_subject` is `None`.
+<!-- sync-fix L3-036 (Run #11): WebPushAdapter expanded — pywebpush + asyncio.to_thread, 410-Gone cleanup, NOOP-when-VAPID-unset. -->
+- `WebPushAdapter`: VAPID-signed payloads; respects quiet hours (suppresses push within window); coalesces if multiple events fire close together. Calls `pywebpush.webpush` wrapped in `asyncio.to_thread` (sync SDK; don't block the event loop). Loads `PushSubscription` rows for the recipient and fans out; 410/404 responses DELETE the dead subscription; other exceptions Sentry-tagged and swallowed (send-and-forget). **NOOP** when `VAPID_PRIVATE_KEY` unset.
+- Per-type defaults and copy templates live in the `TYPES` registry (T137 — `NotificationTypeSpec` dataclasses per notification type, the single source of truth for `default_in_app/email/push` flags + email subject + inbox preview copy).
 
 ### 8.4 Weekly digest job
 
 - Scheduled via arq cron: every 5 minutes the worker checks for users whose `Monday 09:00 user-local` is in the current 5-minute window; per-user-tz awareness.
 <!-- CR-002: digest hero changed from single → three-hero carousel (NT-2). -->
 - For each eligible user: query top 10 entries from their follow graph past 7 days + a three-hero carousel callout (most-rated, most-reviewed, most-Aux'd in your follow graph this week — three cheap aggregate queries, one per metric, each indexed on `DiaryEntry.created_at` filtered by follow-graph). Carousel renders ABOVE the chronological body.
-- Render plain HTML email; send via Resend; emit PostHog event `digest.sent`.
+<!-- sync-fix L3-036 (Run #11): T143 review-likes hero — Session 20 added review-likes hero prepended above the carousel; PostHog `digest.sent` properties enumerated. -->
+- **T143 prepends a "Your reviews got X likes this week" hero entry above the three-hero carousel** when ≥1 ReviewLike landed on the recipient's reviews in the trailing 7d (no zero-state — hero is omitted entirely when count is zero).
+- Render plain HTML email; send via Resend; emit PostHog event `digest.sent` with properties `{user_id, hero_count, body_count, has_review_likes_hero}`.
 - Suppression: `weekly_digest` channel must be ON in `NotificationPreferences`.
+
+<!-- sync-fix L3-036 (Run #11): new §8.5 — is_notifiable predicate spec (S19 dispatcher contract). -->
+### 8.5 `is_notifiable` predicate (decision order)
+
+`is_notifiable(*, user, notif_type, actor_id=None) -> list[ChannelDecision]` returns one `ChannelDecision(channel, allowed, reason)` per channel (`in_app`, `email`, `push`).
+
+Decision order (per-channel, short-circuit on first deny):
+
+1. `user.status != ACTIVE` → blocked. Reason: `user_status`.
+2. `actor_id` provided AND `Block` exists with `blocker_id=user.id, blocked_id=actor_id` → blocked. Reason: `blocked`.
+3. Per-channel preference dict: if `user.notification_preferences.{channel}[notif_type.value]` key is present, use that bool. Reason on deny: `user_pref_off`.
+4. Fallback to `TYPES[notif_type].default_{channel}` from the T137 registry. Reason on deny: `channel_default_off`.
+5. **Push-only quiet-hours check** via `zoneinfo.ZoneInfo(user.quiet_hours_tz)` with rollover-midnight handling (e.g., 22:00–08:00 spans midnight). Reason on deny: `quiet_hours`. Email/digest bypass quiet hours per NT-3.
+6. **Security-types email lock:** N-016 (`security.new_session`) + N-017 (`security.password_changed`) email channel returns `allowed=True` regardless of pref (hardcoded). Reason: NOT denied via `security_email_locked` — the PUT prefs route uses this same constant to return `422 security_email_locked` when a client tries to set `email[security.*] = false`.
+
+Reasons enum: `{user_pref_off, channel_default_off, quiet_hours, blocked, user_status, security_email_locked}`.
+
+<!-- sync-fix L3-036 (Run #11): new §8.6 — allow_dispatch coalescer + rate limiter spec (T133, S19). -->
+### 8.6 Coalescer + rate limiter (`allow_dispatch`)
+
+`allow_dispatch(*, user_id, actor_id, notif_type, target_id=None) -> CoalesceDecision` is the single entry point downstream of `is_notifiable`. Four Redis buckets gate dispatch:
+
+1. **Per-user per-type hour** — `notif:{user_id}:rate:{type}:hour` sorted-set sliding window, **5/hr**.
+2. **Per-user per-type day** — `notif:{user_id}:rate:{type}:day` sliding window, **25/day**.
+3. **Per-actor cross-type day** — `notif:{actor_id}:{user_id}:cross_type:day` sliding window, **3/24h** (only when `actor_id` provided — system-emitter events skip this bucket).
+4. **Per-event dedup** — `notif:dedup:{type}:{actor_id}:{target_id}` `SET NX EX 1h` for race-free atomic write.
+
+Verdicts:
+- Dedup hit → `drop`.
+- Any rate breach → `coalesce(coalesced_window)`.
+- Else → `send` (records hits in all 3 rate buckets atomically via pipeline).
+
+**FAIL-OPEN** on Redis unavailability: returns `send` + emits `notif_limiter.redis_down` Sentry warning. Mirrors the `lib/rate_limit.py` pipeline pattern.
 
 ---
 
@@ -877,6 +936,9 @@ async def get_critic_seeds_for_onboarding(user: User, limit: int = 6) -> list[Cr
 ```
 
 Mutual-taste suggestions (4 cards) are computed separately via `seeding.compute_suggestions(user)`; they're UNCHECKED by default.
+
+<!-- sync-fix L3-039 (Run #11): genre-bonus formula + `_GENRE_BONUS_MAX = 20.0` knob pinned — shipped Session 18 (T117). -->
+Score = `priority + (jaccard_overlap_with_viewer_genre_signature × _GENRE_BONUS_MAX)` where `_GENRE_BONUS_MAX = 20.0` — caps the genre-overlap bonus so a perfect-match closes a 20-point priority gap. Bumping above 30 would let a niche-genre critic with priority=50 outrank a generalist with priority=80, which the founder doesn't want until per-user signal is much richer (codified in [seeding-strategy.md §3](./product-spec/seeding-strategy.md)).
 
 <!-- sync-fix L3-032 (Run #10): post-onboarding suggestion scoring (T104) was only documented in tasks.md + product-spec/seeding-strategy.md §4 — moved here for plan.md completeness. -->
 ### 12.2.1 Post-onboarding suggestion scoring (T104 — Suggestion + SuggestionDismissal collections)
