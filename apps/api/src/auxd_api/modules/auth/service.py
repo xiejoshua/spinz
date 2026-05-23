@@ -38,6 +38,7 @@ __all__ = [
     "authenticate_user",
     "create_user_account",
     "validate_handle_format",
+    "validate_password_policy",
 ]
 
 
@@ -119,14 +120,24 @@ def validate_handle_format(handle: str) -> None:
         )
 
 
-def _validate_password(password: str) -> None:
-    """Raise :class:`WeakPasswordError` when ``password`` fails policy."""
+def validate_password_policy(password: str) -> None:
+    """Raise :class:`WeakPasswordError` when ``password`` fails policy.
+
+    Public alias for the T053 signup-time check so the T150 password-change
+    route can apply identical rules (>=12 chars, >=1 letter, >=1 digit)
+    without depending on a private symbol.
+    """
     if len(password) < _PASSWORD_MIN_LEN:
         raise WeakPasswordError(f"password must be at least {_PASSWORD_MIN_LEN} characters")
     if not _PASSWORD_LETTER_RE.search(password):
         raise WeakPasswordError("password must contain at least one letter")
     if not _PASSWORD_DIGIT_RE.search(password):
         raise WeakPasswordError("password must contain at least one digit")
+
+
+# Backwards-compatible private alias — pre-existing call sites import
+# this name; the public helper above is the canonical one for new code.
+_validate_password = validate_password_policy
 
 
 def _validate_email(email: str) -> None:

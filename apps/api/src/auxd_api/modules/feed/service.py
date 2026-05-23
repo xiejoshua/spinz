@@ -58,6 +58,7 @@ from auxd_api.modules.albums.models import Album
 from auxd_api.modules.diary.models import DiaryEntry
 from auxd_api.modules.reviews.models import Review
 from auxd_api.modules.seeding.models import CriticSeed
+from auxd_api.modules.seeding.service import critic_seed_user_ids
 from auxd_api.modules.social.models import Block, Follow, FollowState
 from auxd_api.modules.users.models import User
 
@@ -555,12 +556,19 @@ def _score_entry(
 # ---------------------------------------------------------------------------
 
 
-def _serialize_user_card(user: User) -> dict[str, Any]:
+def _serialize_user_card(user: User, *, critic_seed_ids: set[str] | None = None) -> dict[str, Any]:
+    """Return the public user card, including the T152 ``is_critic_seed`` flag.
+
+    ``critic_seed_ids`` is the per-batch set of user-ids that are active
+    critic seeds, computed once by the caller via
+    :func:`auxd_api.modules.seeding.service.critic_seed_user_ids`.
+    """
     return {
         "id": user.id,
         "handle": user.handle,
         "display_name": user.display_name,
         "avatar_url": user.avatar_url,
+        "is_critic_seed": (user.id in critic_seed_ids if critic_seed_ids is not None else False),
     }
 
 
@@ -764,7 +772,10 @@ async def build_home_feed(
     users_payload: dict[str, dict[str, Any]] = {}
     if page_user_ids:
         user_rows = await User.find({"_id": {"$in": list(page_user_ids)}}).to_list()
-        users_payload = {row.id: _serialize_user_card(row) for row in user_rows}
+        critic_seed_ids = await critic_seed_user_ids([row.id for row in user_rows])
+        users_payload = {
+            row.id: _serialize_user_card(row, critic_seed_ids=critic_seed_ids) for row in user_rows
+        }
 
     albums_payload: dict[str, dict[str, Any]] = {}
     if page_album_ids:

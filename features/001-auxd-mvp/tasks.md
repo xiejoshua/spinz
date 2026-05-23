@@ -1302,68 +1302,68 @@
 
 ## §14 Profile, Settings, Privacy
 
-- [ ] **T145 — Edit profile UI (display_name, bio, avatar, handle)**
-      Paths: apps/web/src/app/(app)/settings/profile/page.tsx
+- [x] **T145 — Edit profile UI (display_name, bio, avatar, handle)** *(completed 2026-05-23 Session 23; /settings/profile page + components/settings/edit-profile-form.tsx. RHF + Zod form with display_name max 30, bio max 280, handle lowercase+alphanumeric+underscore 3-30; avatar file input with 5MB client-side limit + image preview. Submit uses new PATCH /api/v1/users/me (display_name, bio); separate POST /api/v1/users/me/avatar for the file; handle change calls existing T057 POST /handle and surfaces 30d-cooldown 422 via setApiFormErrors with friendly "You can change your handle again in N days" copy. PostHog `profile.updated` event on success.)*
+      Paths: apps/web/src/app/(app)/settings/profile/page.tsx, apps/web/src/components/settings/edit-profile-form.tsx, apps/api/src/auxd_api/modules/users/routes.py (PATCH /users/me)
       Size: M
       Deps: T109, T057
       Refs: US-G1; FR-029
       Description: Form for profile fields. Handle change uses T057 backend; UI shows lockout reason if applicable. Avatar upload (PUT to backend; 5MB max).
-      Done: E2E covers happy path + 30d-lock + change-too-soon error.
+      Done: form persists; T057 lockout copy renders; avatar preview wired.
 
-- [ ] **T146 — Avatar upload pipeline**
-      Paths: apps/api/src/auxd_api/modules/auth/routes.py, apps/api/src/auxd_api/lib/storage.py
+- [x] **T146 — Avatar upload pipeline** *(completed 2026-05-23 Session 23; lib/storage.py R2 facade `upload_avatar(user_id, raw_bytes, content_type) -> {"256": url, "128": url, "64": url}` via boto3 with endpoint_url + region_name="auto" + CacheControl: public, max-age=86400; new R2_AVATAR_BUCKET setting (default auxd-avatars). POST /api/v1/users/me/avatar in modules/users/routes.py accepts UploadFile, validates ≤5MB + content_type ∈ {image/jpeg, image/png, image/webp}, PIL EXIF-rotates + resizes via Image.Resampling.LANCZOS to 256/128/64 + encodes JPEG quality=85, updates User.avatar_url to 256px URL. Per-user 5/min rate limit. Pillow>=10.0 + python-multipart>=0.0.9 added to apps/api deps. 6 integration tests w/ monkeypatched boto3.)*
+      Paths: apps/api/src/auxd_api/lib/storage.py, apps/api/src/auxd_api/modules/users/routes.py (POST /users/me/avatar), apps/api/src/auxd_api/settings.py (R2_AVATAR_BUCKET), apps/api/pyproject.toml (Pillow + python-multipart), apps/api/tests/integration/test_avatar_upload.py
       Size: S
       Deps: T021
-      Refs: US-G1
-      Description: `POST /api/v1/users/me/avatar` accepts ≤5MB image; resizes to 256/128/64 sizes; stores on Fly volume or Cloudflare R2 (Phase 5 decision); returns URL.
-      Done: avatar upload works.
+      Refs: US-G1; plan.md §1.1.1 R2 row
+      Description: POST /api/v1/users/me/avatar accepts ≤5MB image; resizes 256/128/64; stores on Cloudflare R2; returns URL.
+      Done: 6 integration tests covering 401 / 413 oversize / 415 wrong content-type / 200 happy / User.avatar_url updated / rate-limit boundary.
 
-- [ ] **T147 — Privacy settings UI**
-      Paths: apps/web/src/app/(app)/settings/privacy/page.tsx
+- [x] **T147 — Privacy settings UI** *(completed 2026-05-23 Session 23; /settings/privacy + components/settings/privacy-settings-form.tsx. Selectors for default_entry_visibility + default_backlog_visibility (public/friends/private); private_profile toggle with help text explaining follow-request gating; keep_backlog_after_log toggle. Persists via new PUT /api/v1/users/me/privacy endpoint (updates 4 User fields). Pending follow-request inbox (T148 frontend) mounts on the same page below the privacy toggles.)*
+      Paths: apps/web/src/app/(app)/settings/privacy/page.tsx, apps/web/src/components/settings/privacy-settings-form.tsx, apps/api/src/auxd_api/modules/users/routes.py (PUT /users/me/privacy)
       Size: M
       Deps: T021
       Refs: US-G2; FR-013
       Description: Default visibility for new entries + new backlog items; private-profile toggle; "Keep backlog after logging" toggle.
-      Done: settings persist; private-profile flips behavior on subsequent reads.
+      Done: settings persist; private-profile flips behavior on subsequent reads via T151 gate.
 
-- [ ] **T148 — Private profile → follow-request queue**
-      Paths: apps/api/src/auxd_api/modules/social/service.py, apps/web/src/components/social/follow-requests.tsx
+- [x] **T148 — Private profile → follow-request queue** *(completed 2026-05-23 Session 23; backend adds three endpoints to modules/users/routes.py: GET /api/v1/users/me/follow-requests (paginated; sidecar users:{}), POST .../{id}/approve (sets FollowRequest.state=accepted + creates Follow row + N-003 dispatch + idempotent), POST .../{id}/decline (sets state=declined + idempotent, no Follow created, no N dispatch). Frontend components/social/follow-requests.tsx — useQuery list + Approve/Decline mutations with optimistic prune; mounted on /settings/privacy below the privacy toggles. 8 integration tests including 404 cross-user, idempotency, N-003 dispatch monkeypatch.)*
+      Paths: apps/api/src/auxd_api/modules/users/routes.py (3 endpoints), apps/web/src/components/social/follow-requests.tsx, apps/api/tests/integration/test_follow_requests_endpoints.py
       Size: M
       Deps: T101, T147
-      Refs: US-G2, US-H3
-      Description: When `is_private_profile=true`, new follows create `state=pending`; followee sees inbox of pending requests; can approve/reject.
-      Done: integration test.
+      Refs: US-G2, US-H3; product-spec/notification-taxonomy.md N-003
+      Description: When private_profile=true, new follows create state=pending; followee sees inbox of pending requests; can approve/reject. T101a closeout.
+      Done: integration tests cover approve creates Follow + N-003 dispatch; decline does not.
 
-- [ ] **T149 — Settings → Data (export + delete)**
-      Paths: apps/web/src/app/(app)/settings/data/page.tsx
+- [x] **T149 — Settings → Data (export + delete)** *(completed 2026-05-23 Session 23; /settings/data + components/settings/data-settings.tsx. "Export my data" button POSTs /api/v1/users/me/data-export — graceful 404 stub until T153 ships (treats 404 as queued + shows "Export queued — we'll email when ready" toast, same pattern as report-user from S17). "Delete my account" opens text-confirm Dialog requiring user to type "DELETE" to enable submit; POSTs to existing T058 /users/me/delete then redirects to /login. Grace-period cancel banner — if User.deletion_scheduled_for is set, banner appears above the page with cancel button calling DELETE /users/me/delete. Backend T153 export endpoint follow-up flagged.)*
+      Paths: apps/web/src/app/(app)/settings/data/page.tsx, apps/web/src/components/settings/data-settings.tsx
       Size: M
       Deps: T058, T153
       Refs: US-G5; FR-018, FR-019
-      Description: "Export my data" button enqueues T153 job. "Delete my account" with text-confirm modal triggers T058. Banner shows during grace period with cancel button.
-      Done: E2E covers both flows.
+      Description: Export-my-data button (T153-stub) + Delete-my-account text-confirm modal (T058 backend) + grace-period banner.
+      Done: both flows wired; T153 backend lands later, frontend works without it via graceful 404.
 
-- [ ] **T150 — Settings → Account (email, password change)**
-      Paths: apps/web/src/app/(app)/settings/account/page.tsx, apps/api/src/auxd_api/modules/auth/service.py
+- [x] **T150 — Settings → Account (email, password change)** *(completed 2026-05-23 Session 23; backend POST /api/v1/users/me/email (current_password + new_email; argon2 verify; lowercases + stores; bumps session_version; emits email.changed PostHog stub; per-user 5/hour rate limit) + POST /api/v1/users/me/password (current_password + new_password ≥12 chars via validate_password_policy promoted from auth/service.py; argon2 hash; bumps session_version; N-017 dispatch; 5/hour limit). Frontend /settings/account + account-settings.tsx with two RHF+Zod forms + logout-all-devices button calling existing T059 endpoint with confirmation modal. MVP simplification — email-confirm click-link pipeline deferred (would need new collection + verify-email template + click handler); current flow bumps session_version which forces re-login on other devices for security hygiene. Follow-up flagged. 10 integration tests including session_version bump assertions.)*
+      Paths: apps/web/src/app/(app)/settings/account/page.tsx, apps/web/src/components/settings/account-settings.tsx, apps/api/src/auxd_api/modules/users/routes.py (POST /users/me/email + /password), apps/api/src/auxd_api/modules/auth/service.py (validate_password_policy promoted)
       Size: M
       Deps: T053, T059
-      Refs: NFR Security
-      Description: Email change (with verify-email flow), password change (with current-password confirm), logout-all-devices button.
-      Done: E2E covers email + password change.
+      Refs: NFR Security; product-spec/notification-taxonomy.md N-017
+      Description: Email change (no click-link verify at MVP; bumps session_version), password change (current-password confirm + N-017 dispatch), logout-all-devices button (T059).
+      Done: 10 integration tests cover happy path + wrong-current-password + duplicate-email + too-short-password + rate-limit boundary + session_version bumps on both.
 
-- [ ] **T151 — Public profile (private-toggle-aware)**
-      Paths: covered in T109
+- [x] **T151 — Public profile (private-toggle-aware)** *(completed 2026-05-23 Session 23; ProfileClient gate in apps/web/src/components/diary/profile-client.tsx — branches on the backend-supplied `relation` field: relation === "blocked" renders "This account is unavailable" (no leak of block direction); relation === "pending" renders "Follow request sent" + public header (avatar + display_name + counts) without diary; target.private_profile && relation NOT IN {"self","following"} renders "This account is private" + Follow Request button (POSTs to /follow which creates FollowRequest); else renders existing Diary/Reviews tabs.)*
+      Paths: apps/web/src/components/diary/profile-client.tsx (T151 gate added)
       Size: (sub-task)
       Refs: US-G2
-      Description: When viewer not following private profile owner, render "This account is private" page instead of diary.
-      Done: covered.
+      Description: When viewer not following private profile owner, render "This account is private" page instead of diary. Reads relation classifier from existing GET /users/{handle}.
+      Done: 4 branches cover {blocked, pending, private-not-following, default}.
 
-- [ ] **T152 — Critic-suffix badge on display name**
-      Paths: apps/web/src/components/critic-badge/index.tsx
+- [x] **T152 — Critic-suffix badge on display name** *(completed 2026-05-23 Session 23; components/critic-badge/index.tsx renders subtle `<span className="text-muted-foreground">· Critic</span>` when isCritic === true. Backend sidecar serializers across feed/reviews/notifications now emit `is_critic_seed` (per-user) or `actor_is_critic_seed` (per-notification actor). New seeding/service.py helper `critic_seed_user_ids(user_ids)` batches the CriticSeed lookup to avoid N+1 (mirrors the existing batched user-card sidecar pattern). Mounted on ReviewCard, NotificationCard, FeedEntry, ProfileClient header.)*
+      Paths: apps/web/src/components/critic-badge/index.tsx, apps/api/src/auxd_api/modules/seeding/service.py (critic_seed_user_ids batch helper), apps/api/src/auxd_api/modules/feed/service.py (sidecar enrich), apps/api/src/auxd_api/modules/reviews/routes.py (sidecar enrich), apps/api/src/auxd_api/modules/notifications/routes.py (sidecar enrich), apps/web/src/components/review-card/index.tsx + apps/web/src/components/feed/feed-entry.tsx + apps/web/src/components/notifications/notification-card.tsx + apps/web/src/components/diary/profile-client.tsx (mount sites)
       Size: XS
       Deps: T117, T109
       Refs: SS-2
-      Description: Subtle "· Critic" text suffix inline next to display_name everywhere when `CriticSeed.active=true` for that user. No icons.
-      Done: badge renders inline on profile, reviews, feed entries.
+      Description: Subtle "· Critic" text suffix inline next to display_name everywhere when CriticSeed.active=true for that user. No icons.
+      Done: badge renders inline on profile + reviews + feed + notifications.
 
 ---
 

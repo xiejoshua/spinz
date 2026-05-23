@@ -1,5 +1,6 @@
 "use client";
 
+import { CriticBadge } from "@/components/critic-badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { DiaryAlbumCard } from "@/lib/diary-types";
@@ -55,6 +56,7 @@ export function FeedEntryCard({ entry, user, album, review }: Props) {
               className="truncate text-sm font-medium hover:underline"
             >
               {user?.display_name ?? user?.handle ?? `User ${entry.user_id.slice(0, 8)}`}
+              <CriticBadge isCritic={user?.is_critic_seed} />
             </Link>
             <span className="text-xs text-muted-foreground">{loggedDate}</span>
           </header>

@@ -8,14 +8,14 @@ export const metadata: Metadata = {
 
 export default function NotificationPreferencesPage() {
   return (
-    <article className="container max-w-3xl space-y-4 py-6">
+    <section className="space-y-4">
       <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
+        <h2 className="text-lg font-medium">Notifications</h2>
         <p className="text-sm text-muted-foreground">
           Choose what auxd should tell you about, and on which channels.
         </p>
       </header>
       <NotificationPrefsForm />
-    </article>
+    </section>
   );
 }

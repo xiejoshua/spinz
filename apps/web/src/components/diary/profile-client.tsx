@@ -1,5 +1,6 @@
 "use client";
 
+import { CriticBadge } from "@/components/critic-badge";
 import { DiaryList } from "@/components/diary/diary-list";
 import { BlockReportMenu } from "@/components/social/block-report-menu";
 import { FollowButton } from "@/components/social/follow-button";
@@ -31,6 +32,17 @@ export function ProfileClient({ handle }: Props) {
   const showSocialControls =
     profile != null && relation !== "self" && relation !== "anonymous" && relation !== "blocked";
 
+  // T151 — visibility gate. Block check first (must not leak existence), then
+  // pending follow-request to a private profile, then the general
+  // private-profile gate when the viewer isn't already following.
+  const blockedGate = profile != null && relation === "blocked";
+  const privateGate =
+    !!profile?.user.private_profile &&
+    relation !== "self" &&
+    relation !== "following" &&
+    !blockedGate;
+  const pendingRequest = privateGate && relation === "pending";
+
   return (
     <div className="space-y-6">
       <header className="flex items-start gap-4">
@@ -42,6 +54,7 @@ export function ProfileClient({ handle }: Props) {
         <div className="min-w-0 flex-1 space-y-1">
           <h1 className="truncate text-xl font-bold tracking-tight">
             {profile?.user.display_name ?? handle}
+            <CriticBadge isCritic={profile?.user.is_critic_seed} />
           </h1>
           <p className="text-sm text-muted-foreground">
             @{handle}
@@ -51,8 +64,10 @@ export function ProfileClient({ handle }: Props) {
               </Badge>
             )}
           </p>
-          {profile?.user.bio && <p className="pt-1 text-sm leading-relaxed">{profile.user.bio}</p>}
-          {profile && (
+          {profile?.user.bio && !blockedGate && (
+            <p className="pt-1 text-sm leading-relaxed">{profile.user.bio}</p>
+          )}
+          {profile && !blockedGate && (
             <dl className="flex gap-4 pt-2 text-sm">
               <div>
                 <dt className="sr-only">Followers</dt>
@@ -89,24 +104,46 @@ export function ProfileClient({ handle }: Props) {
           )}
         </div>
       </header>
-      <nav aria-label="Profile sections" className="border-b text-sm">
-        <ul className="flex gap-4">
-          <li>
-            <span className="inline-block border-b-2 border-foreground px-1 py-2 font-medium">
-              Diary
-            </span>
-          </li>
-          <li>
-            <Link
-              href={`/profile/${encodeURIComponent(handle)}/reviews`}
-              className="inline-block px-1 py-2 text-muted-foreground hover:text-foreground"
-            >
-              Reviews
-            </Link>
-          </li>
-        </ul>
-      </nav>
-      <DiaryList handle={handle} isOwner={isOwner} />
+
+      {blockedGate && (
+        <p className="rounded-md border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
+          This account is unavailable.
+        </p>
+      )}
+
+      {privateGate && !blockedGate && (
+        <div className="rounded-md border bg-muted/40 p-6 text-center text-sm">
+          <p className="font-medium">This account is private.</p>
+          <p className="text-muted-foreground">
+            {pendingRequest
+              ? "Follow request sent — waiting for approval."
+              : "Follow this user to see their diary, reviews, and lists."}
+          </p>
+        </div>
+      )}
+
+      {!blockedGate && !privateGate && (
+        <>
+          <nav aria-label="Profile sections" className="border-b text-sm">
+            <ul className="flex gap-4">
+              <li>
+                <span className="inline-block border-b-2 border-foreground px-1 py-2 font-medium">
+                  Diary
+                </span>
+              </li>
+              <li>
+                <Link
+                  href={`/profile/${encodeURIComponent(handle)}/reviews`}
+                  className="inline-block px-1 py-2 text-muted-foreground hover:text-foreground"
+                >
+                  Reviews
+                </Link>
+              </li>
+            </ul>
+          </nav>
+          <DiaryList handle={handle} isOwner={isOwner} />
+        </>
+      )}
     </div>
   );
 }

@@ -147,9 +147,25 @@ async def get_card_recommendations_for_user(
     return scored[:limit]
 
 
+async def critic_seed_user_ids(user_ids: list[str]) -> set[str]:
+    """Return the subset of ``user_ids`` that are an active critic seed (T152).
+
+    Sidecar serializers (review feeds, profile cards, notifications)
+    call this once per batch with the full set of user ids on the page,
+    then look up ``user_id in result`` per card. The single query against
+    the partial-active index makes the N+1 cost a non-issue even on
+    100-card pages.
+    """
+    if not user_ids:
+        return set()
+    rows = await CriticSeed.find({"user_id": {"$in": user_ids}, "active": True}).to_list()
+    return {row.user_id for row in rows}
+
+
 __all__ = [
     "DEFAULT_CARD_LIMIT",
     "ScoredCritic",
+    "critic_seed_user_ids",
     "get_card_recommendations_for_user",
     "score_critics_by_genre_signature",
 ]

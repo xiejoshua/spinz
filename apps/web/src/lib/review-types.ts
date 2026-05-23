@@ -19,6 +19,8 @@ export type ReviewUserCard = {
   handle: string;
   display_name: string;
   avatar_url: string | null;
+  /** T152 — flagged true when the user is an active CriticSeed. */
+  is_critic_seed?: boolean;
 };
 
 export type ReviewSort = "newest" | "most_liked" | "highest_rated";

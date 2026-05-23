@@ -1420,3 +1420,84 @@ small (S), independent, perfect cleanup-session fit.
 - 🟡 **No new follow-ups from this session.** T030 is intentionally a no-op skeleton; the next time a schema rolls forward, drop in `002_<name>.py` following the pattern in `runner.py`'s module docstring. T094 reuses existing infrastructure (ReviewCard + dialogs) with no new debt.
 
 
+## Session 23 — §14 Profile / Settings / Privacy cluster close-out (T145–T152) — 2026-05-23 late night
+
+### Goal
+
+Close §14 (Profile/Settings/Privacy) by shipping the full 8-task cluster
+plus the backing endpoints. This rounds out the user settings surface
+that started with /settings/notifications in Session 21 (T139). All
+shipped behind the existing (app)/layout chrome; navigable via a new
+/settings landing page that tabs across the 5 sub-pages.
+
+### What landed
+
+| Task | Surface |
+|------|---------|
+| T145 — Edit profile UI | `apps/web/src/app/(app)/settings/profile/page.tsx` + `components/settings/edit-profile-form.tsx`. RHF + Zod form for display_name (max 30), bio (max 280), handle (lowercase + alphanumeric + underscore, 3-30 chars), avatar (file input). Submit calls new backend `PATCH /api/v1/users/me` for display_name + bio + `POST /users/me/avatar` for the file + existing T057 `POST /users/me/handle` for handle. 30d-cooldown 422 surfaces via `setApiFormErrors` with "You can change your handle again in N days" copy. PostHog `profile.updated` on success. |
+| T146 — Avatar pipeline | `apps/api/src/auxd_api/lib/storage.py` is a thin R2 boto3 facade — `upload_avatar(user_id, raw_bytes, content_type) -> {"256": url, "128": url, "64": url}` with `endpoint_url + region_name="auto" + CacheControl: public, max-age=86400`. New `R2_AVATAR_BUCKET` setting (default `auxd-avatars`). `POST /api/v1/users/me/avatar` in `modules/users/routes.py` accepts UploadFile, validates ≤5MB + content_type ∈ {image/jpeg, image/png, image/webp}, PIL EXIF-rotates + LANCZOS-resizes to 256/128/64 + encodes JPEG quality=85, updates `User.avatar_url` to the 256px URL. Per-user 5/min rate limit. `Pillow>=10.0` + `python-multipart>=0.0.9` added to deps. |
+| T147 — Privacy settings UI | `apps/web/src/app/(app)/settings/privacy/page.tsx` + `components/settings/privacy-settings-form.tsx`. Selectors for `default_entry_visibility` + `default_backlog_visibility` (public/friends/private), private_profile toggle with help-text, keep_backlog_after_log toggle. Persists via new `PUT /api/v1/users/me/privacy` endpoint. Pending follow-request inbox mounts on the same page below the privacy toggles. |
+| T148 — Follow-request inbox + approve/decline | Backend: `GET /api/v1/users/me/follow-requests` (paginated, sidecar `users: {[id]: UserCard}` for requesters), `POST .../{id}/approve` (sets `FollowRequest.state=accepted` + creates `Follow(state=accepted, source="invite")` + N-003 dispatch + idempotent), `POST .../{id}/decline` (sets state=declined + idempotent, no Follow created, no notification). Frontend `components/social/follow-requests.tsx` — useQuery list + Approve/Decline mutations with optimistic prune. Closes the T101a carry-forward from Session 17. |
+| T149 — Settings → Data | `apps/web/src/app/(app)/settings/data/page.tsx` + `components/settings/data-settings.tsx`. "Export my data" button POSTs `/api/v1/users/me/data-export` — graceful 404 stub until T153 ships (treats 404 as "queued" + shows "Export queued — we'll email when ready" toast). Delete-account flow with text-confirm Dialog requiring user to type "DELETE" to enable submit; POSTs to existing T058 endpoint then redirects to /login. Grace-period cancel banner above the page if `User.deletion_scheduled_for` is set. |
+| T150 — Account (email + password) | Backend `POST /api/v1/users/me/email` (current_password verify + lowercases + stores + bumps `session_version` for security hygiene + emits `email.changed` PostHog stub + 5/hour rate limit); `POST /api/v1/users/me/password` (current_password verify + new_password ≥12 chars via `validate_password_policy` promoted from `auth/service.py` + argon2 hash + bumps session_version + N-017 dispatch + 5/hour limit). Frontend `/settings/account` + `account-settings.tsx` with two RHF + Zod forms + Logout-all-devices button calling existing T059 endpoint with confirmation modal. **MVP simplification**: skipped email-confirm click-link pipeline; session_version bump forces re-login on other devices for security hygiene. Verify-email pipeline flagged as follow-up. |
+| T151 — Private-profile gate | Extended `apps/web/src/components/diary/profile-client.tsx` with 4 branches keyed on the backend-supplied `relation` field: (1) `blocked` → "This account is unavailable" (no leak of block direction), (2) `pending` → "Follow request sent" + public header (avatar + display_name + counts) without diary, (3) `target.private_profile && relation NOT IN {"self", "following"}` → "This account is private" + Follow Request button (POSTs to /follow which creates FollowRequest), (4) default → existing Diary/Reviews tabs. |
+| T152 — Critic-suffix badge | `apps/web/src/components/critic-badge/index.tsx` renders subtle `<span className="text-muted-foreground">· Critic</span>` when `isCritic === true`. Backend sidecar serializers across feed + reviews + notifications now emit `is_critic_seed` (per-user) or `actor_is_critic_seed` (per-notification actor). New `seeding/service.py` helper `critic_seed_user_ids(user_ids)` batches the CriticSeed lookup to avoid N+1 (mirrors the existing batched user-card sidecar pattern). Mounted inline next to display_name on ReviewCard + NotificationCard + FeedEntry + ProfileClient header. |
+| Settings landing page | New `/settings` page + `components/settings/settings-nav.tsx` linking to Profile / Privacy / Account / Data / Notifications (the existing T139 page). Mounts in the (app)/layout chrome. |
+
+### Tests added
+
+| File | Coverage |
+|------|---------|
+| `apps/api/tests/integration/test_avatar_upload.py` (NEW, 6 tests) | 401 unauth + 413 oversize + 415 wrong content-type + 200 happy path with monkeypatched boto3 + User.avatar_url updated + rate-limit boundary. |
+| `apps/api/tests/integration/test_follow_requests_endpoints.py` (NEW, 8 tests) | 401 + list returns own pending requests sorted desc + approve creates Follow + flips state + idempotent + decline flips state + no Follow created + idempotent + 404 if not owner of request + N-003 dispatch fires (monkeypatched). |
+| `apps/api/tests/integration/test_account_settings_endpoints.py` (NEW, 10 tests) | Email change happy + session_version bumped + wrong current_password → 422 + duplicate email → 409; password change happy + session_version bumped + N-017 dispatched + wrong current_password → 422 + too-short → 422 + rate-limit boundary on both. |
+| `apps/web/tests/unit/social-types.test.ts` (NEW, 3 tests) | FollowRequestsListResponse type + sort assertions. |
+
+### Progressive verify
+
+| Check | After | Backend | Frontend |
+|---|---|---|---|
+| #1 | §14 close-out (T145 + T146 + T147 + T148 + T149 + T150 + T151 + T152 + landing page + codegen) | ✅ ruff + format + mypy strict + pytest **891 pass / 3 skip** (+24 new) | ✅ Biome 145 files clean + tsc 0 errors + Vitest **66 pass** (+3 new) + `next build` **21 visible routes** (+6 new: /settings + /settings/{profile,privacy,account,data}; /settings/notifications was already there) + codegen api.ts regenerated |
+
+### Status snapshot
+
+- Tasks completed: **128 → 136 / 172** (79%). **§14 Profile/Settings/Privacy 0/8 → 8/8 CLUSTER COMPLETE.** Thirteen clusters fully closed: §0 §1 §3 §4 §5 §6 §7 §8 §9 §10 §11 §13 §14.
+- Backend test suite: **867 → 891 pass / 3 skip** (+24 net new — 6 avatar + 8 follow-requests + 10 account settings).
+- Frontend unit tests: **63 → 66** (+3).
+- Frontend routes: **17 → 21** (+4 new visible: /settings/{profile,privacy,account,data} plus the /settings landing page; /settings/notifications was already there from S21).
+- Source files tracked by mypy: **179 → 183** (+4).
+
+### Decisions + non-obvious calls
+
+- **T150 email-confirm click-link pipeline deferred.** Building a verify-email flow would need a new collection (VerifyEmailToken or similar), a new Resend template, and a click-link handler endpoint. Out of session scope. For MVP, the email-change path bumps `User.session_version` which forces re-login on every other device — security hygiene that catches most "someone changed my email" scenarios. Verify-email pipeline flagged as a follow-up.
+- **`validate_password_policy` promoted from private to public** in `auth/service.py`. T150's password-change endpoint imports the public name so the signup-time policy (12-char minimum) is identical to the password-change-time policy — single source of truth instead of a duplicated rule.
+- **`is_critic_seed` batched at the sidecar layer.** Naively, each rendered user-card could spawn a CriticSeed.find — N+1 over a feed page. The new `seeding/service.critic_seed_user_ids(user_ids: list[str]) -> set[str]` does one query over the page's distinct user_ids and returns the active critic-seed subset. Sidecar serializers in feed + reviews + notifications all consume this batch helper. Mirrors the existing user-card batching pattern from T074 / T093.
+- **R2 avatar bucket separate from backup bucket.** The mongodump backup uses `R2_BUCKET_NAME=auxd-backups`. Avatars need their own bucket because (a) different access pattern — avatars are publicly-readable, backups should not be, and (b) different retention — backups age out, avatars are durable. New `R2_AVATAR_BUCKET` setting with `auxd-avatars` default. Public-read ACL is assumed to be deploy-time — TODO comment in storage.py.
+- **T147 ships PUT only — no GET.** The privacy form seeds from sensible defaults and trusts the PUT response shape. If a re-fetch UX becomes necessary later (e.g., multi-tab sync), add a GET endpoint then. Avoided shipping a round-trip endpoint for one form.
+- **T148 inbox mounted on /settings/privacy** (not a standalone /settings/follow-requests page). Approval gate semantically belongs with privacy controls; one fewer route to maintain.
+- **T151 4-branch gate is the cleanest spec.** Considered collapsing the "blocked" and "private-not-following" branches but they need different copy ("unavailable" vs "private — request access") and the block direction must NOT leak (return 404 on relation === "blocked" rather than "you've blocked them").
+- **T152 critic badge text-only** per SS-2 spec. No icon, no color — just `· Critic` in muted text. Mirrors the founder's "editorial signal without overstating" intent.
+
+### Tests + quality gates
+
+| Gate | Result | Detail |
+|------|:------:|--------|
+| Backend ruff | ✅ | All checks passed |
+| Backend ruff format | ✅ | 183 files already formatted |
+| Backend mypy --strict | ✅ | No issues found in 183 source files |
+| Backend pytest | ✅ | 891 pass / 3 skip (+24 net new) |
+| Frontend Biome lint (root) | ✅ | 145 files clean |
+| Frontend tsc | ✅ | 0 errors |
+| Frontend Vitest | ✅ | 66 pass (+3) |
+| Frontend `next build` | ✅ | 21 visible routes (+6 new /settings/* + landing) |
+| Codegen (`@auxd/shared-types`) | ✅ | api.ts regenerated with /users/me/{avatar,privacy,email,password,follow-requests/...} paths |
+
+### Follow-ups flagged (NEW this session)
+
+- 🟡 **T149 → T153 backend wiring**: the export-my-data button currently treats 404 as "queued". When T153 (data export job from §15) lands, the backend will return 202 Accepted with a job ID; the frontend success copy is already correct, but the 404 catch-and-treat-as-success should become a 202 happy path.
+- 🟡 **T150 email-confirm pipeline**: current email change updates `User.email` directly + bumps session_version. A future verify-email click-link flow (new VerifyEmailToken collection + Resend template + GET /verify-email/{token} handler) would close the "what if attacker has the password" hole.
+- 🟡 **T146 R2 bucket public-read ACL**: the avatar bucket needs public-read configured at deploy time (Cloudflare R2 console or `aws s3api put-bucket-policy`). Documented as TODO in `storage.py` next to the URL builder.
+- 🟡 **N-002 follow.request_pending dispatch**: T148 ships approve flow with N-003 dispatch, but the request-creation side (T101 carry-forward) still doesn't dispatch N-002 when the FollowRequest is initially created. Three-line follow-up — add a single `await dispatch(...)` call inside the FollowRequest write path in `social/service.py`.
+- 🟡 **T152 critic badge mount completeness**: mounted on ReviewCard + NotificationCard + FeedEntry + ProfileClient header. NOT yet mounted on the Discover-tab card list (suggestions), the inbox notification copy renderer's secondary actor mentions, or the search-result user-card variant. Quick follow-up sweep when the right session lands. Existing CriticSeed.active is the source of truth — render path is the only gap.
+
+

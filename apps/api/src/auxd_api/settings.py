@@ -188,6 +188,14 @@ class Settings(BaseSettings):
         default="auxd-backups",
         description="R2 bucket name for mongodump backups (T010a).",
     )
+    R2_AVATAR_BUCKET: str = Field(
+        default="auxd-avatars",
+        description=(
+            "R2 bucket name for user-uploaded avatar images (T146). Kept distinct "
+            "from R2_BUCKET_NAME so the avatar bucket's public-read ACL doesn't leak "
+            "to the (private) mongodump archive."
+        ),
+    )
 
     # --- Web Push --------------------------------------------------------
     VAPID_PUBLIC_KEY: str = Field(

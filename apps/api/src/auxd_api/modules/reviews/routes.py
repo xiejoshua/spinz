@@ -77,6 +77,7 @@ from auxd_api.modules.reviews.service import (
     edit_review,
 )
 from auxd_api.modules.seeding.models import CriticSeed
+from auxd_api.modules.seeding.service import critic_seed_user_ids
 from auxd_api.modules.social.models import Block, Follow, FollowState
 from auxd_api.modules.users.models import User
 from auxd_api.modules.users.redirect import resolve_handle
@@ -290,13 +291,19 @@ def _serialize_review(review: Review) -> dict[str, Any]:
     }
 
 
-def _serialize_user_card(user: User) -> dict[str, Any]:
-    """Return the minimal user-card payload bundled in the reviews sidecar."""
+def _serialize_user_card(user: User, *, critic_seed_ids: set[str] | None = None) -> dict[str, Any]:
+    """Return the minimal user-card payload bundled in the reviews sidecar.
+
+    ``critic_seed_ids`` is the per-batch set of active-critic-seed user
+    ids — when provided, the card carries ``is_critic_seed`` so the
+    frontend ReviewCard renders the T152 ``· Critic`` suffix.
+    """
     return {
         "id": user.id,
         "handle": user.handle,
         "display_name": user.display_name,
         "avatar_url": user.avatar_url,
+        "is_critic_seed": (user.id in critic_seed_ids if critic_seed_ids is not None else False),
     }
 
 
@@ -782,7 +789,11 @@ async def get_album_reviews(
     users_payload: dict[str, dict[str, Any]] = {}
     if page_owner_ids:
         user_rows = await User.find({"_id": {"$in": list(page_owner_ids)}}).to_list()
-        users_payload = {user.id: _serialize_user_card(user) for user in user_rows}
+        critic_seed_ids = await critic_seed_user_ids([row.id for row in user_rows])
+        users_payload = {
+            user.id: _serialize_user_card(user, critic_seed_ids=critic_seed_ids)
+            for user in user_rows
+        }
 
     return {
         "reviews": [_serialize_review(review) for review in page],
@@ -988,9 +999,14 @@ async def get_review_by_id(review_id: str, request: Request) -> dict[str, Any]:
                 "visibility": viewer_entry.visibility.value,
             }
 
+    if user is not None:
+        critic_seed_ids = await critic_seed_user_ids([user.id])
+        user_card = _serialize_user_card(user, critic_seed_ids=critic_seed_ids)
+    else:
+        user_card = None
     return {
         "review": _serialize_review(review),
-        "user": _serialize_user_card(user) if user is not None else None,
+        "user": user_card,
         "album": _serialize_album_payload(album),
         "viewer_entry": viewer_entry_payload,
     }
@@ -1125,7 +1141,10 @@ async def get_user_reviews(
     # User sidecar — always exactly one row (the author). The frontend
     # keeps the same lookup shape as the album endpoint so it can share
     # the ReviewCard component.
-    users_payload: dict[str, dict[str, Any]] = {target.id: _serialize_user_card(target)}
+    critic_seed_ids = await critic_seed_user_ids([target.id])
+    users_payload: dict[str, dict[str, Any]] = {
+        target.id: _serialize_user_card(target, critic_seed_ids=critic_seed_ids)
+    }
 
     # Album sidecar — joined for every review on the page. Deduped by
     # album_id so the worst case is one Album lookup per distinct album

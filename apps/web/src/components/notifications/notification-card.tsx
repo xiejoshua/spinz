@@ -1,5 +1,6 @@
 "use client";
 
+import { CriticBadge } from "@/components/critic-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type NotificationItem, clickUrlFor, copyPartsFor, timeAgo } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
@@ -42,7 +43,8 @@ export function NotificationCard({ notification, onActivate }: Props) {
         <p className="text-sm leading-snug">
           {parts.actor ? (
             <>
-              <strong className="font-medium">{parts.actor}</strong>{" "}
+              <strong className="font-medium">{parts.actor}</strong>
+              <CriticBadge isCritic={notification.actor_is_critic_seed} />{" "}
             </>
           ) : null}
           <span>{parts.verb}</span>

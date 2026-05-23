@@ -629,6 +629,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Me
+         * @description Update display name / bio in place. Idempotent.
+         */
+        patch: operations["patch_me_api_v1_users_me_patch"];
+        trace?: never;
+    };
+    "/api/v1/users/me/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Avatar
+         * @description Accept a multipart avatar, resize to 256/128/64 px, upload to R2.
+         *
+         *     Validates size + content-type up-front so we never let an oversized
+         *     blob into PIL. On success returns the canonical 256px URL and a
+         *     ``sizes`` map. Updates ``User.avatar_url`` to the 256px URL.
+         */
+        post: operations["post_avatar_api_v1_users_me_avatar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me/backlog/contains": {
         parameters: {
             query?: never;
@@ -794,6 +838,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Change Email
+         * @description Change the user's email after re-verifying their current password.
+         *
+         *     MVP scope: no separate verify-email click-link flow (would require a
+         *     new collection + email template + click handler). We log an
+         *     ``email.changed`` event so a follow-up T?? can wire the confirmation
+         *     pipeline without re-touching this surface. ``session_version`` is
+         *     bumped so any sessions issued before the change need to re-auth.
+         */
+        post: operations["post_change_email_api_v1_users_me_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/follow-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get My Follow Requests
+         * @description List my pending follow requests sorted by ``created_at desc``.
+         *
+         *     Returns each row's requester profile (handle / display_name /
+         *     avatar_url) so the UI can render the card without a second
+         *     roundtrip. Cursor is the last row's id; the index on
+         *     ``(requestee_id, status, created_at desc)`` keeps this O(log n).
+         */
+        get: operations["get_my_follow_requests_api_v1_users_me_follow_requests_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/follow-requests/{request_id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Approve Follow Request
+         * @description Approve a pending follow request.
+         *
+         *     On a fresh approve:
+         *         * Transition the FollowRequest row to ``status=ACCEPTED``.
+         *         * Create the corresponding accepted ``Follow`` row.
+         *         * Dispatch ``N-003 follow.request_approved`` to the requester.
+         *
+         *     Idempotent: if the row is already ``ACCEPTED``, the route is a
+         *     no-op and returns the existing state (no duplicate Follow created,
+         *     no duplicate notification).
+         */
+        post: operations["post_approve_follow_request_api_v1_users_me_follow_requests__request_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/follow-requests/{request_id}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Decline Follow Request
+         * @description Decline a pending follow request.
+         *
+         *     Idempotent — re-declining an already-declined row is a 200 no-op.
+         *     Does NOT dispatch a notification (taxonomy: the requester will see
+         *     the decline on their next app open via the absent inbox row).
+         */
+        post: operations["post_decline_follow_request_api_v1_users_me_follow_requests__request_id__decline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/users/me/handle": {
         parameters: {
             query?: never;
@@ -838,6 +986,50 @@ export interface paths {
          *       with ``security_email_locked``).
          */
         put: operations["put_notification_preferences_api_v1_users_me_notification_preferences_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Change Password
+         * @description Change the user's password and bump ``session_version``.
+         *
+         *     Re-verifies the current password before applying the change. Fires
+         *     ``N-017 security.password_changed`` so the user sees the audit trail
+         *     in their inbox (email channel is LOCKED ON per taxonomy NT-2).
+         */
+        post: operations["post_change_password_api_v1_users_me_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/privacy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Put Privacy
+         * @description Replace the four privacy-policy fields atomically.
+         */
+        put: operations["put_privacy_api_v1_users_me_privacy_put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -1198,6 +1390,14 @@ export interface components {
          * @enum {string}
          */
         BlockReason: "harassment" | "spam" | "unwanted_contact" | "other";
+        /** Body_post_avatar_api_v1_users_me_avatar_post */
+        Body_post_avatar_api_v1_users_me_avatar_post: {
+            /**
+             * File
+             * @description JPEG/PNG/WebP, <=5MB
+             */
+            file: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1278,6 +1478,19 @@ export interface components {
             body?: string | null;
             /** Visibility */
             visibility?: string | null;
+        };
+        /**
+         * _EmailChangeRequest
+         * @description Wire shape for ``POST /users/me/email``.
+         */
+        _EmailChangeRequest: {
+            /** Current Password */
+            current_password: string;
+            /**
+             * New Email
+             * Format: email
+             */
+            new_email: string;
         };
         /**
          * _FollowRequestBody
@@ -1395,6 +1608,11 @@ export interface components {
             /** Actor Id */
             actor_id: string | null;
             /**
+             * Actor Is Critic Seed
+             * @default false
+             */
+            actor_is_critic_seed: boolean;
+            /**
              * Coalesced Count
              * @default 0
              */
@@ -1423,6 +1641,30 @@ export interface components {
             notifications: components["schemas"]["_NotificationOut"][];
         };
         /**
+         * _PasswordChangeRequest
+         * @description Wire shape for ``POST /users/me/password``.
+         */
+        _PasswordChangeRequest: {
+            /** Current Password */
+            current_password: string;
+            /** New Password */
+            new_password: string;
+        };
+        /**
+         * _PatchProfileRequest
+         * @description Wire shape for ``PATCH /users/me``.
+         *
+         *     Both fields are optional; the route applies whichever the caller
+         *     supplied. This lets the Edit Profile form submit partial updates
+         *     without first re-reading the current value.
+         */
+        _PatchProfileRequest: {
+            /** Bio */
+            bio?: string | null;
+            /** Display Name */
+            display_name?: string | null;
+        };
+        /**
          * _PreferencesIO
          * @description Wire shape for both GET response and PUT request body.
          *
@@ -1448,6 +1690,23 @@ export interface components {
              * @default true
              */
             weekly_digest: boolean;
+        };
+        /**
+         * _PrivacySettingsRequest
+         * @description Wire shape for ``PUT /users/me/privacy``.
+         *
+         *     All four fields are required so the client always sends the full
+         *     desired state — avoids the "did the user mean to clear this?" ambiguity
+         *     a PATCH would introduce. The Visibility enum is validated by Pydantic;
+         *     the route is otherwise a thin setter.
+         */
+        _PrivacySettingsRequest: {
+            default_backlog_visibility: components["schemas"]["auxd_api__lib__visibility__Visibility"];
+            default_entry_visibility: components["schemas"]["auxd_api__lib__visibility__Visibility"];
+            /** Keep Backlog After Log */
+            keep_backlog_after_log: boolean;
+            /** Private Profile */
+            private_profile: boolean;
         };
         /**
          * _PushKeys
@@ -1561,6 +1820,7 @@ export interface components {
     pathItems: never;
 }
 export type BlockReason = components['schemas']['BlockReason'];
+export type BodyPostAvatarApiV1UsersMeAvatarPost = components['schemas']['Body_post_avatar_api_v1_users_me_avatar_post'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type ValidationError = components['schemas']['ValidationError'];
 export type AddItemRequest = components['schemas']['_AddItemRequest'];
@@ -1568,6 +1828,7 @@ export type BlockRequest = components['schemas']['_BlockRequest'];
 export type CreateReviewRequest = components['schemas']['_CreateReviewRequest'];
 export type EditEntryRequest = components['schemas']['_EditEntryRequest'];
 export type EditReviewRequest = components['schemas']['_EditReviewRequest'];
+export type EmailChangeRequest = components['schemas']['_EmailChangeRequest'];
 export type FollowRequestBody = components['schemas']['_FollowRequestBody'];
 export type HandleChangeRequest = components['schemas']['_HandleChangeRequest'];
 export type LogEntryRequest = components['schemas']['_LogEntryRequest'];
@@ -1577,7 +1838,10 @@ export type MarkReadResponse = components['schemas']['_MarkReadResponse'];
 export type MissingAlbumRequest = components['schemas']['_MissingAlbumRequest'];
 export type NotificationOut = components['schemas']['_NotificationOut'];
 export type NotificationsListResponse = components['schemas']['_NotificationsListResponse'];
+export type PasswordChangeRequest = components['schemas']['_PasswordChangeRequest'];
+export type PatchProfileRequest = components['schemas']['_PatchProfileRequest'];
 export type PreferencesIo = components['schemas']['_PreferencesIO'];
+export type PrivacySettingsRequest = components['schemas']['_PrivacySettingsRequest'];
 export type PushKeys = components['schemas']['_PushKeys'];
 export type PushSubscriptionRequest = components['schemas']['_PushSubscriptionRequest'];
 export type PushSubscriptionResponse = components['schemas']['_PushSubscriptionResponse'];
@@ -2366,6 +2630,76 @@ export interface operations {
             };
         };
     };
+    patch_me_api_v1_users_me_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_PatchProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_avatar_api_v1_users_me_avatar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_post_avatar_api_v1_users_me_avatar_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_backlog_contains_api_v1_users_me_backlog_contains_get: {
         parameters: {
             query: {
@@ -2598,6 +2932,141 @@ export interface operations {
             };
         };
     };
+    post_change_email_api_v1_users_me_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_EmailChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_my_follow_requests_api_v1_users_me_follow_requests_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_approve_follow_request_api_v1_users_me_follow_requests__request_id__approve_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_decline_follow_request_api_v1_users_me_follow_requests__request_id__decline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     post_change_handle_api_v1_users_me_handle_post: {
         parameters: {
             query?: never;
@@ -2673,6 +3142,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["_PreferencesIO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_change_password_api_v1_users_me_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_PasswordChangeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_privacy_api_v1_users_me_privacy_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_PrivacySettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

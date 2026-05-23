@@ -3,9 +3,25 @@ import type { ReviewUserCard } from "@/lib/review-types";
 export type FollowState = "none" | "following" | "pending" | "self" | "blocked" | "anonymous";
 
 export type ProfileResponse = {
-  user: ReviewUserCard & { bio: string | null; private_profile: boolean };
+  user: ReviewUserCard & {
+    bio: string | null;
+    private_profile: boolean;
+    is_critic_seed?: boolean;
+  };
   counts: { followers: number; following: number };
   relation: FollowState;
+};
+
+export type FollowRequestEntry = {
+  id: string;
+  requester_id: string;
+  created_at: string;
+};
+
+export type FollowRequestsListResponse = {
+  requests: FollowRequestEntry[];
+  users: Record<string, ReviewUserCard>;
+  next_cursor: string | null;
 };
 
 export type FollowMutationResponse = {

@@ -58,6 +58,7 @@ from auxd_api.modules.notifications.models import (
 )
 from auxd_api.modules.notifications.push_models import PushSubscription
 from auxd_api.modules.notifications.types import EMAIL_LOCKED_TYPES
+from auxd_api.modules.seeding.service import critic_seed_user_ids
 from auxd_api.modules.users.models import NotificationPreferencesSubDoc, User
 
 _LOGGER = logging.getLogger("auxd.notifications.routes")
@@ -218,6 +219,7 @@ class _NotificationOut(BaseModel):
     actor_handle: str | None
     actor_display_name: str | None
     actor_avatar_url: str | None
+    actor_is_critic_seed: bool = False
     read_at: datetime | None
     created_at: datetime
     coalesced_count: int = 0
@@ -315,6 +317,7 @@ async def list_notifications(
     if actor_ids:
         actor_rows = await User.find({"_id": {"$in": list(actor_ids)}}).to_list()
         actors_by_id = {actor.id: actor for actor in actor_rows}
+    critic_actor_ids = await critic_seed_user_ids(list(actor_ids))
 
     items: list[_NotificationOut] = []
     for row in rows:
@@ -330,6 +333,9 @@ async def list_notifications(
                 actor_handle=actor.handle if actor is not None else None,
                 actor_display_name=actor.display_name if actor is not None else None,
                 actor_avatar_url=actor.avatar_url if actor is not None else None,
+                actor_is_critic_seed=(
+                    row.actor_id is not None and row.actor_id in critic_actor_ids
+                ),
                 read_at=row.read_at,
                 created_at=row.created_at,
                 coalesced_count=coalesced_count,

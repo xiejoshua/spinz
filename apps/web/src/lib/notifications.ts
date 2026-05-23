@@ -31,6 +31,8 @@ export type NotificationItem = {
   actor_handle: string | null;
   actor_display_name: string | null;
   actor_avatar_url: string | null;
+  /** T152 — true when the actor is an active CriticSeed account. */
+  actor_is_critic_seed?: boolean;
   read_at: string | null;
   created_at: string;
   coalesced_count: number;

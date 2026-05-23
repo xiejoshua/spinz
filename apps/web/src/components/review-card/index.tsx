@@ -1,5 +1,6 @@
 "use client";
 
+import { CriticBadge } from "@/components/critic-badge";
 import { LikeButton } from "@/components/review-card/like-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,7 @@ export function ReviewCard({ review, user, showOwnerControls, onEdit, onDelete }
             <div className="min-w-0 leading-tight">
               <p className="truncate text-sm font-medium">
                 {user?.display_name ?? user?.handle ?? `User ${review.user_id.slice(0, 8)}`}
+                <CriticBadge isCritic={user?.is_critic_seed} />
               </p>
               <p className="truncate text-xs text-muted-foreground">@{user?.handle ?? "unknown"}</p>
             </div>
