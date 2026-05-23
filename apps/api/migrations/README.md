@@ -17,31 +17,59 @@ or the ``atlas-cli`` once per cluster.
 |------|------------|-------|
 | ``atlas_search/albums_index.json`` | ``albums`` | Free-text search over ``title`` + ``artist_credit`` with edge-N-gram autocomplete + popularity boost via ``log1p(rating_count)`` (T068) |
 
-### Apply via Atlas UI
+### Apply via Atlas UI (canonical at MVP)
 
-1. Open the Atlas cluster → **Search** tab → **Create Index**.
+1. Open the Atlas cluster → **Search** tab → **Create Search Index**.
 2. Choose **JSON Editor**.
-3. Select the target database + collection (``albums``).
-4. Paste the contents of ``atlas_search/albums_index.json`` and name the
-   index ``albums_text_search`` (must match the ``name`` field in the JSON
-   so the application code can reference it).
+3. Set:
+   - **Index name**: ``albums_text_search`` (must match the ``name``
+     field at the top of ``atlas_search/albums_index.json`` — the
+     application's ``$search`` calls reference this string).
+   - **Database**: ``auxd_dev``
+   - **Collection**: ``albums``
+4. Paste **only the contents of the ``definition`` block** into the
+   JSON-body editor — i.e. drop the outer ``{"name": ..., "definition":
+   {...}}`` wrapper. The UI takes the name from the field above and
+   expects only the definition shape in the body. (The full
+   ``{name, definition}`` wrapper is the ``atlas-cli`` format, not the
+   UI format.)
 5. Submit. Index build typically completes in ~1 minute on a small
-   catalog.
+   catalog. Status flips ``BUILDING → STEADY``; once ``STEADY``,
+   ``GET /api/v1/search`` will hit the Atlas tier first.
 
-### Apply via atlas-cli (automation)
+### Apply via MongoDB Atlas CLI (automation)
 
-For CI / staging-promotion pipelines:
+> ⚠️ **Binary-name collision warning.** The MongoDB Atlas CLI installs
+> a binary called ``atlas``. **A separate, unrelated tool from ariga.io
+> (a SQL schema-migration tool) also installs a binary called
+> ``atlas``.** If you ran ``brew install atlas`` you got the ariga one;
+> its top-level commands are ``copilot / login / migrate / schema``
+> with no ``clusters`` subcommand. To get the MongoDB Atlas CLI:
+>
+> ```bash
+> brew install mongodb-atlas-cli
+> # If ariga atlas is already linked, unlink it first:
+> brew unlink atlas
+> brew link mongodb-atlas-cli
+> ```
+>
+> Or symlink the MongoDB binary as ``mongo-atlas`` to keep both
+> co-resident.
+
+For CI / staging-promotion pipelines (assumes the MongoDB ``atlas`` CLI
+is installed and logged in via ``atlas login``):
 
 ```bash
 atlas clusters search indexes create \
-  --clusterName "<cluster-name>" \
+  --clusterName "main" \
   --file apps/api/migrations/atlas_search/albums_index.json
 ```
 
-The ``--file`` flag accepts the same JSON document used in the UI flow.
-Idempotency: if an index with the same name already exists, the CLI
-returns an error; use ``atlas clusters search indexes update --indexId
-<id>`` to modify an existing index instead.
+The ``--file`` flag accepts the **full** ``{name, definition}`` wrapper
+JSON. Idempotency: if an index with the same name already exists, the
+CLI returns an error; use ``atlas clusters search indexes update
+--indexId <id> --file apps/api/migrations/atlas_search/albums_index.json``
+to modify an existing index instead.
 
 ### Search behavior
 
