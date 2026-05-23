@@ -215,12 +215,34 @@ def _get_posthog_client() -> Posthog | None:
     construction itself raises we log it and disable PostHog for the
     rest of the process lifetime — we'd rather lose analytics than fail
     a request.
+
+    Settings construction itself is also wrapped: in test contexts where
+    the env doesn't carry the full required-key set (encryption keys),
+    pydantic-settings raises ``ValidationError`` before we can read
+    ``POSTHOG_API_KEY``. The "never raise into the caller" discipline
+    that governs ``emit_event`` then needs to extend to that path too,
+    otherwise a single observability call in a worker test brings down
+    the entire suite when the env is sparse. We absorb the error and
+    cache the disabled state — production environments always carry
+    the full key set so this branch is benign there.
     """
     global _posthog_client, _posthog_init_attempted
     if _posthog_init_attempted:
         return _posthog_client
     _posthog_init_attempted = True
-    settings = get_settings()
+    try:
+        settings = get_settings()
+    except Exception as exc:
+        # Sparse-env path: log + return None silently. Same observability
+        # contract as the Posthog-construction-failure branch below.
+        log_call(
+            provider="posthog",
+            endpoint="settings_load",
+            latency_ms=0.0,
+            status="failed",
+            extra={"error": str(exc)},
+        )
+        return None
     if settings.POSTHOG_API_KEY is None:
         return None
     try:
