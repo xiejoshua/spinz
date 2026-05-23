@@ -62,7 +62,9 @@ export function LoginForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      {/* noValidate disables HTML5 native validation so RHF + Zod own the error UX. */}
+      {/* Without it, type="email" intercepts submit with the browser's own tooltip. */}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {rootError && (
           <p
             role="alert"

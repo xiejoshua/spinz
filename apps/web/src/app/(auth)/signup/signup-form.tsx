@@ -55,7 +55,8 @@ export function SignupForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      {/* noValidate disables HTML5 native validation so RHF + Zod own the error UX. */}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {rootError && (
           <p
             role="alert"
