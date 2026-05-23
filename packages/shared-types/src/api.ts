@@ -38,6 +38,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Login
+         * @description Verify credentials and issue a session cookie.
+         *
+         *     Returns ``200`` with the public-user payload on success and ``401``
+         *     with a generic ``invalid_credentials`` error code on any failure
+         *     path. The route logs which sub-case fired internally so ops can
+         *     distinguish "unknown email" from "wrong password" without leaking
+         *     the distinction to the client.
+         */
+        post: operations["login_api_v1_auth_login_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout
+         * @description Clear the session cookies on the current device.
+         *
+         *     No-op for anonymous callers — returns ``200`` either way so a logout
+         *     button on the client doesn't need conditional logic around current
+         *     auth state.
+         */
+        post: operations["logout_api_v1_auth_logout_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/logout-all-devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Logout All Devices
+         * @description Invalidate every outstanding session for the current user.
+         *
+         *     Bumps ``User.session_version`` so any cookie issued before this call
+         *     fails the version check the next time the session middleware decodes
+         *     it. Also clears the current device's cookies for parity with
+         *     :func:`logout`.
+         *
+         *     **Known trade-off (documented in the route docstring):** the
+         *     :class:`auxd_api.middleware.SessionMiddleware` does *not* re-validate
+         *     ``session_version`` against the User on every request — the version
+         *     check happens at decode time only, so an already-decoded session
+         *     won't be re-checked until the cookie's refresh threshold kicks in
+         *     (<7 days remaining) or the cookie expires (30d). A future v1.x
+         *     ticket will add per-request version checks via a Redis cache. At
+         *     MVP scale this is acceptable: logout-all is a defence against a
+         *     lost device, not a real-time kill switch.
+         */
+        post: operations["logout_all_devices_api_v1_auth_logout_all_devices_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Signup
+         * @description Create a new account and issue a session cookie.
+         *
+         *     Returns ``201`` with the public-user payload on success. Failure
+         *     modes:
+         *
+         *     * ``422`` — Pydantic validation (bad email shape, short password) or
+         *       service-level format violations (handle char-class, reserved-squat
+         *       list, weak password).
+         *     * ``409`` — handle or email already in use.
+         */
+        post: operations["signup_api_v1_auth_signup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/missing-album": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Missing Album
+         * @description Persist a missing-album report and return a friendly confirmation.
+         *
+         *     The endpoint accepts anonymous calls; ``reporter_id`` is set to the
+         *     session user id when an authenticated session is present, otherwise
+         *     ``None``. Returns ``201`` with the new ``report_id`` and a copy-
+         *     deck-controlled thank-you string.
+         */
+        post: operations["report_missing_album_api_v1_reports_missing_album_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/search": {
         parameters: {
             query?: never;
@@ -63,6 +201,50 @@ export interface paths {
         get: operations["search_api_v1_search_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Schedule Deletion
+         * @description Schedule account deletion 30 days from now (idempotent).
+         */
+        post: operations["post_schedule_deletion_api_v1_users_me_delete_post"];
+        /**
+         * Delete Cancel Deletion
+         * @description Cancel a pending account deletion.
+         */
+        delete: operations["delete_cancel_deletion_api_v1_users_me_delete_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/handle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Change Handle
+         * @description Apply the FR-029 handle-change policy and persist the rename.
+         */
+        post: operations["post_change_handle_api_v1_users_me_handle_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -122,6 +304,68 @@ export interface components {
             /** Error Type */
             type: string;
         };
+        /**
+         * _HandleChangeRequest
+         * @description Wire shape for ``POST /users/me/handle``.
+         */
+        _HandleChangeRequest: {
+            /** New Handle */
+            new_handle: string;
+        };
+        /**
+         * _LoginRequest
+         * @description Wire shape for ``POST /auth/login``.
+         */
+        _LoginRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Password */
+            password: string;
+        };
+        /**
+         * _MissingAlbumRequest
+         * @description Wire shape for ``POST /reports/missing-album``.
+         *
+         *     ``artist`` + ``album`` are mandatory because they're the minimum the
+         *     catalog team needs to triage. ``query`` mirrors the original search
+         *     term verbatim so duplicate-detection in the moderation queue can
+         *     group "users tried X and missed" reports together. ``mbid_hint`` and
+         *     ``discogs_url_hint`` are user-supplied breadcrumbs the T065 worker
+         *     consumes to short-circuit upstream search when the user already
+         *     knows the canonical id.
+         */
+        _MissingAlbumRequest: {
+            /** Album */
+            album: string;
+            /** Artist */
+            artist: string;
+            /** Discogs Url Hint */
+            discogs_url_hint?: string | null;
+            /** Mbid Hint */
+            mbid_hint?: string | null;
+            /** Query */
+            query?: string | null;
+        };
+        /**
+         * _SignupRequest
+         * @description Wire shape for ``POST /auth/signup``.
+         */
+        _SignupRequest: {
+            /** Display Name */
+            display_name?: string | null;
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+            /** Handle */
+            handle: string;
+            /** Password */
+            password: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -131,6 +375,10 @@ export interface components {
 }
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type ValidationError = components['schemas']['ValidationError'];
+export type HandleChangeRequest = components['schemas']['_HandleChangeRequest'];
+export type LoginRequest = components['schemas']['_LoginRequest'];
+export type MissingAlbumRequest = components['schemas']['_MissingAlbumRequest'];
+export type SignupRequest = components['schemas']['_SignupRequest'];
 export type $defs = Record<string, never>;
 export interface operations {
     get_album_detail_api_v1_albums__album_id__get: {
@@ -166,6 +414,151 @@ export interface operations {
             };
         };
     };
+    login_api_v1_auth_login_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_LoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    logout_api_v1_auth_logout_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    logout_all_devices_api_v1_auth_logout_all_devices_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    signup_api_v1_auth_signup_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_SignupRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_missing_album_api_v1_reports_missing_album_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_MissingAlbumRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     search_api_v1_search_get: {
         parameters: {
             query: {
@@ -178,6 +571,85 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_schedule_deletion_api_v1_users_me_delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    delete_cancel_deletion_api_v1_users_me_delete_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    post_change_handle_api_v1_users_me_handle_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_HandleChangeRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
