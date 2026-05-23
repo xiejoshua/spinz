@@ -83,25 +83,52 @@ def test_album_optional_identifiers() -> None:
 
 
 def test_album_discogs_release_id_field_and_index() -> None:
-    """CR-001: ``discogs_release_id`` is sparse-unique indexed.
+    """CR-001 + post-§6 fix: ``discogs_release_id`` is unique with a
+    ``partialFilterExpression`` (not ``sparse``).
 
     Direct replacement for the deleted ``spotify_id`` index/field test.
+    The partialFilterExpression is required because Pydantic serialises
+    ``None`` → MongoDB ``null`` (not "missing field"), and a sparse index
+    still indexes documents where the field IS present with a ``null``
+    value — so a sparse-unique constraint fired on the *second* insert
+    of a null-discogs Album in production (caught after the §6 search
+    endpoint went live and the second MB-fallback materialise tried to
+    insert).
     """
     album = _minimum_album(discogs_release_id="release-321321")
     assert album.discogs_release_id == "release-321321"
 
-    # The sparse-unique index must be declared exactly once and never
-    # alongside a leftover ``spotify_id`` index.
+    # The unique partial-filter index must be declared exactly once and
+    # never alongside a leftover ``spotify_id`` index.
     indexes = Album.Settings.indexes
     discogs_indexes = [idx for idx in indexes if "discogs_release_id" in dict(idx.document["key"])]
     assert len(discogs_indexes) == 1
     discogs_index = discogs_indexes[0]
     assert discogs_index.document.get("unique") is True
-    assert discogs_index.document.get("sparse") is True
+    # NOT sparse — partial filter instead.
+    assert discogs_index.document.get("sparse") is None
+    partial = discogs_index.document.get("partialFilterExpression")
+    assert partial == {"discogs_release_id": {"$exists": True, "$ne": None}}
 
     # No residual ``spotify_id`` index survived CR-001.
     for idx in indexes:
         assert "spotify_id" not in idx.document["key"]
+
+
+def test_album_mbid_partial_filter_index_matches_discogs() -> None:
+    """Symmetric to the discogs check: ``mbid`` uses the same partial-filter
+    shape so both identifiers behave consistently when ``None``.
+    """
+    indexes = Album.Settings.indexes
+    mbid_indexes = [idx for idx in indexes if "mbid" in dict(idx.document["key"])]
+    # mbid is in two places: the unique partial-filter index AND any other
+    # mbid-bearing compound index. Filter to the unique one.
+    unique = [idx for idx in mbid_indexes if idx.document.get("unique") is True]
+    assert len(unique) == 1
+    mbid_index = unique[0]
+    assert mbid_index.document.get("sparse") is None
+    partial = mbid_index.document.get("partialFilterExpression")
+    assert partial == {"mbid": {"$exists": True, "$ne": None}}
 
 
 def test_album_with_tracklist() -> None:

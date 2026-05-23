@@ -76,8 +76,16 @@ async def test_get_editions_returns_album_for_known_mbid(_clean_albums: None) ->
 @pytest.mark.asyncio
 async def test_get_editions_only_returns_matching_mbid(_clean_albums: None) -> None:
     """Other-MBID albums are NOT returned in the rollup."""
-    await _album(release_year=1997).insert()
-    other = _album(mbid=RG_MBID_OTHER, title="Kid A", release_year=2000)
+    # mongomock-motor doesn't honor partialFilterExpression — the second
+    # insert with discogs_release_id=None collides on the mock's plain-
+    # unique semantics. Distinct values keep the fixtures co-resident.
+    await _album(release_year=1997, discogs_release_id="release-ok-computer").insert()
+    other = _album(
+        mbid=RG_MBID_OTHER,
+        title="Kid A",
+        release_year=2000,
+        discogs_release_id="release-kid-a",
+    )
     await other.insert()
 
     editions = await get_editions(RG_MBID)

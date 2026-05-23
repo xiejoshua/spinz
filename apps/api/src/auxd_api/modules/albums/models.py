@@ -212,9 +212,26 @@ class Album(Document):
         name = "albums"
         # CR-001: replaced the ``spotify_id`` sparse-unique index with
         # ``discogs_release_id``.
+        #
+        # Why ``partialFilterExpression`` instead of ``sparse``: Pydantic
+        # serialises ``None`` as the MongoDB BSON value ``null`` (not a
+        # missing field), so a sparse index still indexes every doc whose
+        # field is explicitly ``None`` — and the unique constraint then
+        # fires on the second such insert with E11000. The partial filter
+        # `{$exists: true, $ne: null}` excludes both missing AND null,
+        # which is what we actually want: only rows that carry a real
+        # identifier participate in the unique constraint.
         indexes = [
-            IndexModel([("mbid", ASCENDING)], unique=True, sparse=True),
-            IndexModel([("discogs_release_id", ASCENDING)], unique=True, sparse=True),
+            IndexModel(
+                [("mbid", ASCENDING)],
+                unique=True,
+                partialFilterExpression={"mbid": {"$exists": True, "$ne": None}},
+            ),
+            IndexModel(
+                [("discogs_release_id", ASCENDING)],
+                unique=True,
+                partialFilterExpression={"discogs_release_id": {"$exists": True, "$ne": None}},
+            ),
             IndexModel([("cache_expires_at", ASCENDING)], sparse=True),
             IndexModel([("popularity_score", DESCENDING)]),
         ]

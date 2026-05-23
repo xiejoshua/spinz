@@ -230,8 +230,14 @@ async def test_dedupe_skips_provider_hit_already_in_atlas(
     from datetime import UTC, datetime, timedelta
 
     # Pre-seed an Album with MBID_OK so the MB hit deduplicates against it.
+    # NOTE: discogs_release_id set to a unique non-null value because
+    # mongomock-motor doesn't honor partialFilterExpression — when the
+    # search materialises Kid A with discogs_release_id=None it would
+    # collide with this pre-seeded row if both were null. Real Atlas
+    # excludes nulls from the unique constraint via the partial filter.
     pre = Album(
         mbid=MBID_OK,
+        discogs_release_id="release-ok-pre-seed",
         title="OK Computer",
         artist_credit="Radiohead",
         source=AlbumSource.MUSICBRAINZ,

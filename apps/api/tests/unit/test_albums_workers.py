@@ -138,8 +138,15 @@ async def test_refresh_returns_zero_when_no_stale(_clean_albums: None) -> None:
 @pytest.mark.asyncio
 async def test_refresh_skips_album_on_provider_error(_clean_albums: None) -> None:
     """Per-album provider failures are logged + skipped — other rows still refresh."""
-    bad = _stale_album(mbid=MBID_OK_COMPUTER, title="Bad Row")
-    good = _stale_album(mbid=MBID_KID_A, title="Kid A")
+    # NOTE: mongomock-motor does not honor partialFilterExpression on
+    # unique indexes (production uses MongoDB Atlas, which does). When
+    # two test fixtures both leave `discogs_release_id=None`, mongomock
+    # treats the unique constraint as plain-unique and the second insert
+    # collides on `discogs_release_id=null`. Setting different non-null
+    # values here is a test-only workaround for the mock; production
+    # Atlas with partialFilterExpression skips `null` entirely.
+    bad = _stale_album(mbid=MBID_OK_COMPUTER, discogs_release_id="release-bad-row", title="Bad Row")
+    good = _stale_album(mbid=MBID_KID_A, discogs_release_id="release-kid-a", title="Kid A")
     await bad.insert()
     await good.insert()
 
@@ -316,8 +323,17 @@ async def test_reconcile_skips_candidate_on_provider_error(
     _clean_albums: None,
 ) -> None:
     """Provider failures on a single candidate don't blow up the batch."""
-    bad = _candidate_album(discogs_release_id="release-bad", title="Bad Match")
-    good = _candidate_album(discogs_release_id="release-good", title="OK Computer")
+    # mongomock-motor doesn't honor partialFilterExpression — see the
+    # comment in test_refresh_skips_album_on_provider_error. Set distinct
+    # mbid values on the candidate fixtures so the mock's plain-unique
+    # behaviour on `mbid=null` doesn't collide. In production, Atlas's
+    # partial filter excludes nulls and these candidates would coexist.
+    bad = _candidate_album(
+        mbid="mbid-bad-candidate", discogs_release_id="release-bad", title="Bad Match"
+    )
+    good = _candidate_album(
+        mbid="mbid-good-candidate", discogs_release_id="release-good", title="OK Computer"
+    )
     await bad.insert()
     await good.insert()
 

@@ -23,6 +23,7 @@ assertions).
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import AsyncIterator
 
 import pytest
@@ -38,10 +39,27 @@ async def _initialize_beanie_for_tests() -> AsyncIterator[None]:
     """Initialize Beanie against an in-memory mongomock database once per
     test session. Documents can then be instantiated freely; the mock
     DB accepts (and discards) any writes if a test happens to do them.
+
+    Post-init, drop the partial-filter unique indexes on
+    ``albums.mbid`` and ``albums.discogs_release_id``. mongomock-motor
+    does not honor ``partialFilterExpression`` (see post-§6-deploy
+    incident on 2026-05-23 — the model code is correct for real Atlas
+    but the mock treats the constraint as plain-unique, causing fixture
+    inserts that share a ``null`` nullable-identifier to collide).
+    Dropping the indexes here lets tests focus on query behaviour while
+    production Atlas continues to enforce uniqueness via the real
+    partial-filter semantics.
     """
     client: AsyncMongoMockClient[dict[str, object]] = AsyncMongoMockClient()
     database = client["auxd_test"]
     await init_beanie(database=database, document_models=list(ALL_DOCUMENT_MODELS))
+
+    albums = database["albums"]
+    for idx_name in ("mbid_1", "discogs_release_id_1"):
+        # Index may not exist on some Beanie versions / mongomock builds.
+        with contextlib.suppress(Exception):
+            await albums.drop_index(idx_name)
+
     yield
     # mongomock-motor has no explicit teardown; the client is GC'd.
 
