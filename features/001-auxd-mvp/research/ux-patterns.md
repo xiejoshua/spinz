@@ -15,6 +15,9 @@ The second-order pattern that compounds Letterboxd's lead is the **diary** — a
 
 The third pattern, and the one most prior music-tracking attempts botched, is **social-graph composition**. AOTY exposes critic scores prominently and friend activity barely; RateYourMusic shows aggregate community ratings; Last.fm gave up on the feed entirely after 2014. Letterboxd's home feed is *people you follow*, ordered by recency of activity (log, review, like, list), with no algorithmic re-ranking — and that's the design that makes the network effect compound. auxd should ship a recency-ordered follow-graph feed in v1, resist any "For You" injection until late v2, and weight the activity types so a friend's 5-star or 1-star rating surfaces above lukewarm middle-of-the-curve ratings.
 
+<!-- sync-fix L1-002 (Run #10): Session 17 shipped `GET /api/v1/feed?mode=for_you|latest`. The "For You" label here is the EXACT phrase the v1 stance above warned against — but the semantic ≠ algorithmic injection. **"For You" in v1 is interaction-weight reordering of follow-graph activity** (review +20%, ★★★★★/★ +15%, top-5-author +10%, half-life decay) — no out-of-graph entries, no recommendation surface. "Latest" mode is the strict recency-only fallback this research called for; "For You" is the weight-ordered default. Out-of-graph injection (Discover, suggestions) lives on a SEPARATE surface (`/discover`), never in the home feed. If user research shows the label trips the trust-tripwire described above, rename the query param to `weighted|latest` in a follow-up. -->
+
+
 ---
 
 ## Core User Flows

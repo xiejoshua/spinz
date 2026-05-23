@@ -33,9 +33,11 @@ from auxd_api.db import (
 )
 
 
-def test_all_document_models_has_seventeen_entries() -> None:
-    """CR-001 left 16 documents; T060 (handle redirect) bumps to 17."""
-    assert len(ALL_DOCUMENT_MODELS) == 17
+def test_all_document_models_has_nineteen_entries() -> None:
+    """CR-001 left 16; T060 (handle redirect) bumped to 17;
+    T104 adds Suggestion + SuggestionDismissal for nineteen total.
+    """
+    assert len(ALL_DOCUMENT_MODELS) == 19
 
 
 def test_all_document_models_are_beanie_documents() -> None:
@@ -73,6 +75,9 @@ def test_canonical_list_matches_conftest_expectation() -> None:
         "FailedEmail",
         "SuggestedFollow",
         "CriticSeed",
+        # T104 — precomputed suggestions + dismissals.
+        "Suggestion",
+        "SuggestionDismissal",
     }
     actual_names = {model.__name__ for model in ALL_DOCUMENT_MODELS}
     assert actual_names == expected_names

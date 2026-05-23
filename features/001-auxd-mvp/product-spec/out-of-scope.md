@@ -20,6 +20,8 @@ This document lists capabilities deliberately **out of scope** for the MVP. Each
 
 | **ALS / collaborative-filtering recommendation engine** | Heuristic social-graph recs are sufficient at MVP scale. ML-based recs need data and scale first. | DAU > 5k AND social-originated play rate plateaus |
 | **Wrapped-style year-end retrospective** | High-polish, seasonal feature. Powerful for virality but not blocking. | First-year cohort exists (Q4 2027) and engineering capacity is available |
+<!-- CR-002: screenshot image-gen for review share queued for v2. -->
+| **Screenshot image-gen for review share** | Server-side PNG rendering of the `/review/:id` hero (album cover, title, rating, review snippet, attribution). Richer share-sheet payload than the current OG-meta share card. Only meaningful once the dedicated `/review/:id` reading-view route exists (added at MVP per UJ-3/CR-002), which is why this lands in v2 rather than alongside the route itself. ~5–7 day add. | M3 milestone hit AND share-card-share rate <15% of published reviews (signals the OG-card share isn't pulling weight) |
 <!-- Removed in Revision #1: Auto-prompt elevated from v2 to MVP -->
 <!-- (was: Auto-prompt deferred to v2; founder accepted the privacy tradeoff and elevated to MVP with opt-out default ON.) -->
 
@@ -38,7 +40,8 @@ These are out **permanently** unless a strategic pivot:
 
 | Feature | Why never |
 |---|---|
-| **Algorithmic-rec engine that doesn't use social graph** | auxd's positioning is anti-algorithm; building a generic algo-rec contradicts the wedge |
+<!-- CR-002: row softened. Wedge isn't anti-algorithm — it's anti "pushed recs the user didn't ask for from data we don't have yet." A graph-aware ML rec (ALS / embeddings) is fair game in v2 once we have the data + scale. The exclusion is specifically about *generic* algo-recs that bypass the social graph. -->
+| **Generic algorithmic-rec engine that bypasses the social graph** | The wedge is social-graph-first discovery; recs that don't walk the graph contradict the trust thesis. Graph-aware ML recs (collaborative filtering / embeddings layered ON TOP of the social graph) are fair game in v2 when MVP-scale data + graph density support them — see Differentiator row in [decision-log.md](./decision-log.md). |
 | **Ads / sponsored entries in the feed** | Brand-killing for the casual-trust thesis; we are subscription-only if/when we monetize |
 | **Scraping / importing data from RYM, AOTY, others without explicit user consent** | Legally fraught and reputationally toxic |
 | **Sock-puppet / "fake users to fill the feed"** | If discovered, brand-killing; explicit operating principle |

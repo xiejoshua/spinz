@@ -63,7 +63,8 @@
 
 <!-- CR-001: total recomputed. Removed 16 (T002, T042-T047, T054-T056, T114-T116, T121, T122, T177). Added 3 (T049a, T049b, T053a). 183 − 16 + 3 = 170 task lines in file. Of those, 162 are active MVP + 8 are DEFERRED-TO-V2 (T123-T130) kept in-file for traceability. Note: T169 is also DEFERRED-TO-V2 per CR-001 (built on removed auto-import surface) — counted within the 162 active for line-count purposes but won't ship at MVP. -->
 <!-- sync-fix L4-007 (Run #4): FR math reconciled — FR-033 was added by CR-001 spec.md but not surfaced here. Base FR set = 28 (27 originals + FR-033). 23 active = 28 − 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027). -->
-**Total: 162 active MVP tasks + 8 DEFERRED-TO-V2 (T123–T130 per CR-001) = 170 task lines in file** (= 180 base + T117a Phase 5C + T010a + T015a both added in sync-fix Run #1 + 3 added in CR-001 − 16 removed in CR-001 — see [sync-fix-list.md](./sync-fix-list.md) + CR-001 banner above). Sized to deliver M-2 closed-beta scope per plan §18; Must-Have user stories addressed minus the 3 deferred (US-A2, US-A3, US-B6 — DEFERRED in spec.md per CR-001); **23 active FRs** covered = 28 base (27 originals + FR-033 "Report missing album" added by CR-001) − 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027 — DEFERRED in spec.md per CR-001); critical TCs (excluding TC-006/TC-018–021/TC-022 which now sit with the deferred tasks) + 13 E2E scenarios referenced. Tasks amended in sync-fix Run #1: T013 (Redis fail-modes), T023 (ReviewEditHistory), T025 (FollowRequest), T026 (FailedEmail + missing_album report type), T135 (PostMark failure-mode + retry). Tasks amended in CR-001: T021, T022, T026, T027, T029 (code patches land separately).
+<!-- CR-002: 2 tasks added (T093a /review/[id] route + T093b reading-view component); 2 tasks amended in place (T090 + T138). Active count 162 → 164; total lines 170 → 172. -->
+**Total: 164 active MVP tasks + 8 DEFERRED-TO-V2 (T123–T130 per CR-001) = 172 task lines in file** (= 180 base + T117a Phase 5C + T010a + T015a both added in sync-fix Run #1 + 3 added in CR-001 − 16 removed in CR-001 + 2 added in CR-002 — see [sync-fix-list.md](./sync-fix-list.md) + CR-001 + CR-002 banners). Sized to deliver M-2 closed-beta scope per plan §18; Must-Have user stories addressed minus the 3 deferred (US-A2, US-A3, US-B6 — DEFERRED in spec.md per CR-001); **23 active FRs** covered = 28 base (27 originals + FR-033 "Report missing album" added by CR-001) − 5 deferred (FR-002, FR-003, FR-017, FR-026, FR-027 — DEFERRED in spec.md per CR-001); critical TCs (excluding TC-006/TC-018–021/TC-022 which now sit with the deferred tasks) + 13 E2E scenarios referenced. Tasks amended in sync-fix Run #1: T013 (Redis fail-modes), T023 (ReviewEditHistory), T025 (FollowRequest), T026 (FailedEmail + missing_album report type), T135 (PostMark failure-mode + retry). Tasks amended in CR-001: T021, T022, T026, T027, T029 (code patches land separately).
 
 ---
 
@@ -95,7 +96,7 @@
       Description: GitHub Actions workflow with two jobs (backend, frontend). Ruff + mypy strict for Python; Biome + tsc strict for TS. Vitest + pytest configured with placeholder tests that pass. Coverage uploaded to Codecov (or local artifact for now).
       Done: PR-trigger workflow runs green on a no-op commit.
 
-- [ ] **T005 — Provision MongoDB Atlas + Upstash Redis**
+- [x] **T005 — Provision MongoDB Atlas + Upstash Redis** *(operationally live; impl-log line 157 — `check_integrations.py` → 7/7; Atlas IP allowlist widened, Upstash region us-east-1, both reachable from local dev + Fly)*
       Paths: docs/infra.md
       Size: S
       Deps: —
@@ -103,7 +104,7 @@
       Description: Create Atlas M0 cluster (region: aws-us-east-1, matching Fly `iad` for low-latency colocation); create Upstash Redis (region: us-east-1); note connection strings; configure IP allow-list for local dev + Fly.io outbound IPs.
       Done: both services reachable from local dev; connection strings captured.
 
-- [ ] **T006 — Provision Fly.io + Vercel projects**
+- [x] **T006 — Provision Fly.io + Vercel projects** *(operationally live; impl-log line 157 — Fly deploy ✅; Vercel deploy ✅; both healthchecks return 200)*
       Paths: apps/api/fly.toml, apps/web/vercel.json
       Size: S
       Deps: T003
@@ -111,7 +112,7 @@
       Description: `flyctl apps create auxd-api --region iad`; configure two-process layout (api + worker) on a single shared-cpu-1x VM (stays inside Hobby $5/mo minimum); link `apps/api/fly.toml`. `vercel init` linking `apps/web` to a Vercel project. Domain `xiejoshua.com` (apex → Vercel) and `api.xiejoshua.com` (CNAME → Fly via `fly certs add`) configured on Cloudflare DNS with proxy OFF for Vercel/Fly records.
       Done: empty hello-world deploys from each host land at expected URLs.
 
-- [ ] **T007 — Configure Resend + Sentry + PostHog Cloud + Cloudflare R2 + secrets**
+- [x] **T007 — Configure Resend + Sentry + PostHog Cloud + Cloudflare R2 + secrets** *(operationally live; impl-log line 157 — all 7 integrations pass `scripts/check_integrations.py` with `truststore` patch for Zscaler MITM; secrets set in Fly + Vercel; PostHog Cloud reachable; R2 bucket `auxd-backups` accessible)*
       Paths: apps/api/src/auxd_api/settings.py, docs/infra.md
       Size: S
       Deps: T005, T006
@@ -338,7 +339,7 @@
 
 ## §3 Frontend foundation
 
-- [ ] **T031 — Next.js 15 App Router skeleton**
+- [x] **T031 — Next.js 15 App Router skeleton**
       Paths: apps/web/src/app/layout.tsx, apps/web/src/app/page.tsx, apps/web/next.config.ts, apps/web/tailwind.config.ts
       Size: S
       Deps: T003
@@ -346,7 +347,7 @@
       Description: App Router skeleton with root layout; Tailwind configured; placeholder home page.
       Done: `pnpm --filter @auxd/web dev` serves the page.
 
-- [ ] **T032 — shadcn/ui setup + design tokens**
+- [x] **T032 — shadcn/ui setup + design tokens**
       Paths: apps/web/components.json, apps/web/src/components/ui/*, apps/web/src/lib/utils.ts
       Size: S
       Deps: T031
@@ -354,7 +355,7 @@
       Description: Init shadcn/ui via CLI; copy initial component set (Button, Sheet, Dialog, Toast, Input, Select, Tabs, Avatar, Badge, Form). Tailwind config defines design tokens (color palette tuned for music — TBD with founder).
       Done: a Button renders correctly; dark mode toggle works.
 
-- [ ] **T033 — TanStack Query setup + API client**
+- [x] **T033 — TanStack Query setup + API client**
       Paths: apps/web/src/lib/query-client.ts, apps/web/src/lib/api-client.ts, apps/web/src/providers.tsx
       Size: S
       Deps: T031, T028
@@ -362,7 +363,7 @@
       Description: QueryClient provider; typed fetch wrapper consuming `@auxd/shared-types`; React Query DevTools in dev. Standard `useApiQuery` and `useApiMutation` helpers.
       Done: a hello-world query against `/healthz` displays the response.
 
-- [ ] **T034 — Zustand setup for client state**
+- [x] **T034 — Zustand setup for client state**
       Paths: apps/web/src/stores/auth.ts, apps/web/src/stores/ui.ts
       Size: XS
       Deps: T031
@@ -370,7 +371,7 @@
       Description: Auth store (sanitized user object); UI store (log-sheet open/closed, feed sort preference). Hydrate from server components on first load.
       Done: stores load; toggling log-sheet store updates a test UI.
 
-- [ ] **T035 — React Hook Form + Zod setup**
+- [x] **T035 — React Hook Form + Zod setup**
       Paths: apps/web/src/lib/forms.ts, apps/web/src/components/ui/form.tsx
       Size: XS
       Deps: T032
@@ -378,15 +379,16 @@
       Description: Hook Form + Zod resolver wired into shadcn/ui Form component. Reusable form-error component.
       Done: a sample form validates and submits.
 
-- [ ] **T036 — Sentry + PostHog (frontend)**
-      Paths: apps/web/src/lib/sentry.ts, apps/web/src/lib/posthog.ts, apps/web/instrumentation.ts
+<!-- sync-fix L4-012 (Run #7): instrumentation-client.ts is required by @sentry/nextjs v8+ for the browser-runtime init; appended to Paths. -->
+- [x] **T036 — Sentry + PostHog (frontend)**
+      Paths: apps/web/src/lib/sentry.ts, apps/web/src/lib/posthog.ts, apps/web/instrumentation.ts, apps/web/instrumentation-client.ts
       Size: S
       Deps: T031, T007
       Refs: plan §15.1, §15.2
       Description: Sentry SDK with source-map upload on Vercel deploy; PostHog client (server + browser, single-instance singleton). Manual capture helpers.
       Done: a thrown error reaches Sentry; a test PostHog event reaches PostHog.
 
-- [ ] **T037 — Authenticated layout (post-auth shell)**
+- [x] **T037 — Authenticated layout (post-auth shell)**
       Paths: apps/web/src/app/(app)/layout.tsx, apps/web/src/components/nav/bottom-tabs.tsx
       Size: M
       Deps: T031, T032, T034
@@ -394,7 +396,7 @@
       Description: Authenticated route group with redirect-to-login if no session. Bottom-tab nav (Home, Up Next, Discover, Profile). Persistent "+" Log FAB.
       Done: navigating to `/` redirects to `/login` when unauthenticated; otherwise renders the shell.
 
-- [ ] **T038 — Public layout (pre-auth pages)**
+- [x] **T038 — Public layout (pre-auth pages)**
       Paths: apps/web/src/app/(auth)/layout.tsx, apps/web/src/app/(auth)/login/page.tsx, apps/web/src/app/(auth)/signup/page.tsx
       Size: M
       Deps: T031, T032, T035
@@ -402,7 +404,7 @@
       Description: Public layout for login/signup. Forms wired but submit is a no-op (T053 wires real auth).
       Done: pages render and forms validate locally.
 
-- [ ] **T039 — Onboarding route group skeleton**
+- [x] **T039 — Onboarding route group skeleton**
       Paths: apps/web/src/app/(onboarding)/layout.tsx, apps/web/src/app/(onboarding)/step-1/page.tsx
       Size: S
       Deps: T037
@@ -410,7 +412,7 @@
       Description: Route group for onboarding steps with progress indicator; step routing wired (steps fleshed out in §11).
       Done: scaffolded routes navigate sequentially.
 
-- [ ] **T040 — Playwright E2E setup**
+- [x] **T040 — Playwright E2E setup**
       Paths: apps/web/playwright.config.ts, apps/web/tests/e2e/smoke.spec.ts, .github/workflows/e2e.yml
       Size: M
       Deps: T031, T009
@@ -556,7 +558,7 @@
       Done: unit + integration tests pass.
 
 <!-- CR-001: T061 deps + description updated — Spotify OAuth button removed; email-only signup at MVP. -->
-- [ ] **T061 — Signup + login UI**
+- [x] **T061 — Signup + login UI**
       Paths: apps/web/src/app/(auth)/signup/page.tsx, apps/web/src/app/(auth)/login/page.tsx, apps/web/tests/e2e/auth.spec.ts
       Size: M
       Deps: T038, T053
@@ -564,7 +566,7 @@
       Description: Wire signup + login forms to backend. Email + password only at MVP (per CR-001 — Spotify OAuth deferred to v2). Error handling for all 5 error cases from T053.
       Done: E2E test signs up via email + logs in.
 
-- [ ] **T062 — Auth E2E + session persistence**
+- [x] **T062 — Auth E2E + session persistence**
       Paths: apps/web/tests/e2e/session.spec.ts
       Size: S
       Deps: T061
@@ -637,7 +639,7 @@
       Done: TC-031 integration test passes; results in <200ms p95.
 
 <!-- CR-001: T070 description updated — "Listen on Spotify" CTA dropped (no integration); deep-link to album page on streaming services TBD in v2. -->
-- [ ] **T070 — Album detail page (frontend, SSR)**
+- [x] **T070 — Album detail page (frontend, SSR)**
       Paths: apps/web/src/app/(app)/album/[id]/page.tsx, apps/web/src/components/album-detail/*
       Size: L
       Deps: T067, T037
@@ -645,7 +647,7 @@
       Description: SSR page rendering wireframes/04 design. Edition selector chip + dropdown. Friends section (avatars + ratings + 🏅 Aux'd). Ratings histogram. Reviews list with sort selector (Newest / Most Liked / Highest-Rated — wired in T093). Log + Up Next CTAs. ("Listen on" streaming-service deep-link deferred to v2 per CR-001 — no Spotify integration at MVP.) Open Graph meta tags.
       Done: page renders matching wireframe; OG card previews correctly in social shares.
 
-- [ ] **T071 — Search page + UI**
+- [x] **T071 — Search page + UI**
       Paths: apps/web/src/app/(app)/search/page.tsx, apps/web/src/components/search/*
       Size: M
       Deps: T069
@@ -654,19 +656,20 @@
       Done: E2E test covers typed query → results → album navigation.
 
 <!-- CR-001: T072 description updated — Spotify CDN replaced with Cover Art Archive (MusicBrainz CAA) + Discogs image URLs. -->
-- [ ] **T072 — Cover-art proxy (route handler)**
-      Paths: apps/web/src/app/api/cover/[size]/[albumId]/route.ts
+<!-- sync-fix L4-011 (Run #7): Path param renamed albumId → mbid (CAA is MBID-keyed; consumer already has it). Refs corrected from plan §17.5 (Redis) → plan §11.4 (Cover-art proxy). -->
+- [x] **T072 — Cover-art proxy (route handler)**
+      Paths: apps/web/src/app/api/cover/[size]/[mbid]/route.ts
       Size: S
       Deps: T067
-      Refs: plan §17.5; DM-2; CR-001
-      Description: Next.js route handler proxying Cover Art Archive (`https://coverartarchive.org/release-group/{mbid}/front-{size}.jpg`) with Discogs image-URL fallback when CAA returns 404. Caching headers (`Cache-Control: public, max-age=604800`). Optional blurhash placeholder generation.
+      Refs: plan §11.4; DM-2; CR-001
+      Description: Next.js route handler proxying Cover Art Archive (`https://coverartarchive.org/release-group/{mbid}/front-{size}`) with `?fallback=<https-url>` 302 redirect when CAA returns 404. Cache-Control: public, max-age=604800, immutable on hit; max-age=3600 negative cache. Route-param renamed `[albumId]` → `[mbid]` because CAA is MBID-keyed natively and the consumer (album-detail / search) already has the MBID. Optional blurhash placeholder generation deferred.
       Done: proxy serves cover art; CDN caching verified.
 
 ---
 
 ## §7 Diary + Log sheet — THE WEDGE INTERACTION
 
-- [ ] **T073 — Diary log endpoint (Aux-bool included)**
+- [x] **T073 — Diary log endpoint (Aux-bool included)**
       Paths: apps/api/src/auxd_api/modules/diary/routes.py, apps/api/src/auxd_api/modules/diary/service.py, apps/api/tests/integration/test_diary_logging.py
       Size: M
       Deps: T023, T021, T063
@@ -674,30 +677,30 @@
       Description: `POST /api/v1/diary/entries` with `album_id`, `rating` (optional, 0.5–5.0 in halves), `auxed` (bool), `review_body` (optional), `visibility`. Server measures end-to-end commit time; emit PostHog `log.commit` event with `duration_ms`. Idempotent: same album logged twice in 60sec returns existing entry (avoids double-tap dupes).
       Done: TC-001, TC-002, TC-003 pass.
 
-- [ ] **T074 — Diary read endpoint (chronological diary)**
+- [x] **T074 — Diary read endpoint (chronological diary)**
       Paths: apps/api/src/auxd_api/modules/diary/routes.py
       Size: S
       Deps: T073, T016
       Refs: US-E2; FR-007
-      Description: `GET /api/v1/users/{handle}/diary?cursor=...&limit=25` reverse-chrono; visibility-filtered. Optional filter param: `auxed=true` for "Aux'd" tab.
-      Done: integration test covers visibility matrix.
+      Description: `GET /api/v1/users/{handle}/diary?cursor=...&limit=25` reverse-chrono; visibility-filtered. Optional filter param: `auxed=true` for "Aux'd" tab. Response envelope: `{entries: DiaryEntry[], next_cursor: string | null, albums: {[id]: AlbumCard}}` where `AlbumCard = {id, mbid, title, artist_credit, release_year, cover_art_url}`. The `albums` sidecar is deduped on `_id` so relistens cost one Album lookup per page, not N — keeps the profile diary render at one round-trip per page. Cursor is base64(`{l: logged_at_iso, i: entry_id}`) so Last.fm imports (future) page correctly even when `logged_at` is historical.
+      Done: integration test covers visibility matrix + albums-sidecar dedup + empty-when-no-entries.
 
-- [ ] **T075 — Diary edit / delete endpoints**
+- [x] **T075 — Diary edit / delete / restore endpoints**
       Paths: apps/api/src/auxd_api/modules/diary/routes.py, apps/api/tests/integration/test_diary_edit.py
       Size: M
       Deps: T073
       Refs: US-B5; FR-004
-      Description: `PATCH /api/v1/diary/entries/{id}` (rating/auxed/review/visibility editable). `DELETE` is soft-delete with 30d recovery. Editor must be owner.
-      Done: integration tests cover edit + soft-delete + recovery + hard-delete after 30d.
+      Description: `PATCH /api/v1/diary/entries/{id}` (rating/auxed/review/visibility editable). `DELETE /api/v1/diary/entries/{id}` is soft-delete with 30d recovery window. `POST /api/v1/diary/entries/{id}/restore` clears `deleted_at` inside the grace window (returns 410 once expired). Editor must be owner; all three endpoints enforce ownership. (sync-fix L5-009: restore endpoint is part of T075's scope.)
+      Done: integration tests cover edit + soft-delete + recovery + hard-delete after 30d + restore-410-after-grace.
 
-- [ ] **T076 — Relisten support (multiple entries for same album)**
+- [x] **T076 — Relisten support (multiple entries for same album)**
       Paths: covered in T073
       Size: (sub-task)
       Refs: US-B4; TC-003
       Description: Multiple DiaryEntry records per (user, album) allowed; album-detail "my history" shows all prior logs.
       Done: TC-003 covered.
 
-- [ ] **T077 — Log sheet component (THE wedge interaction)**
+- [x] **T077 — Log sheet component (THE wedge interaction)**
       Paths: apps/web/src/components/log-sheet/index.tsx, apps/web/src/components/log-sheet/rating-widget.tsx, apps/web/src/components/log-sheet/aux-toggle.tsx, apps/web/src/components/log-sheet/review-editor.tsx
       Size: L
       Deps: T037, T073, T032
@@ -705,7 +708,7 @@
       Description: Bottom-sheet component. ALWAYS-MOUNTED in app shell layout (hidden until open) to avoid first-tap render cost. Rating widget = ½-star tap-or-drag. Aux toggle = 🏅 medal. Review collapsed by default; tap to expand. Visibility select defaults to user prefs. Commit fires `POST /api/v1/diary/entries` and measures duration. PostHog event `log.commit` with duration_ms.
       Done: E2E test logs an album in <8 seconds; commit duration_ms tracked.
 
-- [ ] **T078 — Persistent + Log button (FAB in shell)**
+- [x] **T078 — Persistent + Log button (FAB in shell)**
       Paths: apps/web/src/components/nav/log-fab.tsx, apps/web/src/app/(app)/layout.tsx
       Size: XS
       Deps: T077, T037
@@ -714,23 +717,23 @@
       Done: button present on all authenticated routes.
 
 <!-- CR-001: T079 fully rewritten — Spotify recently-played prefill replaced with manual MusicBrainz-backed search + prefill flow (Letterboxd model). -->
-- [ ] **T079 — Manual album search + prefill in Log sheet**
-      Paths: apps/web/src/components/log-sheet/album-search.tsx, apps/web/src/components/log-sheet/album-prefill.tsx, apps/api/src/auxd_api/modules/diary/routes.py
+- [x] **T079 — Manual album search + prefill in Log sheet**
+      Paths: apps/web/src/components/log-sheet/album-search.tsx, apps/web/src/components/log-sheet/recent-searches.tsx, apps/api/src/auxd_api/modules/diary/routes.py
       Size: M
       Deps: T077, T069
       Refs: US-B1; FR-004; FR-005; CR-001
       Description: MusicBrainz-backed search field at the top of the log sheet; type ≥3 chars + 200ms debounce; pick from results to prefill rating/Aux/review form. Uses T069 search endpoint (Atlas → MusicBrainz → Discogs fallback chain). On empty-result, surface "Report missing album" link (T053a) per FR-005 empty-state. Recent-searches stored locally for quick re-pick. CR-001: replaces the original Spotify recently-played auto-prefill model.
       Done: search → prefill flow works in <2s p95; analytics tracks % of logs that accept first prefill result (PostHog `log.search_accepted`).
 
-- [ ] **T080 — Diary view on profile**
-      Paths: apps/web/src/app/(app)/@[handle]/page.tsx, apps/web/src/components/diary/*
+- [x] **T080 — Diary view on profile**
+      Paths: apps/web/src/app/(app)/profile/[handle]/page.tsx, apps/web/src/components/diary/* (public `/@handle` URL deferred to a middleware-rewrite task; see plan §7.1.1)
       Size: M
       Deps: T074, T037
       Refs: US-E2; FR-007
       Description: Profile page with reverse-chrono diary view; "Aux'd" filter tab. Pagination with cursor.
       Done: profile page renders.
 
-- [ ] **T081 — "My history" on album detail page**
+- [x] **T081 — "My history" on album detail page**
       Paths: apps/web/src/components/album-detail/my-history.tsx
       Size: S
       Deps: T070, T074
@@ -738,15 +741,15 @@
       Description: Shows all prior diary entries for the album by current user; allows expanding to see ratings + dates.
       Done: section renders.
 
-- [ ] **T082 — Edit diary entry UI**
-      Paths: apps/web/src/components/diary/edit-entry.tsx
+- [x] **T082 — Edit diary entry UI**
+      Paths: apps/web/src/components/log-sheet/index.tsx (edit-mode), apps/web/src/components/diary/diary-entry-card.tsx (edit trigger), apps/web/src/stores/ui.ts (LogSheetSeed.edit field)
       Size: S
       Deps: T080, T075
       Refs: US-B5
-      Description: Opens log sheet pre-filled with the entry's current values; PATCH on save.
-      Done: edit flow works end-to-end.
+      Description: Edit affordance on owner-controlled diary entries opens the log sheet pre-filled with the entry's rating + Aux + visibility via `LogSheetSeed.edit`; PATCH on save. Review-body editing lands with T086 (review CRUD); at MVP, edit covers rating/aux/visibility only and leaves any attached review unchanged.
+      Done: edit flow works end-to-end for rating/aux/visibility; review-body edit tracked under T086.
 
-- [ ] **T083 — Soft-delete + undo toast**
+- [x] **T083 — Soft-delete + undo toast**
       Paths: apps/web/src/components/diary/delete-confirmation.tsx
       Size: S
       Deps: T082
@@ -755,7 +758,7 @@
       Done: undo path works.
 
 <!-- CR-001: T084 description updated — wedge target relaxed acknowledges manual-search adds ~1s vs auto-prefill; <8s budget still applies and now includes search-pick time. -->
-- [ ] **T084 — Wedge NFR validation (commit time <8s)**
+- [x] **T084 — Wedge NFR validation (commit time <8s)**
       Paths: apps/web/tests/e2e/log-wedge.spec.ts, apps/api/tests/integration/test_log_perf.py
       Size: S
       Deps: T077, T079
@@ -767,7 +770,7 @@
 
 ## §8 Reviews + Likes + sort
 
-- [ ] **T085 — Review create endpoint**
+- [x] **T085 — Review create endpoint**
       Paths: apps/api/src/auxd_api/modules/reviews/routes.py, apps/api/src/auxd_api/modules/reviews/service.py
       Size: M
       Deps: T023, T073
@@ -775,7 +778,7 @@
       Description: `POST /api/v1/reviews` (body, visibility) linked to a DiaryEntry. Markdown-safe rendering (allow bold, italic, line breaks; no images, no scripts). ≥1 char minimum, NO soft prompt (per decision #5 / R3).
       Done: integration test creates a review; markdown sanitization verified.
 
-- [ ] **T086 — Review edit + audit log**
+- [x] **T086 — Review edit + audit log**
       Paths: apps/api/src/auxd_api/modules/reviews/service.py, apps/api/tests/integration/test_review_edit.py
       Size: M
       Deps: T085
@@ -783,7 +786,7 @@
       Description: `PATCH /api/v1/reviews/{id}` updates body. Public surface shows latest + "edited" badge with timestamp. Internal `review_edits` collection stores prior versions for 90 days with hash for tamper detection.
       Done: TC-025 integration passes.
 
-- [ ] **T087 — Review delete (with cascading reaction cleanup)**
+- [x] **T087 — Review delete (with cascading reaction cleanup)**
       Paths: apps/api/src/auxd_api/modules/reviews/service.py
       Size: S
       Deps: T085
@@ -791,7 +794,7 @@
       Description: Soft-delete review with 30d grace; on hard-delete cascade-delete `ReviewLike` records.
       Done: integration test confirms cascade.
 
-- [ ] **T088 — Like-review endpoint (idempotent toggle)**
+- [x] **T088 — Like-review endpoint (idempotent toggle)**
       Paths: apps/api/src/auxd_api/modules/reviews/likes_service.py, apps/api/tests/unit/test_review_likes.py
       Size: M
       Deps: T085
@@ -799,7 +802,7 @@
       Description: `POST /api/v1/reviews/{id}/like` toggles. Creates `ReviewLike`; increments `Review.reactions.likes_count`; emits N-004 notification. Reject if liker == reviewer (TC-016). Reject if already-liked (idempotent return current state). Un-like deletes record + decrements counter (no notification).
       Done: TC-015 + TC-016 pass.
 
-- [ ] **T089 — List reviews endpoint with sort**
+- [x] **T089 — List reviews endpoint with sort**
       Paths: apps/api/src/auxd_api/modules/reviews/routes.py, apps/api/tests/unit/test_review_sort.py
       Size: M
       Deps: T088, T016
@@ -807,22 +810,23 @@
       Description: `GET /api/v1/albums/{id}/reviews?sort=newest|most_liked|highest_rated&cursor=...` with primary tier (friends → public → critic-seed) + sort within tier. Visibility-filtered.
       Done: TC-017 passes.
 
-- [ ] **T090 — Review card component (with Like button)**
+<!-- CR-002: read-more replaced by ~80-char preview + nav to /review/:id (UJ-3). Inline expand removed. -->
+- [x] **T090 — Review card component (with Like button)**
       Paths: apps/web/src/components/review-card/index.tsx, apps/web/src/components/review-card/like-button.tsx
       Size: M
-      Deps: T037, T088
-      Refs: US-C4
-      Description: Review card showing reviewer (avatar + handle + Critic suffix if seed), stars, "edited" badge if applicable, body with read-more, 👍 Like button + count. Like is optimistic.
-      Done: component renders; Like toggle works.
+      Deps: T037, T088, T093a
+      Refs: US-C4; **CR-002 / UJ-3**
+      Description: Review card showing reviewer (avatar + handle + Critic suffix if seed), stars, "edited" badge if applicable, body **preview (first ~80 chars; whole card tap navigates to `/review/:id` per UJ-3 / CR-002 — no inline read-more / no inline expand)**, 👍 Like button + count. Like is optimistic and stops navigation propagation (tap on Like button does not nav).
+      Done: component renders; Like toggle works; card tap routes to `/review/:id`.
 
-- [ ] **T091 — Review composition UI (in log sheet)**
+- [x] **T091 — Review composition UI (in log sheet)**
       Paths: covered in T077 (log-sheet/review-editor.tsx)
       Size: (sub-task)
       Refs: US-C1
       Description: Textarea with markdown hint; no length nudges.
       Done: covered.
 
-- [ ] **T092 — Edit + delete review UI**
+- [x] **T092 — Edit + delete review UI**
       Paths: apps/web/src/components/review-card/edit-review.tsx
       Size: S
       Deps: T090, T086
@@ -830,7 +834,7 @@
       Description: Edit-review modal; soft-delete with undo toast.
       Done: flow works.
 
-- [ ] **T093 — Reviews list on album detail (with sort selector)**
+- [x] **T093 — Reviews list on album detail (with sort selector)**
       Paths: apps/web/src/components/album-detail/reviews-list.tsx
       Size: M
       Deps: T070, T089, T090
@@ -838,19 +842,38 @@
       Description: Reviews list embedded in album detail. Sort selector (Newest default / Most Liked / Highest-Rated) persisted to Zustand per-device. Tier ordering enforced.
       Done: TC-E2E-006 passes.
 
-- [ ] **T094 — "My reviews" on profile**
-      Paths: apps/web/src/app/(app)/@[handle]/reviews/page.tsx
+<!-- CR-002: new tasks for UJ-3 dedicated /review/:id route + reading-view component. -->
+- [x] **T093a — `/review/[id]` route (SSR + OG meta)**
+      Paths: apps/web/src/app/(app)/review/[id]/page.tsx, apps/api/src/auxd_api/modules/reviews/routes.py (added GET /reviews/{id} as backing endpoint)
+      Size: M
+      Deps: T088, T090
+      Refs: US-C2; UJ-3; **CR-002**
+      Description: SSR route fetching Review + Album + viewer-context via `GET /api/v1/reviews/{id}`. Renders the reading-view component (T093b). OG meta via Next.js `generateMetadata`: title = "@{handle}'s review of {album}", description = first ~140 chars of review body, image = `album.cover_art_url`. Visibility-checked: returns 404 to users without read access (not 403, to avoid existence-leak). Includes a Back-to-album link in the chrome.
+      <!-- sync-fix L4-018 + L5-012 (Run #9): opengraph-image.tsx removed from Paths — never shipped. Text-mode OG is inlined via generateMetadata; dedicated opengraph-image route via next/og ImageResponse is deferred as T093c follow-up per impl-log Session 15 + the UJ-4 v2 screenshot image-gen roadmap. -->
+      Done: route renders for owner + public + follower-only-with-access; 404 for forbidden; OG card preview validated via generateMetadata.
+
+- [x] **T093b — Review reading-view component**
+      Paths: apps/web/src/components/review-reading-view/index.tsx, apps/web/src/components/review-reading-view/hero.tsx, apps/web/src/components/review-reading-view/share-button.tsx
+      Size: M
+      Deps: T037, T088
+      Refs: US-C2; UJ-3; **CR-002**
+      Description: Letterboxd-parity reading view. Hero: album cover (Cover Art Archive), title, artist, viewer's rating context if any (e.g., "You rated this ★★★★½"), Aux badge if owner has Aux'd it, Like button (delegates to T090's like service), Share button (native OS share-sheet with the `/review/:id` URL). Below hero: full review body, "edited" badge if applicable. Comments thread explicitly NOT in scope (v2). Mobile-first layout; max-width prose ~640px on desktop.
+      Done: component renders all four state variants (owner, follower, public, no-rating-context); Like button works; Share opens OS sheet with correct URL.
+
+<!-- sync-fix L4-019 (Run #9): T094 header restored. The §8 cluster index claimed T085-T094 but the task body below had no header — only Paths/Size/Deps/Refs/Description/Done lines. This task surfaces the EditReviewDialog + DeleteReviewConfirmation owner controls (T092) on the profile sub-route. -->
+- [ ] **T094 — Reviews-only profile sub-route**
+      Paths: apps/web/src/app/(app)/profile/[handle]/reviews/page.tsx
       Size: S
       Deps: T089
       Refs: cross-cutting profile
-      Description: Reviews-only view of a user's profile.
+      Description: Reviews-only view of a user's profile. Lists the user's reviews with the same sort + pagination as the album-detail reviews-list. Mounts the EditReviewDialog + DeleteReviewConfirmation owner controls (T092) when viewer == owner — these dialogs were built in Session 15 but are not currently surfaced anywhere (sync-fix L6-004 mounts an Edit affordance on the reading-view footer as an interim).
       Done: page renders.
 
 ---
 
 ## §9 Backlog (Up Next)
 
-- [ ] **T095 — Backlog CRUD endpoints**
+- [x] **T095 — Backlog CRUD endpoints**
       Paths: apps/api/src/auxd_api/modules/backlog/routes.py, apps/api/src/auxd_api/modules/backlog/service.py
       Size: M
       Deps: T024, T021
@@ -858,7 +881,7 @@
       Description: `POST /api/v1/users/me/backlog/items` (add album); `DELETE` (remove); `PATCH .../reorder`; `GET .../items` paginated. Backlog auto-created on first access.
       Done: integration tests cover all paths.
 
-- [ ] **T096 — Auto-remove-on-log behavior**
+- [x] **T096 — Auto-remove-on-log behavior**
       Paths: apps/api/src/auxd_api/modules/diary/service.py
       Size: S
       Deps: T073, T095
@@ -867,7 +890,7 @@
       Done: integration test confirms behavior.
 
 <!-- CR-001: T097 description updated — "Listen on Spotify" menu item removed; no streaming-service integration at MVP. -->
-- [ ] **T097 — Up Next page (frontend)**
+- [x] **T097 — Up Next page (frontend)**
       Paths: apps/web/src/app/(app)/up-next/page.tsx, apps/web/src/components/up-next/*
       Size: M
       Deps: T095, T037
@@ -875,7 +898,7 @@
       Description: Backlog list with drag-reorder (using `@dnd-kit/sortable`), per-item context menu (Remove, Open album, Edit blurb). ("Listen on" streaming-service deep-link deferred to v2 per CR-001.)
       Done: page renders; drag works on mobile + web.
 
-- [ ] **T098 — Add-to-backlog from album detail**
+- [x] **T098 — Add-to-backlog from album detail**
       Paths: apps/web/src/components/album-detail/up-next-button.tsx
       Size: XS
       Deps: T070, T095
@@ -883,26 +906,27 @@
       Description: "+ Up Next" button on album detail page; toggles add/remove based on current state.
       Done: button works.
 
-- [ ] **T099 — Add-to-backlog from log sheet**
+- [x] **T099 — Add-to-backlog from log sheet**
       Paths: covered in T077
       Size: (sub-task)
       Refs: US-D1
       Description: Alternative path inside Log sheet to add to backlog instead of logging.
       Done: covered.
 
-- [ ] **T100 — Backlog → Log conversion event**
-      Paths: apps/api/src/auxd_api/modules/diary/service.py, apps/web/src/lib/analytics.ts
+- [x] **T100 — Backlog → Log conversion event**
+      Paths: apps/api/src/auxd_api/modules/diary/routes.py, apps/api/src/auxd_api/modules/diary/service.py
       Size: XS
       Deps: T096
       Refs: success-metrics: backlog→log conversion
-      Description: PostHog event when an album logged was previously in user's backlog; tracks the M3/M6 KPI.
+      Description: PostHog `backlog.converted_to_log` event emitted server-side from `post_diary_entry` handler when `result.backlog_item_removed == True` (i.e., a fresh diary insert auto-removed an existing backlog item). Emission lives in `diary/routes.py` via `emit_event(...)`; no frontend analytics module is required at MVP — server-side is the source of truth for KPI tracking.
+      <!-- sync-fix L5-013 (Run #9): apps/web/src/lib/analytics.ts removed from Paths — emission is server-side via emit_event; no frontend analytics module exists. -->
       Done: event emitted with correct properties.
 
 ---
 
 ## §10 Social graph + Feed
 
-- [ ] **T101 — Follow / unfollow endpoints**
+- [x] **T101 — Follow / unfollow endpoints**
       Paths: apps/api/src/auxd_api/modules/social/routes.py, apps/api/src/auxd_api/modules/social/service.py
       Size: M
       Deps: T025, T021
@@ -910,7 +934,16 @@
       Description: `POST /api/v1/users/{handle}/follow`, `DELETE`. Asymmetric. If followee has private profile, create `state=pending` and notify. Emit N-001 + (if pending) N-002.
       Done: integration tests cover all states.
 
-- [ ] **T102 — Block endpoint (+ cascade-resolve follow)**
+<!-- sync-fix L4-022 (Run #10): T101a added — FollowRequest approve/decline UI was acknowledged in T101 code as deferred ("No Follow row is created at this step; the approval path is out of scope here, future ticket") but had no tasks.md anchor. -->
+- [ ] **T101a — FollowRequest approve/decline endpoints + responder UI** *(DEFERRED — private-profile responder side)*
+      Paths: apps/api/src/auxd_api/modules/social/routes.py, apps/api/src/auxd_api/modules/social/service.py, apps/api/tests/integration/test_follow_requests.py, apps/web/src/app/(app)/settings/follow-requests/page.tsx, apps/web/src/components/social/follow-requests-list.tsx
+      Size: M
+      Deps: T101
+      Refs: US-G2, S-H3 (Could-have)
+      Description: Add `POST /api/v1/users/me/follow-requests/{id}/approve` + `POST /api/v1/users/me/follow-requests/{id}/decline` + `GET /api/v1/users/me/follow-requests`. Approve creates the `Follow` row with `state=ACCEPTED`; decline marks the FollowRequest `state=DECLINED`. Emits N-002 confirmation back to requester on approve. Frontend: Settings → "Follow requests" sub-route lists pending requests with Approve/Decline buttons.
+      Done: integration tests cover approve/decline/list paths; frontend route renders; existing pending state badge on FollowButton continues to work.
+
+- [x] **T102 — Block endpoint (+ cascade-resolve follow)**
       Paths: apps/api/src/auxd_api/modules/social/service.py, apps/api/tests/integration/test_blocks.py
       Size: M
       Deps: T101
@@ -918,7 +951,7 @@
       Description: `POST /api/v1/users/{handle}/block`. Dissolves any Follow in either direction. Hides content from blocker (via lib/visibility).
       Done: TC-028 passes.
 
-- [ ] **T103 — Friends-who-rated-and-auxed endpoint**
+- [x] **T103 — Friends-who-rated-and-auxed endpoint**
       Paths: apps/api/src/auxd_api/modules/feed/service.py
       Size: M
       Deps: T101, T073
@@ -926,7 +959,7 @@
       Description: `GET /api/v1/albums/{id}/friends` returns avatars + ratings + Aux'd from followed accounts who have rated this album; sort by rating desc then logged_at desc; visibility-filtered.
       Done: integration test covers visibility matrix.
 
-- [ ] **T104 — Suggested-follow precompute worker**
+- [x] **T104 — Suggested-follow precompute worker**
       Paths: apps/api/src/auxd_api/workers/suggestions_job.py
       Size: L
       Deps: T101, T073
@@ -934,7 +967,7 @@
       Description: arq scheduled job (every N hours per user) that scores candidate follows using the algorithm from seeding-strategy §4 (mutual-taste 40%, followed-by-followed 30%, shared-seed 15%, label/genre 10%, recency 5%). Excludes blocked, dismissed (≤30d), already-followed.
       Done: suggestions appear in `/api/v1/users/me/suggestions` for users with ≥5 logged entries.
 
-- [ ] **T105 — Suggested-follow API + dismiss endpoint**
+- [x] **T105 — Suggested-follow API + dismiss endpoint**
       Paths: apps/api/src/auxd_api/modules/social/routes.py
       Size: S
       Deps: T104
@@ -942,15 +975,15 @@
       Description: `GET /api/v1/users/me/suggestions?limit=5`; `POST /api/v1/users/me/suggestions/{user_id}/dismiss`.
       Done: integration test.
 
-- [ ] **T106 — Home feed endpoint (fan-out-on-read + weighting)**
-      Paths: apps/api/src/auxd_api/modules/feed/routes.py, apps/api/src/auxd_api/modules/feed/service.py, apps/api/tests/integration/test_feed.py
+- [x] **T106 — Home feed endpoint (fan-out-on-read + weighting)**
+      Paths: apps/api/src/auxd_api/modules/feed/routes.py, apps/api/src/auxd_api/modules/feed/service.py, apps/api/tests/integration/test_feed_endpoint.py (sync-fix L5-014, Run #10 — was test_feed.py, corrected to match shipped filename)
       Size: L
       Deps: T101, T073, T085, T016
       Refs: US-E3; FR-009; DM-1
       Description: `GET /api/v1/feed?cursor=...&limit=25&mode=for_you|latest` — implements fan-out-on-read with weighted score (reviews +20%, ★★★★★/★ +15%, top-5-interacted +10%, half-life ~3d). "Latest" mode disables weights. Critic-seed padding when followed-user activity is sparse.
       Done: integration tests cover happy path + sparse-feed + visibility matrix + sort modes.
 
-- [ ] **T107 — Feed performance benchmark (p95 <500ms)**
+- [x] **T107 — Feed performance benchmark (p95 <500ms)**
       Paths: apps/api/tests/perf/test_feed_perf.py
       Size: S
       Deps: T106
@@ -959,7 +992,7 @@
       Done: perf test passes; baseline recorded for regression checks.
 
 <!-- CR-001: T108 description updated — "Listen on Spotify" button removed; entry-card CTA simplifies to album-page navigation. -->
-- [ ] **T108 — Feed UI (home page)**
+- [x] **T108 — Feed UI (home page)**
       Paths: apps/web/src/app/(app)/page.tsx, apps/web/src/components/feed/feed-entry.tsx
       Size: L
       Deps: T106, T037, T032
@@ -967,15 +1000,15 @@
       Description: SSR home feed; entry cards per wireframe (avatar, stars, 🏅 Aux badge if applied, album cover thumb, review snippet, 👍 like count, tap-album-art-or-title to open album page). "Latest" tab toggle. Infinite scroll via cursor pagination. Lazy-load cover art (Next.js Image with blur placeholder). ("Listen on" streaming-service button deferred to v2 per CR-001.)
       Done: TC-E2E-004 passes.
 
-- [ ] **T109 — Profile + diary page**
-      Paths: apps/web/src/app/(app)/@[handle]/page.tsx
+- [x] **T109 — Profile + diary page**
+      Paths: apps/web/src/app/(app)/profile/[handle]/page.tsx, apps/web/src/components/diary/profile-client.tsx (extended with avatar + counts + Follow + Block/Report header), apps/api/src/auxd_api/modules/users/routes.py (inline `GET /api/v1/users/{handle}` — see FR-036 — block-aware 404 to prevent existence-leak) (sync-fix L4-021, Run #10)
       Size: M
       Deps: T080, T101
-      Refs: US-E2, US-G1
-      Description: Public profile with avatar, display_name, bio, handle, follows/followers counts, ratings histogram, diary tab, reviews tab, Aux'd filter.
+      Refs: US-E2, US-G1, FR-036
+      Description: Public profile with avatar, display_name, bio, handle, follows/followers counts, ratings histogram, diary tab, reviews tab, Aux'd filter. Backed by the inline `GET /api/v1/users/{handle}` endpoint that returns the user card + counts + viewer-relation classifier (none/following/pending/self/blocked/anonymous); blocked viewer sees 404, not 403.
       Done: page renders.
 
-- [ ] **T110 — Follow button (with optimistic update)**
+- [x] **T110 — Follow button (with optimistic update)**
       Paths: apps/web/src/components/social/follow-button.tsx
       Size: S
       Deps: T101, T109
@@ -983,7 +1016,7 @@
       Description: Follow button with optimistic count update; confirm modal on unfollow.
       Done: works on profile page.
 
-- [ ] **T111 — Block + Report UI**
+- [x] **T111 — Block + Report UI**
       Paths: apps/web/src/components/social/block-report-menu.tsx
       Size: M
       Deps: T102
@@ -991,7 +1024,7 @@
       Description: Overflow menu on profile/diary entry/review with Block + Report options. Report modal with reason enum + free-text detail.
       Done: works.
 
-- [ ] **T112 — Discover tab (suggestions surface)**
+- [x] **T112 — Discover tab (suggestions surface)**
       Paths: apps/web/src/app/(app)/discover/page.tsx
       Size: M
       Deps: T105, T037
@@ -1191,13 +1224,14 @@
       Description: Implement each of N-001..N-018 active types with: trigger source(s), payload schema, copy templates per channel, default settings. Integration tests fire each type and verify dispatch.
       Done: 18 types instrumented; defaults match taxonomy table.
 
+<!-- CR-002: hero count amended from single → three-hero carousel (NT-2). -->
 - [ ] **T138 — Weekly digest job**
       Paths: apps/api/src/auxd_api/workers/digest_dispatch.py, apps/api/tests/integration/test_weekly_digest.py
       Size: L
       Deps: T135, T106
-      Refs: FR-012; NT-2, NT-3; TC-027
-      Description: arq cron every 5min; checks for users whose "Monday 09:00 user-local" falls in current 5-min window. Per-user: query top 10 feed entries past 7d + 1 "most-rated album in your follow graph this week" hero. Render + send via Resend. Quiet hours don't suppress (NT-3).
-      Done: TC-027 passes.
+      Refs: FR-012; NT-2, NT-3; TC-027; **CR-002**
+      Description: arq cron every 5min; checks for users whose "Monday 09:00 user-local" falls in current 5-min window. Per-user: query top 10 feed entries past 7d + **three-hero carousel callout (most-rated, most-reviewed, most-Aux'd in your follow graph this week — three indexed aggregate queries on `DiaryEntry.created_at` filtered by follow-graph; per CR-002)**. Carousel renders above the chronological body in the email layout. Render + send via Resend. Quiet hours don't suppress (NT-3).
+      Done: TC-027 passes; carousel renders 3 callouts.
 
 - [ ] **T139 — Notification preferences UI**
       Paths: apps/web/src/app/(app)/settings/notifications/page.tsx
@@ -1425,6 +1459,15 @@
       Refs: seeding-strategy.md operational levers
       Description: NOT in MVP scope. Documented as future-state.
       Done: N/A.
+
+<!-- sync-fix L4-023 (Run #10): T163a added — POST /api/v1/reports/user (and target-typed report variants) referenced by T111 frontend BlockReportMenu (the modal currently 404s gracefully). Lives in §15 moderation territory because reports tie into the daily-scan-for-flagged-users flow. -->
+- [ ] **T163a — Submit-report endpoints (user / review / diary)**
+      Paths: apps/api/src/auxd_api/modules/reports/routes.py, apps/api/src/auxd_api/modules/reports/service.py, apps/api/tests/integration/test_reports_user.py
+      Size: S
+      Deps: T026, T101
+      Refs: US-G4; T111 frontend BlockReportMenu (Session 17); plan §3.1 reports collection
+      Description: Add `POST /api/v1/reports/user` body `{user_id, reason: ReportReason, detail?: str}` → 201; `POST /api/v1/reports/review` body `{review_id, reason, detail?}` → 201; `POST /api/v1/reports/diary-entry` body `{entry_id, reason, detail?}` → 201. All write to the existing `reports` collection with `target_type` set per route. Idempotency: same `(reporter_id, target_type, target_id)` within 24h returns the existing report (don't create duplicates). ReportReason enum: harassment / spam / impersonation / hate_speech / other. The daily-scan-for-flagged-users flow (T026) already consumes the reports collection — wiring is downstream. **Frontend BlockReportMenu (T111) currently 404s on POST /reports/user and treats as deferred-success; this task fixes that contract.**
+      Done: integration tests cover all 3 target types + idempotency + 401-when-anonymous; frontend BlockReportMenu mutation succeeds with 201 instead of 404-fallback.
 
 - [ ] **T166 — Founder seed-content workflow tools**
       Paths: docs/founder-workflows/seed-content.md

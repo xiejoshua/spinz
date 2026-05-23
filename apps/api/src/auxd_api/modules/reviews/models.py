@@ -48,6 +48,10 @@ class Review(Document):
     reactions: ReactionsSubDoc = Field(default_factory=ReactionsSubDoc)
     visibility: str = "public"  # currently mirrors DiaryEntry's visibility
     edited_at: datetime | None = None
+    # T087: soft-delete column — set by ``DELETE /reviews/{id}`` so the
+    # public surface hides the review while keeping the row around for
+    # the eventual hard-delete cron that will sweep orphaned ReviewLikes.
+    deleted_at: datetime | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
@@ -59,6 +63,12 @@ class Review(Document):
             IndexModel([("album_id", ASCENDING), ("reactions.likes_count", DESCENDING)]),
             # 1:1 enforcement vs DiaryEntry.
             IndexModel([("diary_entry_id", ASCENDING)], unique=True),
+            # T087: cron sweep filter — only soft-deleted rows are indexed.
+            IndexModel(
+                [("deleted_at", ASCENDING)],
+                sparse=True,
+                name="ix_reviews_soft_delete_sweep",
+            ),
         ]
 
 

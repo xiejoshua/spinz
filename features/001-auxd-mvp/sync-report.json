@@ -1,222 +1,112 @@
 {
   "feature": "001-auxd-mvp",
-  "run_number": 5,
-  "date": "2026-05-22",
+  "run_number": 9,
+  "date": "2026-05-23",
   "phase": "implement_in_progress",
-  "tasks_completed": 42,
-  "tasks_total": 170,
+  "tasks_completed": 95,
+  "tasks_total": 171,
   "trigger": [
-    "§6 Albums + Search backend wave (commit 3e8a602) — T063 identity + T064 cache refresh + T065 MBID reconciliation + T066 edition aggregation + T067 album-detail endpoint + T068 Atlas Search index extension + T069 three-tier search endpoint",
-    "shared-types regen (commit bbd1f4e) — packages/shared-types/src/api.ts updated for 2 new OpenAPI endpoints",
-    "post-deploy partial-filter fix (commit 66f0403) — Album.mbid + Album.discogs_release_id unique indexes migrated from sparse=True to partialFilterExpression={$exists: True, $ne: None}"
+    "User invoked /speckit.product-forge.sync-verify after Sessions 15-16 (§8 Reviews + Likes + sort and §9 Backlog / Up Next).",
+    "Two clusters completed in succession; nine clusters now done overall (§0 §1 §3 §4 §5 §6 §7 §8 §9)."
   ],
   "layers_checked": [1, 2, 3, 4, 5, 6, 7],
   "layers_skipped": [],
   "layers_skipped_reason": null,
-  "focus_per_user_prompt": "Structural-drift detection on all layers; Layer 6 (spec ↔ code backward) elevated as headline for first meaningful sweep after §6 added end-to-end product surfaces (album-detail endpoint + search endpoint). Verify Run #4 dispositions still hold; check for §6 fallout user pre-suspects (partial-filter not in implementation-log; artist_credit data-shape gap; Atlas Search operator follow-up; data-model.md candidate semantics).",
+  "focus_per_user_prompt": "full 7-layer scan covering Sessions 15-16 changes",
   "verdict": "DRIFT_DETECTED",
-  "verdict_reason": "0 CRITICAL findings; structural count 7 trips strict structural:0 budget. New drift narrowed materially from Run #4 (was 7 structural with 4 WARN; now 7 structural with 1 WARN). All new drift is documentation-tier (narratives that did not catch up with §6 code + the post-deploy partial-filter fix). All Run #4 inline cleanups verified resolved.",
+  "verdict_reason": "0 CRITICAL; 9 NEW WARN + 3 carry-forward WARN; 6 NEW INFO + 4 carry-forward INFO. Structural count 13 over budget of 0 (9 NEW + 4 carry-forward), but every NEW WARN is documentation catch-up — the shipped code is healthy. 5 of 9 NEW WARNs are projections of the same root cause: plan.md not amended for the new endpoints, indexes, and PostHog events landed in Sessions 15-16. Single coordinated edit pass resolves L1-001, L2-020, L2-021, L2-022, L3-020, L3-021, L3-022, L3-023, L3-024, L4-019, L5-013, L6-004 across plan.md (5 locations), spec.md (2 FRs + 1 AC), product-spec (3 small edits), tasks.md (1 header insert + 1 Paths fix), and 1 frontend patch (Edit button on review reading-view). Pattern continuation from Runs #2-#8: applied_split_with_override.",
   "drift_budget": {
-    "cosmetic": 20,
-    "structural": 0
+    "structural": 0,
+    "cosmetic": 20
   },
   "counts": {
     "critical": 0,
-    "warning": 1,
-    "info": 17,
-    "structural": 7,
-    "cosmetic": 0,
-    "recurring_advisory": 11,
-    "new_this_run": 7,
-    "resolved_since_run_4": 7
+    "warning": 12,
+    "info": 10,
+    "structural": 13,
+    "cosmetic": 9,
+    "new_this_run": 15,
+    "carry_forward_from_run_8": 7,
+    "resolved_since_run_8": 0,
+    "recurring_advisory_unchanged": 11
   },
-  "run_4_disposition_verified": {
-    "inline_cleanups_holding": true,
-    "items_verified": [
-      "L2-014 (FR-033 propagated to product-spec/product-spec.md:174 FR table + product-spec/README.md:62 + tasks.md T053a Refs)",
-      "L3-013 (plan.md §5.1 protocol method names re-aligned to code — get_album_by_mbid + get_album_by_external_id; cover-art-as-field; provider_id dropped; get_user_library out)",
-      "L3-014 (plan.md §5.2 rate-limit text rewritten — in-class asyncio.Lock + time.monotonic; Discogs graceful-disabled-when-token-unset)",
-      "L4-006 (discogs_id → discogs_release_id renamed in product-spec/data-model.md 4 locations + tasks.md T063)",
-      "L2-015 (spec.md wireframe 01 label 'Follow-Critics screen')",
-      "L2-016 (spec.md entity counts reconciled 14 active at MVP)",
-      "L4-007 (tasks.md FR math fixed — 23 active = 28 base (incl FR-033) − 5 deferred)"
-    ]
+  "sessions_audit": {
+    "sessions_covered": ["15", "16"],
+    "tasks_landed": [
+      "T085", "T086", "T087", "T088", "T089",
+      "T090", "T091 (absorbed into T077)", "T092", "T093", "T093a", "T093b",
+      "T095", "T096", "T097", "T098", "T099 (absorbed into T077)", "T100"
+    ],
+    "clusters_completed": [
+      "§8 Reviews + Likes + sort (0/11 → 11/11)",
+      "§9 Backlog / Up Next (0/6 → 6/6)"
+    ],
+    "must_have_stories_with_evidence": [
+      "US-C1", "US-C2", "US-C4 (US-C3 partial — see L6-004)",
+      "US-D1", "US-D2", "US-D3"
+    ],
+    "orphan_files": 0,
+    "headline_check": "All Session 15-16 declared Paths exist on disk; cross-link integrity holds; gap is downstream plan/spec doc catch-up + 1 frontend mount (US-C3 edit affordance)"
   },
-  "section_6_wave_verified": {
-    "t063": "modules/albums/identity.py + modules/albums/errors.py + Album.candidate field + 8 unit tests",
-    "t064": "modules/albums/workers.py:refresh_stale_album_metadata + workers/main.py cron @ daily 04:00 UTC; provider shared via _on_startup",
-    "t065": "modules/albums/workers.py:reconcile_candidate_albums + cron @ weekly Sun 03:00 UTC; fuzzy 0.8 threshold",
-    "t066": "modules/albums/editions.py + 11 unit tests; canonical-edition = earliest year + longest tracklist tiebreak",
-    "t067": "modules/albums/routes.py + routers/v1.py mount + 6 integration tests; visibility-filtered via can_read_with_relation",
-    "t068": "migrations/atlas_search/albums_index.json extended (lucene.standard + edgeNgram + popularity boost) + migrations/README.md NEW + 5 unit tests",
-    "t069": "modules/search/routes.py + modules/search/service.py + 7 integration tests; three-tier Atlas→MB→Discogs fallback with dedupe + empty-result hint",
-    "shared_types_regen": "packages/shared-types/src/api.ts regenerated for 2 new endpoints (commit bbd1f4e)",
-    "partial_filter_fix": "Album.Settings.indexes migrated sparse=True → partialFilterExpression (commit 66f0403); conftest drops indexes post-init_beanie since mongomock-motor does not honor partial filters; test count 400 → 401",
-    "path_divergences_acknowledged": "providers/musicbrainz.py + providers/discogs.py single-file vs tasks.md package paths; modules/albums/workers.py vs tasks.md workers/album_cache_refresh.py + workers/mbid_reconcile.py paths — inline-noted on tasks.md [x] lines per locked decision #5",
-    "test_path_divergences_not_yet_inline_noted": "T067 Paths -> tests/integration/test_album_detail.py (actual: test_album_detail_endpoint.py); T068 Paths -> docs/atlas-search-setup.md (actual: apps/api/migrations/README.md); T069 Paths -> tests/integration/test_search.py (actual: test_search_endpoint.py) — captured under L5-006"
-  },
-  "findings": [
-    {
-      "id": "L3-015",
-      "layer": 3,
-      "severity": "WARNING",
-      "category": "structural",
-      "direction": "forward",
-      "title": "plan §11.2.1 POST /api/search/report-missing diverges from code (/api/v1/reports/missing-album) and tasks.md T053a",
-      "source": "plan.md:766 narrative",
-      "target": "apps/api/src/auxd_api/modules/search/routes.py:48 _REPORT_MISSING_ALBUM_URL constant; tasks.md:523 T053a Description; tasks.md:1588 coverage matrix",
-      "authoritative": "/api/v1/reports/missing-album (code + tasks.md align)",
-      "actual": "plan.md narrative uses unversioned /api/search/report-missing — both wrong prefix (outside /api/v1) and wrong module (search vs reports)",
-      "proposed_resolution": "Update plan.md:766 to /api/v1/reports/missing-album; optionally clarify target_id semantics to acknowledge T053a's structured payload (query/artist/title/release_year fields)",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L2-017",
-      "layer": 2,
-      "severity": "INFO",
-      "category": "structural",
-      "direction": "backward",
-      "title": "spec.md \"18 active notification types\" narrative stale post-CR-001 (should be 14 active)",
-      "source": "spec.md:195 US-G3 AC; spec.md:371 §7 data-model entity narrative; spec.md:584 §13 reading list",
-      "target": "product-spec/notification-taxonomy.md — 14 active (N-001..N-008 + N-012..N-017); reserved-gap N-009/N-010/N-011/N-018/N-019/N-020. product-spec/README.md:64 correctly says \"14 notification types active\". product-spec/user-stories.md:289 correctly references active types with reserved-gap callout.",
-      "actual": "spec.md narrative claims 18 active in 3 places; canonical count is 14 active + 6 reserved-gap. CR-001 deferred N-009/N-010/N-011/N-018; R3 deferred N-019/N-020.",
-      "proposed_resolution": "Update spec.md:195, :371, :584 from \"18 active notification types\" to \"14 active notification types (N-009/N-010/N-011/N-018 deferred-to-v2 per CR-001; N-019/N-020 deferred with R3 Lists; reserved-gap IDs preserved)\"",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L2-018",
-      "layer": 2,
-      "severity": "INFO",
-      "category": "structural",
-      "direction": "backward",
-      "title": "Album.candidate field semantics drift — data-model.md says 'admin merge', code+T063+S-F1 say 'T065 auto-reconciliation'",
-      "source": "product-spec/data-model.md:355-359 §\"Album identity normalization\" step 3 — \"create a 'candidate' album record flagged for admin merge\"",
-      "target": "apps/api/src/auxd_api/modules/albums/models.py:199-204 docstring; apps/api/src/auxd_api/modules/albums/identity.py:122-137; apps/api/src/auxd_api/modules/albums/workers.py:174-237 (reconcile_candidate_albums); product-spec/user-stories.md:249 S-F1 AC",
-      "actual": "data-model.md narrative case is \"manual album entry → admin merge\". Code uses candidate=True for the Discogs-fallback materialisation path that is automatically reconciled by T065 weekly cron. The manual-entry path does not currently exist in code (T053a future stub handles missing-album reports separately).",
-      "proposed_resolution": "Update data-model.md §\"Album identity normalization\" step 3 to: \"Else if Discogs ID is present → materialise Album(candidate=True, source=DISCOGS) to be reconciled by the weekly T065 MBID-reconciliation worker.\" Also add Album.candidate field to the Album entity sketch lines 89-114.",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L3-016",
-      "layer": 3,
-      "severity": "INFO",
-      "category": "structural",
-      "direction": "backward",
-      "title": "plan §3.1 + data-model.md indexes table say 'unique sparse' but code uses partialFilterExpression (post-66f0403 fix)",
-      "source": "plan.md:264 (`albums` indexes row); product-spec/data-model.md:402-404 (Album indexes rows)",
-      "target": "apps/api/src/auxd_api/modules/albums/models.py:215-237 — both Album.mbid + Album.discogs_release_id use partialFilterExpression={field: {$exists: True, $ne: None}}",
-      "actual": "Plan + data-model still describe pre-fix sparse-unique design. Code reflects the post-deploy partial-filter fix. Pydantic serialises None to BSON null (present, not missing) so sparse-unique still indexes null values — causing the production DuplicateKeyError on the second null insert observed in the §6 search-endpoint deploy. partialFilterExpression excludes both missing AND null, which is the actual MVP intent. The conftest drops both indexes post-init_beanie because mongomock-motor does not honor partial filters.",
-      "proposed_resolution": "Update plan.md:264 + product-spec/data-model.md:402-403 from \"unique sparse\" to \"unique partial-filter ({$exists: true, $ne: null}) — sparse was insufficient because Pydantic serialises None to BSON null\". Add DM-6 decision-log entry capturing the partial-filter index shape decision.",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L4-008",
-      "layer": 4,
-      "severity": "INFO",
-      "category": "structural",
-      "direction": "forward",
-      "title": "§6 wave artifacts (Album.candidate field, Atlas index rating_count + popularity boost, migrations/README.md) not in plan §3.1 + data-model.md inventory",
-      "source": "Album.candidate field (T063 new); apps/api/migrations/atlas_search/albums_index.json extension (T068 — rating_count field + scoreDetails.popularity log1p(rating_count) block); apps/api/migrations/README.md (T068 new doc)",
-      "target": "plan.md:264 (albums indexes row); product-spec/data-model.md:89-114 (Album sketch); product-spec/data-model.md:395-419 (Indexes table)",
-      "actual": "Album.candidate field invisible to data-model.md Album sketch. Atlas Search index has rating_count + popularity boost — neither shows up in plan or data-model. plan.md §3.1 still says \"Atlas Search index on title + artist_credit + artists.name\" — accurate, but understates the actual shape post-T068.",
-      "cross_check": "Narrows but does not replace recurring L4-005 (4 satellite collections inventory gap)",
-      "proposed_resolution": "Add Album.candidate to data-model.md Album sketch. Update plan.md:264 albums indexes row to mention the popularity-boost index field. Optionally add migration-artifact subsection enumerating migrations/atlas_search/albums_index.json + migrations/README.md.",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L5-006",
-      "layer": 5,
-      "severity": "INFO",
-      "category": "structural",
-      "direction": "backward",
-      "title": "Post-deploy partial-filter fix (commit 66f0403) not in implementation-log.md; tasks.md T067/T068/T069 Paths divergences not inline-noted",
-      "source": "commit 66f0403 body — production incident + partial-filter fix + conftest drop pattern + 400 → 401 test count + v1.x testcontainers note",
-      "target": "features/001-auxd-mvp/implementation-log.md — Session 8 ends at 400/400 + the Operator-follow-up Atlas-index bullet; no Session 8.5 entry. tasks.md T067/T068/T069 [x] lines do not inline-note the test/doc filename divergences (parallel pattern to §4 wave T049/T064 etc).",
-      "actual": "Future readers reconstructing Session 8 from the log alone will see \"shipped, 400/400 green\" and miss the post-deploy production incident + fix. tasks.md T067 Paths says tests/integration/test_album_detail.py (actual: test_album_detail_endpoint.py); T068 Paths says docs/atlas-search-setup.md (actual: apps/api/migrations/README.md); T069 Paths says tests/integration/test_search.py (actual: test_search_endpoint.py).",
-      "proposed_resolution": "Add \"Session 8.5 — Post-deploy partial-filter fix (2026-05-23 morning)\" subsection to implementation-log.md. Add inline path-divergence notes to tasks.md T067/T068/T069 [x] lines per locked decision #5.",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L6-001",
-      "layer": 6,
-      "severity": "INFO",
-      "category": "advisory",
-      "direction": "backward",
-      "title": "First meaningful Layer 6 sweep: §6 backend endpoints satisfy US-F1/US-F2/FR-005/FR-010/FR-033 backward; frontend-bound concerns deferred to T070+",
-      "source": "US-F1 + US-F2 + FR-005 + FR-010 + FR-033 in spec.md",
-      "target": "apps/api/src/auxd_api/modules/albums/routes.py (T067); apps/api/src/auxd_api/modules/search/routes.py + service.py (T069)",
-      "actual": "T067 response shape (album/editions/aggregate/my_history/friends/public_reviews) covers US-F1 backend concerns. T069 three-tier search (Atlas → MB → Discogs with materialise + dedupe + empty-result hint) covers US-F2 backend concerns. Frontend-bound parts of US-F1 (SSR/OG meta/sort selector/Log+UpNext CTAs) and US-F2 (≥3 chars + 200ms debounce) are deferred to T070+ as expected. FR-033 traceability via tasks.md T053a Refs is now clean. Backward direction substantially clean. No regression-class drift.",
-      "proposed_resolution": "(advisory) No action this run. Surface marker. Revisit in Run #6 once T070+ frontend wave lands and Layer 6 backward gets a second pass.",
-      "decision": null,
-      "new_this_run": true
-    },
-    {
-      "id": "L7-015",
-      "layer": 7,
-      "severity": "INFO",
-      "category": "structural",
-      "direction": "internal",
-      "title": "apps/api/migrations/README.md (NEW this wave) is not indexed by any other markdown doc",
-      "source": "apps/api/migrations/README.md",
-      "target": "apps/api/migrations/migration-plan.md; feature plan.md §11.1; tasks.md T068 Done line; implementation-log.md Session 8 Operator-follow-up bullet — all reference the README only as a path, not a markdown link",
-      "actual": "Same convention class as L7-004..008 + L7-013. Not a user-visible defect; flagged because the Atlas-index apply runbook lives only in the new README and the discoverability path from plan → migrations is currently grep, not link.",
-      "proposed_resolution": "Add markdown link from apps/api/migrations/migration-plan.md §\"Atlas Search indexes\" (or equivalent). Optionally also from plan.md §11.1 + tasks.md T068 Done line.",
-      "decision": null,
-      "new_this_run": true
-    }
+  "new_findings": [
+    {"id": "DRIFT-L1-001", "layer": 1, "severity": "INFO", "category": "cosmetic", "title": "Backlog sort alternatives (rating/year) silently omitted from S-D2 vs research", "proposed_fix": "One-line `<!-- ... -->` breadcrumb under S-D2 in product-spec/user-stories.md deferring rating/year sort modes to v2.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L2-019", "layer": 2, "severity": "INFO", "category": "structural", "title": "(carry-forward) SS-3 cohort signup_cohort undefined", "status": "OPEN_NARROWED", "disposition": "defer_invite_mechanic_cluster"},
+    {"id": "DRIFT-L2-020", "layer": 2, "severity": "WARNING", "category": "structural", "title": "spec.md §5 FR table missing FR-034 (US-D2 drag-reorder) + FR-035 (US-D3 auto-remove)", "proposed_fix": "Add FR-034 + FR-035 rows after FR-006 in spec.md §5.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L2-021", "layer": 2, "severity": "WARNING", "category": "structural", "title": "Review delete capability shipped without product-spec / spec.md AC trace", "proposed_fix": "Append delete-review AC line to S-C3 (product-spec) + US-C3 (spec.md): owner-only soft-delete, 30d grace, confirmation dialog, 410 on double-delete.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L2-022", "layer": 2, "severity": "INFO", "category": "cosmetic", "title": "Review entity in data-model.md omits edited_at + deleted_at field enumeration", "proposed_fix": "Add `edited_at` + `deleted_at` field lines to Review block in data-model.md.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-020", "layer": 3, "severity": "WARNING", "category": "structural", "title": "Plan §6 reviews service surface missing delete_review + get_review", "proposed_fix": "Edit plan.md §6 reviews row — append `delete_review` and `get_review` plus users-sidecar note.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-021", "layer": 3, "severity": "WARNING", "category": "structural", "title": "Plan §6 backlog service surface missing list_backlog_items + contains_album", "proposed_fix": "Edit plan.md §6 backlog row — append `list_backlog_items` and `contains_album` plus albums-sidecar note.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-022", "layer": 3, "severity": "WARNING", "category": "structural", "title": "Plan §3.1 reviews row missing deleted_at sparse index", "proposed_fix": "Edit plan.md §3.1 reviews row — append `deleted_at sparse (T087 cron sweep)` + 30d-grace note.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-023", "layer": 3, "severity": "INFO", "category": "cosmetic", "title": "Plan §12.1 references critic_seed_active flag on User; shipped uses CriticSeed FK", "proposed_fix": "Edit plan.md §12.1 — replace flag reference with CriticSeed FK + active-on-CriticSeed truth.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L3-024", "layer": 3, "severity": "WARNING", "category": "structural", "title": "Plan §15.2 PostHog event table missing 4 shipped backlog events", "proposed_fix": "Replace `backlog.added` row with 4 shipped events: backlog.item_added, backlog.item_removed, backlog.reordered, backlog.converted_to_log (T100).", "disposition": "apply_inline"},
+    {"id": "DRIFT-L4-018", "layer": 4, "severity": "INFO", "category": "cosmetic", "title": "T093a Paths declares opengraph-image.tsx that was never shipped", "proposed_fix": "Drop opengraph-image.tsx from T093a Paths; add note pointing to deferred T093c.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L4-019", "layer": 4, "severity": "WARNING", "category": "structural", "title": "tasks.md §8 — orphan task body at line 861 (T094 header eaten)", "proposed_fix": "Insert `- [ ] **T094 — Reviews-only profile sub-route**` at line 860 (matches the §8 index range T085-T094 + the orphan Paths/Refs body).", "disposition": "apply_inline"},
+    {"id": "DRIFT-L4-020", "layer": 4, "severity": "INFO", "category": "cosmetic", "title": "T093 / T092 Paths under-specify helper files", "proposed_fix": "Same disposition as L4-013 (Paths-convention umbrella).", "disposition": "defer_under_convention"},
+    {"id": "DRIFT-L5-012", "layer": 5, "severity": "INFO", "category": "cosmetic", "title": "T093a Paths claims opengraph-image.tsx never shipped (overlaps with L4-018)", "proposed_fix": "Subsumed by L4-018 inline fix.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L5-013", "layer": 5, "severity": "WARNING", "category": "structural", "title": "T100 Paths claims apps/web/src/lib/analytics.ts which does not exist", "proposed_fix": "Edit T100 Paths: drop apps/web/src/lib/analytics.ts; cite apps/api/.../diary/routes.py where emit_event actually fires.", "disposition": "apply_inline"},
+    {"id": "DRIFT-L6-004", "layer": 6, "severity": "WARNING", "category": "structural", "title": "US-C3 EditReviewDialog shipped but not mounted on any live route", "proposed_fix": "Add Edit button to review-reading-view/index.tsx footer when isOwn; opens existing EditReviewDialog component.", "disposition": "apply_inline"}
   ],
-  "recurring_info_unchanged": [
-    {
-      "id": "L1-001",
-      "title": "W1 activation definition narrowed (research said 30%; spec says 30%/35% M3/M6)"
-    },
-    {
-      "id": "L1-002",
-      "title": "Apple Music re-eval threshold drifted 15% → 30% without rationale (DEFERRED since Run #2)"
-    },
-    {
-      "id": "L2-004",
-      "title": "FR-003 trace tag US-A3 → US-A2 (FR-003 DEFERRED-TO-V2 per CR-001 — moot candidate)"
-    },
-    {
-      "id": "L2-005",
-      "title": "FR-027 trace tag US-G2 removal (FR-027 DEFERRED-TO-V2 per CR-001 — moot candidate)"
-    },
-    {
-      "id": "L2-006",
-      "title": "Cluster name enrichment"
-    },
-    {
-      "id": "L2-009",
-      "title": "Entity inventory ReviewLike row (partially mooted by Run #2 L2-010 reconciliation)"
-    },
-    {
-      "id": "L3-009",
-      "title": "/critics route in plan, no spec backing"
-    },
-    {
-      "id": "L3-010",
-      "title": "Handle collision suggestion algorithm incomplete"
-    },
-    {
-      "id": "L4-005",
-      "title": "4 satellite collections (FollowRequest + ReviewEditHistory + FailedEmail + NotificationPreferences-embedded-on-User) still missing from product-spec/data-model.md inventory — narrowed by L4-008 but still distinct"
-    },
-    {
-      "id": "L7-004..008",
-      "title": "5 phase-digest orphans (convention question)"
-    },
-    {
-      "id": "L7-013",
-      "title": "implementation-log.md orphan (convention class)"
-    }
+  "carry_forward_from_run_8": [
+    {"id": "DRIFT-L2-019", "severity": "INFO", "category": "structural", "status": "OPEN_NARROWED", "disposition": "defer_invite_mechanic_cluster"},
+    {"id": "DRIFT-L3-017", "severity": "WARNING", "category": "structural", "status": "OPEN", "disposition": "defer_invite_mechanic_cluster"},
+    {"id": "DRIFT-L4-009", "severity": "WARNING", "category": "structural", "status": "OPEN", "disposition": "defer_invite_mechanic_cluster"},
+    {"id": "DRIFT-L4-013", "severity": "INFO", "category": "cosmetic", "status": "OPEN_DEFERRED", "disposition": "defer_convention_umbrella"},
+    {"id": "DRIFT-L4-017", "severity": "INFO", "category": "cosmetic", "status": "OPEN_DEFERRED", "disposition": "defer_convention_umbrella"},
+    {"id": "DRIFT-L5-008", "severity": "INFO", "category": "cosmetic", "status": "OPEN_DEFERRED", "disposition": "defer_convention_umbrella"},
+    {"id": "DRIFT-L6-002", "severity": "WARNING", "category": "structural", "status": "OPEN", "disposition": "defer_low_priority_polish"}
   ],
-  "next_action": "User to disposition L3-015 (1 new WARN) + 7 new INFO + recurring advisory list. Recommended disposition order: (1) L3-015 plan.md URL fix; (2) L3-016 + L4-008 bundled index-shape + inventory commit (plus DM-6 decision-log entry); (3) L2-017 + L2-018 narrative cleanup; (4) L5-006 Session 8.5 log entry + tasks.md inline divergence notes; (5) L7-015 markdown link; (6) L6-001 no action — advisory; (7) consider retiring L2-004/L2-005 as moot since CR-001; (8) override structural=0 budget rule as in Runs #2/#3/#4. Layer 6 will become more meaningful once frontend wave (T070+) lands and Layer 6 backward gets a second pass.",
-  "honest_assessment": "Artifact set is in a coherent shape post-§6. All new structural items are documentation-tier — narratives that did not catch up with §6 code + the post-deploy partial-filter fix. No misalignment requires human-in-the-loop resolution before the next implementation wave begins. The §6 wave proved the data-layer + provider-scaffolding + route-pattern + visibility-filtering composition all hang together; the next wave can proceed."
+  "resolved_since_run_8": [],
+  "disposition": "applied_split_with_override",
+  "gate_override": {
+    "granted": true,
+    "granted_at_iso": null,
+    "reason": "0 CRITICAL findings; every NEW WARN is documentation catch-up — plan.md / spec.md / product-spec not amended for the Session 15-16 shipped code (9 new endpoints, sidecar pattern, Review.deleted_at index, 4 new PostHog events, drag-reorder UX). Material gaps: (1) FR-034/FR-035 missing in spec for US-D2/D3, (2) Review delete AC missing for US-C3, (3) US-C3 edit affordance not mounted on any live route (L6-004 — code exists, not wired). All resolvable in coordinated edit pass. Carry-forwards (L2-019, L3-017, L4-009, L6-002) remain user-deferred under existing dispositions. Sessions 15-16 themselves landed cleanly: 0 orphan files, every Must Have story has route + component + test evidence except US-C3 partial."
+  },
+  "honest_assessment": "Sessions 15-16 are healthier than the doc-drift count suggests. Code shipped clean (+62 tests for §8 reviews; +30 for §9 backlog; 592 backend pass / 3 skip; 11 frontend routes; zero orphan files). The drift is downstream: plan.md hasn't tracked the new endpoints / indexes / events that landed inline, and US-C3 edit is built but not surfaced. Both are recoverable in a single pass. The most material true gap is L6-004 (edit-review dialog needs ~10 lines to mount on the reading-view footer) — that's a code change, not a doc fix.",
+  "next_action": "Continue to §10 Social graph + Feed (T101-T108). Re-run sync-verify after the next cluster lands.",
+  "applied_inline_resolutions": [
+    "L1-001: product-spec/user-stories.md S-D2 — sort-mode v2-defer breadcrumb added.",
+    "L2-020: spec.md §5 — FR-034 (drag-reorder for US-D2) and FR-035 (auto-remove on log for US-D3) inserted.",
+    "L2-021: product-spec/user-stories.md S-C3 retitled 'Edit (or delete)'; delete AC line added. spec.md US-C3 AC updated with delete semantics (soft-delete + 30d grace + 410 on double-delete).",
+    "L2-022: product-spec/data-model.md Review block — `edited_at` + `deleted_at` field lines added.",
+    "L3-020: plan.md §6 reviews row — appended `delete_review` + `get_review` + users-sidecar note + soft-delete semantics.",
+    "L3-021: plan.md §6 backlog row — appended `list_backlog_items` + `contains_album` + albums-sidecar note.",
+    "L3-022: plan.md §3.1 reviews row — appended `deleted_at sparse` index and 30d-grace note (parallels diary_entries).",
+    "L3-023: plan.md §12.1 — replaced `critic_seed_active=true` with CriticSeed table FK as truth; explained denormalisation rejection.",
+    "L3-024: plan.md §15.2 PostHog table — replaced `backlog.added` row with 4 shipped events (item_added, item_removed, reordered, converted_to_log).",
+    "L4-019: tasks.md §8 — restored orphan `**T094 — Reviews-only profile sub-route**` header at line 860 with full Description tying it to T092 owner-controls + L6-004 interim mount.",
+    "L4-018 + L5-012: tasks.md T093a Paths — dropped `opengraph-image.tsx`; cited the backend GET /reviews/{id} addition; documented T093c follow-up.",
+    "L5-013: tasks.md T100 Paths — dropped `apps/web/src/lib/analytics.ts`; cited `apps/api/.../diary/routes.py` where emit_event actually fires.",
+    "L6-004: apps/web/src/components/review-reading-view/index.tsx — added owner-only Edit button (Pencil icon) that opens the existing EditReviewDialog. Build green after the change (96 files lint, 0 tsc errors, 11 routes build)."
+  ],
+  "deferred_resolutions": [
+    "L2-019 (INFO structural) — invite-mechanic cluster sequencing",
+    "L3-017 (WARN structural) — invite-mechanic cluster",
+    "L4-009 (WARN structural) — invite-mechanic cluster",
+    "L4-013 (INFO cosmetic) — Paths-convention umbrella",
+    "L4-017 (INFO cosmetic) — Paths-convention umbrella",
+    "L4-020 (INFO cosmetic) — Paths-convention umbrella",
+    "L5-008 (INFO cosmetic) — Paths-convention umbrella",
+    "L6-002 (WARN structural) — low-priority polish (US-A1 handle suggestions on collision)"
+  ]
 }

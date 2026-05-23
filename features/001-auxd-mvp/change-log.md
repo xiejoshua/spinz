@@ -238,3 +238,189 @@ public launch.
 ### Approved
 
 Joshua Xie
+
+---
+
+## CR-002: Phase 2 decision review pass — 2026-05-22
+
+| Field | Value |
+|-------|-------|
+| **Status** | ACCEPTED |
+| **Priority** | Must Have (rationale + UX correctness) |
+| **Requested at phase** | Phase 6 (Implement) — in-progress, 48/170 tasks completed at the time of the CR |
+| **Decision-maker** | Joshua Xie (founder, solo mode) |
+| **Decision date** | 2026-05-22 |
+
+### Rationale
+
+During the Phase 2 product-spec creation (2026-05-21), founder issued
+`continue where you left off` mid-question-flow, which the Phase-2 agent
+interpreted as approval to auto-resolve all 22 main + 14 supporting
+(20 minus the 6 superseded by CR-001 and the SS-1 dupe of Q13)
+open-questions with research-recommended defaults. The defaults were
+logged in `decision-log.md` for Phase-3 revisitation, where 3 revisions
+applied changes but did not re-walk the auto-resolved questions
+explicitly.
+
+Now, 48 tasks into Phase 6 implementation, founder requested an
+explicit re-walk of every auto-resolved decision to confirm or correct.
+29 of 36 questions were confirmed at their current resolution. 5
+substantive changes + 1 v2 roadmap note emerged. None of the 48 shipped
+tasks (T001 through Session-9 §5 Auth wave) are touched — every changed
+decision affects an unbuilt surface.
+
+This CR captures the four substantive changes + the v2 roadmap note as
+a single bundle, mirroring the CR-001 pattern, so future search anchors
+on "Phase 2 decision review pass" surface every related artifact edit.
+
+### Locked decisions (post-review confirmations)
+
+The 29 confirmed-at-current-resolution decisions are NOT re-stated here
+— they remain at the values logged in
+`product-spec/decision-log.md` (Phase 2 v1.0 + R1/R2/R3 + CR-001).
+
+The 5 changed decisions are:
+
+1. **Q3 — Feed composition algorithm rationale softened.** MVP behavior
+   unchanged (reverse-chronological + weighted by review-attached,
+   extreme ratings, viewer-interaction-strength). Rationale dropped the
+   "avoids algorithm distrust" framing — the wedge is data-stage-aware,
+   not anti-algorithm. ML returns in v2 when scale + data earn its
+   keep. Differentiator row in `decision-log.md` reworded for the same
+   reason.
+
+2. **NT-2 — Weekly digest hero: single → three-hero carousel.**
+   Carousel features most-rated, most-reviewed, and most-Aux'd in your
+   follow graph this week. Three cheap aggregate queries instead of
+   one. Stronger email-open hook; digest layout reflows to fit three
+   callouts above the chronological body.
+
+3. **SS-3 — Invite landing shows "X just joined" social-proof line.**
+   Reversed from "no at MVP." Gated by new `User.visible_in_just_joined`
+   opt-in flag (default OFF for closed-beta cohorts L-12 through L-1
+   so the launch-wave narrative stays under founder control; default
+   ON for L 0 and later). Users flip the flag in Settings → Privacy.
+   Surfaces: `/i/{handle}` invite landing (3-name ticker, 15-min cache)
+   + `/joined` ticker in onboarding step 1 (~15 names).
+
+4. **UJ-3 — Reviews: dedicated `/review/:id` route only, no inline
+   expand.** Letterboxd parity. Feed shows rating + album thumbnail +
+   first ~80 chars of review text as preview; the entire card is
+   tappable and navigates to the route. Reading view surface: full
+   hero (album cover, title, artist, viewer's rating context, Aux
+   badge if any, Like button, share). Route is URL-shareable with OG
+   meta; naturally hosts the v2 screenshot image-gen surface.
+
+5. **UJ-4 v2 roadmap note — screenshot image-gen.** Server-side PNG
+   rendering of the `/review/:id` hero, queued for v2 once the route
+   exists. ~5–7 day add. Re-eval trigger: M3 milestone hit AND
+   share-card-share rate <15% of published reviews.
+
+### Considered-then-reverted
+
+**DM-1 — Redis feed-page cache from Day 1.** Initially picked during
+the review pass, then walked back after surfacing implementation
+complexity (cache invalidation, stampede protection, cold-path
+behavior is identical to no-cache anyway, debug surface). Original
+default preserved: fan-out-on-read with a p95 > 200ms switch trigger.
+
+### Impact summary
+
+```
+Tasks removed:                 0
+Tasks deferred to v2:          0
+Tasks amended:                 2    (T-future digest builder note + T-future
+                                     invite landing note — to be picked up when
+                                     those clusters land)
+Tasks added:                   2    (T-future review route + T-future reading-view
+                                     component — to be picked up in §6/§7 frontend
+                                     wave)
+Net task count:              170    (unchanged at the time of this CR; +2 will
+                                     land when the affected clusters are sequenced)
+Artifacts touched (this CR):   8    (5 product-spec/* + change-log.md + .forge-status.yml
+                                     + this row; out-of-scope.md also touched for
+                                     the v2-roadmap entry)
+Code/test files patched:       0    (all changes affect unbuilt surfaces)
+Tests:                       460 pass / 3 skip (unchanged)
+```
+
+### Schedule impact
+
+**Mildly positive at MVP** (rationale-only Q3 change is free; NT-2 is
++0.5 day to the digest builder; SS-3 is +1 day for the invite-landing
+ticker + privacy flag; UJ-3 is +3–5 days for the route + reading-view
+component). Total: **~5–7 days added** to clusters that are not yet
+sequenced. UJ-4 v2-roadmap note carries no MVP cost.
+
+### Risk
+
+| Risk | Likelihood | Impact | Mitigation |
+|---|:-:|:-:|---|
+| SS-3 cohort gate misfires (closed-beta names leak to public landing) | L | M | `User.visible_in_just_joined` defaults to `false` for users with `signup_cohort ∈ {L-12 .. L-1}`. Default ON only flips at L 0 cohort tag. Anti-regression test on the defaults-by-cohort matrix is part of the invite-landing task. |
+| UJ-3 reading-view component bloats scope ("just one more thing") | M | M | Hero scope locked in `decision-log.md` UJ-3: album hero + Like + share. Comments thread explicitly NOT in scope (v2). |
+| NT-2 three-hero carousel adds materially to digest render time | L | L | Three aggregate queries instead of one; each is a count over `DiaryEntry.created_at ≥ now()-7d` filtered by follow-graph. Indexed; cheap. Worst-case render time is still <500ms for the email render job. |
+| Drift between this CR's source-doc edits and the derived docs (product-spec.md, spec.md, plan.md, tasks.md, research/competitors.md) | M | M | Sync-verify Run #6 immediately after this CR; any derived-doc drift surfaces as Layer-2/3/4 findings. |
+
+### Artifacts modified
+
+| Artifact | Change Type | Edits |
+|----------|:----------:|------:|
+| `features/001-auxd-mvp/product-spec/decision-log.md` | Modified | 6 (Q3 + Differentiator + NT-2 + SS-3 + UJ-3 + UJ-4 v2-note + revision-history row) |
+| `features/001-auxd-mvp/product-spec/notification-taxonomy.md` | Modified | 3 (NT-2 resolution row + N-008 layout note + "Algorithm-distrust" anti-pattern row softened) |
+| `features/001-auxd-mvp/product-spec/seeding-strategy.md` | Modified | 2 (Invite mechanics block + SS-3 resolution row) |
+| `features/001-auxd-mvp/product-spec/user-journeys.md` | Modified | 3 (Journey 3 steps 2/5 + Journey 5 step 6 share URL + UJ-3/UJ-4 resolution rows) |
+| `features/001-auxd-mvp/product-spec/data-model.md` | Modified | 1 (new `User.visible_in_just_joined` field) |
+| `features/001-auxd-mvp/product-spec/out-of-scope.md` | Modified | 2 (UJ-4 v2-roadmap row + "algorithmic-rec engine" row softened) |
+| `features/001-auxd-mvp/change-log.md` | Appended | 1 (this entry) |
+| `features/001-auxd-mvp/.forge-status.yml` | Modified | 2 (change_requests append + last_updated bump) |
+
+### Tasks amendments / additions
+
+| Action | Task | Status | Notes |
+|--------|------|--------|-------|
+| Amend | T138 weekly digest job | **Applied inline** | Hero count 1 → 3; carousel queries (most-rated / most-reviewed / most-Aux'd) above the chronological body |
+| Amend | T090 review card component | **Applied inline** | "Body with read-more" → "preview first ~80 chars; whole-card tap navigates to `/review/:id`"; like button stops nav propagation |
+| Add | T093a `/review/[id]` route (SSR + OG meta) | **Applied inline** | SSR fetching Review + Album + viewer-context; visibility-checked; OG meta with album+rating; v2 image-gen slot reserved |
+| Add | T093b review reading-view component | **Applied inline** | Letterboxd-parity hero + body; Like + share; comments thread NOT in scope (v2) |
+| Add | Invite-landing ticker (SS-3) | **Pending cluster sequencing** | `/i/{handle}` landing page is not yet a tasks.md row; gets picked up when the invite-mechanics cluster is sequenced. The CR's job is to ensure the ticker + `User.visible_in_just_joined` consumer get added when that cluster lands. Sync-verify Run #6 flags this as pending coverage. |
+
+The four review/digest items landed in `tasks.md` inline because the
+affected clusters (§8 reviews + likes + sort, §13 notifications) are
+already sequenced in the file and the new task IDs slot cleanly. The
+invite-landing ticker is deliberately deferred — the `/i/{handle}`
+landing page doesn't yet have a tasks.md row to amend, and inventing
+the row mid-implementation would create a placeholder with no
+sequencing context. Sync-verify Run #6 will flag this as a Layer-5
+coverage gap for the next cluster sequencing pass.
+
+Net task count after CR-002: **170 → 172** (164 active MVP + 8
+DEFERRED-TO-V2). Active count: 162 → 164.
+
+### Phase rollback
+
+None. All artifact edits land in place with `<!-- CR-002 -->` markers;
+`.forge-status.yml` `phases.*.status` fields remain at their pre-CR
+values.
+
+### Sync-verify run
+
+Run #6 of `speckit.product-forge.sync-verify` follows this CR. Expected
+findings: Layer-2/3 drift in product-spec.md / spec.md / plan.md /
+tasks.md / research/competitors.md as the derived-doc propagation
+catches up. No Layer-6 (spec ↔ code) impact expected because no
+shipped code is touched.
+
+### Decision notes
+
+This CR is structurally lighter than CR-001: zero code touched, zero
+tasks removed, four substantive doc-level decision changes + one v2
+roadmap note. The Differentiator row softening (Q3 rationale) is the
+most strategic edit — it preserves the social-graph-first posture at
+MVP while removing the "anti-algorithm" framing that was both
+historically inaccurate (auxd was always pro-heuristic, not
+pro-no-algorithm) and risked closing the door on graph-aware ML in
+v2.
+
+### Approved
+
+Joshua Xie

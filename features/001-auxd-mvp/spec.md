@@ -52,11 +52,13 @@ These 18 decisions are non-negotiable inputs to Phase 5 (plan). Each links back 
 ### What we're building
 
 <!-- CR-001: persona reframed casual Spotify listeners → music-engaged listeners; streaming-history auto-import removed -->
-auxd is a social album-tracking platform for music-engaged listeners (18–35) — Letterboxd-for-music in posture. Users log albums they've listened to via a manual search-and-pick flow, rate them on a ½-star scale, write optional reviews, "Aux" personal standouts in their own diary, "Like" reviews written by others, maintain a private backlog of "want to listen" albums, and discover music via their social graph rather than algorithmic recommendations. The first session is non-empty via a critic-seed feed populated from the user's "follow ≥3 critics" onboarding step.
+<!-- CR-002: "rather than algorithmic recommendations" softened — wedge is data-stage-aware, not anti-algorithm. -->
+auxd is a social album-tracking platform for music-engaged listeners (18–35) — Letterboxd-for-music in posture. Users log albums they've listened to via a manual search-and-pick flow, rate them on a ½-star scale, write optional reviews, "Aux" personal standouts in their own diary, "Like" reviews written by others, maintain a private backlog of "want to listen" albums, and discover music via their social graph (richer ML-based recs layer on top in v2 once data + graph density support them). The first session is non-empty via a critic-seed feed populated from the user's "follow ≥3 critics" onboarding step.
 
 ### Why we're building it
 
-Casual streaming-era listeners (18–35) have no low-friction way to record, share, and discover album experiences with people whose taste they trust. Their listening stays passive and ephemeral. The moment of "I just finished a great album" evaporates because there's no native place to capture it that combines album-first context, social-graph (not algorithmic) discovery, and a friction floor low enough for non-power-users.
+<!-- CR-002: "social-graph (not algorithmic)" softened — wedge is data-stage-aware, not anti-algorithm. -->
+Casual streaming-era listeners (18–35) have no low-friction way to record, share, and discover album experiences with people whose taste they trust. Their listening stays passive and ephemeral. The moment of "I just finished a great album" evaporates because there's no native place to capture it that combines album-first context, social-graph-first discovery (richer ML-based recs return in v2 once the data + graph density support them), and a friction floor low enough for non-power-users.
 
 ### The wedge thesis
 
@@ -133,7 +135,7 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 > Full G/W/T acceptance criteria for every story: [product-spec/user-stories.md](./product-spec/user-stories.md)
 > User journeys / flow narratives: [product-spec/user-journeys.md](./product-spec/user-journeys.md)
-> 30 Must-Have, 2 Should-Have, 3 Could-Have *(count reconciled in sync-verify Run #1 — see [sync-report.md](./sync-report.md#drift-l2-003-story-count-claim-32-vs-enumerated-bodies-30))*
+> 30 Must-Have, 2 Should-Have, 3 Could-Have *(count reconciled in sync-verify Run #1 — see [sync-report.md](./sync-report.md))*
 
 ### Must Have (MVP — 30 stories)
 
@@ -163,8 +165,9 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 **Cluster C — Reviews + Likes + sort**
 
 - [ ] **US-C1** As Maya, I want to write a review after rating. **AC:** Markdown-safe subset; ≥1 char minimum; no "say more" nudge (per R3 decision); save with entry.
-- [ ] **US-C2** As Casey, I want to read reviews on an album detail page, sorted by Newest (default) / Most Liked / Highest-Rated. **AC:** Sort selector persists per-device; primary tier = friends, then public, then critic-seed; truncate at ~200 chars with inline expand.
-- [ ] **US-C3** As Maya, I want to edit a published review. **AC:** Latest version shown publicly with "edited" badge + hover timestamp; 90-day internal audit log preserved; edit history NOT exposed publicly.
+<!-- CR-002: inline expand replaced by nav to /review/:id; truncation behavior updated. -->
+- [ ] **US-C2** As Casey, I want to read reviews on an album detail page, sorted by Newest (default) / Most Liked / Highest-Rated. **AC:** Sort selector persists per-device; primary tier = friends, then public, then critic-seed; each review preview shows author + rating + first ~80 chars; tapping the preview navigates to `/review/:id` for full reading view (per UJ-3 / CR-002).
+- [ ] **US-C3** As Maya, I want to edit or delete a published review. **AC:** Edit — latest version shown publicly with "edited" badge + hover timestamp; 90-day internal audit log preserved; edit history NOT exposed publicly. Delete — text-confirm dialog soft-deletes (`deleted_at` set; removed from public surfaces immediately); 30-day grace before hard-delete cascades `ReviewLike` rows; double-delete returns `410 Gone`. (sync-fix L2-021, Run #9)
 - [ ] **US-C4** As Casey, I want to "Like" (👍) another user's review. **AC:** Idempotent toggle; review's `likes_count` increments; N-004 (`review.liked`) notification to reviewer; cannot like own review.
 
 **Cluster D — Backlog (Up Next)**
@@ -178,7 +181,7 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 - [ ] **US-E1** As Casey, I want to follow another user. **AC:** Asymmetric follows; existing follow dissolved on block; optimistic count update.
 - [ ] **US-E2** As Casey, I want to browse a follower's diary. **AC:** Reverse-chrono, 25/page; followers-only entries hidden from non-followers; private entries always hidden.
-- [ ] **US-E3** As Casey, my home feed surfaces signal from my follow graph. **AC:** Reverse-chrono with weight boosts (review-attached +20%, ★★★★★/★ +15%, top-5-interacted users +10%); "Latest" toggle disables weights and persists per-device.
+- [ ] **US-E3** As Casey, my home feed surfaces signal from my follow graph. **AC:** Two modes via `GET /api/v1/feed?mode=for_you|latest` — **"For You"** (default, weighted reverse-chrono with review-attached +20%, ★★★★★/★ +15%, top-5-interacted users +10%, 3-day half-life decay) and **"Latest"** (strict chronological — weights disabled); toggle persists per-device. (sync-fix L2-023, Run #10)
 - [ ] **US-E4** As Casey, I want to see "Friends who rated & Aux'd" on album pages. **AC:** Avatars + ratings + Aux badges (🏅) from followed accounts, sorted by rating desc then date desc.
 - [ ] **US-E5** As Casey, the app suggests follows based on taste overlap. **AC:** Suggestion job runs after ≥5 ratings; "Discover" tab; dismissed suggestions excluded for 30d.
 
@@ -191,7 +194,7 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 **Cluster G — Profile, settings, privacy**
 
 - [ ] **US-G1** As Maya, I want to edit my profile (display name, bio, avatar, handle). **AC:** Optimistic save; **handle policy** (per Q16/FR-029): immutable first 30d; thereafter ≤1 change per 30d; 200–500 obvious-squat reservations at launch; verification flow for reserved-squat claims post-launch.
-- [ ] **US-G2** As Casey, I want privacy defaults (per-entry visibility, private profile). **AC:** Default visibility setting; private-profile toggle creates pending follow-requests queue; existing followers stay on visibility downgrade.
+- [ ] **US-G2** As Casey, I want privacy defaults (per-entry visibility, private profile). **AC:** Default visibility setting; private-profile toggle creates pending follow-requests queue (creation side ships at MVP via T101); existing followers stay on visibility downgrade. **Approver side (approve / decline / list pending) tracked under S-H3 (Could-have) — MVP ships request creation only** (sync-fix L2-025, Run #10).
 <!-- sync-fix L2-017 (Run #5): notification count corrected — was "18 active types". Canonical post-CR-001 is 14 active + 6 reserved-gap (N-009/010/011/018 deferred per CR-001 + N-019/020 reserved post-R3 Lists removal). See product-spec/notification-taxonomy.md + product-spec/README.md. -->
 - [ ] **US-G3** As Casey, I want to manage notifications. **AC:** 14 active notification types with per-channel toggles; quiet hours config; quiet hours suppress push + in-app prompts, not email/digest. (Auto-prompts deferred-to-v2 per CR-001 along with the rest of the S-B6 surface.)
 - [ ] **US-G4** As Maya, I want to block and report. **AC:** Block dissolves existing follow + hides content; report queued with reason; ≥3 reports/7d → daily-log-scan flagging (manual review at MVP, no auto-suspension).
@@ -253,6 +256,11 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 | FR-032 | Review sort by Newest (default) / Most Liked / Highest-Rated; persists per-device | Must | US-C2 |
 <!-- CR-001: FR-033 added — "Report missing album" workflow tied to manual-search empty-state -->
 | FR-033 | "Report missing album" workflow surfaced from manual-search empty-state: user submits artist + album + optional MBID/Discogs URL hint; report queued for catalog-team triage; user gets in-app confirmation. | Must | US-F2 |
+<!-- sync-fix L2-020 (Run #9): FR-034 + FR-035 added — drag-reorder + auto-remove backlog behavior shipped in §9 Session 16 but had no FR-row trace. -->
+| FR-034 | View Up Next backlog with drag-reorder; order persists per-user via `position` field on `BacklogItem` (1-indexed, contiguous after delete/reorder). Pointer + keyboard a11y supported. | Must | US-D2 |
+| FR-035 | Auto-remove logged album from Up Next on `log_entry`, gated by `User.keep_backlog_after_log` (default `false` → auto-remove). PostHog `backlog.converted_to_log` event emits on successful auto-remove for M3/M6 KPI tracking. | Must | US-D3 |
+<!-- sync-fix L2-024 (Run #10): FR-036 added — profile endpoint with viewer-relation classifier landed inline at Session 17 (T109 backing). -->
+| FR-036 | Profile read endpoint (`GET /api/v1/users/{handle}`) returns user card + follower/following counts + viewer-relation state ∈ {`anonymous`, `none`, `following`, `pending`, `self`, `blocked`}. Existence-leak prevention: a viewer who is blocked-by the target sees `HTTP 404` (not `403`). Powers the `/profile/[handle]` SSR header (Follow + Block/Report affordances). | Must | US-E1, US-G2, US-G4 |
 
 ---
 
@@ -344,7 +352,7 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 | Frontend | `app/(onboarding)` | Streamlined flow: signup → handle → follow ≥3 critics → critic-seed feed (no music-service auth step at MVP) |
 | Frontend | `app/(feed)` | Home feed; "Latest" toggle; entry cards |
 | Frontend | `app/album/[id]` | Album detail; Edition chip; sortable reviews; friends section |
-| Frontend | `app/@[handle]` | Profile; diary; filters (Aux'd, public-only) |
+| Frontend | `app/profile/[handle]` | Profile; diary; filters (Aux'd, public-only). Public `/@handle` URL deferred to a middleware-rewrite task; see plan §7.1.1. |
 | Frontend | `app/up-next` | Backlog UI |
 | Frontend | `app/settings/*` | Profile, privacy, notifications, integrations, data |
 | Frontend | `components/log-sheet` | THE wedge interaction; bottom-sheet; ½-star widget; Aux + review |

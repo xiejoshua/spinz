@@ -49,6 +49,8 @@ User {
   bio                      # ≤140 chars
   avatar_url               # CDN URL
   private_profile          # bool, default false  (sync-fix Run #3 L5-004: was is_private_profile in earlier drafts; aligned to code)
+  # CR-002: SS-3 opt-in flag for the "X just joined" invite-landing ticker. Default OFF for L-12..L-1 cohorts (preserves launch-wave narrative), ON for L 0 and later. Settings → Privacy surface.
+  visible_in_just_joined   # bool, default depends on signup_cohort (false for cohorts L-12..L-1, true for L 0+); user-tunable in Settings → Privacy
   default_entry_visibility # enum: public | followers | private, default "public"
   default_backlog_visibility # enum: public | followers | private, default "private"
   keep_backlog_after_log   # bool, default false
@@ -157,6 +159,8 @@ Review {
                            #   → likes_count (Revision #3 — Aux/Like semantic split)
                            # Likes are social engagement from OTHER users on this review.
                            # The DiaryEntry.auxed field is a separate concept (self-curation).
+  edited_at                # datetime, nullable; set on each edit (sync-fix L2-022, Run #9)
+  deleted_at               # datetime, nullable; soft-delete with 30d grace before hard-delete cascades ReviewLikes (sync-fix L2-022, Run #9)
 }
 
 ### ReviewLike
@@ -294,19 +298,38 @@ NotificationPreferences {
 }
 ```
 
-### SuggestedFollow
-Precomputed by an offline job; refreshed N times per day.
+<!-- sync-fix L2-026 (Run #10): SuggestedFollow → Suggestion + separate SuggestionDismissal. Session 17 T104 shipped two collections (suggestions + suggestion_dismissals) with TTL indexes 7d / 30d. The original single-entity sketch is preserved below as historical note. -->
+### Suggestion
+Precomputed by the `compute_suggestions_for_user` worker (T104); refreshed N hours per user via arq cron.
 ```
-SuggestedFollow {
+Suggestion {
   id
   user_id                  # who the suggestion is for
   suggested_user_id        # who is being suggested
-  score                    # float, suggestion strength
-  reason                   # enum: mutual_taste | followed_by_followed | shared_label | critic_seed | invited
-  dismissed_at             # datetime, nullable (user-dismissed suggestions excluded for 30d)
-  created_at
+  score                    # float in [0, 1] — weighted combo of mutual-taste 40% + followed-by-followed 30% + shared-seed 15% + label/genre 10% + recency 5%
+  reasons                  # list of rationale tags: mutual_taste | followed_by_followed | shared_seed | label_genre | recency (sync-fix L2-027, Run #10 — multiple co-firing rationales per suggestion)
+  computed_at              # datetime; TTL 7 days (auto-clean stale rows)
 }
 ```
+Indexes: `(user_id, score DESC)` for read; `(user_id, suggested_user_id)` unique; `computed_at` TTL 7 days.
+
+### SuggestionDismissal
+User-dismissed suggestions; the read endpoint excludes these for 30 days. Separate collection (rather than a `dismissed_at` field on `Suggestion`) so the TTL semantics can differ (Suggestions: 7d staleness; Dismissals: 30d cool-down).
+```
+SuggestionDismissal {
+  id
+  user_id                  # the viewer who dismissed
+  suggested_user_id        # whose suggestion was dismissed
+  dismissed_at             # datetime; TTL 30 days
+}
+```
+Indexes: `(user_id, suggested_user_id)` unique compound; `dismissed_at` TTL 30 days.
+
+<!-- HISTORICAL — pre-Session-17 single-entity sketch (kept for changelog clarity):
+SuggestedFollow { id, user_id, suggested_user_id, score, reason: enum {mutual_taste|followed_by_followed|shared_label|critic_seed|invited}, dismissed_at, created_at }
+The shipped split is two collections (different TTL semantics) and `reasons: list[str]` (multiple co-firing labels per row).
+-->
+
 
 ### CriticSeed
 Static-ish editorial list of accounts pre-recommended/pre-followed at onboarding.

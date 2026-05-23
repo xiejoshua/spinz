@@ -1,3 +1,6 @@
+import "./globals.css";
+import { Toaster } from "@/components/ui/toaster";
+import { Providers } from "@/providers";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 
@@ -13,8 +16,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className="font-sans">
+        <Providers>{children}</Providers>
+        <Toaster />
+      </body>
     </html>
   );
 }

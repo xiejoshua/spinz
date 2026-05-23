@@ -196,7 +196,8 @@ Across 10+ direct logging competitors, these are present in ≥80% — necessary
 4. **Backlog/Watchlist/Wantlist** as a first-class concept distinct from "logged."
 5. **User profile** with cumulative stats (total logs, favorites, rating distribution, top artists).
 6. **Lists** — public ranked lists drive disproportionate engagement.
-7. **Activity feed** of friend actions — chronological, not algorithmic.
+<!-- CR-002: H3 wedge bullet softened — Letterboxd-for-X attempts that succeeded used chronological feeds at MVP-stage. Not a permanent anti-algorithm posture. -->
+7. **Activity feed** of friend actions — chronological at MVP scale (richer ranking layers on as the graph + data density grow).
 8. **Comment threads** on reviews and lists.
 9. **Catalog search** with autocomplete from a canonical source (Spotify, Apple Music, MusicBrainz).
 10. **Mobile-first responsive design** — web-only is a structural disadvantage by 2025.

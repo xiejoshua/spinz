@@ -69,3 +69,6 @@ plugins = ["pydantic.mypy"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
 testpaths = ["tests"]
+markers = [
+  "perf: performance smoke tests; exclude via `-m 'not perf'` in fast-feedback runs.",
+]

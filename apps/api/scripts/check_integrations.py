@@ -85,8 +85,8 @@ async def check_settings(s: Settings) -> CheckResult:
         enabled.append("Resend")
     if s.R2_ACCESS_KEY_ID and s.R2_SECRET_ACCESS_KEY and s.R2_ENDPOINT_URL:
         enabled.append("R2")
-    if s.SPOTIFY_INTEGRATION_ENABLED:
-        enabled.append("Spotify")
+    if s.DISCOGS_API_TOKEN:
+        enabled.append("Discogs")
     summary = ", ".join(enabled) if enabled else "none"
     return _ok(
         "Settings",

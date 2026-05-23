@@ -71,6 +71,9 @@ Users want to bring their friends. The invite flow is shaped to maximize that co
 
 - Every user gets a personal invite link: `xiejoshua.com/i/{handle}` (vanity, redirects to signup with referrer tracking).
 - The link displays the inviter's profile card on the landing page: "Casey invited you to auxd" + their 5 recent ratings.
+<!-- CR-002: SS-3 reversed — "X just joined" social proof now shown on the invite landing + a /joined ticker in onboarding step 1, gated by User.visible_in_just_joined opt-in flag. -->
+- **Social-proof line on the invite landing**: below the inviter's card, a thin "Recently joined: Maya (@maya_h) · Jamie (@jamiec) · Alex (@alexh)" ticker shows the 3 most recent signups whose `User.visible_in_just_joined` flag is ON. Updates server-side every ~15 min (cheap cache). Default flag values: OFF for L-12..L-1 cohorts (preserves launch-wave narrative), ON for L 0 and later. Users flip the flag in Settings → Privacy at any time.
+- The same `/joined` ticker (longer-form: ~15 names) appears as a lightweight surface in onboarding step 1 ("People who've joined this week") — social proof at the moment of decision-to-sign-up.
 - After signup via invite, the new user **automatically gets the inviter and 2 of the inviter's followed accounts pre-suggested** during onboarding (not auto-followed — they still confirm).
 - Both parties see a "Casey joined auxd" notification when the invitee logs their first album (closes the loop, encourages mutual-follow).
 
@@ -167,6 +170,7 @@ All 5 prior open questions resolved. See [decision-log.md §Seeding strategy](./
 
 1. **SS-1 — Critic seeds appear as PRE-CHECKED checkbox cards on the "Follow 3" onboarding screen** (per Q13). Technically opt-in (user can untick); practically achieves "instant feed" outcome.
 2. **SS-2 — "Featured Critic" badge is an inline subtle "· Critic" text suffix** next to the display name everywhere. No icon, no checkmark. Provides social proof; avoids class-hierarchy feel.
-3. **SS-3 — Invite links do NOT include "X just joined" social-proof line at MVP.** Adds privacy surface; founder wants tight control over launch-wave narrative.
+<!-- CR-002: SS-3 reversed. Invite landing now shows the social-proof line; gated by User.visible_in_just_joined flag (default OFF L-12..L-1, ON post-launch). -->
+3. **SS-3 — Invite landing shows "Recently joined: X · Y · Z" ticker.** Gated per-user by `User.visible_in_just_joined` opt-in flag. Default OFF for closed-beta cohorts (L-12 through L-1) so the launch-wave narrative stays under founder control; default ON for L 0 and later. Users flip the flag in Settings → Privacy. *(v1.2: no at MVP. v1.5/CR-002: reversed — viral lift outweighs the launch-narrative concern once the cohort gate is in place.)*
 4. **SS-4 — Critic seeds receive free Pro only at MVP** (no monthly stipend). Stipend is a v1.x lever for top-engagement seeds once retention is proven.
 5. **SS-5 — Off-ramp for a leaving seed: standard account, badge removed silently.** No public announcement.

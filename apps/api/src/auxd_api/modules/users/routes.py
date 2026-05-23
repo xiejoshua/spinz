@@ -41,11 +41,19 @@ from auxd_api.modules.auth.service import (
     InvalidHandleError,
     ReservedHandleError,
 )
+from auxd_api.modules.social.models import (
+    Block,
+    Follow,
+    FollowRequest,
+    FollowRequestStatus,
+    FollowState,
+)
 from auxd_api.modules.users.models import (
     HANDLE_MAX_LEN,
     HANDLE_MIN_LEN,
     User,
 )
+from auxd_api.modules.users.redirect import resolve_handle
 from auxd_api.modules.users.service import (
     HandleChangeTooSoonError,
     cancel_account_deletion,
@@ -231,6 +239,98 @@ async def delete_cancel_deletion(
         properties={},
     )
     return _serialize_deletion_state(state.status.value, state.scheduled_for)
+
+
+def _optional_session(request: Request) -> Session | None:
+    session = getattr(request.state, "session", None)
+    return session if isinstance(session, Session) else None
+
+
+def _serialize_user_card(user: User) -> dict[str, Any]:
+    return {
+        "id": user.id,
+        "handle": user.handle,
+        "display_name": user.display_name,
+        "avatar_url": user.avatar_url,
+        "bio": user.bio,
+        "private_profile": user.private_profile,
+    }
+
+
+@router.get("/{handle}")
+async def get_user_profile(handle: str, request: Request) -> dict[str, Any]:
+    """Public profile lookup — powers `/profile/[handle]` SSR header (T109).
+
+    Returns the user card + follower/following counts + the viewer's
+    relation to the target (so the frontend can render the Follow / Block
+    affordances without a second roundtrip). Privacy-aware: a blocked
+    viewer sees 404 (not 403) to avoid existence-leak.
+    """
+    target, _canonical = await resolve_handle(handle)
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
+
+    session = _optional_session(request)
+    viewer_id = session.user_id if session is not None else None
+
+    # Block check first — blocked viewers can't even confirm the user exists.
+    if viewer_id is not None and viewer_id != target.id:
+        block = await Block.find_one(
+            {
+                "$or": [
+                    {"blocker_id": target.id, "blockee_id": viewer_id},
+                    {"blocker_id": viewer_id, "blockee_id": target.id},
+                ]
+            }
+        )
+        if block is not None and block.blocker_id == target.id:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
+
+    follower_count = await Follow.find(
+        {"followee_id": target.id, "state": FollowState.ACCEPTED.value}
+    ).count()
+    following_count = await Follow.find(
+        {"follower_id": target.id, "state": FollowState.ACCEPTED.value}
+    ).count()
+
+    relation: str
+    if viewer_id is None:
+        relation = "anonymous"
+    elif viewer_id == target.id:
+        relation = "self"
+    else:
+        # Check the viewer's outbound block first.
+        outbound_block = await Block.find_one({"blocker_id": viewer_id, "blockee_id": target.id})
+        if outbound_block is not None:
+            relation = "blocked"
+        else:
+            follow = await Follow.find_one(
+                {
+                    "follower_id": viewer_id,
+                    "followee_id": target.id,
+                    "state": FollowState.ACCEPTED.value,
+                }
+            )
+            if follow is not None:
+                relation = "following"
+            else:
+                pending = await FollowRequest.find_one(
+                    {
+                        "follower_id": viewer_id,
+                        "followee_id": target.id,
+                        "status": FollowRequestStatus.PENDING.value,
+                    }
+                )
+                relation = "pending" if pending is not None else "none"
+
+    return {
+        "user": _serialize_user_card(target),
+        "counts": {
+            "followers": follower_count,
+            "following": following_count,
+        },
+        "relation": relation,
+    }
 
 
 __all__ = ["router"]

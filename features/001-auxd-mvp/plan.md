@@ -160,7 +160,7 @@ auxd/
 │       │   ├── (onboarding)/
 │       │   ├── (app)/                  (post-auth shell)
 │       │   │   ├── page.tsx            (home feed)
-│       │   │   ├── @[handle]/          (profile)
+│       │   │   ├── profile/[handle]/   (profile — public URL `/@handle` reaches here via middleware rewrite; see §7.1)
 │       │   │   ├── album/[id]/
 │       │   │   ├── up-next/
 │       │   │   ├── discover/
@@ -264,7 +264,7 @@ All Phase 1 research recommendations confirmed unchanged.
 <!-- sync-fix L3-016 (Run #5): index shape corrected post-commit-66f0403 — sparse unique caused a production E11000 when a second null insert hit the index, because Pydantic serialises None → MongoDB null (not "missing"). Replaced with partialFilterExpression which excludes both missing AND null from the unique constraint. -->
 | `albums` | 50k–200k | `mbid` unique with `partialFilterExpression({mbid: {$exists: true, $ne: null}})` · `discogs_release_id` same partial-filter shape · Atlas Search index on `title + artist_credit + artists.name` with `lucene.standard` analyzer + edgeNgram autocomplete + `log1p(rating_count)` popularity boost | Lazy-cache; 7d TTL via `cache_expires_at`. MBID is the sole canonical identity; `discogs_release_id` populated only when MusicBrainz returns no match. `Album.candidate: bool` flag marks Discogs-sourced rows pending MBID reconciliation by the T065 worker. |
 | `diary_entries` | 50k–500k | `user_id + logged_at desc` · `user_id + album_id + logged_at desc` · `album_id + visibility + rating desc` · `visibility + logged_at desc` (sparse on public) | Soft-delete with `deleted_at`; 30d grace |
-| `reviews` | 10k–100k | `user_id + created_at desc` · `album_id + reactions.likes_count desc` (R3 Most-Liked sort) · `diary_entry_id` unique | 1:1 optional with DiaryEntry |
+| `reviews` | 10k–100k | `user_id + created_at desc` · `album_id + reactions.likes_count desc` (R3 Most-Liked sort) · `diary_entry_id` unique · `deleted_at sparse` (T087 soft-delete cron sweep; sync-fix L3-022, Run #9) | 1:1 optional with DiaryEntry. Soft-delete via `deleted_at` with 30d grace before hard-delete cascades `ReviewLike` rows (parallels diary_entries soft-delete). |
 | `review_likes` | 50k–500k | `(review_id, user_id)` unique compound · `user_id + created_at desc` | New in R3 |
 | `backlogs` | 5k–10k (1 per User) | `user_id` unique | Singleton per User |
 | `backlog_items` | 25k–200k | `backlog_id + position` · `album_id + backlog_id` | Per-album visibility override |
@@ -278,7 +278,9 @@ All Phase 1 research recommendations confirmed unchanged.
 | `notification_preferences` | 5k–10k (embedded on User) | — | Embedded; no separate collection |
 <!-- CR-001: `just_finished_prompts` collection — kept for forward compat; not used at MVP -->
 | `just_finished_prompts` | **DEFERRED-TO-V2 (CR-001)** | `user_id + state + detected_at desc` · TTL 24h on `pending` | **Status: DEFERRED-TO-V2.** Collection schema and indexes are kept in this plan so the v2 listening-history integration can land without a migration; no writers exist at MVP. |
-| `suggested_follows` | 10k–100k | `user_id + score desc` · `dismissed_at` (sparse) | Precomputed offline |
+<!-- sync-fix L3-025 (Run #10): SuggestedFollow → Suggestion + separate SuggestionDismissal — Session 17 T104 shipped two collections with TTL semantics that differ (Suggestions 7d, Dismissals 30d). -->
+| `suggestions` | 10k–100k | `(user_id, score desc)` · `(user_id, suggested_user_id)` unique · `computed_at` TTL 7d | Precomputed by T104 arq worker; refreshed N hours per user |
+| `suggestion_dismissals` | 10k–100k | `(user_id, suggested_user_id)` unique · `dismissed_at` TTL 30d | Separate collection so dismissal TTL (30d cool-down) ≠ suggestion staleness (7d). Read endpoint joins for defense-in-depth filtering. |
 | `critic_seeds` | 25–80 | `priority desc` · `active` partial | Editorial roster |
 
 ### 3.2 Beanie model patterns (illustrative; complete in Phase 6)
@@ -428,9 +430,14 @@ Per-endpoint limits (defaults, tunable via `Settings`):
 | Endpoint | Per-user qpm | Per-IP qpm | Notes |
 |---|---|---|---|
 | `POST /diary` | 60 | 120 | Generous — power-loggers may log fast |
-| `POST /follow` | 30 | 60 | Anti-spam social graph manipulation |
 | `POST /reviews` | 20 | 40 | Anti-spam writes |
 | `POST /reviews/{id}/like` | 120 | 240 | Idempotent toggle; generous to allow rapid feed scroll |
+<!-- sync-fix L3-028 (Run #10): Session 17 rate-limits added; old `POST /follow` 30/60 row corrected to shipped social_write 60/min (the table previously listed the planned-but-not-shipped limit). -->
+| `POST/DELETE /users/{handle}/follow`, `POST/DELETE /users/{handle}/block` (shared `social_write` bucket) | 60 | 120 | Shipped at Session 17 T101+T102 |
+| `GET /users/me/blocks`, `GET /users/me/suggestions`, `POST /suggestions/{id}/dismiss` (shared `social_read` bucket) | 60 | 120 | Read-side ceiling — block list + suggestions list are settings-surface, low frequency |
+| `GET /albums/{id}/friends` (`friends_read`) | 120 | 240 | Album-detail rollup surface; high frequency |
+| `GET /feed?mode=for_you\|latest` (`home_feed_read`) | 180 | 360 | Home feed is the hot path — generous ceiling for infinite-scroll |
+| `GET /api/v1/users/{handle}` (`profile_read`) | 120 | 240 | Profile-page reads; default ceiling matches album-detail |
 
 Fail-mode is **FAIL OPEN** (see §1.1.1 — same policy as notification rate-limit). Sentry alert tag `endpoint_rate_limit.redis_down` fires on Redis unavailability. 429 responses include `Retry-After` header.
 
@@ -521,11 +528,13 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 | `auth` | `signup_with_email`, `change_handle`, `delete_account`, `request_data_export` | Handle policy + 30d immutability lock. (`signup_with_spotify`, `connect_spotify`, `disconnect_spotify`, `trigger_diary_backfill` DEFERRED-TO-V2 / CR-001.) |
 <!-- CR-001: `albums` service surface — identity resolves to MBID primary + Discogs fallback (no third-party listening-history fallback) -->
 | `albums` | `get_or_create`, `resolve_identity`, `aggregate_ratings`, `merge_editions` | MBID canonical / Discogs release-ID fallback resolution |
-| `diary` | `log_entry`, `edit_entry`, `delete_entry`, `relist_entry`, `user_diary` | Visibility evaluated on read; write endpoint rate-limited (§4.5) |
-| `reviews` | `write_review`, `edit_review` *(writes `review_edit_history` row per edit — §3.1 + FR-030)*, `like_review`, `unlike_review`, `list_reviews_for_album` | Sort: newest/most-liked/highest-rated; write/like endpoints rate-limited (§4.5) |
-| `backlog` | `add_to_backlog`, `remove_from_backlog`, `reorder`, `auto_remove_on_log` | Private by default |
-| `social` | `follow` *(direct or via request — §4.3)*, `unfollow`, `request_follow`, `respond_to_follow_request` *(approve/decline)*, `list_follow_requests`, `block`, `unblock`, `is_following`, `is_blocked`, `user_profile` | Asymmetric; private-profile creates pending FollowRequest (US-G2 infra, sync-fix L3-002); follow endpoint rate-limited (§4.5) |
-| `feed` | `home_feed`, `friends_who_rated_for_album` | Fan-out-on-read; weighted ordering |
+| `diary` | `log_entry`, `edit_entry`, `delete_entry`, `restore_entry`, `relist_entry`, `user_diary` | Visibility evaluated on read; write endpoint rate-limited (§4.5). `user_diary` returns `{entries, next_cursor, albums: {[id]: AlbumCard}}` — the `albums` sidecar is deduped on `_id` so relistens cost one Album lookup per page (sync-fix L4-015, see T074). |
+| `reviews` | `write_review`, `edit_review` *(writes `review_edit_history` row per edit — §3.1 + FR-030)*, `delete_review` *(T087 — soft-delete via `deleted_at` with 30d grace; cron-swept thereafter cascading ReviewLike rows)*, `like_review`, `unlike_review`, `list_reviews_for_album`, `get_review` *(T093a SSR backing — single-review fetch with reviewer + album + viewer-entry sidecars; 404 to non-readers to avoid existence-leak)* | Sort: newest/most-liked/highest-rated; write/like endpoints rate-limited (§4.5). List endpoint returns `users: {[id]: UserCard}` sidecar (one author lookup per page, deduped on `_id`) — parallels the diary `albums` sidecar (sync-fix L3-020/L4-015, Run #9). |
+| `backlog` | `add_to_backlog`, `remove_from_backlog`, `reorder`, `auto_remove_on_log`, `list_backlog_items` *(paginated; default sort by `position` asc)*, `contains_album` *(GET /users/me/backlog/contains?album_id=… — frontend convenience helper for the +Up Next button)* | Private by default. List endpoint returns `albums: {[id]: AlbumCard}` sidecar (deduped on `_id`) — same pattern as diary `§6` row (sync-fix L3-021, Run #9). |
+<!-- sync-fix L3-026 + L3-027 (Run #10): social row updated to match shipped surface; respond_to_follow_request + list_follow_requests marked DEFERRED until private-profile responder UI ships (T101a follow-up). list_suggestions + dismiss_suggestion + list_blocks + get_user_profile appended. -->
+| `social` | `follow`, `unfollow`, `block`, `unblock`, `list_blocks`, `list_suggestions`, `dismiss_suggestion`, `get_user_profile` *(viewer-relation classifier — see FR-036)*, `is_following`, `is_blocked` · **DEFERRED:** `respond_to_follow_request` *(approve/decline)* + `list_follow_requests` (T101a follow-up — private-profile request creation ships at MVP via T101 writing `FollowRequest` rows with `state=pending`; responder UI deferred to v1.x — S-H3 Could-have). | Asymmetric; private-profile creates pending FollowRequest (US-G2 infra); follow + block endpoints rate-limited (§4.5). |
+<!-- sync-fix L3-027 (Run #10): feed row covers the shipped surface; T103 + T106. -->
+| `feed` | `home_feed` *(`?mode=for_you|latest` — see §10.1)*, `friends_who_rated_for_album` *(T103 — dedicated endpoint for surfaces that don't fetch the full album rollup)* | Fan-out-on-read; weighted ordering for `for_you` mode. List endpoints carry `users: {[id]: UserCard}` + `albums: {[id]: AlbumCard}` + `reviews: {[id]: ReviewSnippet}` sidecars (parallels diary/reviews sidecars). |
 <!-- CR-001: `search` service surface — cold-catalog fallback is MusicBrainz live + Discogs -->
 | `search` | `search_albums`, `search_users` | Atlas Search primary; cold-catalog miss → live MusicBrainz lookup → Discogs fallback (§11.1) |
 | `notifications` | `dispatch`, `mark_read`, `list_user_notifications`, `update_preferences` | Dispatcher + adapters |
@@ -549,7 +558,17 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 - `(onboarding)` route group — authenticated but pre-feed; multi-step flow.
 - `(app)` route group — authenticated post-onboarding; bottom-tab nav.
 - `api/og/...` — server routes for OG image generation.
-- All `/album/[id]` and `/@[handle]` pages are SSR for share-link previews.
+- All `/album/[id]` and `/profile/[handle]` pages are SSR for share-link previews.
+<!-- sync-fix L3-019 (Run #8): canonical route is `/profile/[handle]` because Next.js cannot use `@` as a folder-name prefix (reserved for parallel routes). Public `/@handle` URLs are served via a Next.js middleware rewrite — see §7.1.1 Handle URL aliasing. -->
+
+#### 7.1.1 Handle URL aliasing (deferred middleware rewrite)
+
+The public share URL is `/@handle` (plan §11.3, e.g. `auxd.app/@casey`), but the on-disk route is `apps/web/src/app/(app)/profile/[handle]/page.tsx`. A Next.js middleware (`apps/web/src/middleware.ts`, deferred follow-up) rewrites `^/@(?<handle>[^/]+)(?<rest>/.*)?$` → `/profile/{handle}{rest}` so the canonical sharing URL still resolves to the SSR route. Until the middleware ships, the canonical interactive URL is `/profile/{handle}` and `/@handle` is not addressable. The middleware also handles the inverse — share targets generated for `/@handle` while logged-in users browse `/profile/handle` — by canonicalising the `<link rel="canonical">` to the `/@handle` form once the middleware is live.
+<!-- CR-002: dedicated /review/:id route added (UJ-3). Replaces inline-expand feed behavior. -->
+- `/review/[id]` is SSR (UJ-3 / CR-002) — share-link target with OG meta; full hero (album cover, title, artist, viewer's rating context, Aux badge if any, Like button, share). Naturally hosts the v2 screenshot image-gen surface (UJ-4 v2).
+<!-- sync-fix L4-010 (Run #7): Session 12 added /search + /api/cover; enumerated here for completeness. -->
+- `/search` is a client-component page (debounced TanStack Query, ≥3-char trigger, 200ms debounce) calling `GET /api/v1/search`; backed by the three-tier search architecture in §11.2. Empty-state surfaces the "Report missing album" link from §11.2.1.
+- `/api/cover/[size]/[mbid]` is a Next.js Route Handler proxying Cover Art Archive; details in §11.4.
 - Home feed (`/`) is SSR on first load (so user sees content fast); subsequent navigation client-side via TanStack Query.
 
 ### 7.2 Auth on the frontend
@@ -573,7 +592,8 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 - Rating commit is optimistic; server reconciles in background.
 - Server-measured commit time: emit PostHog event `log.commit` with `duration_ms` from sheet-open to commit-success; aggregate p50/p95 dashboards.
 - Aux icon: 🏅 medal; one-tap toggle independent of rating.
-- Review field collapsed by default; tap "Add a review" expands inline (no keyboard pop on initial sheet open).
+<!-- CR-002 disambiguation: this is the LOG-SHEET review composer expanding inline within the log sheet — NOT the feed-card review reading behavior. Feed reading navigates to /review/:id per UJ-3 / CR-002. -->
+- Review field collapsed by default; tap "Add a review" expands inline within the log sheet (no keyboard pop on initial sheet open). *(This is composer expansion within the log sheet, not feed-card reading — feed cards navigate to `/review/:id` per UJ-3 / CR-002.)*
 - Visibility select defaulted to user's `default_entry_visibility` (per FR-013).
 
 ### 7.5 Just-finished prompt — DEFERRED-TO-V2 (CR-001)
@@ -630,7 +650,8 @@ notifications.dispatch(user_id, type, payload)
 ### 8.4 Weekly digest job
 
 - Scheduled via arq cron: every 5 minutes the worker checks for users whose `Monday 09:00 user-local` is in the current 5-minute window; per-user-tz awareness.
-- For each eligible user: query top 10 entries from their follow graph past 7 days + 1 "most-rated album in your follow graph this week" hero.
+<!-- CR-002: digest hero changed from single → three-hero carousel (NT-2). -->
+- For each eligible user: query top 10 entries from their follow graph past 7 days + a three-hero carousel callout (most-rated, most-reviewed, most-Aux'd in your follow graph this week — three cheap aggregate queries, one per metric, each indexed on `DiaryEntry.created_at` filtered by follow-graph). Carousel renders ABOVE the chronological body.
 - Render plain HTML email; send via Resend; emit PostHog event `digest.sent`.
 - Suppression: `weekly_digest` channel must be ON in `NotificationPreferences`.
 
@@ -674,7 +695,10 @@ async def home_feed(viewer: User, cursor: datetime | None = None, limit: int = 2
     candidate_entries = [e for e, v in zip(candidate_entries, visible) if v]
 
     # 3. Apply weighting
-    if not viewer.feed_latest_only:
+    # sync-fix L3-029 (Run #10): shipped uses request-scoped `?mode=for_you|latest` query param,
+    # not a persisted `User.feed_latest_only` field. The mode is parsed off the route + threaded
+    # into `build_home_feed(mode=...)`.
+    if mode == "for_you":
         candidate_entries = apply_weights(candidate_entries, viewer)
 
     # 4. Pad with critic-seed if sparse
@@ -691,7 +715,17 @@ The MVP feed weighting is **100% social-graph based**. There is no listening-his
 
 For each candidate entry:
 ```
-score = base_recency_score
+<!-- sync-fix L3-030 (Run #10): plan formula was additive (`base + 0.20*has_review + 0.15*extreme + 0.10*top5`) with `exp(-h/72)` decay; shipped is MULTIPLICATIVE compose on a 1.0 base with `0.5^(age_hours/72)` half-life. Updated to match shipped at feed/service.py:512-548. The half-life math is equivalent at the half-life point but composes differently for stacked weights. -->
+
+# Multiplicative composition on a 1.0 base — matches feed/service.py
+score = 1.0
+score *= 1.20  if entry.review_id is not None
+score *= 1.15  if entry.rating in {5.0, 1.0}     # extreme ratings boost
+score *= 1.10  if entry.user_id in viewer.top5_authors  # see §10.2.1
+score *= math.pow(0.5, age_hours / 72.0)         # 3-day half-life (base 0.5; equivalent to exp(-h/72*ln 2))
+
+# Reference (historical / additive sketch, pre-shipping):
+# score = base_recency_score
       + 0.20 * (has_review ? 1 : 0)
       + 0.15 * (rating == 5.0 || rating == 0.5 ? 1 : 0)  # extreme ratings
       + 0.10 * (entry.user_id in top_5_interacted_users ? 1 : 0)
@@ -777,8 +811,44 @@ When all three search paths (Atlas Search, MusicBrainz live, Discogs) return zer
 
 Out of scope at MVP. Users find each other via:
 - Follow graph (suggestions)
-- Profile URL share (`xiejoshua.com/@handle`)
+- Profile URL share (`auxd.app/@handle` — rewritten to `/profile/[handle]` by middleware per §7.1.1)
 - Critic-seed directory at `/critics`
+
+<!-- sync-fix L4-011 (Run #7): cover-art proxy got its own plan section. T072 referenced §17.5 (Redis) by mistake; corrected to §11.4 here. -->
+### 11.4 Cover-art proxy (Next.js Route Handler)
+
+The frontend serves album cover art through `/api/cover/[size]/[mbid]` — a Next.js Route Handler that proxies Cover Art Archive (CAA) and chains to a caller-supplied fallback URL on 404. Source: `apps/web/src/app/api/cover/[size]/[mbid]/route.ts` (T072).
+
+**Why a proxy at all** — the album-detail UI needs `<img>` URLs it can render with `loading="lazy"` and that the Vercel CDN can cache. Hot-linking CAA directly is permitted by their ToS (per §17.4), but doing so leaks every render through `coverartarchive.org` with no way to cache the negative case or chain to Discogs. The proxy normalizes the contract.
+
+**Request shape:**
+```
+GET /api/cover/{size}/{mbid}?fallback={discogs_url}
+  size  ∈ { "250", "500", "1200" }              — CAA's canonical front-image sizes
+  mbid  ∈ release-group MBID (UUID-ish format)  — auxd canonical key per CR-001
+  fallback (optional)                           — https:// URL, used on CAA 404
+```
+
+**Behaviour:**
+1. **Validation.** `size` must be in the allowed set; `mbid` must match `/^[a-f0-9-]{20,}$/i`. Bad params → `400 invalid_size` or `400 invalid_mbid` (no upstream call).
+2. **CAA fetch.** `GET https://coverartarchive.org/release-group/{mbid}/front-{size}` with `cache: "force-cache"` (Next.js fetch cache, default 365-day TTL). Success → stream body back with `Content-Type: image/jpeg` (or as CAA returned) and `Cache-Control: public, max-age=604800, s-maxage=604800, immutable` (7-day edge cache).
+3. **CAA 404.** If a `fallback` query param is present AND starts with `https://`, respond with `302` to that URL plus `Cache-Control: public, max-age=3600` (1-hour negative cache). Otherwise respond `404` with the same 1-hour negative cache header.
+4. **Upstream 5xx / network error.** Respond `502` with no cache headers (let the next render retry the proxy, which will retry CAA).
+
+**Param naming note (sync-fix L4-011):** the original T072 task spec wrote `[albumId]`, but the route uses `[mbid]` because (a) CAA is MBID-keyed natively, and (b) the consumer (album-detail page + search results) already has the MBID from the backend response, so the proxy can stay stateless without a backend roundtrip.
+
+**Consumer pattern (album-detail page, T070):**
+```tsx
+<img
+  src={`/api/cover/500/${album.mbid}?fallback=${encodeURIComponent(album.cover_art_url ?? "")}`}
+  alt={`Cover of ${album.title}`}
+  loading="lazy"
+/>
+```
+
+For albums without an MBID (Discogs-only candidates pending reconciliation), the consumer bypasses the proxy and renders `album.cover_art_url` directly — the proxy's MBID validator would reject those anyway.
+
+**Observability:** CAA upstream failures already surface via the Sentry hook configured in `apps/web/instrumentation.ts`. The `caa.unavailable` Sentry alert tag described in §15.4 covers backend MBID-lookup failures; the proxy adds no separate alert at MVP because edge logs are sufficient for low-volume diagnosis.
 
 ---
 
@@ -786,7 +856,7 @@ Out of scope at MVP. Users find each other via:
 
 ### 12.1 CriticSeed roster
 
-Authored manually by founder; persisted as `critic_seeds` collection records. Each row links to a real User account marked `critic_seed_active=true`.
+Authored manually by founder; persisted as `critic_seeds` collection records, one row per founder-approved User. The `CriticSeed` table itself (via the `user_id` FK + the boolean `active` column on `CriticSeed`) is the source of truth for critic-tier membership — there is **no** `critic_seed_active` flag on `User`. Denormalising onto User was rejected to keep the editorial roster atomic (one place to flip on/off, no two-table sync). The review-list endpoint (`reviews_router`'s tier classifier) queries `CriticSeed.find({user_id: {$in: owner_ids}, active: true})` to compute the critic-seed tier (sync-fix L3-023, Run #9).
 
 ### 12.2 Pre-checked card algorithm (FR-015 / Q13)
 
@@ -807,6 +877,25 @@ async def get_critic_seeds_for_onboarding(user: User, limit: int = 6) -> list[Cr
 ```
 
 Mutual-taste suggestions (4 cards) are computed separately via `seeding.compute_suggestions(user)`; they're UNCHECKED by default.
+
+<!-- sync-fix L3-032 (Run #10): post-onboarding suggestion scoring (T104) was only documented in tasks.md + product-spec/seeding-strategy.md §4 — moved here for plan.md completeness. -->
+### 12.2.1 Post-onboarding suggestion scoring (T104 — Suggestion + SuggestionDismissal collections)
+
+Runs as an arq scheduled job (`compute_suggestions_for_user(user_id)` in `apps/api/src/auxd_api/workers/suggestions_job.py`) every N hours per user. Output rows go to the `suggestions` collection (§3.1); user-dismissed suggestions accumulate in `suggestion_dismissals` (30d TTL).
+
+Score formula (matches `product-spec/seeding-strategy.md` §4 exactly):
+
+```text
+score = 0.40 * mutual_taste_overlap        # |overlap of (album_id, rating∈{4,4.5,5}) sets| / |union|
+      + 0.30 * followed_by_followed        # count of viewer's followees who follow the candidate (normalised)
+      + 0.15 * shared_seed                 # viewer + candidate both follow ≥1 same CriticSeed
+      + 0.10 * label_genre                 # shared label / genre on top-5 albums each
+      + 0.05 * recency                     # candidate has a DiaryEntry in last 30 days
+```
+
+Excluded from output: already-followed (joined against `follows` at write time), blocked-in-either-direction (against `blocks`), dismissed-within-30d (against `suggestion_dismissals`). The read endpoint (`GET /users/me/suggestions` in `social/routes.py`) re-applies the already-followed + dismissed filters as defense-in-depth — a Follow could land between worker run and read.
+
+arq cron registration is **DEFERRED to T009** (the arq deploy worker config); the scoring function itself is fully tested via `tests/unit/test_suggestions_algorithm.py` (15 tests).
 
 ### 12.3 Analytics
 
@@ -918,9 +1007,18 @@ Key product events:
 | `review.published` | `word_count`, `visibility` | Review write |
 | `review.liked` | `reviewer_id`, `liker_id` | Like toggle |
 | `feed.entry_clicked` | `position`, `source_user_id` | Home feed |
-| `backlog.added` | `source` | Up Next |
+<!-- sync-fix L3-024 (Run #9): single `backlog.added` row replaced with 4 shipped events from Session 16. -->
+| `backlog.item_added` | `item_id`, `album_id`, `position`, `has_notes`, `per_item_visibility`, `source` | Up Next, album detail |
+| `backlog.item_removed` | `item_id`, `source` | Up Next, album detail |
+| `backlog.reordered` | `count` | Up Next |
+| `backlog.converted_to_log` | `entry_id`, `album_id`, `source` | Diary log endpoint (T100 — emits when `auto_remove_on_log` removes a backlog item on a fresh diary insert; backbone for the M3/M6 backlog→log KPI) |
 | `digest.sent` | `entries_count`, `digest_week` | Email |
-| `follow.created` | `source` (onboarding / suggestion / profile / invite) | Various |
+<!-- sync-fix L3-031 (Run #10): single `follow.created` row replaced with the 5 shipped social events from Session 17 (T101-T105). -->
+| `social.follow` | `follower_id`, `followee_id`, `state` (accepted/pending), `source` (profile/discover/onboarding) | Profile, Discover |
+| `social.unfollow` | `followee_handle` | Profile |
+| `social.block` | `blockee_handle`, `reason` | Profile, Diary entry, Review |
+| `social.unblock` | `blockee_handle` | Settings, Profile |
+| `social.suggestion_dismissed` | `suggested_user_id` | Discover |
 | `search.executed` | `query_length`, `result_count`, `via_musicbrainz_fallback`, `via_discogs_fallback` | Search |
 | `search.album_reported_missing` | `query`, `submitter_id` | Search (CR-001 elevated — track catalog-gap rate) |
 
@@ -1041,7 +1139,7 @@ jobs:
 
 ### 16.5 Accessibility audit cadence (sync-fix L3-004)
 
-- **Per-PR (automated):** `@axe-core/playwright` runs against built `(onboarding)`, `(app)/home`, `(app)/album/[id]`, `(app)/@[handle]`, `(app)/settings/*`, `components/log-sheet` test pages. Threshold: **0 violations**.
+- **Per-PR (automated):** `@axe-core/playwright` runs against built `(onboarding)`, `(app)/home`, `(app)/album/[id]`, `(app)/profile/[handle]`, `(app)/settings/*`, `components/log-sheet` test pages. Threshold: **0 violations**.
 - **Per-release (manual):** Founder runs keyboard-only nav audit on the same screen set; result recorded in a release-readiness checklist.
 - **Failing the gate:** Any axe violation blocks merge; can be waived only via a documented `// a11y-waiver:` comment with rationale + Phase 9 follow-up issue.
 

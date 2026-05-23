@@ -60,6 +60,28 @@ async def _initialize_beanie_for_tests() -> AsyncIterator[None]:
         with contextlib.suppress(Exception):
             await albums.drop_index(idx_name)
 
+    # mongomock-motor dedupes IndexModel declarations by sorted
+    # field-set rather than ordered key, so the non-unique reverse
+    # ``(album_id, backlog_id)`` index silently replaces the unique
+    # ``(backlog_id, album_id)`` compound — defeating the 409
+    # duplicate-add guard in :mod:`auxd_api.modules.backlog.service`.
+    # We drop the reverse-only index in the mock so the unique compound
+    # is preserved; production Atlas keeps both in their declared
+    # order.
+    backlog_items = database["backlog_items"]
+    with contextlib.suppress(Exception):
+        await backlog_items.drop_index("album_id_1_backlog_id_1")
+    # Re-add the unique compound by hand. mongomock honors
+    # ``unique=True`` once the conflicting non-unique sibling is
+    # gone, so this restores the guard the model's declaration
+    # intended.
+    with contextlib.suppress(Exception):
+        await backlog_items.create_index(
+            [("backlog_id", 1), ("album_id", 1)],
+            unique=True,
+            name="backlog_id_1_album_id_1",
+        )
+
     yield
     # mongomock-motor has no explicit teardown; the client is GC'd.
 

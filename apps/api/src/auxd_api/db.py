@@ -31,6 +31,7 @@ from auxd_api.modules.prompts.models import JustFinishedPrompt  # noqa: F401
 from auxd_api.modules.reviews.models import Review, ReviewEditHistory, ReviewLike
 from auxd_api.modules.seeding.models import CriticSeed, SuggestedFollow
 from auxd_api.modules.social.models import Block, Follow, FollowRequest
+from auxd_api.modules.social.suggestions_models import Suggestion, SuggestionDismissal
 from auxd_api.modules.users.models import HandleRedirect, User
 
 ALL_DOCUMENT_MODELS: list[type[Document]] = [
@@ -51,6 +52,9 @@ ALL_DOCUMENT_MODELS: list[type[Document]] = [
     Follow,
     FollowRequest,
     Block,
+    # social — T104 suggestions (precomputed + dismissals)
+    Suggestion,
+    SuggestionDismissal,
     # moderation + notifications
     Report,
     Notification,

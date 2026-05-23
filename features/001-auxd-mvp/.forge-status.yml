@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-23T04:00:00Z"
+last_updated: "2026-05-23T17:45:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -113,13 +113,13 @@ phases:
     log_path: "implementation-log.md"
     progressive_warnings: 0
     progressive_critical: 0
-    tasks_completed: 48
-    tasks_total: 170
+    tasks_completed: 107
+    tasks_total: 172
     tasks_total_pre_cr001: 183
     autonomous_section_zero_complete: true
-    session_count: 9
-    progressive_checkpoints_run: 13
-    notes: "Session 9 (2026-05-23 — §5 Auth backend wave). 6 tasks completed: T053 email/password signup + login endpoints (argon2-cffi hash; per-IP 5/min signup + 10/min login + per-user 30/min retry; password_hash never echoed with anti-regression test); T053a /api/v1/reports/missing-album endpoint (FR-033 surface; anonymous + auth; per-IP 3/min); T057 handle change policy + reserved-squat list (30-day cooldown anchored against max(handle_changed_at, handle_created_at); 433 reserved seed handles loaded lazily; non-lowercase input rejected with 422 to prevent UI mismatch); T058 account deletion 30-day grace + arq cron daily 02:00 UTC cascade (9 collections + User row); T059 logout + logout-all-devices (bumps User.session_version — documented v1.x trade-off: middleware doesn't re-check per request, takes effect on cookie expiry or <7d refresh threshold); T060 HandleRedirect Document + resolve_handle helper (case-insensitive resolver returning (user, canonical_handle) tuple). New deps: argon2-cffi==25.1.0 + email-validator==2.3.0 (Pydantic EmailStr support). Pre-Session-9 hotfix `3f9888c` resolved post-§6 artist_credit bug (MB lookup gained inc=artist-credits param + anti-regression test). Tests: 401 → 460 pass + 3 skip (+59 new tests, target was +50ish). 113 source files (up from 93); ruff + format + mypy --strict clean. 48/170 tasks done. Operator follow-ups carried forward: Atlas Search index UI apply, per-request session_version check (v1.x), Notification.actor_id null-out (GDPR), testcontainers smoke test (v1.x), Album.mbid release-group migration (v1.x). Prior sessions logged in implementation-log.md."
+    session_count: 17
+    progressive_checkpoints_run: 28
+    notes: "Session 17 (2026-05-23 evening — §10 Social graph + Feed, T101-T112). 12 tasks + 1 inline backend addition (GET /api/v1/users/{handle} for T109 backing). Two backend sub-agent waves: Wave 1 T101-T103 (social-core: follow/unfollow + block-with-cascade + friends-on-album; 36 new tests, +1 new feed module); Wave 2 T104-T107 (suggestions worker + suggestions API + home feed + perf benchmark; 39 new tests, +2 new collections Suggestion+SuggestionDismissal registered in db.py, new tests/perf/ directory + pytest perf marker). Backend total: 592 → 667 pass / 3 skip (+75 net). Frontend wave inline (T108-T112): feed UI replacing placeholder home page (For You / Latest tabs, useInfiniteQuery, sidecar merging across pages); profile-client extended with header (avatar + display_name + bio + counts + FollowButton + BlockReportMenu) reading new /users/{handle} endpoint; FollowButton with optimistic mutation + unfollow-confirmation dialog; BlockReportMenu via DropdownMenu with Block dialog (existing /block endpoint) and Report dialog (graceful 404 for not-yet-built POST /reports/user); Discover tab listing /me/suggestions with reason translation + dismiss optimistic prune. Inline contract decisions: GET /users/{handle} returns 404 (not 403) to blocked viewers for existence-leak prevention; Discover reason keys translated client-side to display strings; Report endpoint gracefully handles 404 as deferred-success until §15 ships. Frontend wave checkpoint: Biome 104 files clean + tsc 0 errors + next build 13 routes (/discover = 8.47 kB / 271 kB FLJS NEW; /profile/[handle] = 10.6 kB / 322 kB; /up-next 28.4 → 20.5 kB after Next.js de-duped dnd-kit/Radix into shared chunks). 107/172 tasks done (62%). §10 Social graph + Feed 0/12 → 12/12 CLUSTER COMPLETE. Ten clusters done: §0 §1 §3 §4 §5 §6 §7 §8 §9 §10. Operator follow-ups NEW: arq cron registration for compute_suggestions_for_user (T009); top-5-most-interacted proxy upgrade (read receipts); POST /api/v1/reports/user endpoint (§15 moderation); follow-request approve/decline flow (§14 private profile); N-001 + N-002 notification wiring (T123); recent_likers/follow-button initial-state heuristic family. ## Prior session details preserved below ## Session 16 (2026-05-23 late — §9 Backlog / Up Next, T095-T100). 6 tasks (T099 retroactively absorbed into T077): backend wave (T095 CRUD + T096 auto-remove-on-log + T100 PostHog event) delegated to sub-agent; +30 tests (592 pass / 3 skip, was 562). Sub-agent contract decisions: contains endpoint shape `GET /backlog/contains?album_id=` (no item_id in path); mongomock-motor workaround in conftest for unique-index dedup bug; reorder duplicate-id check returns 422 reorder_mismatch; _compact_positions stamps Backlog.updated_at on every mutation; analytics surface symmetric with diary (item_added/item_removed/reordered + the required converted_to_log). User.keep_backlog_after_log is the source of truth (not Backlog.keep_after_logging — two flags with similar names). Frontend wave inline: T097 Up Next page (/up-next route + components/up-next/{up-next-list,sortable-item}.tsx; @dnd-kit/{core,sortable,utilities} + @radix-ui/react-dropdown-menu newly added; PointerSensor 4px activation + KeyboardSensor for a11y; optimistic local drag, 422 reverts to server; DropdownMenu with Open album / Remove); T098 add-to-backlog button on album detail (replaces toast stub in AlbumActions; useQuery on /contains with 30s staleTime + optimistic setQueryData on add/remove). Mid-checkpoint workaround: Biome's exhaustive-deps flags useMemo outputs as removable deps; used query.dataUpdatedAt primitive as explicit refetch trigger with biome-ignore comment. Checkpoint #1: backend ruff+format+mypy strict + 592 pass / 3 skip; frontend Biome 96 files + tsc 0 errors + next build 11 routes (/up-next = 28.4 kB / 314 kB FLJS — dnd-kit + dropdown bundles; /album/[id] 6.38 → 6.98 kB for UpNextButton imports). 95/171 tasks done (56%). §9 Backlog 0/6 → 6/6 CLUSTER COMPLETE. Nine clusters done: §0 §1 §3 §4 §5 §6 §7 §8 §9. Operator follow-ups NEW: drag-reorder bundle size (dynamic import @dnd-kit if first-paint concern); no drag-handle hint on mobile (PostHog backlog.first_view tooltip); Backlog.keep_after_logging unused (delete from model or wire to settings UI); backlog→log conversion toast could mention removal (currently silent). ## Prior session details preserved below ## Session 15 (2026-05-23 late — §8 Reviews + Likes + sort, T085-T093b). 11 tasks: backend wave (T085-T089 + GET /reviews/{id} added inline for T093a SSR backing) delegated to sub-agent; +68 new tests (562 pass / 3 skip, was 494). Frontend wave inline: T090 ReviewCard + LikeButton (optimistic mutation, viewer_has_liked heuristic from recent_likers, tap-to-navigate to /review/[id]); T093 reviews-list rewrite as client-driven useInfiniteQuery against new sort endpoint (UiStore feedSort drives queryKey); T093a SSR /review/[id] page with generateMetadata OG meta; T093b ReviewReadingView + Hero + ShareButton (native navigator.share with clipboard fallback + PostHog review.share); T092 edit-review + delete-confirmation dialogs ready-to-plug (owner controls land with /profile/[handle]/reviews route). Backend sub-agent contract decisions: bad-scheme markdown links collapse to bare text; UserCard sidecar includes avatar_url (mirrors AlbumCard pattern); Review.deleted_at schema addition with sparse index; N-004 dispatch is structured-log stub with TODO until T123. Highest_rated sort joins DiaryEntry.rating in-memory after fetch (Beanie aggregate API awkward for optional ratings; bounded ≤400-row pages). Tier ordering: friends → public → critic-seed (via CriticSeed collection). Checkpoint #1 after Session 15 close: backend ruff+format+mypy strict + 562 pass / 3 skip; frontend Biome 90 files + tsc 0 errors + next build 10 routes (/review/[id] = 6.65 kB / 266 kB FLJS; /album/[id] grew 4.78→6.38 kB because reviews-list is now client). One mid-checkpoint fix: F401 unused FollowState import in test_review_single_fetch.py. 89/171 tasks done (52% — past halfway). §8 Reviews + Likes + sort 0/11 → 11/11 CLUSTER COMPLETE. Seven clusters done: §0 + §1 + §3 + §4 + §5 + §6 + §7 + §8. Operator follow-ups NEW: T093c OG image route for /review/[id] (text-only MVP via next/og ImageResponse); ReviewLike cascade cleanup at hard-delete (cron); viewer_has_liked flag on serializer (replace heuristic if first-click flicker is annoying); markdown rendering on read (currently whitespace-pre-line only); T092 owner-controls plug-in when /profile/[handle]/reviews ships. ## Prior session details preserved below ## Session 14 (2026-05-23 PM — §7 close-out, T080-T084). 5 tasks: T080 profile diary view (SSR `/profile/[handle]/page.tsx` shell + client `ProfileClient` + TanStack `useInfiniteQuery` `DiaryList` with All / Aux'd tabs + cursor pagination; `DiaryEntryCard` shows cover via /api/cover proxy + rating stars + Aux badge + relisten label + visibility chip + conditional edit/delete buttons; owner detection via `useAuthStore().user.handle === handle` client-side); backend enrichment: `albums: {id: card-payload}` sidecar map on GET /users/{handle}/diary (deduped on album_id; one Album.find per page); T081 my-history component on /album/[id] (renders existing my_history array from album-detail endpoint — closes deferred L6-003 from Run #7); T082 edit UI (extended `LogSheetSeed.edit` with rating/auxed/visibility; LogSheet PATCHes /api/v1/diary/entries/{id} when seed.edit set; album-change disabled and review editor hidden because review CRUD is §8 territory; invalidates [diary, album] query caches; PostHog log.edit event); T083 soft-delete + undo (text-confirm Dialog `delete-confirmation.tsx` with `disabled={!matches}`; DELETE invalidates cache then surfaces a `<ToastAction>Undo</ToastAction>` toast with `duration: 8000`; undo posts /restore; restore_window_expired → friendly 410 toast); T084 NFR validation (e2e `log-wedge.spec.ts` measures 10 trials of FAB→search→pick→rate→save, asserts p95 <8000ms — opt-in via E2E_BACKEND_REACHABLE; backend `test_log_perf.py` drives 10 distinct-album POSTs and asserts in-process p95 <1500ms which is the order-of-magnitude smoke-test ceiling above the <500ms wire target). Checkpoint #1 after Session 14 close: backend ruff+format+mypy strict + 494 pass / 3 skip (+3 new: 2 sidecar tests + 1 perf guard); frontend Biome 81 files clean + typecheck 0 errors + next build 9 routes (/profile/[handle] = 11.1 kB / 230 kB FLJS) + Playwright collects 24 tests (log-wedge x 2 projects added). One mid-checkpoint fix: Biome `useExhaustiveDependencies` warning on `allAlbums` resolved by wrapping it in `useMemo`. 75/172 tasks done. §7 Diary + Log sheet 7/12 → 12/12 (CLUSTER COMPLETE). Six clusters done total: §1, §3, §4, §5, §6, §7. URL choice: went with `/profile/<handle>` not `/@<handle>` (Next.js can't use `@` folder-prefix; deferred to middleware-rewrite ticket). Operator follow-ups NEW: `/@<handle>` share-URL middleware rewrite, auth-store hydration on (app) layout boot via GET /users/me, review-body edit during diary edit deferred to §8 ship, profile page Suspense boundary for SSR-first-page prerender. ## Prior session details preserved below ## Session 13 (2026-05-23 — §7 Diary + Log sheet, the wedge wave). 7 tasks: T073 backend log endpoint (POST /api/v1/diary/entries; idempotent 60s window; relisten flag; review side-effect; PostHog log.commit duration_ms; 30/min user rate-limit); T074 backend diary read (GET /api/v1/users/{handle}/diary; composite base64 cursor for Last.fm-import correctness; visibility-filtered via can_read_with_relation); T075 backend PATCH+DELETE+restore (owner-only; soft-delete + 30d grace window; review cascade hard-deletes today because Review has no deleted_at field — flagged); T076 relisten sub-task absorbed into T073; T077 log-sheet frontend wedge (4 files: index/rating-widget/aux-toggle/review-editor; always-mounted in (app)/layout; shadcn bottom Sheet; ARIA slider rating with arrow-key support; ARIA switch Aux toggle; review editor 10k cap; total_ms + commit_ms PostHog tracking; synchronous commit deliberately not optimistic at MVP); T078 FAB wire-through (LogFab from Session 11 + AlbumActions in /album/[id] both feed openLogSheet(seed) via UiStore); T079 manual album search in log sheet (debounced TanStack Query; recent-searches in localStorage max 5; Report missing album empty-state; PostHog log.search_accepted with result_index + had_mbid). Backend wave delegated to general-purpose sub-agent for parallel speed — shipped T073-T075 + 31 integration tests in one pass. Sub-agent improvements: composite cursor (not raw KSUID), was_created naming (avoids LogRecord collision), review hard-delete documentation. Checkpoints #1 after T075 (backend: ruff+format+mypy strict + 491 pass / 3 skip, +31 new) + #2 after T079 (frontend: 73 files lint, 0 typecheck errors, 8 routes built; 2 mid-checkpoint type fixes — LogFab onClick wrapper + push() key-order). 70/172 tasks done. §7 Diary + Log sheet 0/12 → 7/12 (58% — core wedge surfaces live). Remaining §7: T080 diary view, T081 my-history (resolves Run #7 L6-003), T082 edit UI, T083 soft-delete undo, T084 NFR validation. Operator follow-ups NEW: Review.deleted_at field for true soft-cascade, GET /api/v1/users/me for visibility-default reading, optimistic-UI revisit pending T084 NFR. ## Prior session details preserved below ## Session 12 (2026-05-23 — §6 frontend completion, T070+T071+T072). 3 tasks: T072 cover-art proxy (Next.js Route Handler at /api/cover/[size]/[mbid]; keyed on MBID not auxd KSUID to skip backend roundtrip; ?fallback query param 302-redirects on CAA 404; 7-day immutable cache); T071 search page (/search route + components/search/* — debounced TanStack Query against /api/v1/search; min 3 chars; empty-state Report missing album link from backend response); T070 album detail page (SSR at /album/[id] — added lib/api-server.ts with cookies-forwarded fetch helper; 7 sub-components: AlbumHero/AlbumActions/Tracklist/FriendsSection/ReviewsList/EditionSelector/ReviewSortSelect; OG meta via generateMetadata using album.cover_art_url). Between sessions resolved operator-side .env.local gotcha (NEXT_PUBLIC_API_URL was a Sentry DSN — swapped with NEXT_PUBLIC_SENTRY_DSN). Checkpoints #1 after T071 (57 files lint, 7 routes) + #2 after T070 (67 files lint, 8 routes, /album/[id] 26.3 kB). 63/172 tasks done. §6 Albums + Search 7/10 → 10/10 CLUSTER COMPLETE. Five clusters now done total: §1, §3, §4, §5, §6. Operator follow-ups NEW: backend should join user info on serialize (Friends/Reviews currently show 'User {user_id[:8]}' placeholders), ratings histogram needs backend bucketing (not yet exposed), edition selector labels could be richer (Standard/Deluxe/Bonus), album-detail E2E test deferred to T093 alongside reviews-sort coverage. ## Prior session details preserved below ## Session 11 (2026-05-23 — §3 completion + §5 auth UI, T037–T040 + T061 + T062). 6 tasks: T037 authenticated layout (cookie-presence check + bottom-tabs + Log FAB; moved page.tsx into (app) route group); T038 public (auth)/layout + signup/login pages with Zod-validated forms (added components/ui/label.tsx); T039 onboarding route group (3-step progress indicator; URL bug caught + fixed mid-checkpoint by moving step-1 into `(onboarding)/onboarding/step-1/` for `/onboarding/step-1` URL); T040 Playwright config + smoke spec + .github/workflows/e2e.yml (chromium + iPhone 14 mobile-safari projects); T061 wired signup/login forms to /api/v1/auth/{signup,login} via apiClient with 401/429/422 error mapping + setApiFormErrors; T062 auth E2E spec (8 tests, 3 backend-independent + 3 guard/redirect + 3 backend-required-skipped-by-default). Session check is cookie-presence-only at the layout layer (no HMAC validation at the edge — backend remains source-of-truth via API 401s; documented as an E2E test). SanitizedUser shape aligned to backend `_public_user_payload` `{id, handle, email, display_name}` — dropped avatar_url for now. Tests collected: 22 Playwright tests × 2 projects = 44 parameterized. Checkpoints #1 after T039 (39 files lint, build green) + #2 after T062 (52 files lint, 0 typecheck errors, 5 routes built, Playwright collects clean). §3 Frontend foundation 6/10 → 10/10 (CLUSTER COMPLETE). §5 Auth 6/8 → 8/8 (CLUSTER COMPLETE). 60/172 tasks done. Operator follow-ups NEW: logout UI button (post-§12), playwright install webkit locally, E2E_API_URL CI repo var for happy-path tests, pre-existing .env.local NEXT_PUBLIC_API_URL still set to Sentry DSN. ## Prior session details preserved below ## Session 10 (2026-05-23 — §3 Frontend foundation core, T031–T036). 6 tasks completed: T031 Next.js 15 + Tailwind v3.4 + globals.css with shadcn CSS vars; T032 shadcn/ui scaffold (13 files via sub-agent, canonical New York templates — Button/Input/Dialog/Sheet/Toast/Toaster/Select/Tabs/Avatar/Badge + use-toast hook; bug-find: upstream `[state]` deps array fixed to `[]`); T033 TanStack Query + typed API client (`lib/query-client.ts`, `lib/api-client.ts`, `providers.tsx`; `<HealthCheck />` smoke client); T034 Zustand (`stores/auth.ts` SanitizedUser, `stores/ui.ts` log-sheet + feed-sort with partialize persist); T035 RHF + Zod (`lib/forms.ts` re-exports zodResolver + setApiFormErrors helper; `components/ui/form.tsx` canonical shadcn Form composition — dropped clever `useZodForm` generic due to @hookform/resolvers v5 + Zod v4 type incompatibility); T036 Sentry + PostHog frontend (instrumentation.ts + instrumentation-client.ts; lib/posthog.ts browser-only + lib/posthog-server.ts with `import \"server-only\"` to fix node:readline webpack bundling). New deps: tailwindcss + autoprefixer + postcss + cva + clsx + tailwind-merge + tailwindcss-animate + lucide-react + 7 Radix primitives + @tanstack/react-query + devtools + zustand + react-hook-form + zod + @hookform/resolvers + @sentry/nextjs + posthog-js + posthog-node. Progressive verify: checkpoint #1 after T033 (lint 27 files clean, typecheck 0 errors, build 4.05 kB main / 112 kB FLJS); checkpoint #2 after T036 (lint 36 files clean, typecheck 0 errors, build 4.06 kB main / 189 kB FLJS). 54/172 tasks done (was 48/170 post-CR-002). §3 Frontend foundation 6/10 (remaining: T037 auth layout, T038 public layout, T039 onboarding route group, T040 Playwright E2E). §5/§6/§7 frontend dep-unblocked. Operator follow-ups NEW: `.env.local` NEXT_PUBLIC_API_URL accidentally set to Sentry DSN (editor mishap), dark-mode toggle UI deferred to T037/T038, lucide-react resolved to ^1.16.0 (unusual versioning but exports work)."
   code_review:
     status: "pending"
   verify:
@@ -657,6 +657,272 @@ task_log:
     completed_at: "2026-05-23T04:00:00Z"
     notes: "HandleRedirect Beanie Document (registered in ALL_DOCUMENT_MODELS — 16→17). `resolve_handle(handle) -> (User | None, canonical_handle | None)` resolver. Logic: current → (self, handle); old → (target, target.handle); orphan redirect → (None, None); unknown → (None, None). Case-insensitive. T060 ships only the resolver; future profile-page routes (§14) will call it to issue 301s. 6 unit tests."
 
+  - task_id: "T005"
+    status: "completed"
+    paths:
+      - "docs/infra.md"
+    commit_sha: null
+    started_at: null
+    completed_at: "2026-05-23T13:00:00Z"
+    notes: "Operationally provisioned and verified. Atlas M0 cluster (aws-us-east-1) + Upstash Redis (us-east-1) live; IP allowlist widened; connection strings captured in Fly + Vercel secrets. Verified by apps/api/scripts/check_integrations.py → 7/7 (see implementation-log Session 7-ish line 157). Formal closure of [ ] → [x] in tasks.md applied at Run #8 doc-lag cleanup."
+  - task_id: "T006"
+    status: "completed"
+    paths:
+      - "apps/api/fly.toml"
+      - "frontend:apps/web/vercel.json"
+    commit_sha: null
+    started_at: null
+    completed_at: "2026-05-23T13:00:00Z"
+    notes: "Operationally provisioned and verified. flyctl apps create + 2-process layout (api + worker) on Hobby tier; Vercel project linked to apps/web; Cloudflare DNS configured (apex → Vercel, api.xiejoshua.com CNAME → Fly with fly certs). Both deploys live and healthchecks return 200 (impl-log line 157). Formal closure applied at Run #8 doc-lag cleanup."
+  - task_id: "T007"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/settings.py"
+      - "docs/infra.md"
+    commit_sha: null
+    started_at: null
+    completed_at: "2026-05-23T13:00:00Z"
+    notes: "Operationally provisioned and verified. Resend (sending domain DKIM/SPF/DMARC on Cloudflare), Sentry (auxd-api + auxd-web projects), PostHog Cloud US (project auxd), Cloudflare R2 (auxd-backups bucket + scoped token) all configured. Secrets set via fly secrets set + vercel env: MONGODB_URI, REDIS_URL, DISCOGS_API_TOKEN, SESSION_HMAC_KEY, TOKEN_ENCRYPTION_KEY, RESEND_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, SENTRY_DSN, POSTHOG_API_KEY, POSTHOG_HOST, R2_*. Note: Zscaler MITM on user's local host requires the `truststore` shim in check_integrations.py (canonical pattern for any future smoke scripts). check_integrations.py → 7/7 (impl-log line 157). Formal closure applied at Run #8 doc-lag cleanup."
+  - task_id: "T080"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/app/(app)/profile/[handle]/page.tsx"
+      - "frontend:apps/web/src/components/diary/profile-client.tsx"
+      - "frontend:apps/web/src/components/diary/diary-list.tsx"
+      - "frontend:apps/web/src/components/diary/diary-entry-card.tsx"
+      - "frontend:apps/web/src/lib/diary-types.ts"
+      - "frontend:apps/web/src/components/nav/bottom-tabs.tsx"
+      - "backend:apps/api/src/auxd_api/modules/diary/routes.py"
+      - "backend:apps/api/tests/integration/test_diary_logging.py"
+    commit_sha: null
+    started_at: "2026-05-23T11:00:00Z"
+    completed_at: "2026-05-23T11:30:00Z"
+    notes: "Diary view on profile (US-E2 / FR-007). New SSR route `/profile/[handle]/page.tsx` plus client `ProfileClient` that resolves `isOwner` via auth-store handle match. `DiaryList` uses TanStack `useInfiniteQuery` with cursor pagination, Tabs for All / Aux'd. `DiaryEntryCard` renders cover via /api/cover proxy + rating stars + Aux badge + relisten + visibility chip. Backend enrichment: GET /users/{handle}/diary response now carries an `albums: {id: card-payload}` sidecar map (deduped per album_id; one Album.find per page). 2 new integration tests assert sidecar dedup + empty-when-no-entries. Bottom-tabs `/profile` link now resolves to `/profile/<viewer.handle>` once auth-store is hydrated, else `/login`. URL choice: `/profile/<handle>` not `/@<handle>` (Next.js can't use `@` folder-prefix; `/@<handle>` deferred to a middleware-rewrite ticket per plan §16)."
+
+  - task_id: "T081"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/components/album-detail/my-history.tsx"
+      - "frontend:apps/web/src/app/(app)/album/[id]/page.tsx"
+    commit_sha: null
+    started_at: "2026-05-23T11:30:00Z"
+    completed_at: "2026-05-23T11:35:00Z"
+    notes: "My history component on /album/[id] — renders the existing my_history array (already on album-detail endpoint) as a dated list of all prior diary entries for the viewer on that album. Closes deferred L6-003 from Run #7."
+
+  - task_id: "T082"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/stores/ui.ts"
+      - "frontend:apps/web/src/components/log-sheet/index.tsx"
+    commit_sha: null
+    started_at: "2026-05-23T11:35:00Z"
+    completed_at: "2026-05-23T11:50:00Z"
+    notes: "Edit diary entry UI. `LogSheetSeed` extended with optional `edit: {entry_id, rating, auxed, visibility}`. When set: sheet title becomes 'Edit diary entry', album-change disabled, review editor hidden (review CRUD lands in §8 — editing review body during diary edit is out of scope until T085-T087). Submit PATCHes `/api/v1/diary/entries/{id}` and invalidates ['diary'] + ['album'] caches. PostHog `log.edit` event with `commit_ms`. Error mapping: 404 → 'Entry not found', 403 → 'You can only edit your own entries'."
+
+  - task_id: "T083"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/components/diary/delete-confirmation.tsx"
+      - "frontend:apps/web/src/components/diary/diary-list.tsx"
+    commit_sha: null
+    started_at: "2026-05-23T11:50:00Z"
+    completed_at: "2026-05-23T12:00:00Z"
+    notes: "Soft-delete + undo toast. DeleteConfirmation Dialog with text-confirm ('type `delete`') gates the destructive button. On confirm: DELETE → invalidate cache → surface a toast with `duration: 8000` (Radix Toast) and `<ToastAction>Undo</ToastAction>`. Undo POSTs /restore (idempotent via `undone` flag in closure); restore failures show a friendly 410 message. Server-side 30-day grace window covers the late-recovery case."
+
+  - task_id: "T084"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/tests/e2e/log-wedge.spec.ts"
+      - "backend:apps/api/tests/integration/test_log_perf.py"
+    commit_sha: null
+    started_at: "2026-05-23T12:00:00Z"
+    completed_at: "2026-05-23T12:10:00Z"
+    notes: "Wedge NFR validation (spec.md §6.1 / TC-001 / CR-001). E2E `log-wedge.spec.ts` measures p95 of FAB→search→pick→rate→save across 10 trials, asserts <8000ms; opt-in via E2E_BACKEND_REACHABLE=true (registered + skipped in CI without seeded backend). Backend `test_log_perf.py` drives 10 distinct-album POSTs (avoiding idempotency dedup) and asserts in-process p95 <1500ms — an order-of-magnitude smoke-test ceiling above the <500ms wire target. Playwright collection: 22 → 24 tests (× 2 projects)."
+
+  - task_id: "T085"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/reviews/routes.py"
+      - "backend:apps/api/src/auxd_api/modules/reviews/service.py"
+      - "backend:apps/api/tests/integration/test_review_create.py"
+    commit_sha: null
+    started_at: "2026-05-23T13:30:00Z"
+    completed_at: "2026-05-23T13:45:00Z"
+    notes: "POST /api/v1/reviews. Custom regex markdown sanitizer (allowlist: bold/italic/line-breaks + plain http(s) markdown links). 1:1 enforcement via diary_entry_id unique index → 409. Owner-only (403), unknown diary entry (404), empty body (422). Visibility mirrors DiaryEntry by default or accepts override. Bad-scheme links collapse to bare text (sub-agent decision; trailing-paren artefact judged acceptable, no security impact). 11 integration tests."
+
+  - task_id: "T086"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/reviews/service.py"
+      - "backend:apps/api/tests/integration/test_review_edit.py"
+    commit_sha: null
+    started_at: "2026-05-23T13:45:00Z"
+    completed_at: "2026-05-23T13:55:00Z"
+    notes: "PATCH /api/v1/reviews/{id}. Pre-save write of ReviewEditHistory row with SHA-256 of OLD body for tamper detection (90d TTL via existing model index). Same sanitization as create. **No-op edits skipped** (same-body PATCH doesn't bump edited_at or write audit row — sub-agent's call). Owner-only (403), empty body rejected. 14 integration tests combined with T087."
+
+  - task_id: "T087"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/reviews/service.py"
+      - "backend:apps/api/src/auxd_api/modules/reviews/models.py"
+    commit_sha: null
+    started_at: "2026-05-23T13:55:00Z"
+    completed_at: "2026-05-23T14:00:00Z"
+    notes: "DELETE /api/v1/reviews/{id} soft-delete via new `Review.deleted_at` field (schema addition with sparse index for cron sweep). Clears DiaryEntry.review_id. ReviewLike cascade deferred to hard-delete cron — currently filter via deleted_at IS None at read time. Idempotent double-delete → 410. Combined tests in test_review_edit.py."
+
+  - task_id: "T088"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/reviews/likes_service.py"
+      - "backend:apps/api/src/auxd_api/modules/reviews/routes.py"
+      - "backend:apps/api/tests/unit/test_review_likes.py"
+      - "backend:apps/api/tests/integration/test_review_likes_endpoint.py"
+    commit_sha: null
+    started_at: "2026-05-23T14:00:00Z"
+    completed_at: "2026-05-23T14:10:00Z"
+    notes: "New `likes_service.py` module. POST/DELETE /api/v1/reviews/{id}/like. Idempotency via DuplicateKeyError catch on (review_id, user_id) unique compound index → return current state. Self-like rejected with 400 (TC-016). recent_likers list bounded at 10. N-004 notification dispatch is a structured-log stub with TODO until T123 lands. 17 tests (8 integration + 9 unit)."
+
+  - task_id: "T089"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/reviews/routes.py"
+      - "backend:apps/api/tests/integration/test_reviews_endpoint.py"
+      - "backend:apps/api/tests/unit/test_review_sort.py"
+      - "backend:apps/api/src/auxd_api/routers/v1.py"
+    commit_sha: null
+    started_at: "2026-05-23T14:10:00Z"
+    completed_at: "2026-05-23T14:20:00Z"
+    notes: "GET /api/v1/albums/{id}/reviews?sort=newest|most_liked|highest_rated&cursor=...&limit=25. Response envelope {reviews, next_cursor, users: {id: UserCard}} — mirrors diary albums sidecar pattern; UserCard includes avatar_url to save a frontend roundtrip. Tier ordering: friends → public → critic-seed (via CriticSeed collection, not a User flag). highest_rated joins DiaryEntry.rating in-memory after fetch (≤400-row pages; Beanie aggregate API awkward for optional ratings). Visibility filter mirrors diary pattern via _ReviewContent adapter. Router mounted in v1.py. 20 tests (12 integration + 8 unit). +GET /reviews/{id} added inline for T093a backing — single-review fetch with reviewer + album + viewer-entry sidecars; 404 (not 403) to non-readers to avoid existence-leak; 6 tests in test_review_single_fetch.py."
+
+  - task_id: "T090"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/components/review-card/index.tsx"
+      - "frontend:apps/web/src/components/review-card/like-button.tsx"
+      - "frontend:apps/web/src/lib/review-types.ts"
+    commit_sha: null
+    started_at: "2026-05-23T14:20:00Z"
+    completed_at: "2026-05-23T14:25:00Z"
+    notes: "ReviewCard with ~80-char preview + whole-card tap navigates to /review/[id] (CR-002 / UJ-3 — no inline expand). LikeButton is its own client component with optimistic TanStack Query mutation (rolls back on error; heals from server response on success). Initial viewer_has_liked derived heuristically from recent_likers.includes(viewer.id) — first click after viewer falls off the recent-10 list will show wrong label, but POST is idempotent and response heals immediately. Self-like disabled via `disabled` prop. aria-pressed + aria-label for screen readers. Reusable in T093 + T093b."
+
+  - task_id: "T091"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/components/log-sheet/review-editor.tsx"
+    commit_sha: null
+    started_at: null
+    completed_at: "2026-05-22T22:00:00Z"
+    notes: "Sub-task absorbed into T077 (log-sheet review editor with markdown hint + 10k cap + char counter; no length nudges per R3). Closed retroactively in Session 15."
+
+  - task_id: "T092"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/components/review-card/edit-review.tsx"
+      - "frontend:apps/web/src/components/review-card/delete-confirmation.tsx"
+    commit_sha: null
+    started_at: "2026-05-23T14:25:00Z"
+    completed_at: "2026-05-23T14:30:00Z"
+    notes: "Edit dialog: textarea with 10k cap + char counter + visibility selector; PATCH with cache invalidation. Delete: same text-confirm pattern as diary T083 ('type delete'). Components are ready-to-plug; owner controls activate when /profile/[handle]/reviews route (untitled §8 tail task at tasks.md:861) ships — current ReviewsList on album detail doesn't surface owner controls because it's not a my-reviews view."
+
+  - task_id: "T093"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/components/album-detail/reviews-list.tsx"
+      - "frontend:apps/web/src/app/(app)/album/[id]/page.tsx"
+    commit_sha: null
+    started_at: "2026-05-23T14:30:00Z"
+    completed_at: "2026-05-23T14:35:00Z"
+    notes: "Replaced static `ReviewsList` with client-driven useInfiniteQuery against /albums/{id}/reviews. Sort selector drives queryKey via UiStore.feedSort (shared state — both surfaces have same 3 sort modes). Empty/loading/error states all surfaced. Album-detail page no longer uses public_reviews from its SSR response (kept on backend in case the home feed wants it later). /album/[id] bundle grew 4.78 → 6.38 kB due to client-bundle for infinite query — acceptable for sort-driven refetch."
+
+  - task_id: "T093a"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/app/(app)/review/[id]/page.tsx"
+      - "backend:apps/api/src/auxd_api/modules/reviews/routes.py"
+      - "backend:apps/api/tests/integration/test_review_single_fetch.py"
+    commit_sha: null
+    started_at: "2026-05-23T14:35:00Z"
+    completed_at: "2026-05-23T14:40:00Z"
+    notes: "SSR /review/[id] page using new GET /reviews/{id} endpoint via serverApiGet (cookies forwarded). generateMetadata produces OG title + ≤140-char body preview + cover-art image. 404 → notFound() for non-readers (visibility-filtered via backend). Share URL composed from NEXT_PUBLIC_SITE_URL env. **OG image route (opengraph-image.tsx) deferred** to T093c follow-up — text-only MVP via next/og ImageResponse is a small future task per CR-002 v2 image-gen roadmap."
+
+  - task_id: "T093b"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/components/review-reading-view/index.tsx"
+      - "frontend:apps/web/src/components/review-reading-view/hero.tsx"
+      - "frontend:apps/web/src/components/review-reading-view/share-button.tsx"
+    commit_sha: null
+    started_at: "2026-05-23T14:40:00Z"
+    completed_at: "2026-05-23T14:45:00Z"
+    notes: "ReviewReadingView with Letterboxd-parity hero (cover + title + artist + viewer-rating-context line when viewer has logged it + Aux'd badge). LikeButton reuses T090's compact={false} mode. ShareButton uses navigator.share when available, falls back to clipboard, captures PostHog review.share surface (native|clipboard). Body rendered as whitespace-pre-line (full markdown rendering deferred — backend sanitizer already strips XSS so security path is intact). Comments thread NOT in scope (v2 per CR-002)."
+
+  - task_id: "T095"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/backlog/routes.py"
+      - "backend:apps/api/src/auxd_api/modules/backlog/service.py"
+      - "backend:apps/api/src/auxd_api/routers/v1.py"
+      - "backend:apps/api/tests/integration/test_backlog_endpoints.py"
+      - "backend:apps/api/tests/conftest.py"
+    commit_sha: null
+    started_at: "2026-05-23T15:00:00Z"
+    completed_at: "2026-05-23T15:10:00Z"
+    notes: "Backlog CRUD: 5 endpoints under /api/v1/users/me/backlog/ (POST/DELETE/PATCH-reorder/GET items + GET contains). Backlog auto-created on first add via race-safe Backlog.find_one ?? insert with DuplicateKeyError catch. AlbumCard sidecar duplicated from diary (10-line helper; avoids circular-import risk). Reorder receives full ordering; rejects 422 on mismatched item_ids; defense-in-depth 422 on duplicate ids. Positions stay contiguous after delete via _compact_positions helper that also stamps Backlog.updated_at. Cursor base64({p: position, i: item_id}). 21 integration tests. Sub-agent also added a mongomock-motor workaround in conftest.py: when both unique (backlog_id, album_id) and non-unique reverse (album_id, backlog_id) indexes are declared, mongomock silently drops the unique flag — fix drops the reverse and re-creates the unique compound. Production Atlas unaffected."
+
+  - task_id: "T096"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/diary/service.py"
+      - "backend:apps/api/src/auxd_api/modules/backlog/service.py"
+      - "backend:apps/api/tests/integration/test_diary_backlog_interaction.py"
+    commit_sha: null
+    started_at: "2026-05-23T15:10:00Z"
+    completed_at: "2026-05-23T15:15:00Z"
+    notes: "Auto-remove-on-log. LogEntryResult dataclass gained `backlog_item_removed: bool` flag. log_entry calls backlog.service.auto_remove_on_log after fresh insert (NOT on idempotent return — second log returns existing entry with backlog_item_removed=False). Reads User.keep_backlog_after_log (not Backlog.keep_after_logging — two flags with similar names; user-level wins per the spec). Reorders remaining items so positions stay contiguous. Tolerant of empty backlog or album-not-in-backlog (common case). Combined with T100 in test_diary_backlog_interaction.py."
+
+  - task_id: "T097"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/app/(app)/up-next/page.tsx"
+      - "frontend:apps/web/src/components/up-next/up-next-list.tsx"
+      - "frontend:apps/web/src/components/up-next/sortable-item.tsx"
+      - "frontend:apps/web/src/components/ui/dropdown-menu.tsx"
+      - "frontend:apps/web/src/lib/backlog-types.ts"
+      - "frontend:apps/web/package.json"
+    commit_sha: null
+    started_at: "2026-05-23T15:15:00Z"
+    completed_at: "2026-05-23T15:22:00Z"
+    notes: "Up Next page with drag-reorder. New deps: @dnd-kit/{core,sortable,utilities} + @radix-ui/react-dropdown-menu. PointerSensor (4px activation threshold to prevent accidental drag-on-tap) + KeyboardSensor for a11y. Local optimistic state during drag; PATCH on drop; reverts to server state on 422 mismatch. useInfiniteQuery with cursor pagination + 25/page limit. Albums sidecar map dedups cover-art lookups. Per-item DropdownMenu (new canonical shadcn ui/dropdown-menu.tsx) with Open album / Remove actions. Cover-art via /api/cover proxy when MBID. Mid-checkpoint workaround: Biome exhaustive-deps flags useMemo outputs; used query.dataUpdatedAt primitive as the explicit refetch trigger with a biome-ignore comment. Bundle: 28.4 kB / 314 kB FLJS (dnd-kit + dropdown ~22 kB combined)."
+
+  - task_id: "T098"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/components/album-detail/up-next-button.tsx"
+      - "frontend:apps/web/src/components/album-detail/album-actions.tsx"
+    commit_sha: null
+    started_at: "2026-05-23T15:22:00Z"
+    completed_at: "2026-05-23T15:25:00Z"
+    notes: "Add-to-Up Next button on album detail. Replaces the toast-stub in AlbumActions. useQuery on /contains?album_id=... with 30s staleTime; toggle adds/removes via mutations that optimistically setQueryData on the contains cache AND invalidate the list cache so /up-next refreshes. aria-pressed for screen readers. Toast on 409 (already in backlog), 401 (sign in), generic fallback. /album/[id] bundle grew 6.38 → 6.98 kB."
+
+  - task_id: "T099"
+    status: "completed"
+    paths:
+      - "frontend:apps/web/src/components/log-sheet/index.tsx"
+    commit_sha: null
+    started_at: null
+    completed_at: "2026-05-22T22:00:00Z"
+    notes: "Sub-task absorbed into T077 — Log sheet provides the manual-search → log alternative path. The 'add-to-backlog instead of logging' affordance is informally covered by T098 (album detail) + T097 (Up Next page). Closed retroactively in Session 16."
+
+  - task_id: "T100"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/diary/routes.py"
+      - "backend:apps/api/tests/integration/test_diary_backlog_interaction.py"
+    commit_sha: null
+    started_at: "2026-05-23T15:15:00Z"
+    completed_at: "2026-05-23T15:18:00Z"
+    notes: "Backlog → log conversion PostHog event. post_diary_entry handler emits `backlog.converted_to_log` with {user_id, entry_id, album_id, source: 'manual'} ONLY when result.backlog_item_removed=True. Does NOT emit on idempotent hits or when there was no prior backlog row. 9 combined tests (with T096) assert event fires exactly once on happy path, zero times on negative cases. Frontend analytics surface symmetry: sub-agent also added backlog.item_added/removed/reordered events for parity with diary's commit/edit/delete/restore set."
+
 scope:
   paths:
     - "backend"
@@ -736,19 +1002,18 @@ gates:
     skip_reason: null
 
 sync_runs:
-  last_run: "2026-05-23T03:00:00Z"
-  total_runs: 5
-  last_drift_count: 18
+  last_run: "2026-05-23T17:45:00Z"
+  total_runs: 10
+  last_drift_count: 27
   last_critical_count: 0
-  last_warning_count: 1
-  last_info_count: 17
-  last_structural_count: 7
-  last_cosmetic_count: 0
+  last_warning_count: 14
+  last_info_count: 13
+  last_structural_count: 17
+  last_cosmetic_count: 9
   last_verdict: "DRIFT_DETECTED"
-  last_verdict_note: "Run #5 (post-§6 + post-index-fix): 0 CRITICAL; 1 new WARN + 6 new INFO ALL APPLIED inline (L3-015 plan.md /api/search/report-missing → /api/v1/reports/missing-album; L3-016 sparse-unique → partialFilterExpression in plan §3.1 + product-spec/data-model.md catching up to commit 66f0403; L4-008 §6 wave artifacts (Album.candidate, rating_count denorm, popularity-boost shape) added to data-model.md schema + already in plan §3.1; L2-017 notification count 18 → 14 active in spec.md US-G3 AC + §7 entity table + §13 reading list; L2-018 Album.candidate semantics in data-model.md aligned to Discogs-sourced → T065 reconciliation (was: manual-entered → admin merge); L5-006 Session 8.5 entry appended to implementation-log.md documenting commit 66f0403 + tasks.md T067/T068/T069 inline-noted with their actual landed paths vs original tasks.md Paths declarations; L7-015 plan.md §11 preamble added linking apps/api/migrations/README.md). L6-001 advisory only — first meaningful Layer 6 sweep substantially clean (US-F1/F2/FR-005/010/033 → T067/T069/T053a-stub all traceable). 11 recurring advisory INFOs from prior runs unchanged. Disposition: applied_split_with_override (carry-forward of Runs #2/#3/#4 pattern). All structural-budget items closed at the doc layer; §3 frontend or §5 auth entry unblocked."
+  last_verdict_note: "Run #10 (post-Session 17 §10 Social graph + Feed): 0 CRITICAL; 11 NEW WARN (L1-002 For You label vs research, L2-023 mode names absent from spec, L2-024 profile endpoint untraced, L2-026 SuggestedFollow→Suggestion collection mismatch, L3-025/26/27/28/30/31 plan.md catch-up, L4-021 T109 missing inline endpoint Paths, L5-014 T106 wrong test filename) + 3 carry-forward WARN; 8 NEW INFO + 5 carry-forward INFO. Sessions 17 ship is healthy (107/171 tasks; 667 pytest pass / 3 skip; 13 frontend routes; 0 orphan files); every NEW WARN is doc catch-up to shipped reality. APPLIED INLINE: 16 items in coordinated pass — research/ux-patterns.md For-You breadcrumb; product-spec data-model.md SuggestedFollow→Suggestion + SuggestionDismissal + reasons-list; product-spec user-stories.md S-E3 mode names + S-G2 approve/decline scope; spec.md US-E3 + US-G2 + FR-036 (profile endpoint); plan.md §3.1 collections + §6 social row + §4.5 rate-limits + §10.1 mode param + §10.2 multiplicative formula + §12.2.1 suggestion algorithm placement + §15.2 PostHog events; tasks.md T106 test filename + T109 Paths; tasks.md T101a + T163a deferred-task placeholders added. Disposition: applied_split_with_override (pattern continuation from Runs #2-#9). Carry-forwards (L2-019, L3-017, L4-009, L4-013/17/20, L5-008, L6-002) remain under existing dispositions." 0 CRITICAL; 9 NEW WARN (L2-020 missing FR-034/FR-035 for US-D2/D3, L2-021 review-delete AC gap for US-C3, L3-020 reviews service surface, L3-021 backlog service surface, L3-022 reviews deleted_at index, L3-024 4 missing PostHog backlog events, L4-019 orphan T094 header, L5-013 T100 cites non-existent analytics.ts, L6-004 EditReviewDialog not mounted) + 3 carry-forward WARN (L3-017, L4-009, L6-002); 6 NEW INFO (L1-001 backlog sort alternatives, L2-022 Review schema fields, L3-023 critic_seed_active flag drift, L4-018 + L5-012 opengraph-image.tsx never shipped, L4-020 helper Paths) + 4 carry-forward INFO (L2-019, L4-013, L4-017, L5-008). 0 RESOLVED. Sessions 15-16 ship is healthy (95/171 tasks; 592 pytest pass / 3 skip; 11 routes; 0 orphan files) — every NEW WARN is doc catch-up to shipped reality. 5 of 9 NEW WARNs land in plan.md (§3.1 reviews row + §6 reviews/backlog rows + §12.1 critic-seed + §15.2 PostHog table). 2 land in spec.md (FR-034 + FR-035 + US-C3 delete AC). 1 lands in tasks.md (orphan T094 header). 1 is a small frontend mount (L6-004 — surface EditReviewDialog on review-reading-view owner footer). Disposition: applied_split_with_override (pattern continuation from Runs #2-#8)." 0 CRITICAL; 5 NEW WARN (L3-019 plan /@handle drift, L4-014 task Paths /@handle, L4-015 albums sidecar contract, L5-007 projection of L4-014, L7-016 spec.md broken anchor) + 3 carry-forward WARN (L3-017, L4-009, L6-002); 7 NEW INFO (L3-018 wrong §16 ref, L4-016 T082 scope, L4-017/L5-008/L5-009/L5-010/L5-011 helper-Paths gaps) + 2 carry-forward INFO (L2-019, L4-013). 3 items RESOLVED since Run #7: L4-010, L4-011, L6-003 (T081 my-history.tsx shipped). 4 of 5 NEW WARNs are projections of the same Session 14 routing decision (/profile/[handle] vs /@[handle]) — single coordinated edit pass resolves L3-019/L4-014/L5-007 across plan.md (4 locations) + tasks.md (3 tasks) + impl-log.md (3 occurrences). L4-015 (albums sidecar) is a fresh API contract worth documenting before §8 reviews land. Sessions 13-14 themselves landed cleanly: 0 orphan files, every Must Have story (US-B1/B2/B3/B4/B5, US-E2, US-F1) has route + component + test evidence. Disposition: applied_split_with_override (pattern continuation from Runs #2-#7)."
   last_report_path: "sync-report.md"
   last_disposition: "applied_split_with_override"
-  last_report_path: "sync-report.md"
   last_fix_list_path: "sync-fix-list.md"
   runs:
     - run: 1
@@ -923,6 +1188,146 @@ sync_runs:
         - "Full test suite: 233/233 passing (up from 229 with 4 new tests: User visibility defaults, User session_version, BacklogItem per_item_visibility, BacklogItem unique index)"
         - "ruff check + format + mypy --strict: all clean across 51 source files"
       next_action: "Continue Phase 6 implementation. Next wave candidates: T019 sessions middleware (now unblocked by User.session_version being present), T020 rate-limit middleware, T028 OpenAPI codegen. Re-run sync-verify between Phase 6B (code review) and Phase 7 (full verify) when Layer 6 (spec ↔ code) becomes meaningful — i.e., once first endpoint cluster (T040+) lands."
+    - run: 8
+      date: "2026-05-23"
+      layers_checked: [1, 2, 3, 4, 5, 6, 7]
+      layers_skipped: []
+      tasks_completed_at_run: 75
+      trigger: "post Sessions 13-14 §7 wedge wave (T073-T084); §7 cluster complete 12/12"
+      critical: 0
+      warning: 8
+      info: 9
+      structural: 10
+      cosmetic: 7
+      new_this_run: 12
+      carry_forward_from_run_7: 5
+      resolved_since_run_7: 3
+      verdict: "DRIFT_DETECTED"
+      new_warnings:
+        - "DRIFT-L3-019: plan.md §1.2/§7.1/§11.3/§16.5 enumerate /@[handle]/ — Next.js can't use @ folder prefix; code shipped /profile/[handle]"
+        - "DRIFT-L4-014: T080/T093d/T101 Paths declare (app)/@[handle]/ folder name Next.js can't create"
+        - "DRIFT-L4-015: GET /users/{handle}/diary returns albums sidecar (Session 14 contract); T074 + plan §6 don't document it"
+        - "DRIFT-L5-007: projection of L4-014 — tasks.md Paths drift vs shipped (app)/profile/[handle]/page.tsx"
+        - "DRIFT-L7-016: spec.md:138 broken anchor to #drift-l2-003 (Run #1 heading no longer exists in compacted sync-report.md)"
+      new_info:
+        - "DRIFT-L3-018: impl-log Session 14 cites 'plan §16' for /@handle deferral — §16 is Testing Strategy, should cite §7.1 + §1.2 (3 occurrences)"
+        - "DRIFT-L4-016: T082 description says 'pre-fill current values' but Session 14 ships rating/aux/visibility only (review-body deferred to T086)"
+        - "DRIFT-L4-017: T077/T079 Paths missing recent-searches.tsx (Session 13 helper)"
+        - "DRIFT-L5-008: T080 components/diary/* wildcard absorbs new helpers; recent-searches.tsx only true Paths omission"
+        - "DRIFT-L5-009: T083 frontend-only Paths; backend POST /restore not formally task-owned"
+        - "DRIFT-L5-010: T079 declares album-prefill.tsx — file never shipped (logic inlined)"
+        - "DRIFT-L5-011: T082 declares diary/edit-entry.tsx — file never shipped (reused log-sheet/index.tsx via LogSheetSeed.edit)"
+      carry_forward_open:
+        - "L2-019 (INFO structural — SS-3 cohort signup_cohort undefined; narrowed this run)"
+        - "L3-017 (WARN structural — plan §12 missing invite-mechanic section)"
+        - "L4-009 (WARN structural — tasks.md missing invite-landing tasks)"
+        - "L4-013 (INFO cosmetic — Paths under-enumeration convention)"
+        - "L6-002 (WARN structural — US-A1 handle suggestions unimplemented)"
+      resolved_this_run:
+        - "L4-010: plan §7.1 routes catch-up — verified inline-applied post Run #7"
+        - "L4-011: T072 ref to plan §11.4 — verified intact"
+        - "L6-003: T081 my-history.tsx shipped + wired into (app)/album/[id]/page.tsx"
+      disposition: "applied_split_with_override"
+      gate_override:
+        granted: true
+        granted_at: "2026-05-23T12:30:00Z"
+        reason: "0 CRITICAL; 4 of 5 NEW WARNs are projections of the same Session 14 routing decision (resolvable in one coordinated edit); L4-015 (diary albums sidecar) is a fresh API contract worth documenting before §8 reviews land; L7-016 is a 1-edit anchor fix; remaining carry-forwards (L2-019, L3-017, L4-009, L6-002) remain user-deferred under existing dispositions. Sessions 13-14 themselves landed cleanly: 0 orphan files, every Must Have story (US-B1/B2/B3/B4/B5, US-E2, US-F1) has route + component + test evidence."
+      inline_applied:
+        - "L3-018: impl-log.md Session 14 'plan §16' → 'plan §1.2 / §7.1 / §11.3' (3 occurrences)"
+        - "L3-019: plan.md §1.2 file-tree → /profile/[handle]/; §7.1 routing → /profile/[handle]; NEW §7.1.1 Handle URL Aliasing subsection (middleware rewrite); §11.3 share URL annotated; §16.5 a11y page list updated"
+        - "L4-014 + L5-007: tasks.md T080/T093d/T101 Paths → (app)/profile/[handle]/"
+        - "L4-015: tasks.md T074 description gained response-envelope spec {entries, next_cursor, albums}; plan.md §6 diary row gained sidecar note + T074 cross-ref"
+        - "L4-016: tasks.md T082 description scoped to rating/aux/visibility; review-body cross-referenced to T086"
+        - "L5-009: tasks.md T075 description explicitly enumerates POST /diary/entries/{id}/restore as part of T075 scope"
+        - "L5-010: tasks.md T079 Paths album-prefill.tsx → recent-searches.tsx"
+        - "L5-011: tasks.md T082 Paths edit-entry.tsx → log-sheet/index.tsx (edit-mode), diary/diary-entry-card.tsx (edit trigger), stores/ui.ts"
+        - "L7-016: spec.md:138 broken #drift-l2-003 anchor dropped; bare link preserved"
+        - "post-edit sweep: spec.md:350 frontend module table app/@[handle] → app/profile/[handle] + cross-ref to plan §7.1.1"
+      deferred:
+        - "L2-019 — invite-mechanic cluster sequencing (gap narrowed this run)"
+        - "L3-017 — invite-mechanic cluster"
+        - "L4-009 — invite-mechanic cluster"
+        - "L4-013 / L4-017 / L5-008 — Paths-convention umbrella"
+        - "L6-002 — low-priority polish (no first-launch collision impact)"
+      sessions_audit:
+        sessions_covered: ["13", "14"]
+        clusters_completed: "§7 Diary + Log sheet (0/12 → 12/12)"
+        orphan_files: 0
+        must_have_stories_with_evidence: ["US-B1", "US-B2", "US-B3", "US-B4", "US-B5", "US-E2", "US-F1"]
+      next_action: "Await user disposition on inline_applied list. After disposition: continue to §8 Reviews + Likes (T085-T093b). Re-run sync-verify after the next cluster lands."
+    - run: 9
+      date: "2026-05-23"
+      layers_checked: [1, 2, 3, 4, 5, 6, 7]
+      layers_skipped: []
+      tasks_completed_at_run: 95
+      trigger: "post Sessions 15-16 (§8 Reviews + Likes + sort + §9 Backlog / Up Next)"
+      critical: 0
+      warning: 12
+      info: 10
+      structural: 13
+      cosmetic: 9
+      new_this_run: 15
+      carry_forward_from_run_8: 7
+      resolved_since_run_8: 0
+      verdict: "DRIFT_DETECTED"
+      new_warnings:
+        - "DRIFT-L2-020: spec.md §5 FR table missing FR-034 (US-D2 drag-reorder) + FR-035 (US-D3 auto-remove-on-log)"
+        - "DRIFT-L2-021: Review delete capability shipped (T087 + delete-confirmation.tsx) without product-spec / spec.md AC trace"
+        - "DRIFT-L3-020: plan.md §6 reviews row missing delete_review + get_review + users-sidecar note"
+        - "DRIFT-L3-021: plan.md §6 backlog row missing list_backlog_items + contains_album + albums-sidecar note"
+        - "DRIFT-L3-022: plan.md §3.1 reviews row missing deleted_at sparse index + 30d-grace note"
+        - "DRIFT-L3-024: plan.md §15.2 PostHog table missing 4 shipped backlog events (item_added, item_removed, reordered, converted_to_log)"
+        - "DRIFT-L4-019: tasks.md §8 — orphan T094 task body at line 861 (header eaten; §8 index claims T085-T094)"
+        - "DRIFT-L5-013: tasks.md T100 Paths claims apps/web/src/lib/analytics.ts which does not exist (emission is server-side via emit_event)"
+        - "DRIFT-L6-004: US-C3 EditReviewDialog shipped (review-card/edit-review.tsx) but never imported by any live route"
+      new_info:
+        - "DRIFT-L1-001: Backlog sort alternatives (rating/year) silently omitted from S-D2 vs research/ux-patterns.md"
+        - "DRIFT-L2-022: Review entity in data-model.md omits edited_at + deleted_at field enumeration (DiaryEntry enumerates both)"
+        - "DRIFT-L3-023: plan.md §12.1 references critic_seed_active=true flag on User; shipped code uses CriticSeed table as truth"
+        - "DRIFT-L4-018: T093a Paths declares opengraph-image.tsx — never shipped (deferred to T093c per impl-log)"
+        - "DRIFT-L4-020: T093 / T092 Paths under-specify shipped helpers (delete-confirmation.tsx, review-sort-select.tsx) — same convention bucket"
+        - "DRIFT-L5-012: T093a Paths claims opengraph-image.tsx — never shipped (overlaps L4-018)"
+      carry_forward_open:
+        - "L2-019 (INFO structural — SS-3 cohort signup_cohort undefined)"
+        - "L3-017 (WARN structural — plan §12 missing invite-mechanic section)"
+        - "L4-009 (WARN structural — tasks.md missing invite-landing tasks)"
+        - "L4-013 (INFO cosmetic — Paths under-enumeration convention)"
+        - "L4-017 (INFO cosmetic — T077/T079 recent-searches.tsx)"
+        - "L5-008 (INFO cosmetic — T080 wildcard convention)"
+        - "L6-002 (WARN structural — US-A1 handle suggestions unimplemented)"
+      resolved_this_run: []
+      disposition: "applied_split_with_override"
+      gate_override:
+        granted: true
+        granted_at: "2026-05-23T15:45:00Z"
+        reason: "0 CRITICAL; Sessions 15-16 code-ship is healthy (95/171 tasks, 592 pytest pass / 3 skip, 11 routes, 0 orphan files); every NEW WARN is documentation catch-up to shipped reality OR small frontend mount (L6-004). 5 of 9 NEW WARNs cluster around plan.md not being amended for new endpoints/indexes/events; 2 are spec FR additions; 1 is tasks.md orphan header restore; 1 is the L6-004 frontend mount. All resolvable in a single coordinated pass. Carry-forwards (L2-019, L3-017, L4-009, L6-002) remain user-deferred under existing dispositions."
+      inline_applied:
+        - "L1-001: product-spec/user-stories.md S-D2 — sort-mode v2-defer breadcrumb"
+        - "L2-020: spec.md §5 FR table — FR-034 + FR-035 added"
+        - "L2-021: product-spec S-C3 retitled + spec.md US-C3 — delete AC added"
+        - "L2-022: product-spec/data-model.md Review block — edited_at + deleted_at fields"
+        - "L3-020: plan.md §6 reviews row — delete_review + get_review + users-sidecar"
+        - "L3-021: plan.md §6 backlog row — list_backlog_items + contains_album + albums-sidecar"
+        - "L3-022: plan.md §3.1 reviews row — deleted_at sparse index + 30d grace"
+        - "L3-023: plan.md §12.1 — CriticSeed FK truth (no critic_seed_active flag)"
+        - "L3-024: plan.md §15.2 PostHog table — 4 shipped backlog events"
+        - "L4-019 + L4-018 + L5-012: tasks.md §8 — orphan T094 header restored + T093a Paths cleanup"
+        - "L5-013: tasks.md T100 Paths — analytics.ts removed; cite diary/routes.py"
+        - "L6-004: review-reading-view/index.tsx — owner Edit button mounts EditReviewDialog"
+      deferred:
+        - "L2-019 — invite-mechanic cluster"
+        - "L3-017 — invite-mechanic cluster"
+        - "L4-009 — invite-mechanic cluster"
+        - "L4-013 / L4-017 / L4-020 / L5-008 — Paths-convention umbrella"
+        - "L6-002 — low-priority polish (US-A1 handle suggestions)"
+      sessions_audit:
+        sessions_covered: ["15", "16"]
+        clusters_completed:
+          - "§8 Reviews + Likes + sort (0/11 → 11/11)"
+          - "§9 Backlog / Up Next (0/6 → 6/6)"
+        orphan_files: 0
+        must_have_stories_with_evidence: ["US-C1", "US-C2", "US-C4", "US-D1", "US-D2", "US-D3 (US-C3 partial via L6-004)"]
+      next_action: "Await user disposition on inline_applied list. After disposition: continue to §10 Social graph + Feed (T101-T108). Re-run sync-verify after the next cluster lands."
 
 change_requests:
   - id: "CR-001"
@@ -950,6 +1355,41 @@ change_requests:
     phase_rollback: null
     change_log_path: "change-log.md"
     cross_agent_risk_consensus: "All three doc-rewriting agents independently flagged critic-seed cold-start under-delivery as the new High-criticality risk; logged in spec.md §11, plan.md §21, product-spec/seeding-strategy.md."
+    approved_by: "Joshua Xie"
+  - id: "CR-002"
+    title: "Phase 2 decision review pass — rationale softening + 3 UX/product changes + 1 v2 roadmap note"
+    status: "accepted"
+    timestamp: "2026-05-22T23:59:00Z"
+    requested_at_phase: "implement"
+    requested_at_progress: "48/170 tasks completed"
+    rationale: "Founder re-walked all 22 main + 14 supporting Phase 2 open questions (the 6 superseded by CR-001 and the SS-1 dupe of Q13 excluded). v1.0 Phase-2 auto-resolved these with research defaults after founder said 'continue where you left off' mid-interview; 3 Phase-3 revisions touched some but didn't re-walk all explicitly. 29 of 36 confirmed at current resolution. 4 substantive changes + 1 v2 roadmap note emerged. Zero shipped code touched."
+    decisions_changed:
+      q3_rationale: "Wedge softened: data-stage-aware not anti-algorithm. MVP behavior (reverse-chron + heuristic weights) unchanged. ML returns in v2 when scale + data earn its keep."
+      differentiator_row: "Same softening — 'Social-graph recs at MVP; ML when it earns its keep'."
+      nt2_digest_hero: "Single hero → three-hero carousel (most-rated, most-reviewed, most-Aux'd in your follow graph this week)."
+      ss3_invite_landing: "Reversed: invite landing now shows 'X just joined' 3-name ticker + /joined ticker in onboarding step 1. Gated by new User.visible_in_just_joined opt-in flag (default OFF for closed-beta cohorts L-12..L-1, ON for L 0+)."
+      uj3_review_surface: "Inline expand → dedicated /review/:id route only. Feed shows rating + album thumbnail + first ~80 chars preview. Reading view: full hero (album cover, title, artist, rating, Aux badge, Like, share). Letterboxd parity; URL-shareable with OG meta."
+    v2_roadmap_added:
+      uj4_screenshot_image_gen: "Server-side PNG of /review/:id hero queued for v2. Re-eval trigger: M3 hit AND share-card share rate <15% of published reviews."
+    considered_then_reverted:
+      dm1_redis_feed_cache: "Initially picked, then walked back after surfacing implementation complexity (cache invalidation, cold-path no-better-than-no-cache, debug surface). Original p95>200ms switch trigger preserved."
+    artifacts_affected: 14
+    tasks_removed: 0
+    tasks_deferred_to_v2: 0
+    tasks_amended: 2
+    tasks_added: 2
+    tasks_amended_pending_sequencing: false
+    tasks_amended_inline: ["T090 read-more → preview+nav per UJ-3", "T138 single hero → three-hero carousel per NT-2"]
+    tasks_added_inline: ["T093a /review/[id] SSR route", "T093b reading-view component"]
+    tasks_followup_pending_cluster: ["invite-landing /i/{handle} ticker (SS-3) — cluster not yet sequenced in tasks.md"]
+    final_task_count: 172
+    code_files_patched: 0
+    test_files_patched: 0
+    test_count_before: 460
+    test_count_after: 460
+    phase_rollback: null
+    change_log_path: "change-log.md"
+    sync_verify_followup: "Run #6 pending — expected Layer 2/3 drift in product-spec.md / spec.md / plan.md / tasks.md / research/competitors.md as derived-doc propagation catches up."
     approved_by: "Joshua Xie"
 
 dependencies:

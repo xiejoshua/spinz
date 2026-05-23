@@ -14,12 +14,14 @@
 ### 1.1 Problem statement
 
 <!-- CR-001: reframed from "casual streaming-era listeners" to "music-engaged listeners"; streaming auto-import is no longer the activation primitive. -->
-Music-engaged listeners (18–35) have no low-friction way to record, share, and discover album experiences with people whose taste they trust. Their listening stays passive and ephemeral. The moment of "I just finished a great album" evaporates because there is no native place to capture it that combines album-first context, social-graph (not algorithmic) discovery, and a friction floor low enough for non-power-users.
+<!-- CR-002: "social-graph (not algorithmic)" softened — wedge is data-stage-aware, not anti-algorithm. ML returns in v2 when scale + data earn its keep. -->
+Music-engaged listeners (18–35) have no low-friction way to record, share, and discover album experiences with people whose taste they trust. Their listening stays passive and ephemeral. The moment of "I just finished a great album" evaporates because there is no native place to capture it that combines album-first context, social-graph-first discovery (richer methods like ML-based recs return in v2 once the data + graph density support them), and a friction floor low enough for non-power-users.
 
 ### 1.2 Solution summary
 
 <!-- CR-001: Letterboxd-for-music posture; manual log replaces streaming auto-import. -->
-**auxd** is a social album-tracking platform — Letterboxd-for-music in posture. Log an album in <8 seconds with a ½-star rating via a clean manual search, optionally add a review, see what people you follow thought of it, and discover what to play next from your social graph instead of an algorithm. The first session is filled by a curated critic-seed feed; the diary fills as you log.
+<!-- CR-002: "instead of an algorithm" reworded — wedge is data-stage-aware, not anti-algorithm. -->
+**auxd** is a social album-tracking platform — Letterboxd-for-music in posture. Log an album in <8 seconds with a ½-star rating via a clean manual search, optionally add a review, see what people you follow thought of it, and discover what to play next from your social graph (richer ML-based recs layer on top in v2 once data + graph density support them). The first session is filled by a curated critic-seed feed; the diary fills as you log.
 
 ### 1.3 Wedge thesis
 

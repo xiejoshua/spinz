@@ -141,7 +141,8 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 - Given I tap the sort selector, When I see options, Then I can choose **Newest** (default), **Most Liked**, or **Highest-Rated** (per FR-032).
 - Given I choose "Most Liked", When the list re-renders, Then reviews are ordered by `Review.reactions.likes_count` descending (within the same primary tier — friends first, then public, then critic-seed).
 - Given my sort choice, When I leave and return to the page, Then the choice persists per-device.
-- Given a review is long, When it's shown in the list, Then it's truncated at ~200 chars with "Read more" expanding it inline.
+<!-- CR-002: inline expand replaced by nav to /review/:id per UJ-3. Preview length updated to ~80 chars to match feed-card preview. -->
+- Given a review is shown in the list, When I view it, Then it shows a preview of the first ~80 chars; tapping the preview navigates to `/review/:id` (full reading view per UJ-3 / CR-002). No inline expand at MVP.
 - Given a reviewer is private or has me blocked, When I view the album, Then their review is not shown.
 
 ### S-C4: Like another user's review *(added in Revision #3)*
@@ -154,14 +155,16 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 - Given I previously Liked a review, When I view it again, Then the Like button shows the active state.
 - Likes never appear in the weekly digest individually (per NT-4 they aggregate); they may show as part of the digest's "most-liked reviews from your follow graph this week" hero entry.
 
-### S-C3: Edit a review after publishing
-**As Maya,** I want to refine a review I wrote earlier (typo fix, additional thought), so my published opinion is the polished one.
+### S-C3: Edit (or delete) a review after publishing
+**As Maya,** I want to refine a review I wrote earlier (typo fix, additional thought), so my published opinion is the polished one. I also want to remove a review I no longer stand by, with a safety net against accidental deletion.
 
 **AC:**
 - Given I'm on my own review, When I tap Edit, Then the review opens in an editable state with the current published text prefilled.
 - Given I save edits, When the review is re-published, Then it shows a small "edited" badge on the public surface with timestamp visible on hover/long-press (per decision Q17).
 - **Edit history is NOT shown publicly** — readers only see the latest version. An internal 90-day revision log is preserved for moderation/audit; users do not have access to past versions of their own reviews via the UI at MVP.
 - Given I save a no-op edit (no actual text change), When the review re-publishes, Then no "edited" badge is added.
+- <!-- sync-fix L2-021 (Run #9): delete-review AC added — code shipped in T087 + DeleteReviewConfirmation.tsx but had no story trace. -->
+- Given I tap Delete on my own review, When I confirm via a text-confirm dialog, Then the review is soft-deleted (`deleted_at` set), removed from all public surfaces immediately, and hard-deleted after the 30-day grace window. Cascade-delete of `ReviewLike` rows happens at hard-delete time. Double-delete returns `HTTP 410 Gone`.
 
 ---
 
@@ -183,6 +186,9 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 - Given I open Up Next, When the list renders, Then I see albums in user-defined order (default: most-recently-added first).
 - Given I drag an item, When I drop, Then the order persists.
 - Given I open an album from Up Next, When I see the detail page, Then I see the album metadata + cover; outbound deep-links to streaming services are not surfaced at MVP and return in v2 alongside streaming integration.
+
+<!-- Research-pattern note (sync-fix L1-001, Run #9): research/ux-patterns.md §Lists surfaces three additional sort modes for the Up Next list (by rating, by year, by added-date). MVP ships drag-reorder only — rating + year + added-date sort modes are deferred to v2 alongside custom lists and the v2 list-templates surface. -->
+
 
 ### S-D3: Auto-remove from backlog on log
 **As Casey,** I want logged albums to disappear from my backlog automatically, so the list stays a true "next" queue.
@@ -217,7 +223,7 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 **AC:**
 - Given my follow graph has activity, When I open home, Then the feed shows entries in mostly-reverse-chronological order with weight boost: reviews +20%, ★★★★★ or ★ ratings +15%, entries by my top-5-interacted-with users +10%.
 - Given my followed accounts have been silent today, When I open home, Then I see entries from yesterday/this week so the feed isn't ever empty.
-- Given I want to see strictly chronological, When I toggle "Latest" in feed header, Then weights are disabled. *(Toggle persisted per-device.)*
+- Given I want to choose between weighted and strict chronological order, When I toggle between **"For You" (weighted, default)** and **"Latest" (chronological)** in the feed header, Then the active mode is reflected in the response and the toggle is persisted per-device. (sync-fix L2-023, Run #10 — names the two modes shipped via `GET /api/v1/feed?mode=for_you|latest`.)
 
 ### S-E4: Discover via "friends who rated this"
 **As Casey,** I want to see which friends rated an album highly, so I can use my social graph as my filter.
@@ -281,6 +287,8 @@ Acceptance criteria are Given/When/Then to keep verifiable behavior front and ce
 - Given I'm on Settings → Privacy, When I set default visibility to "Followers only", Then new entries default to followers-only (per-entry override still available).
 - Given I toggle "Private profile" on, When I save, Then my profile is only visible to my followers; anyone not following me sees a "this account is private" page.
 - Given I toggle "Private profile" on, When I had pending follow requests, Then they require my approval (the toggle creates a request queue).
+- <!-- sync-fix L2-025 (Run #10): responder-side (approve/decline) scope clarification — MVP ships request creation (Session 17 T101 writes FollowRequest rows with state=pending); the approver UI (approve/decline endpoints + request-queue surface) is tracked under S-H3 (Could-have). FollowRequest model + creation are MVP; the approver workflow is the v1.x follow-up. -->
+
 
 ### S-G3: Manage notifications
 **As Casey,** I want to turn off individual notification types (including auto-prompts), so I'm not overwhelmed.

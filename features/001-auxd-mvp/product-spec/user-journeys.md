@@ -92,10 +92,12 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 | Step | User action | System response | Emotion | Notes |
 |---|---|---|---|---|
 | 1 | Opens home tab | Feed loads (SSR or client-cache): reverse-chrono with weight boosts; ~10 hero entries + lazy-load more on scroll | 😊 |
-| 2 | Sees a 5★ rating with a 50-word review from Jamie (a critic Casey follows) for an album Casey doesn't know | Entry card shows: Jamie avatar, "Jamie rated ★★★★★ • 2h ago", album cover thumb (via Cover Art Archive), review snippet, 👍 Like action (FR-031) | 😊 intrigued |
-| 3 | Taps the album cover | Album detail page opens (SSR, fast) | 😊 curious | Page shows cover, metadata, tracklist, friends-who-rated, public reviews |
+<!-- CR-002: feed preview format and nav target updated for UJ-3 (dedicated /review/:id route). -->
+| 2 | Sees a 5★ rating from Jamie (a critic Casey follows) for an album Casey doesn't know | Entry card shows: Jamie avatar, "Jamie rated ★★★★★ • 2h ago", album cover thumb (via Cover Art Archive), first ~80 chars of the review as preview, 👍 Like action (FR-031). The whole card is tappable — there is no inline-expand chevron at MVP. | 😊 intrigued |
+| 3 | Taps the album cover thumb | Album detail page opens (SSR, fast) | 😊 curious | Page shows cover, metadata, tracklist, friends-who-rated, public reviews |
 | 4 | Sees that 2 other people Casey follows also rated this album 4★+ | "Friends" section shows 3 avatars + their ratings | 😊 validated | Social proof from inside the trusted graph |
-| 5 | Reads Jamie's full review | Review expands inline | 😊 engaged | Spends 30–90 seconds reading |
+<!-- CR-002: review reading is now a nav to /review/:id, not an inline expand. -->
+| 5 | Returns to the feed and taps Jamie's review preview text | Navigates to `/review/:id` reading view: full hero (album cover, title, artist, viewer's rating context if any, Aux badge, Like button, share), Jamie's full review body | 😊 engaged | Spends 30–90 seconds reading. Page is URL-shareable (OG meta enabled). v2 will add screenshot image-gen on this surface (UJ-4 v2). |
 | 6 | Taps "Add to Up Next" OR taps "Log" if they're going to listen right now | Toast confirms; backlog grows OR diary entry is created via manual-log flow | 😊 completes | This is the social-originated-discovery metric event (M3 target 25%) |
 | (User listens to album outside auxd via whatever streaming service they use; returns to auxd to log if they didn't already) |
 
@@ -163,7 +165,8 @@ Five primary journeys. Steps are *user perspective* — what the user does, what
 | 3 | Taps "Add a review" | Textarea expands; full editor surface | 😊 |
 | 4 | Writes 200-word review with line breaks and one emphasis | Save state: draft autosaved every 5s | 😊 in flow |
 | 5 | Reviews own draft, taps "Log" | Entry + Review committed; sheet dismisses to toast: "Review posted to your diary" with a "Share" CTA | 😊 done |
-| 6 | Taps "Share" CTA in toast | OS share sheet opens with prefilled URL (`xiejoshua.com/r/{review_id}`) and OG image preview | 😊 amplifies |
+<!-- CR-002: share URL is now the canonical /review/:id route. -->
+| 6 | Taps "Share" CTA in toast | OS share sheet opens with prefilled URL (`xiejoshua.com/review/:id`) and OG image preview pointing at the full reading-view hero | 😊 amplifies |
 | 7 | Shares to Twitter/X or copies link | External post happens; OG card renders cover + rating + review snippet | 😊 reach |
 
 **Drop-off risk points:**
@@ -194,6 +197,7 @@ All 5 prior open questions resolved. See [decision-log.md §User journeys](./dec
 <!-- CR-001: UJ-1 and UJ-2 superseded by CR-001 — streaming prefill removed; "Follow 3" surface no longer mixes critic-seed + mutual-taste (mutual-taste deferred). -->
 1. **UJ-1 — *(SUPERSEDED by CR-001)* Log sheet prefilled album.** Was: "most-recently-finished album, not last-played track". Now: log sheet opens with empty search at MVP because there is no streaming integration to source prefill from. UJ-1 returns alongside streaming integration in v2.
 2. **UJ-2 — *(SUPERSEDED by CR-001)* "Follow 3" card order.** Was: "mixed but always ≥3 critics in top 6 visible cards". Now: critic-seed cards are the only cards surfaced (mutual-taste suggestions require taste data we don't have without streaming history). Minimum follow count raised from 1 to 3 to compensate.
-3. **UJ-3 — Review expanded inline at MVP** (no dedicated reading view). Most reviews are short; inline keeps the feed in-flow.
-4. **UJ-4 — Reviews share-card only at MVP** (no API cross-post to Twitter/X). Cross-post APIs are deprecating; share-card with OG preview is portable and platform-risk-free.
+<!-- CR-002: UJ-3 changed — dedicated /review/:id route only; no inline expand. UJ-4 unchanged at MVP, v2 roadmap note added. -->
+3. **UJ-3 — Dedicated `/review/:id` route only.** No inline expand in the feed. Feed shows rating + album thumbnail + first ~80 chars of review text as preview; tapping anywhere on the preview navigates to the route. Reading view surface: full hero (album cover, title, artist, viewer's rating, Aux badge if any, Like button, share). Letterboxd parity; URL-shareable with OG meta. *(v1.2: inline expand. v1.5/CR-002: shifted to dedicated route only.)*
+4. **UJ-4 — Reviews share-card only at MVP** (no API cross-post to Twitter/X). Cross-post APIs are deprecating; share-card with OG preview is portable and platform-risk-free. *(CR-002 v2 roadmap note: screenshot image-gen — server-side PNG of the `/review/:id` hero — queued for v2 once the dedicated reading-view route exists.)*
 5. **UJ-5 — No "Reading list" surface at MVP.** Up Next is for albums only.

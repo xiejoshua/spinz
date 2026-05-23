@@ -32,7 +32,8 @@ Each row defines: identifier, trigger event, surfaces (default ON channels), rec
 | N-005 | `review.reply` | Someone replied to your review *(v2 feature; schema reserved)* | ✅ ON | ❌ OFF | ❌ OFF | Not active at MVP. |
 | N-006 | `friend.logged_album` | A close-friend (top-5 interacted) logged an album you have in your Up Next | ✅ ON | ❌ OFF | ❌ OFF | Useful! Triggers exactly once per album per friend. |
 | N-007 | `friend.high_rated` | A followed user rated an album ≥4.5★ that you don't have in your diary | ❌ OFF | ❌ OFF | ❌ OFF | Deliberately OFF by default. Opt-in for power discovery users. |
-| N-008 | `weekly.digest` | Monday 09:00 user-local, summarizing top 10 entries from follow graph past 7 days | ❌ OFF | ✅ ON | ❌ OFF | Primary engagement surface. Plain HTML email, ~6 hero entries + 4 secondary. |
+<!-- CR-002: layout updated — three-hero carousel callout above the chronological body (NT-2). -->
+| N-008 | `weekly.digest` | Monday 09:00 user-local, summarizing top 10 entries from follow graph past 7 days | ❌ OFF | ✅ ON | ❌ OFF | Primary engagement surface. Plain HTML email. Layout: **three-hero callout carousel at top** (most-rated, most-reviewed, most-Aux'd in your follow graph this week — see NT-2), then ~6 hero entries + 4 secondary in chronological order. |
 <!-- CR-001: N-009 / N-010 / N-011 deferred to v2 — bundled with streaming-integration cluster. IDs reserved; not reassigned. Rows preserved as reserved-gap for traceability. -->
 | N-009 | *(DEFERRED-TO-V2 — was `import.completed`; reserved-gap per CR-001)* | — | — | — | — | Returns with streaming + Last.fm import in v2. |
 | N-010 | *(DEFERRED-TO-V2 — was `import.failed`; reserved-gap per CR-001)* | — | — | — | — | Returns with streaming + Last.fm import in v2. |
@@ -124,7 +125,8 @@ These are reversible single-tap controls — not destructive.
 | "You haven't logged in N days" reminders | Goodreads/social media engagement bait; documented churn driver |
 | Streak / "don't break the streak" alerts | Forced gamification documented as off-putting for casual segment (UX research §Anti-patterns) |
 | Sound on push (web or native) | Casual users find unsolicited sound aggressive |
-| "Recommended for you" notifications | Algorithm-distrust; our rec philosophy is social-graph, not pushed |
+<!-- CR-002: "algorithm distrust" framing softened. We aren't anti-algorithm — we're against PUSHED recs the user didn't ask for, regardless of how they were generated. -->
+| "Recommended for you" notifications | We don't push recs the user didn't ask for. The rec primitive (social-graph at MVP; richer methods in v2) belongs in surfaces the user navigated to, not unsolicited notifications. |
 | Real-time "X is online now" presence | Surveillance-y; we are not a chat app |
 | Cross-posted notifications (one event, three channels at once) | We pick the channel hierarchy in the table above; never dispatch all three for one event |
 
@@ -156,7 +158,8 @@ These are reversible single-tap controls — not destructive.
 All 5 prior open questions resolved. See [decision-log.md §Notification taxonomy](./decision-log.md) for full table.
 
 1. **NT-1 — Suppress critic-seed N-001 (follow) notifications during onboarding wave.** Otherwise every seed account gets a notification storm from new-user onboarding.
-2. **NT-2 — Weekly digest includes "most-rated album in your follow graph this week" hero entry.** Single hero entry; cheap query; editorial feel.
+<!-- CR-002: NT-2 expanded from single hero to three-hero carousel. -->
+2. **NT-2 — Weekly digest includes a three-hero carousel: most-rated, most-reviewed, and most-Aux'd albums in your follow graph this week.** Three editorial picks instead of one; stronger email-open hook. Three cheap aggregate queries (one count over followed-user entries per metric in the week). *(v1.2: single hero. v1.5/CR-002: expanded to three-hero carousel.)*
 3. **NT-3 — Weekly digest fires during quiet hours.** Quiet hours suppress push and in-app prompts only; email/digest fire on their own schedule.
 <!-- CR-001: NT-4 renamed to review.liked (R3 split, preserved). -->
 4. **NT-4 — N-004 (review.liked) surfaces both in-app AND aggregated into weekly digest.** In-app for immediate feedback; digest aggregates for absent users.
