@@ -106,7 +106,7 @@ class TestMusicBrainzCatalogProvider:
 
     @respx.mock
     async def test_get_album_by_mbid_returns_album(self) -> None:
-        respx.get(f"{MB_BASE}/release-group/{OK_COMPUTER_MBID}").mock(
+        route = respx.get(f"{MB_BASE}/release-group/{OK_COMPUTER_MBID}").mock(
             return_value=Response(200, json=_lookup_payload())
         )
         provider = MusicBrainzCatalogProvider()
@@ -119,6 +119,14 @@ class TestMusicBrainzCatalogProvider:
         assert album.artist_name == "Radiohead"
         assert album.release_year == 1997
         assert album.mbid == OK_COMPUTER_MBID
+        # MB lookup MUST pass `inc=artist-credits` — without it the response
+        # excludes the artist-credit array entirely and we ship empty
+        # artist_credit on materialised Albums. Asserted explicitly after the
+        # 2026-05-23 production incident.
+        called_url = route.calls.last.request.url
+        assert "inc=artist-credits" in str(called_url), (
+            f"expected inc=artist-credits in lookup URL, got {called_url}"
+        )
 
     @respx.mock
     async def test_get_album_by_mbid_returns_none_on_404(self) -> None:

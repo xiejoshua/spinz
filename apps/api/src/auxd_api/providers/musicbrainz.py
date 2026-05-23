@@ -97,9 +97,23 @@ class MusicBrainzCatalogProvider(CatalogProvider):
         return [self._map_release_group(item) for item in groups]
 
     async def get_album_by_mbid(self, mbid: str) -> CatalogAlbum | None:
-        """Look up a release-group by MBID. Returns ``None`` on 404."""
+        """Look up a release-group by MBID. Returns ``None`` on 404.
+
+        ``inc=artist-credits`` is required for the response to include the
+        ``artist-credit`` array — without it MB returns the minimal-shape
+        release-group record (id/title/type/dates) and our mapping leaves
+        ``artist_name`` empty, which propagated as empty ``artist_credit``
+        on materialised Albums in production until 2026-05-23. The search
+        endpoint *does* include artist-credit by default, but the
+        ``_materialize_fallback`` flow re-fetches each hit through this
+        lookup to populate the canonical cache; missing inc= meant the
+        re-fetch trashed the artist info from the search result.
+        """
         await self._wait_for_rate_limit_slot()
-        response = await self._client.get(f"/release-group/{mbid}", params={"fmt": "json"})
+        response = await self._client.get(
+            f"/release-group/{mbid}",
+            params={"fmt": "json", "inc": "artist-credits"},
+        )
         if response.status_code == 404:
             return None
         if response.status_code >= 400:
