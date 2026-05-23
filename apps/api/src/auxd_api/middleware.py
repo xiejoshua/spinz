@@ -83,7 +83,14 @@ def _attach_session_cookies(
     csrf_token: str,
     max_age: int,
 ) -> None:
-    """Write both cookies onto ``response`` with the shared security flags."""
+    """Write both cookies onto ``response`` with the shared security flags.
+
+    Cookies are host-scoped (no Domain= attribute) and the browser stores
+    them against whatever host the response came from. With the Next.js
+    rewrites pattern (frontend proxies ``/api/v1/*`` to the backend), the
+    browser only sees the frontend origin so the cookie ends up first-party
+    on the frontend host. No cross-subdomain Domain= sharing is needed.
+    """
     secure = _cookie_secure()
     response.set_cookie(
         key=SESSION_COOKIE_NAME,

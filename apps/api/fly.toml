@@ -35,7 +35,11 @@ primary_region = "iad"
   POSTHOG_HOST = "https://us.i.posthog.com"
   R2_BUCKET_NAME = "auxd-backups-prod"
   # CORS — Vercel-deployed frontend origin (comma-separated for multiple).
-  # Pydantic-settings auto-splits comma strings into list[str].
+  # With the Next.js rewrites pattern, the browser actually calls
+  # xiejoshua.com/api/v1/* which Next.js proxies server-side to the API,
+  # so the API only sees Vercel's egress (not the browser origin). CORS
+  # is retained as defense-in-depth for any direct browser → API calls
+  # (e.g. share-card OG fetches), but in the rewrites flow it's a no-op.
   ALLOWED_ORIGINS = "https://xiejoshua.com,https://www.xiejoshua.com"
 
 # HTTP service routing applies to the `web` process only. force_https redirects

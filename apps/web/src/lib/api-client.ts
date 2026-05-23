@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// Browser-side API client. All paths are relative — Next.js rewrites
+// (see next.config.mjs) proxy /api/v1/* to the backend. This keeps the
+// browser on a single origin so session cookies stay first-party.
 
 export class ApiError extends Error {
   constructor(
@@ -17,15 +19,17 @@ type FetchOptions = Omit<RequestInit, "body"> & {
 };
 
 function buildUrl(path: string, searchParams?: FetchOptions["searchParams"]): string {
-  const url = new URL(path, API_BASE_URL);
-  if (searchParams) {
-    for (const [key, value] of Object.entries(searchParams)) {
-      if (value !== undefined) {
-        url.searchParams.set(key, String(value));
-      }
+  // Relative URL — browser resolves against the current origin and the
+  // request goes through Next.js's rewrites layer.
+  if (!searchParams) return path;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (value !== undefined) {
+      query.set(key, String(value));
     }
   }
-  return url.toString();
+  const search = query.toString();
+  return search ? `${path}?${search}` : path;
 }
 
 export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
