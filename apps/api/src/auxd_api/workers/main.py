@@ -49,6 +49,8 @@ from auxd_api.modules.users.workers import process_scheduled_deletions
 from auxd_api.providers.musicbrainz import MusicBrainzCatalogProvider
 from auxd_api.settings import get_settings
 from auxd_api.workers.digest_dispatch import dispatch_weekly_digests
+from auxd_api.workers.gdpr_export import generate_user_data_export
+from auxd_api.workers.moderation_scan import scan_reports_for_flags
 
 _LOGGER = logging.getLogger("auxd.worker")
 
@@ -131,6 +133,8 @@ class WorkerSettings:
         reconcile_candidate_albums,
         process_scheduled_deletions,
         dispatch_weekly_digests,
+        scan_reports_for_flags,
+        generate_user_data_export,
     ]
     cron_jobs = [
         # T064 — daily 04:00 UTC album cache refresh.
@@ -162,6 +166,14 @@ class WorkerSettings:
         cron(
             dispatch_weekly_digests,
             minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
+            run_at_startup=False,
+        ),
+        # T156 — daily 03:00 UTC moderation log-scan. Flags users with
+        # >=3 reports in the trailing 7d.
+        cron(
+            scan_reports_for_flags,
+            hour=3,
+            minute=0,
             run_at_startup=False,
         ),
     ]

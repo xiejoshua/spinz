@@ -218,6 +218,25 @@ class Settings(BaseSettings):
         ),
     )
 
+    # --- Operator alerting (optional) ------------------------------------
+    DISCORD_WEBHOOK_URL: str | None = Field(
+        default=None,
+        description=(
+            "Discord webhook URL for operator alerts (T010 synthetic monitoring + T156 "
+            "moderation scan). Leave unset to disable Discord posts; the alert still "
+            "lands as a structured log line."
+        ),
+    )
+
+    # --- Exports (R2 GDPR) -----------------------------------------------
+    R2_EXPORT_BUCKET: str = Field(
+        default="auxd-exports",
+        description=(
+            "R2 bucket name for GDPR data-export archives (T153). 24h "
+            "signed URLs are issued; the bucket itself is private."
+        ),
+    )
+
     # --- Public app URL --------------------------------------------------
     PUBLIC_APP_URL: str = Field(
         default="https://auxd.xiejoshua.com",

@@ -1501,3 +1501,94 @@ shipped behind the existing (app)/layout chrome; navigable via a new
 - 🟡 **T152 critic badge mount completeness**: mounted on ReviewCard + NotificationCard + FeedEntry + ProfileClient header. NOT yet mounted on the Discover-tab card list (suggestions), the inbox notification copy renderer's secondary actor mentions, or the search-result user-card variant. Quick follow-up sweep when the right session lands. Existing CriticSeed.active is the source of truth — render path is the only gap.
 
 
+## Session 24 — §15 GDPR + Moderation cluster close-out (T153–T161 + T163a) — 2026-05-24 morning
+
+### Goal
+
+Close §15 (GDPR + Moderation) by shipping the full 10-task cluster
+(T155 + T163a unified per Run #10 sync-fix). This closes the T149→T153
+follow-up from S23 (export endpoint now real), the T111 BlockReportMenu
+404-fallback (report endpoints now real), the operator's audit-log
+trail (GdprAuditLog), and the suspended-account UX.
+
+### What landed
+
+| Task | Surface |
+|------|---------|
+| T154 — GdprAuditLog | New `modules/gdpr/` namespace with `GdprAuditLog` Beanie Document + `GdprAuditAction` enum (export_requested / export_completed / deletion_scheduled / deletion_completed / deletion_canceled); indexed (user_id, requested_at desc). `lib/audit.py` exports `record_gdpr_event(user_id, action, notes=None, *, completed=False)` helper. Registered in `ALL_DOCUMENT_MODELS` (20 → 21). Call sites added across T058 (deletion completion), T153 endpoint (export request), T153 worker (export completion). |
+| T158 — User.admin_notes | Added `admin_notes: str = ""` to User model. Parametrised unit test verifies the field never appears in any public response shape across `_serialize_user_card` + `_public_user_payload` + sidecar serializers. No UI; operator reads via Mongo Compass per the new `docs/operator-runbooks/moderation.md`. |
+| T155 + T163a — Report endpoints | New `modules/reports/{routes,service,models}.py` with 3 POST endpoints: `/api/v1/reports/{user,review,diary-entry}`. `ReportReason` enum {harassment, spam, impersonation, hate_speech, other}. Idempotency: same `(reporter_id, target_type, target_id)` within 24h returns existing (200, not 201 duplicate). Per-reporter 10/day rate limit. Auth required (401 anonymous). FK validation (422 if target_id doesn't exist). Self-report rejected (422). T111 BlockReportMenu frontend 404 fallback REMOVED — endpoint now real with 201 happy path. |
+| T156 — Daily moderation scan | `workers/moderation_scan.py` + registered in `workers/main.py` cron at 03:00 UTC. Queries `Report.find({created_at >= now-7d})` grouped by effective_target_user_id (user reports retain `target_id`; review/diary reports resolve to the row's `user_id`; reports against deleted rows silently dropped). Where count ≥ 3, sets `User.flagged_for_review = True` + records `flagged_for_review_at`. Notifies admin via Discord webhook (`DISCORD_WEBHOOK_URL` setting from T010) with handle + count + reason breakdown. Idempotent — re-running within 7d skips already-flagged users. New User fields `flagged_for_review` + `flagged_for_review_at` excluded from public serializers. |
+| T157 — N-012 dispatch | `acknowledge_report(report_id, ack_note=None)` helper in `modules/reports/service.py` marks Report.acknowledged_at + fires N-012 dispatch to reporter_id (idempotent — re-acknowledging is no-op). No HTTP admin endpoint at MVP; founder invokes via `apps/api/scripts/acknowledge_report.py {report_id} --note "..."`. Operator runbook documents the flow. |
+| T159 — Suspended account UX | Backend `SessionMiddleware` (or new dependency) at `middleware.py` returns 403 with body `{error: "account_suspended", appeal_url: "mailto:..."}` on ALL routes except the allow-list {POST /auth/logout, POST /auth/logout-all-devices, POST /users/me/delete}. Frontend `/suspended` page (standalone, no (app)/layout) + api-client.ts catches 403 with `body.error === "account_suspended"` → auth-store clear + redirect. DELETION_PENDING status untouched. No admin-action endpoint at MVP — founder runs `db.users.updateOne({_id: X}, {$set: {status: "suspended"}})`. |
+| T160 — GDPR cascade tests | `tests/integration/test_gdpr_cascade.py` — comprehensive coverage. T058 worker EXTENDED to cascade newer collections that shipped post-T058 (PushSubscription, FailedEmail, Suggestion, SuggestionDismissal). Also ANONYMISES (not deletes) Report rows where the deleted user was `reporter_id` — sets `reporter_id → None` while preserving target rows for audit retention. After cascade: User gone + all 14 owned-collection rows gone + Report rows preserved with nulled reporter_id + GdprAuditLog DELETION_COMPLETED entry + bystander rows survive. TC-029 passes. |
+| T153 — Data export job | `workers/gdpr_export.py` + `POST /api/v1/users/me/data-export` endpoint in `modules/users/routes.py` (per-user 1/day rate limit; returns 202 + job_id + audit_log_id + eta_seconds). Worker aggregates across 13 owned collections (User stripped of `password_hash`/`admin_notes`/`session_version`; DiaryEntry, Review, ReviewLike, ReviewEditHistory, Backlog, BacklogItem, Follow, FollowRequest, Block, Notification, PushSubscription, HandleRedirect) → builds BOTH `export.json` (single object) AND `export.zip` (per-collection CSVs via `csv.writer` + `zipfile.ZipFile`) → uploads to new `R2_EXPORT_BUCKET` (default `auxd-exports`) at `exports/{user_id}/{job_id}/*` with 24h presigned URLs → emails the user via Resend directly (not through dispatcher chain — one-off transactional shape doesn't fit a NotificationType). Audit log entries on both EXPORT_REQUESTED + EXPORT_COMPLETED. **Closes the T149→T153 follow-up from S23**: data-settings.tsx 404-fallback REMOVED. |
+| T161 — Legal placeholder pages | `apps/web/src/app/legal/{layout,privacy/page,terms/page}.tsx` — standalone routes outside (app) and (auth) chrome. Placeholder content with section headers + prominent `<aside>` banner: "🚧 This is a placeholder. Final policy lawyer-reviewed before public launch." Footer links from (auth)/layout (signup + login) pages. PostHog page-view events. |
+
+### Tests added
+
+| File | Coverage |
+|------|---------|
+| `apps/api/tests/unit/test_gdpr_audit.py` (NEW, 4 tests) | helper roundtrip + EXPORT_REQUESTED→EXPORT_COMPLETED pair pattern. |
+| `apps/api/tests/unit/test_admin_notes_not_serialised.py` (NEW, 4 tests) | parametrised over all public serializers asserting `admin_notes` never leaks. |
+| `apps/api/tests/integration/test_reports_endpoints.py` (NEW, 8 tests) | 3 target types happy + 401 + 422 invalid reason + 422 missing target + 422 self-report + idempotency + 429 rate-limit boundary. |
+| `apps/api/tests/integration/test_acknowledge_report.py` (NEW, 3 tests) | helper marks acknowledged_at + N-012 dispatch + idempotency. |
+| `apps/api/tests/integration/test_moderation_scan.py` (NEW, 5 tests) | empty / <3 / ≥3 thresholds + author-resolution for content reports + idempotent re-run + Discord webhook firing. |
+| `apps/api/tests/integration/test_suspended_account.py` (NEW, 5 tests) | SUSPENDED 403s on non-whitelisted + 200s on logout/delete + ACTIVE unaffected + DELETION_PENDING unaffected + body shape `{error, appeal_url}`. |
+| `apps/api/tests/integration/test_gdpr_cascade.py` (NEW, 6 tests) | full-setup cascade (15 owned collections) + bystander preservation + Report reporter_id anonymisation + GdprAuditLog DELETION_COMPLETED entry + idempotent re-run. |
+| `apps/api/tests/integration/test_gdpr_export.py` (NEW, 7 tests) | endpoint 202 + per-user 1/day rate-limit + worker aggregation + R2 upload (monkeypatched) + Resend email (monkeypatched) + sensitive-field exclusion + empty-user happy path + EXPORT_COMPLETED audit log. |
+| `apps/web/tests/unit/api-client.test.ts` (NEW, 1 test) | 403 `account_suspended` body shape → redirect-to-/suspended logic. |
+
+### Progressive verify
+
+| Check | After | Backend | Frontend |
+|---|---|---|---|
+| #1 | §15 close-out (10 tasks + cascade extension + new modules `gdpr/`, `reports/`; 2 new workers + 1 new lib + 1 new CLI script) | ✅ ruff + format + mypy strict + pytest **937 pass / 3 skip** (+46 new) across 197 source files | ✅ Biome 150 files clean + tsc 0 errors + Vitest **70 pass** (+4) + `next build` **24 visible routes** (+3 new: /suspended, /legal/privacy, /legal/terms) + codegen api.ts regenerated with /reports/{user,review,diary-entry} + /users/me/data-export paths |
+
+### Status snapshot
+
+- Tasks completed: **136 → 146 / 172** (85%). **§15 GDPR + Moderation 0/10 → 10/10 CLUSTER COMPLETE.** Fourteen clusters fully closed: §0 §1 §3 §4 §5 §6 §7 §8 §9 §10 §11 §13 §14 §15.
+- Backend test suite: **891 → 937 pass / 3 skip** (+46 net new).
+- Frontend unit tests: **66 → 70** (+4).
+- Frontend routes: **21 → 24** (+3 new: /suspended + /legal/{privacy,terms}).
+- ALL_DOCUMENT_MODELS: **20 → 21** (GdprAuditLog added).
+- mypy source files: **183 → 197** (+14: new gdpr/ + reports/ + audit + storage etc.).
+
+### Decisions + non-obvious calls
+
+- **T155 + T163a unified as the 3-endpoint variant** rather than the original single-endpoint /reports with discriminator. Reason: T111 BlockReportMenu (S17) already expects the target-typed routes; shipping the single-endpoint variant would have required a frontend change. Lock-step with the frontend contract is cleaner; Run #10 sync-fix already declared T163a as the canonical implementation.
+- **T156 author-resolution simplification**: content reports (target_type=review or diary_entry) resolve to the row's `user_id`. Reports against soft-deleted or hard-deleted rows are silently dropped (count contribution = 0 because we can't resolve an author). This matches the cascade-order in T058 (rows are deleted before the user). Could be tightened by retaining `target_user_id` directly on Report at creation time — flagged as a follow-up.
+- **T153 export bundling: two artifacts, two URLs**. The export ships BOTH `export.json` (single object, easy programmatic consumption) AND `export.zip` (per-collection CSVs, easy spreadsheet consumption). Two URLs in the email. Sensitive fields (`password_hash`, `admin_notes`, `session_version`) explicitly stripped from the User serialisation in the export.
+- **T159 placement: middleware over per-route dependency**. One central allow-list (3 paths) keeps the policy auditable + applies uniformly to every endpoint without touching every route module. Dependency injection would have required threading `require_active_user` through every protected route. Middleware is a single change to the request pipeline.
+- **T157 surface: CLI script over HTTP admin endpoint**. Founder invokes via `uv run python apps/api/scripts/acknowledge_report.py {report_id}`. Future admin-UI just wraps the same `acknowledge_report` service function. No new HTTP endpoint to defend or rate-limit at MVP.
+- **T160 cascade extension**: T058 worker shipped pre-S20, so it was missing PushSubscription + FailedEmail + Suggestion + SuggestionDismissal cascade. Test-driven discovery — wrote the comprehensive cascade test first, T058 failed against the new collections, then extended the worker.
+- **Report.reporter_id anonymisation (not deletion)**: keeps Report rows for audit retention while removing the deleted user's identity. Target_id rows preserved for the target side. Mirrors the GDPR right-to-be-forgotten guidance — keep the moderation history, lose the personal data.
+- **GdprAuditLog 7-year TTL deferred**: index shape on `(user_id, requested_at desc)` is ready to host a TTL once operator confirms the legal retention requirement (jurisdiction-specific). Adding TTL prematurely could destroy compliance evidence; deferred to ops.
+- **`acknowledge_report` CLI script not registered as a uv script command** — founder invokes via direct path. Could be added to `apps/api/pyproject.toml` `[project.scripts]` as a follow-up.
+
+### Tests + quality gates
+
+| Gate | Result | Detail |
+|------|:------:|--------|
+| Backend ruff | ✅ | All checks passed |
+| Backend ruff format | ✅ | 197 files already formatted |
+| Backend mypy --strict | ✅ | No issues found in 197 source files |
+| Backend pytest | ✅ | 937 pass / 3 skip (+46 net new) |
+| Frontend Biome lint (root) | ✅ | 150 files clean |
+| Frontend tsc | ✅ | 0 errors |
+| Frontend Vitest | ✅ | 70 pass (+4) |
+| Frontend `next build` | ✅ | 24 visible routes (+3 new: /suspended + /legal/privacy + /legal/terms) |
+| Codegen (`@auxd/shared-types`) | ✅ | api.ts regenerated with /reports/{user,review,diary-entry} + /users/me/data-export paths |
+
+### Follow-ups flagged (NEW this session)
+
+- 🟡 **No admin UI for suspension or acknowledgment** — founder runs `db.users.updateOne(...)` to suspend, runs the CLI script to acknowledge. Admin UI spec'd for v2.
+- 🟡 **Legal pages are placeholders** — explicit `<aside>` banner says lawyer-review required before public launch.
+- 🟡 **GdprAuditLog 7-year TTL not configured** — index ready, retention policy deferred to operator's legal-jurisdiction confirmation.
+- 🟡 **`acknowledge_report` CLI not in `[project.scripts]`** — founder invokes via `uv run python <path>`. Three-line `pyproject.toml` addition would expose it as `auxd-acknowledge-report {report_id}`.
+- 🟡 **T153 export email is non-templated plain text** — one-off transactional shape doesn't fit the existing notification-type registry. Future template iteration could promote it through Jinja like the dispatcher-channel emails (would need a new NotificationType + template).
+- 🟡 **T156 author-resolution**: content reports against deleted rows are dropped because the row's `user_id` is unresolvable post-cascade. Tightening: retain `target_user_id` directly on Report at creation time so author resolution doesn't depend on the target row's existence.
+- 🟡 **T149→T153 closure verified**: data-settings.tsx 404-fallback removed; export button now succeeds with 202 + a future GdprAuditLog entry for the founder to inspect.
+- 🟡 **T111→T163a closure verified**: BlockReportMenu 404-fallback removed; report mutation succeeds with 201.
+
+

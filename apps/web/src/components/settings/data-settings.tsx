@@ -38,10 +38,14 @@ export function DataSettings() {
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
-  // T149 — export-stub: the backend endpoint (T153) doesn't exist yet, so
-  // a 404 here is treated as "queued — we'll email you when it's ready".
+  // T153 — backend export endpoint returns 202 (Accepted) with a job
+  // id; the user receives an email with download URLs when the worker
+  // completes (~60s for typical accounts).
   const exportMutation = useMutation({
-    mutationFn: async () => apiClient.post<{ export_id?: string }>("/api/v1/users/me/data-export"),
+    mutationFn: async () =>
+      apiClient.post<{ job_id: string | null; audit_log_id: string | null; eta_seconds: number }>(
+        "/api/v1/users/me/data-export"
+      ),
     onSuccess: () => {
       toast({
         title: "Export queued",
@@ -50,15 +54,6 @@ export function DataSettings() {
       capture("data.export_requested");
     },
     onError: (error) => {
-      if (error instanceof ApiError && error.status === 404) {
-        // Graceful stub — backend not yet wired (T153 TODO).
-        toast({
-          title: "Export queued",
-          description: "We&rsquo;ll email you when your archive is ready.",
-        });
-        capture("data.export_requested", { stub: true });
-        return;
-      }
       toast({
         title: "Could not request export",
         description: error instanceof ApiError ? error.statusText : "Try again later.",

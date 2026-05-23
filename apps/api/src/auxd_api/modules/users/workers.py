@@ -37,12 +37,17 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
+from auxd_api.lib.audit import record_gdpr_event
 from auxd_api.lib.observability import emit_event, log_call
 from auxd_api.modules.backlog.models import Backlog, BacklogItem
 from auxd_api.modules.diary.models import DiaryEntry
-from auxd_api.modules.notifications.models import Notification
+from auxd_api.modules.gdpr.models import GdprAuditAction
+from auxd_api.modules.moderation.models import Report
+from auxd_api.modules.notifications.models import FailedEmail, Notification
+from auxd_api.modules.notifications.push_models import PushSubscription
 from auxd_api.modules.reviews.models import Review, ReviewEditHistory, ReviewLike
 from auxd_api.modules.social.models import Block, Follow, FollowRequest
+from auxd_api.modules.social.suggestions_models import Suggestion, SuggestionDismissal
 from auxd_api.modules.users.models import HandleRedirect, User, UserStatus
 
 _LOGGER = logging.getLogger("auxd.worker.users")
@@ -119,6 +124,40 @@ async def _cascade_user_content(user_id: str) -> dict[str, int]:
     redirect_result = await HandleRedirect.find(HandleRedirect.user_id == user_id).delete()
     counts["handle_redirects"] = (redirect_result.deleted_count if redirect_result else 0) or 0
 
+    # 8. Push subscriptions registered for this user's devices (T136).
+    push_result = await PushSubscription.find(PushSubscription.user_id == user_id).delete()
+    counts["push_subscriptions"] = (push_result.deleted_count if push_result else 0) or 0
+
+    # 9. Failed-email audit rows (T135 retry exhaustion).
+    failed_email_result = await FailedEmail.find(FailedEmail.user_id == user_id).delete()
+    counts["failed_emails"] = (failed_email_result.deleted_count if failed_email_result else 0) or 0
+
+    # 10. Precomputed follow suggestions — both directions (this user is
+    #     either the viewer or the candidate; either way the row is
+    #     meaningless once the user is gone).
+    suggestion_result = await Suggestion.find(
+        {"$or": [{"user_id": user_id}, {"suggested_user_id": user_id}]}
+    ).delete()
+    counts["suggestions"] = (suggestion_result.deleted_count if suggestion_result else 0) or 0
+    dismissal_result = await SuggestionDismissal.find(
+        {"$or": [{"user_id": user_id}, {"suggested_user_id": user_id}]}
+    ).delete()
+    counts["suggestion_dismissals"] = (
+        dismissal_result.deleted_count if dismissal_result else 0
+    ) or 0
+
+    # 11. Reports — GDPR retention policy keeps the audit trail intact
+    #     but nulls out the deleted user's reporter_id (FR-019). Reports
+    #     where the user is the *target* are retained verbatim so the
+    #     moderation history survives — this is the deliberate carve-out
+    #     for "audit retention" called out in plan §15.
+    report_update = await Report.find(Report.reporter_id == user_id).update(
+        {"$set": {"reporter_id": None}}
+    )
+    counts["reports_anonymised"] = (
+        getattr(report_update, "modified_count", 0) if report_update else 0
+    )
+
     return counts
 
 
@@ -149,6 +188,18 @@ async def process_scheduled_deletions(ctx: dict[str, Any]) -> int:
         # Finally drop the User row.
         await user.delete()
         deleted += 1
+        # T154 — write the GDPR audit row AFTER the cascade so the
+        # notes reflect the actual outcome. The row is keyed on
+        # ``user_id`` from outside the deleted User document so it
+        # survives the row's removal.
+        total_rows = sum(counts.values())
+        notes = f"{len(counts)} collections, {total_rows} rows"
+        await record_gdpr_event(
+            user_id,
+            GdprAuditAction.DELETION_COMPLETED,
+            notes=notes,
+            completed=True,
+        )
         log_call(
             provider="auxd",
             endpoint="users.account_deleted",

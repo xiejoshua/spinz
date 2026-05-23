@@ -117,6 +117,12 @@ class Report(Document):
     resolution_note: str | None = None
     created_at: datetime = Field(default_factory=_utcnow)
     resolved_at: datetime | None = None
+    # T157 — when the founder acknowledges a report, ``acknowledged_at``
+    # is set and N-012 ``report.acknowledged`` is dispatched to the
+    # reporter. Distinct from ``resolved_at`` so the moderation lifecycle
+    # (open → acknowledged → resolved) is traceable without overloading
+    # the resolution timestamp.
+    acknowledged_at: datetime | None = None
 
     class Settings:
         name = "reports"

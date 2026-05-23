@@ -1369,77 +1369,77 @@
 
 ## §15 GDPR + Moderation
 
-- [ ] **T153 — Data export job**
-      Paths: apps/api/src/auxd_api/workers/gdpr_export.py, apps/api/tests/integration/test_gdpr_export.py
+- [x] **T153 — Data export job** *(completed 2026-05-24 Session 24; workers/gdpr_export.py + POST /api/v1/users/me/data-export endpoint in modules/users/routes.py (rate-limit per-user 1/day; returns 202 + job_id + audit_log_id + eta_seconds). Worker aggregates across 13 owned collections (User stripped of password_hash/admin_notes/session_version, DiaryEntry, Review, ReviewLike, ReviewEditHistory, Backlog, BacklogItem, Follow, FollowRequest, Block, Notification, PushSubscription, HandleRedirect) → builds both export.json (single object) and export.zip (per-collection CSVs via csv.writer + zipfile.ZipFile) → uploads to new R2_EXPORT_BUCKET (default auxd-exports) at exports/{user_id}/{job_id}/* with 24h presigned URLs → emails the user via Resend directly (not through dispatcher chain — one-off transactional shape doesn't fit a NotificationType). Audit log entries on both EXPORT_REQUESTED (endpoint) + EXPORT_COMPLETED (worker). Closes T149→T153 follow-up from S23 — frontend stub's 404 catch becomes a 202 happy path. 7 integration tests covering TC-030.)*
+      Paths: apps/api/src/auxd_api/workers/gdpr_export.py, apps/api/src/auxd_api/modules/users/routes.py (POST /users/me/data-export), apps/api/src/auxd_api/settings.py (R2_EXPORT_BUCKET), apps/api/src/auxd_api/workers/main.py (job registration), apps/api/tests/integration/test_gdpr_export.py
       Size: L
-      Deps: T023, T024, T025, T026, T135
-      Refs: US-G5; FR-018; TC-030
-      Description: arq job: gather all User-owned content → JSON + CSV → email via Resend with attachment-or-link → log to `gdpr_audit_log`.
-      Done: TC-030 passes.
+      Deps: T023, T024, T025, T026, T135, T154
+      Refs: US-G5; FR-018; TC-030; product-spec/data-model.md (collection inventory)
+      Description: arq job: gather all User-owned content → JSON + per-collection CSV ZIP → email via Resend with 24h presigned R2 URLs → audit log.
+      Done: TC-030 passes; sensitive fields stripped (password_hash, admin_notes, session_version excluded); empty-user happy path renders valid empty export.
 
-- [ ] **T154 — GDPR audit log collection**
-      Paths: apps/api/src/auxd_api/lib/audit.py
+- [x] **T154 — GDPR audit log collection** *(completed 2026-05-24 Session 24; new modules/gdpr/{__init__,models}.py with GdprAuditLog Beanie Document + GdprAuditAction enum (export_requested / export_completed / deletion_scheduled / deletion_completed / deletion_canceled). Indexed (user_id, requested_at desc). lib/audit.py exports `record_gdpr_event(user_id, action, notes=None, *, completed=False)` helper. Registered in ALL_DOCUMENT_MODELS (count 20 → 21). Called from T058 worker (DELETION_COMPLETED) + T153 endpoint (EXPORT_REQUESTED) + T153 worker (EXPORT_COMPLETED). 4 unit tests covering helper roundtrip + REQUESTED → COMPLETED pair pattern. 7-year MongoDB TTL deferred to operator config (index shape is ready).)*
+      Paths: apps/api/src/auxd_api/modules/gdpr/{__init__,models}.py, apps/api/src/auxd_api/lib/audit.py, apps/api/src/auxd_api/db.py (ALL_DOCUMENT_MODELS += GdprAuditLog), apps/api/tests/unit/test_gdpr_audit.py
       Size: S
       Deps: T012
-      Refs: NFR Compliance
-      Description: `gdpr_audit_log` collection storing each export/deletion event with `user_id`, `action`, `requested_at`, `completed_at`, `notes`. 7-year retention.
-      Done: log entries written on T153 + T058.
+      Refs: NFR Compliance; plan.md §3.1
+      Description: gdpr_audit_logs collection storing export/deletion events with user_id, action, requested_at, completed_at, notes. 7-year retention deferred to operator.
+      Done: log entries written on T153 + T058 paths; helper tested.
 
-- [ ] **T155 — Report submission endpoint**
-      Paths: apps/api/src/auxd_api/modules/moderation/routes.py
+- [x] **T155 — Report submission endpoint** *(completed 2026-05-24 Session 24 — unified with T163a as 3-endpoint variant per Run #10 sync-fix; see T163a entry below for full disposition. The single-endpoint /api/v1/reports variant declared here was superseded by the target-typed POST /reports/{user,review,diary-entry} routes that the T111 frontend BlockReportMenu expects.)*
+      Paths: apps/api/src/auxd_api/modules/reports/{routes,service}.py (unified with T163a)
       Size: M
       Deps: T026, T101
-      Refs: US-G4; FR-014
-      Description: `POST /api/v1/reports` with `target_type`, `target_id`, `reason`, `detail`. Rate-limited per-reporter.
-      Done: integration test.
+      Refs: US-G4; FR-014; T163a (canonical implementation)
+      Description: Report submission. Implementation per T163a: three target-typed endpoints with idempotency, FK validation, per-reporter 10/day rate-limit, self-report rejection.
+      Done: covered by T163a integration tests.
 
-- [ ] **T156 — Daily moderation log-scan**
-      Paths: apps/api/src/auxd_api/workers/moderation_scan.py
+- [x] **T156 — Daily moderation log-scan** *(completed 2026-05-24 Session 24; workers/moderation_scan.py + registered in workers/main.py cron at 03:00 UTC. Queries Report.find({created_at >= now-7d}) grouped by effective_target_user_id (user reports keep target_id; review/diary reports resolve to the row's user_id; reports against deleted rows silently dropped). Where count ≥ 3, flags User.flagged_for_review = True + records flagged_for_review_at. Notifies admin via Discord webhook (uses existing DISCORD_WEBHOOK_URL setting) with text payload listing handle + report count + reason breakdown. Idempotent — re-running same day skips already-flagged users (within trailing 7d). New fields on User model: flagged_for_review + flagged_for_review_at (both excluded from public serializers). 5 integration tests including author-resolution + idempotent re-run + monkeypatched webhook.)*
+      Paths: apps/api/src/auxd_api/workers/moderation_scan.py, apps/api/src/auxd_api/workers/main.py (cron registration), apps/api/src/auxd_api/modules/users/models.py (flagged_for_review fields), apps/api/src/auxd_api/settings.py (DISCORD_WEBHOOK_URL), apps/api/tests/integration/test_moderation_scan.py
       Size: M
-      Deps: T155
+      Deps: T155, T163a
       Refs: US-G4
-      Description: arq cron at 03:00 UTC. Finds users with ≥3 reports in trailing 7d. Flags + notifies admin via Discord webhook.
-      Done: integration test.
+      Description: arq cron 03:00 UTC. Finds users with ≥3 reports in trailing 7d (including reports against their content). Flags via User.flagged_for_review + Discord webhook alert. Idempotent.
+      Done: 5 integration tests cover thresholds + author resolution + idempotency + webhook firing.
 
-- [ ] **T157 — Report acknowledgment notification (N-012)**
-      Paths: apps/api/src/auxd_api/modules/notifications/types.py
+- [x] **T157 — Report acknowledgment notification (N-012)** *(completed 2026-05-24 Session 24; new `acknowledge_report(report_id, ack_note=None)` helper in modules/reports/service.py — loads the report, marks Report.acknowledged_at=utcnow() (new field), fires dispatch(report.reporter_id, N012_REPORT_ACKNOWLEDGED, payload={report_id, target_type, ack_note}). Idempotent: re-acknowledging is a no-op + no double-dispatch. No HTTP admin endpoint at MVP — founder invokes via CLI script at apps/api/scripts/acknowledge_report.py (uv run python apps/api/scripts/acknowledge_report.py {report_id} --note "..."). Operator-runbooks/moderation.md documents the flow. 3 integration tests including dispatch monkeypatch + idempotency.)*
+      Paths: apps/api/src/auxd_api/modules/reports/service.py (acknowledge_report helper), apps/api/src/auxd_api/modules/moderation/models.py (Report.acknowledged_at field), apps/api/scripts/acknowledge_report.py (CLI), apps/api/tests/integration/test_acknowledge_report.py
       Size: XS
-      Deps: T137, T155
-      Refs: notification-taxonomy.md N-012
-      Description: N-012 fires when a report is reviewed (admin action).
-      Done: covered by T137 type implementation.
+      Deps: T137, T155, T163a
+      Refs: product-spec/notification-taxonomy.md N-012
+      Description: N-012 fires when a report is acknowledged via internal helper (CLI-driven at MVP; admin UI deferred).
+      Done: helper + CLI + dispatch + idempotency verified.
 
-- [ ] **T158 — Admin notes / read-only flag visibility**
-      Paths: apps/api/src/auxd_api/modules/auth/models.py
+- [x] **T158 — Admin notes / read-only flag visibility** *(completed 2026-05-24 Session 24; added `admin_notes: str = ""` field to modules/users/models.py User Document. Verified excluded from `_serialize_user_card` + `_public_user_payload` + all sidecar serializers (parametrised unit test in tests/unit/test_admin_notes_not_serialised.py asserts the field never appears in any public response shape). No UI at MVP — founder reads via Mongo Compass / Atlas UI per operator-runbooks/moderation.md.)*
+      Paths: apps/api/src/auxd_api/modules/users/models.py (admin_notes field), apps/api/tests/unit/test_admin_notes_not_serialised.py
       Size: XS
       Deps: T021
       Refs: US-G4
-      Description: Add `admin_notes` field on User (admin-only). No UI at MVP; founder reads via Mongo Compass.
-      Done: field exists.
+      Description: User.admin_notes field. Internal-only — excluded from every public serializer.
+      Done: field exists + parametrised serializer leak-test green.
 
-- [ ] **T159 — Suspended account UX**
-      Paths: apps/api/src/auxd_api/middleware.py, apps/web/src/app/suspended/page.tsx
+- [x] **T159 — Suspended account UX** *(completed 2026-05-24 Session 24; backend SessionMiddleware extended in apps/api/src/auxd_api/middleware.py — when request.state.session is set and User.status == SUSPENDED, returns 403 with body {error: "account_suspended", appeal_url: "mailto:appeals@auxd.xiejoshua.com"} on ALL routes except the allow-list {POST /api/v1/auth/logout, POST /api/v1/auth/logout-all-devices, POST /api/v1/users/me/delete}. Frontend: /suspended page (standalone, no (app)/layout — locked-out user gets a clean explanation + Email Appeal mailto link). apps/web/src/lib/api-client.ts catches 403 with body.error === "account_suspended" → clears auth-store + redirects to /suspended. DELETION_PENDING status untouched (different path). No admin-action to suspend at MVP — founder runs `db.users.updateOne({_id: X}, {$set: {status: "suspended"}})` directly; documented in operator-runbooks/moderation.md. 5 backend integration tests + 1 frontend vitest for the 403 handler.)*
+      Paths: apps/api/src/auxd_api/middleware.py (SuspendedAccountMiddleware), apps/web/src/app/suspended/page.tsx, apps/web/src/lib/api-client.ts (403 account_suspended handler), apps/api/tests/integration/test_suspended_account.py, apps/web/tests/unit/api-client.test.ts
       Size: S
-      Deps: T155
+      Deps: T155, T163a
       Refs: US-G4
-      Description: When `User.status=suspended`, all authenticated routes redirect to a `/suspended` page explaining the situation + appeal link.
-      Done: E2E covers behavior.
+      Description: SUSPENDED users get 403 on every non-whitelisted route + frontend redirect to /suspended. Allow-list: logout, logout-all-devices, delete-account.
+      Done: 5 backend + 1 frontend test cover SUSPENDED 403s + whitelisted-route 200s + DELETION_PENDING unaffected.
 
-- [ ] **T160 — GDPR cascading delete tests**
-      Paths: apps/api/tests/integration/test_gdpr_cascade.py
+- [x] **T160 — GDPR cascading delete tests** *(completed 2026-05-24 Session 24; tests/integration/test_gdpr_cascade.py — comprehensive setup creates a User with rows in every owned collection (User + 14 owned: DiaryEntry, Review, ReviewLike, ReviewEditHistory, Backlog, BacklogItem×2, Follow as both directions, FollowRequest as both directions, Block as both directions, Notification recipient, PushSubscription, HandleRedirect, Suggestion as both viewer + suggested, SuggestionDismissal, FailedEmail). T058 worker EXTENDED in modules/users/workers.py to cover newer collections that shipped post-T058 (PushSubscription, FailedEmail, Suggestion, SuggestionDismissal) AND to anonymise (not delete) Report rows where this user was reporter_id (sets reporter_id → None; target rows retained for audit). After cascade: User row gone + all owned rows gone + Report rows preserved with reporter_id nulled + GdprAuditLog DELETION_COMPLETED entry written + bystander rows survive. TC-029 passes.)*
+      Paths: apps/api/tests/integration/test_gdpr_cascade.py, apps/api/src/auxd_api/modules/users/workers.py (cascade extended to 4 newer collections + Report anonymisation)
       Size: M
-      Deps: T058
+      Deps: T058, T154
       Refs: FR-019; TC-029
-      Description: Test that after 30d grace + cascade, no records remain for deleted user across all collections; Report records retain nulled reporter_id.
-      Done: TC-029 passes.
+      Description: After 30d grace + cascade, no records remain for deleted user across owned collections; Report records preserved with nulled reporter_id; bystander rows survive.
+      Done: TC-029 passes covering all 15 owned collections + bystander preservation.
 
-- [ ] **T161 — Privacy policy + ToS placeholders**
-      Paths: apps/web/src/app/legal/privacy/page.tsx, apps/web/src/app/legal/terms/page.tsx
+- [x] **T161 — Privacy policy + ToS placeholders** *(completed 2026-05-24 Session 24; apps/web/src/app/legal/{layout,privacy/page,terms/page}.tsx — standalone routes outside the (app) and (auth) chrome. Placeholder content with section headers (Data we collect / How we use it / Your rights / Contact for privacy; Acceptance / Use of service / Account termination / Liability for ToS) + a prominent `<aside>` banner: "🚧 This is a placeholder. Final policy lawyer-reviewed before public launch." Footer links from (auth)/layout (signup + login) pages added. PostHog page-view events on both routes.)*
+      Paths: apps/web/src/app/legal/{layout,privacy/page,terms/page}.tsx, apps/web/src/app/(auth)/layout.tsx (footer Privacy · Terms link)
       Size: S
       Deps: T031
       Refs: NFR Compliance
-      Description: Placeholder pages with founder-authored content (or lawyer-reviewed pre-launch).
-      Done: pages render; linked from footer + signup screen.
+      Description: Placeholder /legal/privacy + /legal/terms pages with lawyer-review banner. Linked from (auth)/layout footer.
+      Done: pages render; linked from signup + login footer; PostHog page-view events fire.
 
 ---
 
@@ -1477,13 +1477,13 @@
       Done: N/A.
 
 <!-- sync-fix L4-023 (Run #10): T163a added — POST /api/v1/reports/user (and target-typed report variants) referenced by T111 frontend BlockReportMenu (the modal currently 404s gracefully). Lives in §15 moderation territory because reports tie into the daily-scan-for-flagged-users flow. -->
-- [ ] **T163a — Submit-report endpoints (user / review / diary)**
-      Paths: apps/api/src/auxd_api/modules/reports/routes.py, apps/api/src/auxd_api/modules/reports/service.py, apps/api/tests/integration/test_reports_user.py
+- [x] **T163a — Submit-report endpoints (user / review / diary)** *(completed 2026-05-24 Session 24; new modules/reports/{routes,service,models}.py with 3 POST endpoints: /api/v1/reports/{user,review,diary-entry}. ReportReason enum {harassment, spam, impersonation, hate_speech, other}. Idempotency via same `(reporter_id, target_type, target_id)` within 24h returns existing (200 not 201). Per-reporter 10/day rate-limit. Auth required (401 anonymous). FK validation (422 if target_id doesn't exist). Cannot self-report (422). T111 BlockReportMenu (Session 17) 404 fallback removed — endpoint now real with 201 happy path. Daily moderation scan (T156) consumes the rows. 8 integration tests including idempotency + FK validation + self-report rejection + rate-limit boundary.)*
+      Paths: apps/api/src/auxd_api/modules/reports/{routes,service,models}.py, apps/api/src/auxd_api/routers/v1.py (reports router mount), apps/web/src/components/social/block-report-menu.tsx (404 fallback removed), apps/api/tests/integration/test_reports_endpoints.py
       Size: S
-      Deps: T026, T101
-      Refs: US-G4; T111 frontend BlockReportMenu (Session 17); plan §3.1 reports collection
-      Description: Add `POST /api/v1/reports/user` body `{user_id, reason: ReportReason, detail?: str}` → 201; `POST /api/v1/reports/review` body `{review_id, reason, detail?}` → 201; `POST /api/v1/reports/diary-entry` body `{entry_id, reason, detail?}` → 201. All write to the existing `reports` collection with `target_type` set per route. Idempotency: same `(reporter_id, target_type, target_id)` within 24h returns the existing report (don't create duplicates). ReportReason enum: harassment / spam / impersonation / hate_speech / other. The daily-scan-for-flagged-users flow (T026) already consumes the reports collection — wiring is downstream. **Frontend BlockReportMenu (T111) currently 404s on POST /reports/user and treats as deferred-success; this task fixes that contract.**
-      Done: integration tests cover all 3 target types + idempotency + 401-when-anonymous; frontend BlockReportMenu mutation succeeds with 201 instead of 404-fallback.
+      Deps: T026, T101, T155 (unified)
+      Refs: US-G4; T111 frontend BlockReportMenu (Session 17); plan.md §3.1 reports collection
+      Description: Three POST endpoints for user/review/diary-entry reports; idempotent within 24h; FK-validated; cannot self-report; 10/day per reporter.
+      Done: 8 integration tests cover all 3 target types + idempotency + 401 + 422 self-report + 422 missing target + rate-limit; frontend mutation succeeds with 201.
 
 - [ ] **T166 — Founder seed-content workflow tools**
       Paths: docs/founder-workflows/seed-content.md

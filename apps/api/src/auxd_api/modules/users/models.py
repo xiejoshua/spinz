@@ -149,6 +149,22 @@ class User(Document):
 
     # Lifecycle / moderation -------------------------------------------------
     status: UserStatus = UserStatus.ACTIVE
+    # T158 — admin_notes is an internal moderation field. Read via Mongo
+    # Compass; NEVER serialised onto a public response. Test
+    # ``tests/unit/test_admin_notes_not_serialised.py`` parametrises over
+    # every public serializer to enforce this.
+    admin_notes: str = Field(
+        default="",
+        description="Internal moderation notes. Never returned to clients; read via Mongo Compass.",
+    )
+    # T156 — daily moderation log-scan flags users with >=3 reports in the
+    # trailing 7d. The flag is informational only at MVP (founder receives
+    # a Discord webhook; no automatic action). ``flagged_for_review_at``
+    # is the idempotency anchor — the scan job skips users already
+    # flagged in the last 7 days so a re-run on the same day does not
+    # double-alert.
+    flagged_for_review: bool = False
+    flagged_for_review_at: datetime | None = None
 
     # Feature opt-ins --------------------------------------------------------
     # CR-001: removed ``auto_prompt_enabled`` + ``auto_prompt_push_enabled``

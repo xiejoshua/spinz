@@ -33,12 +33,13 @@ from auxd_api.db import (
 )
 
 
-def test_all_document_models_has_twenty_entries() -> None:
+def test_all_document_models_has_twenty_one_entries() -> None:
     """CR-001 left 16; T060 (handle redirect) bumped to 17;
     T104 adds Suggestion + SuggestionDismissal for nineteen total;
-    T136 adds PushSubscription for twenty.
+    T136 adds PushSubscription for twenty;
+    T154 adds GdprAuditLog for twenty-one.
     """
-    assert len(ALL_DOCUMENT_MODELS) == 20
+    assert len(ALL_DOCUMENT_MODELS) == 21
 
 
 def test_all_document_models_are_beanie_documents() -> None:
@@ -81,6 +82,8 @@ def test_canonical_list_matches_conftest_expectation() -> None:
         # T104 — precomputed suggestions + dismissals.
         "Suggestion",
         "SuggestionDismissal",
+        # T154 — GDPR audit log.
+        "GdprAuditLog",
     }
     actual_names = {model.__name__ for model in ALL_DOCUMENT_MODELS}
     assert actual_names == expected_names

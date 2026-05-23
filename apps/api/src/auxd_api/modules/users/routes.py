@@ -65,6 +65,7 @@ from fastapi import (
 from PIL import Image, ImageOps, UnidentifiedImageError
 from pydantic import BaseModel, EmailStr, Field
 
+from auxd_api.lib.audit import record_gdpr_event
 from auxd_api.lib.observability import emit_event, log_call
 from auxd_api.lib.rate_limit import RateLimit, rate_limit
 from auxd_api.lib.sessions import Session
@@ -83,6 +84,7 @@ from auxd_api.modules.auth.service import (
     ReservedHandleError,
     WeakPasswordError,
 )
+from auxd_api.modules.gdpr.models import GdprAuditAction
 from auxd_api.modules.notifications.dispatcher import dispatch as dispatch_notification
 from auxd_api.modules.notifications.models import NotificationType
 from auxd_api.modules.seeding.service import critic_seed_user_ids
@@ -286,6 +288,69 @@ async def delete_cancel_deletion(
         properties={},
     )
     return _serialize_deletion_state(state.status.value, state.scheduled_for)
+
+
+# ---------------------------------------------------------------------------
+# T153 — POST /users/me/data-export (GDPR self-service)
+# ---------------------------------------------------------------------------
+
+
+# Per-user 1/day. Export is expensive — there's no UX need for repeats
+# inside a single day.
+_DATA_EXPORT_RATE_LIMIT = rate_limit(
+    endpoint="users.data_export",
+    per_user=RateLimit(limit=1, window_seconds=24 * 60 * 60),
+)
+
+
+@router.post(
+    "/me/data-export",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(_DATA_EXPORT_RATE_LIMIT)],
+)
+async def post_request_data_export(
+    session: Annotated[Session, Depends(_require_session)],
+) -> dict[str, Any]:
+    """Queue a full data export and return 202 with the job + audit IDs.
+
+    The work itself is done by :func:`auxd_api.workers.gdpr_export.
+    generate_user_data_export` — the endpoint enqueues, writes the
+    ``EXPORT_REQUESTED`` audit row, and returns immediately. The user
+    receives an email with the signed download URLs when the worker
+    completes (~60s for typical accounts).
+    """
+    user = await _load_current_user(session)
+    audit_row = await record_gdpr_event(user.id, GdprAuditAction.EXPORT_REQUESTED, completed=False)
+
+    # Local import keeps the redis dep lazy — same pattern as elsewhere
+    # in the codebase. The enqueue helper raises a JobEnqueueUnavailable
+    # if Redis is unreachable; the main app's exception handler converts
+    # that into HTTP 503.
+    from auxd_api.redis_client import enqueue_job
+
+    job = await enqueue_job("generate_user_data_export", user.id)
+
+    log_call(
+        provider="auxd",
+        endpoint="users.data_export_requested",
+        latency_ms=0.0,
+        status="ok",
+        extra={
+            "user_id": user.id,
+            "job_id": job.job_id if job is not None else None,
+            "audit_log_id": audit_row.id if audit_row is not None else None,
+        },
+    )
+    emit_event(
+        user_id=user.id,
+        event="data.export_requested",
+        properties={"audit_log_id": audit_row.id if audit_row is not None else None},
+    )
+    return {
+        "job_id": job.job_id if job is not None else None,
+        "audit_log_id": audit_row.id if audit_row is not None else None,
+        "eta_seconds": 60,
+    }
 
 
 def _optional_session(request: Request) -> Session | None:

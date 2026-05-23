@@ -52,6 +52,7 @@ from auxd_api.lib.sessions import (
     decode_session,
     refresh_session_token,
 )
+from auxd_api.modules.users.models import User, UserStatus
 from auxd_api.settings import Environment, get_settings
 
 _LOGGER = logging.getLogger("auxd.middleware.sessions")
@@ -60,6 +61,52 @@ _LOGGER = logging.getLogger("auxd.middleware.sessions")
 # (read-only) and exercising CSRF on them produces false positives for
 # any tool that prefetches links.
 _SAFE_METHODS: Final[frozenset[str]] = frozenset({"GET", "HEAD", "OPTIONS"})
+
+
+# T159 — when ``User.status == SUSPENDED``, every request returns 403
+# *except* a small allow-list so the user can still discover the
+# suspension, log out, or delete their account. The frontend reads the
+# 403 ``error: "account_suspended"`` payload and routes the user to
+# ``/suspended`` (which is a public Next.js route, not a backend
+# concern).
+#
+# Suspension applies only to ACTIVE-state operations; DELETION_PENDING
+# (a separate UserStatus value) does NOT trigger the suspension path,
+# so a user who scheduled deletion before being suspended can still
+# cancel the deletion if they want.
+_SUSPENDED_ALLOWED_PATHS: Final[frozenset[str]] = frozenset(
+    {
+        # POST /api/v1/users/me/delete + DELETE same → schedule / cancel
+        # account deletion. Suspended users retain their data rights.
+        "/api/v1/users/me/delete",
+        # POST /api/v1/auth/logout + logout-all — explicitly available
+        # so the user can clear the cookie and walk away.
+        "/api/v1/auth/logout",
+        "/api/v1/auth/logout-all-devices",
+    }
+)
+
+
+def _path_allowed_when_suspended(path: str) -> bool:
+    """Return ``True`` if a suspended user is allowed to hit ``path``."""
+    return path in _SUSPENDED_ALLOWED_PATHS
+
+
+def _account_suspended_response() -> JSONResponse:
+    """Standard 403 body for suspended-account hits.
+
+    The shape (``error == "account_suspended"`` + ``appeal_url``) is the
+    contract the frontend ``api-client.ts`` 403 handler reads to decide
+    whether to redirect to ``/suspended``.
+    """
+    return JSONResponse(
+        status_code=403,
+        content={
+            "error": "account_suspended",
+            "message": "your account has been suspended pending review",
+            "appeal_url": "mailto:appeals@auxd.xiejoshua.com",
+        },
+    )
 
 
 def _hmac_key_bytes() -> bytes:
@@ -186,6 +233,24 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
         # Expose the (possibly None) session to handlers.
         request.state.session = session
+
+        # T159 — suspended account check. Runs BEFORE CSRF so a
+        # suspended user gets a clean 403 ``account_suspended`` even on
+        # state-changing requests without a CSRF header. The allow-list
+        # preserves the user's ability to discover the status, log out,
+        # and delete their data.
+        if session is not None and not _path_allowed_when_suspended(request.url.path):
+            user = await User.find_one(User.id == session.user_id)
+            if user is not None and user.status is UserStatus.SUSPENDED:
+                _LOGGER.info(
+                    "session.account_suspended",
+                    extra={
+                        "event": "session.account_suspended",
+                        "user_id": session.user_id,
+                        "path": request.url.path,
+                    },
+                )
+                return _account_suspended_response()
 
         # CSRF check — only enforced for state-changing methods AND only
         # when an authenticated session is present. Anonymous POSTs

@@ -79,23 +79,13 @@ export function BlockReportMenu({ handle, userId, visible }: Props) {
 
   const reportMutation = useMutation({
     mutationFn: async () => {
-      // TODO: wire to the user-report endpoint when the moderation module lands
-      // (§15 — T140-T142 territory). For now, fire-and-forget to a stub URL;
-      // the catch below handles 404 gracefully so the UX is honest about the
-      // not-yet-built backend surface.
-      try {
-        await apiClient.post("/api/v1/reports/user", {
-          user_id: userId,
-          reason: reportReason,
-          detail: reportDetail.trim() || undefined,
-        });
-      } catch (error) {
-        if (error instanceof ApiError && error.status === 404) {
-          // Backend endpoint not yet built; treat as deferred-success.
-          return;
-        }
-        throw error;
-      }
+      // T155 — backend now persists user reports through to a real
+      // Report row. The 404 fallback is no longer needed.
+      await apiClient.post("/api/v1/reports/user", {
+        user_id: userId,
+        reason: reportReason,
+        detail: reportDetail.trim() || undefined,
+      });
     },
     onSuccess: () => {
       capture("moderation.report_user", { reported_handle: handle, reason: reportReason });

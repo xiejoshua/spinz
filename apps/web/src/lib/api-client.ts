@@ -13,6 +13,30 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * T159 — when the backend returns a 403 with
+ * ``{error: "account_suspended"}`` the user has been suspended by
+ * moderators. Redirect the browser to the standalone /suspended page
+ * (which lives outside the (app) layout so it works while the cookie
+ * still exists).
+ *
+ * Exported for testing — production code never calls this directly.
+ */
+export function isAccountSuspendedDetail(detail: unknown): boolean {
+  if (!detail || typeof detail !== "object") return false;
+  const obj = detail as Record<string, unknown>;
+  return obj.error === "account_suspended";
+}
+
+function maybeRedirectOnSuspension(detail: unknown): void {
+  if (typeof window === "undefined") return;
+  if (!isAccountSuspendedDetail(detail)) return;
+  // Only redirect when we're not already on /suspended — avoid a loop
+  // if the suspended page itself happens to fire an API call.
+  if (window.location.pathname.startsWith("/suspended")) return;
+  window.location.assign("/suspended");
+}
+
 type FetchOptions = Omit<RequestInit, "body"> & {
   body?: unknown;
   searchParams?: Record<string, string | number | boolean | undefined>;
@@ -51,6 +75,9 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
       detail = await response.json();
     } catch {
       // response body wasn't JSON
+    }
+    if (response.status === 403) {
+      maybeRedirectOnSuspension(detail);
     }
     throw new ApiError(response.status, response.statusText, detail);
   }

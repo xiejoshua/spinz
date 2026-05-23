@@ -458,6 +458,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/diary-entry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Diary Entry
+         * @description Persist a report against a diary entry (T163a).
+         */
+        post: operations["report_diary_entry_api_v1_reports_diary_entry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/missing-album": {
         parameters: {
             query?: never;
@@ -470,13 +490,48 @@ export interface paths {
         /**
          * Report Missing Album
          * @description Persist a missing-album report and return a friendly confirmation.
-         *
-         *     The endpoint accepts anonymous calls; ``reporter_id`` is set to the
-         *     session user id when an authenticated session is present, otherwise
-         *     ``None``. Returns ``201`` with the new ``report_id`` and a copy-
-         *     deck-controlled thank-you string.
          */
         post: operations["report_missing_album_api_v1_reports_missing_album_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Review
+         * @description Persist a report against a review (T155).
+         */
+        post: operations["report_review_api_v1_reports_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reports/user": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report User
+         * @description Persist a report against another user account (T155).
+         */
+        post: operations["report_user_api_v1_reports_user_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -808,6 +863,32 @@ export interface paths {
         get: operations["get_my_blocks_api_v1_users_me_blocks_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/data-export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Request Data Export
+         * @description Queue a full data export and return 202 with the job + audit IDs.
+         *
+         *     The work itself is done by :func:`auxd_api.workers.gdpr_export.
+         *     generate_user_data_export` — the endpoint enqueues, writes the
+         *     ``EXPORT_REQUESTED`` audit row, and returns immediately. The user
+         *     receives an email with the signed download URLs when the worker
+         *     completes (~60s for typical accounts).
+         */
+        post: operations["post_request_data_export_api_v1_users_me_data_export_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1403,6 +1484,17 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
+        /**
+         * ReportReason
+         * @description High-level reason category.
+         *
+         *     ``CATALOG_GAP`` is only valid when paired with
+         *     ``ReportTargetType.MISSING_ALBUM``; the service layer enforces that
+         *     pairing — the schema deliberately keeps the enums independent so a
+         *     single rejected combination doesn't require a schema migration.
+         * @enum {string}
+         */
+        ReportReason: "harassment" | "spam" | "nsfw" | "impersonation" | "hate_speech" | "catalog_gap" | "other";
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1452,6 +1544,17 @@ export interface components {
             diary_entry_id: string;
             /** Visibility */
             visibility?: string | null;
+        };
+        /**
+         * _DiaryEntryReportRequest
+         * @description Wire shape for ``POST /reports/diary-entry``.
+         */
+        _DiaryEntryReportRequest: {
+            /** Detail */
+            detail?: string | null;
+            /** Entry Id */
+            entry_id: string;
+            reason: components["schemas"]["ReportReason"];
         };
         /**
          * _EditEntryRequest
@@ -1779,6 +1882,17 @@ export interface components {
             item_ids: string[];
         };
         /**
+         * _ReviewReportRequest
+         * @description Wire shape for ``POST /reports/review``.
+         */
+        _ReviewReportRequest: {
+            /** Detail */
+            detail?: string | null;
+            reason: components["schemas"]["ReportReason"];
+            /** Review Id */
+            review_id: string;
+        };
+        /**
          * _SignupRequest
          * @description Wire shape for ``POST /auth/signup``.
          */
@@ -1799,6 +1913,17 @@ export interface components {
         _UnreadCountResponse: {
             /** Count */
             count: number;
+        };
+        /**
+         * _UserReportRequest
+         * @description Wire shape for ``POST /reports/user``.
+         */
+        _UserReportRequest: {
+            /** Detail */
+            detail?: string | null;
+            reason: components["schemas"]["ReportReason"];
+            /** User Id */
+            user_id: string;
         };
         /**
          * Visibility
@@ -1822,10 +1947,12 @@ export interface components {
 export type BlockReason = components['schemas']['BlockReason'];
 export type BodyPostAvatarApiV1UsersMeAvatarPost = components['schemas']['Body_post_avatar_api_v1_users_me_avatar_post'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
+export type ReportReason = components['schemas']['ReportReason'];
 export type ValidationError = components['schemas']['ValidationError'];
 export type AddItemRequest = components['schemas']['_AddItemRequest'];
 export type BlockRequest = components['schemas']['_BlockRequest'];
 export type CreateReviewRequest = components['schemas']['_CreateReviewRequest'];
+export type DiaryEntryReportRequest = components['schemas']['_DiaryEntryReportRequest'];
 export type EditEntryRequest = components['schemas']['_EditEntryRequest'];
 export type EditReviewRequest = components['schemas']['_EditReviewRequest'];
 export type EmailChangeRequest = components['schemas']['_EmailChangeRequest'];
@@ -1847,8 +1974,10 @@ export type PushSubscriptionRequest = components['schemas']['_PushSubscriptionRe
 export type PushSubscriptionResponse = components['schemas']['_PushSubscriptionResponse'];
 export type QuietHoursIo = components['schemas']['_QuietHoursIO'];
 export type ReorderRequest = components['schemas']['_ReorderRequest'];
+export type ReviewReportRequest = components['schemas']['_ReviewReportRequest'];
 export type SignupRequest = components['schemas']['_SignupRequest'];
 export type UnreadCountResponse = components['schemas']['_UnreadCountResponse'];
+export type UserReportRequest = components['schemas']['_UserReportRequest'];
 export type AuxdApiLibVisibilityVisibility = components['schemas']['auxd_api__lib__visibility__Visibility'];
 export type AuxdApiModulesDiaryModelsVisibility = components['schemas']['auxd_api__modules__diary__models__Visibility'];
 export type $defs = Record<string, never>;
@@ -2360,6 +2489,39 @@ export interface operations {
             };
         };
     };
+    report_diary_entry_api_v1_reports_diary_entry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_DiaryEntryReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     report_missing_album_api_v1_reports_missing_album_post: {
         parameters: {
             query?: never;
@@ -2382,6 +2544,72 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_review_api_v1_reports_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_ReviewReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    report_user_api_v1_reports_user_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_UserReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -2877,6 +3105,28 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    post_request_data_export_api_v1_users_me_data_export_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
