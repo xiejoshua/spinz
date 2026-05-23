@@ -43,12 +43,10 @@ export function LoginForm() {
           });
           return;
         }
-        // Pass full ApiError (has `.detail`) — see signup-form.tsx for the
-        // pre-fix bug where passing `error.detail` made the helper no-op.
-        setApiFormErrors(form, error);
-        const fieldErrors = form.formState.errors;
-        const hasFieldError = fieldErrors.email || fieldErrors.password || fieldErrors.root;
-        if (!hasFieldError) {
+        // Helper returns true when it set at least one error. Don't read
+        // form.formState.errors after setError() — it's async; stale read.
+        const handled = setApiFormErrors(form, error);
+        if (!handled) {
           form.setError("root", { message: `Login failed (${error.status}).` });
         }
         return;

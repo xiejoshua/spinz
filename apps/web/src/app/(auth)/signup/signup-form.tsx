@@ -34,15 +34,11 @@ export function SignupForm() {
       router.push("/onboarding/step-1");
     } catch (error) {
       if (error instanceof ApiError) {
-        // Pass the full ApiError (has `.detail`) — setApiFormErrors expects
-        // {detail: ...} shape; previously we passed error.detail directly
-        // which made the helper see `.detail` as undefined and silently
-        // no-op, falling through to a useless "Signup failed (422)" banner.
-        setApiFormErrors(form, error);
-        const fieldErrors = form.formState.errors;
-        const hasFieldError =
-          fieldErrors.email || fieldErrors.handle || fieldErrors.password || fieldErrors.root;
-        if (!hasFieldError) {
+        // Helper returns true when it set at least one error (field or root).
+        // Don't read form.formState.errors here — setError() is async, so the
+        // check would race against the state update and see stale `undefined`.
+        const handled = setApiFormErrors(form, error);
+        if (!handled) {
           form.setError("root", { message: `Signup failed (${error.status}).` });
         }
         return;
