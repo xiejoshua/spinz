@@ -22,6 +22,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from auxd_api import __version__
@@ -78,6 +79,18 @@ app = FastAPI(
     version=__version__,
     description="auxd backend — social album-tracking platform.",
     lifespan=lifespan,
+)
+# CORS middleware MUST register before SessionMiddleware so its preflight
+# handler intercepts OPTIONS requests before they reach the session
+# validator (which would reject them as unauthenticated). Production
+# frontend is `xiejoshua.com` (Vercel), backend is `api.xiejoshua.com`
+# (Fly) — different origins, so credentialed CORS is required.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=get_settings().ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Accept", "X-Requested-With"],
 )
 # Session middleware must wrap every route, including future /api/v1/auth
 # endpoints, so register it before the router include.

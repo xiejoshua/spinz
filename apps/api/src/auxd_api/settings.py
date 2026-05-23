@@ -130,6 +130,17 @@ class Settings(BaseSettings):
         ),
     )
 
+    # --- CORS ------------------------------------------------------------
+    ALLOWED_ORIGINS: list[str] = Field(
+        default_factory=lambda: ["http://localhost:3000"],
+        description=(
+            "Origins permitted to call the API with credentials. "
+            "Production: https://xiejoshua.com (the Vercel-deployed frontend). "
+            "Local dev: http://localhost:3000 (Next.js dev server). "
+            "Accepts comma-separated string via env var (pydantic auto-splits)."
+        ),
+    )
+
     # --- Observability (optional) ----------------------------------------
     SENTRY_DSN: str | None = Field(
         default=None,
