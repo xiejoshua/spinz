@@ -347,6 +347,54 @@ Plus `pyproject.toml` got `respx>=0.21` added to dev deps (resolved → 0.23.1) 
 
 ### Operator follow-up
 
-- 🟡 Strip `SPOTIFY_*` lines from local `apps/api/.env` (the agent's `_clean_env` fixture covers tests but local `uv run uvicorn` will fail until cleaned).
-- 🟡 Apply for Discogs Personal Access Token at https://www.discogs.com/settings/developers when ready — without it, Discogs runs in disabled-mode (degraded but functional).
+- ✅ Strip `SPOTIFY_*` lines from local `apps/api/.env` — done at the top of the next session (Run #4 sync-fix commit `aa98618`); local `uv run uvicorn` boots cleanly.
+- ✅ Apply for Discogs Personal Access Token — done; token set in local `.env` and rolled to Fly via `fly secrets set DISCOGS_API_TOKEN=...`. All 4 machines (2 web + 2 worker) updated; healthcheck verified at 2026-05-23T01:25Z.
+
+## Session 8 — 2026-05-23 early morning — §6 Albums + Search backend wave (T063–T069)
+
+**Scope:** the post-§4 catalog-read backbone. 7 tasks, all backend services + endpoints + arq workers + Atlas Search index. Frontend portion (T070/T071/T072) deferred to a later wave once §3 Next.js scaffold lands.
+
+### Tasks completed
+
+| Task | Files | Notes |
+|------|-------|-------|
+| T063 | `modules/albums/identity.py` (142L), `modules/albums/errors.py` (29L), `modules/albums/models.py` (+1 field), `tests/unit/test_albums_identity.py` (225L; 8 tests) | `resolve_identity(*, mbid?, discogs_release_id?, mb_provider, discogs_provider)` → Album. MBID-first lookup with 7d TTL cache. Discogs fallback creates Album with `candidate=True` (picked up by T065 reconciliation later). New `Album.candidate: bool` field + `AlbumNotFoundError` exception. |
+| T064 | `modules/albums/workers.py` (243L; shared with T065), `workers/main.py` (rewrite to add `_on_startup`/`_on_shutdown` lifecycle hooks + cron registration), `tests/unit/test_albums_workers.py` (343L; 11 tests covering both T064 + T065) | `refresh_stale_album_metadata` arq cron daily 04:00 UTC. Cap 100 per run. **MB provider injected into ctx via WorkerSettings._on_startup** so the 1 req/sec etiquette is honored across all cron invocations rather than spinning up a fresh client each time. |
+| T065 | (shares files with T064) | `reconcile_candidate_albums` arq cron weekly Sun 03:00 UTC. Fuzzy artist+title match against MB search → merges MBID into the candidate. |
+| T066 | `modules/albums/editions.py` (138L), `tests/unit/test_albums_editions.py` (270L; 11 tests) | `get_editions` / `get_canonical_edition` / `aggregate_ratings`. **Known MVP limitation: `Album.mbid` unique-sparse index collapses editions to 1 row per release-group; future migration drops the unique constraint + adds `release_group_mbid` field.** Flagged as follow-up CR candidate. |
+| T067 | `modules/albums/routes.py` (372L), `routers/v1.py` (mounts albums_router), `tests/integration/test_album_detail_endpoint.py` (325L; 6 tests) | `GET /api/v1/albums/{album_id}` returns `{album, editions, aggregate, my_history, friends, public_reviews}`. Visibility filtering via `lib/visibility.can_read`: anonymous = public reviews only; owner = own private history; followers = followed-user content per Review.visibility. Review.visibility coerced via Visibility(value) with try/except fallback to PUBLIC for forward-compat. |
+| T068 | `migrations/atlas_search/albums_index.json` (extended), `migrations/README.md` (new, 61L), `tests/unit/test_albums_atlas_index.py` (81L; 5 tests) | Extended the T022 index JSON: lucene.standard analyzer + dual string/autocomplete field shapes on title + artist_credit (edgeNgram 2-8 chars + diacritic folding) + rating_count + `scoreDetails.popularity` using log1p(rating_count). Manual UI apply + atlas-cli automated apply both documented in the new README. |
+| T069 | `modules/search/__init__.py` (1L), `modules/search/routes.py` (113L), `modules/search/service.py` (259L), `routers/v1.py` (mounts search_router), `tests/integration/test_search_endpoint.py` (287L; 7 tests) | `GET /api/v1/search?q=...&type=album&limit=N` three-tier search. (1) Atlas $search aggregation first — degrades to [] under mongomock so the fallback path carries tests. (2) If <5 hits → MB.search_albums + `resolve_identity` materialize. (3) If still <5 → Discogs.search_albums + materialize as candidates. Dedupe by mbid OR case-folded (title, artist). Empty result returns `{report_missing_album_url: '/api/v1/reports/missing-album'}` hint pointing at future T053a. |
+
+### Architectural decisions worth flagging
+
+- **Album.mbid is treated as release-group MBID at MVP** — individual editions are NOT separate Album docs because of the unique-sparse index. Editions surfaced inline via the existing `Album.editions` subdoc; `get_editions()` queries them from that list. Future migration plan documented in `modules/albums/editions.py` module docstring.
+- **MB provider sharing across cron invocations** (T064 + T065): worker `_on_startup` constructs one `MusicBrainzCatalogProvider`, stashes it on `ctx["mb_provider"]`, and `_on_shutdown` calls `provider.aclose()`. This avoids both the construction cost AND the cross-invocation rate-limit-state-loss problem (since the 1/sec policy is enforced via an in-instance asyncio.Lock, sharing the instance preserves spacing across consecutive cron firings).
+- **Atlas Search graceful degradation** (T069): mongomock doesn't support the `$search` aggregation stage; `_atlas_search` catches the unsupported-operation error and returns `[]`, letting the MB+Discogs fallback path carry every test. Tradeoff: local dev search experience runs in provider-only mode. Operator-facing: consider a `MOCK_ATLAS_SEARCH=1` env var if local Atlas-like ergonomics become important.
+- **`Album.candidate` field** is the only new model field added this wave (cache_expires_at already existed). T021 amendment is one line; downstream impact captured in T063 identity service.
+
+### Checkpoint #12 — Post-wave mini-verify
+
+| Check | Status | Notes |
+|-------|:------:|-------|
+| Backend full suite | ✅ | **400/400 pass + 3 skip** in 11.53s (was 352/3 → +48 new tests) |
+| Backend ruff + format | ✅ | 94 source files; clean |
+| Backend mypy --strict | ✅ | 0 errors across 93 source files |
+| Visibility-filter integration | ✅ | 6 integration tests confirm anonymous/owner/follower paths work end-to-end |
+| respx mocking | ✅ | 7 search-endpoint tests + 6 album-detail tests use the §4 wave's respx infra |
+
+### Status snapshot
+
+- Tasks completed: **42 / 170** (Session 7: 35 → Session 8: +7).
+- §6 Albums + Search **backend** cluster COMPLETE. Frontend portion (T070/T071/T072) waits for §3 Next.js scaffold.
+- Logged Mid-wave observations as future-CR candidates:
+  - Album.mbid unique-sparse limitation → release-group field flip
+  - T069 p95 latency may exceed 200ms in MB-fallback path (acceptable for v0; rethink in v1.x if signal lands)
+  - Atlas Search mock-shim for local dev (optional ergonomic improvement)
+
+### Operator follow-up
+
+- ✅ Strip stale `SPOTIFY_*` from `apps/api/.env` (done in sync-fix Run #4).
+- ✅ Discogs Personal Access Token (done; live on Fly as of 2026-05-23T01:25Z).
+- 🟡 Apply the updated Atlas Search index JSON to the dev cluster via UI or `atlas-cli` (see `apps/api/migrations/README.md`). The `_atlas_search` fail-soft path means search will still work without this, just without Atlas-tier results.
 

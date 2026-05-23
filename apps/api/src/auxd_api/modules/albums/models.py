@@ -196,6 +196,13 @@ class Album(Document):
     cache_expires_at: datetime
     """Lazy-refresh marker (7-day window per plan); records past TTL are re-fetched on read."""
 
+    # T063: ``candidate`` marks Discogs-sourced rows that still need MBID
+    # reconciliation by the T065 worker. A ``True`` value means the record
+    # was materialised via the Discogs fallback path (no MBID yet) and
+    # should be retried against MusicBrainz on a weekly schedule.
+    candidate: bool = False
+    """``True`` when this album was seeded via Discogs and still awaits MBID reconciliation."""
+
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 

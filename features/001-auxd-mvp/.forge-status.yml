@@ -1,7 +1,7 @@
 schema_version: 3
 feature: "001-auxd-mvp"
 created_at: "2026-05-21"
-last_updated: "2026-05-23T00:50:00Z"
+last_updated: "2026-05-23T02:00:00Z"
 
 feature_mode: "standard"
 backfilled: false
@@ -113,13 +113,13 @@ phases:
     log_path: "implementation-log.md"
     progressive_warnings: 0
     progressive_critical: 0
-    tasks_completed: 35
+    tasks_completed: 42
     tasks_total: 170
     tasks_total_pre_cr001: 183
     autonomous_section_zero_complete: true
-    session_count: 7
-    progressive_checkpoints_run: 11
-    notes: "Session 7 (2026-05-23 early morning) — §4 Providers wave. 8 tasks completed: T041 CatalogProvider + MusicProvider Protocols + CatalogAlbum/ListeningEvent canonical types; T052 ProviderError taxonomy (Unavailable/RateLimited/AuthRevoked/NotFound); T050 ResilienceTransport (httpx.AsyncBaseTransport wrapping circuit_breaker + retry + timeout); T051 per-request log_call observability baked into the transport; T048+T049 MusicBrainz pair (TEST-FIRST P4 audit trail verified — tests confirmed FAILING with ImportError before impl written, then all 9 PASS); T049a+T049b Discogs pair (same P4 audit trail; graceful-disabled mode when DISCOGS_API_TOKEN unset). Added `respx>=0.21` as dev dep (resolved 0.23.1) for httpx route mocking. 11 new files, 1873 lines; 306→352 tests (+46) + 3 skip; ruff + format + mypy --strict clean across 79 files. §4 cluster COMPLETE — §6 Albums + Search unblocks. 35/170 tasks done. Session 6 (CR-001 pivot) prior — see CR-001 entry in change_requests for the full audit trail."
+    session_count: 8
+    progressive_checkpoints_run: 12
+    notes: "Session 8 (2026-05-23 early morning) — §6 Albums + Search backend wave. 7 tasks completed: T063 Album identity normalization service (resolve_identity with 7d TTL cache + Discogs-fallback creates candidate=True) — added Album.candidate field + AlbumNotFoundError; T064 album cache TTL refresh worker (arq cron daily 04:00 UTC, shared MB provider injected via WorkerSettings _on_startup); T065 MBID reconciliation worker (arq cron weekly Sun 03:00 UTC, fuzzy artist+title match); T066 edition aggregation (get_editions + canonical-edition picker + ratings/reviews/likes aggregation across editions — known MVP limitation: Album.mbid unique-sparse collapses editions to 1 row per release-group, follow-up CR documented); T067 album detail endpoint GET /api/v1/albums/{album_id} with full visibility filtering (anonymous=public-only, owner=own-private, follower=followed-content); T068 Atlas Search index JSON extended (lucene.standard + edgeNgram + log1p popularity boost on rating_count) + migrations README; T069 three-tier search endpoint (Atlas → MB-fallback-with-materialize → Discogs-fallback, dedupe by mbid/case-folded-title+artist, empty-result returns report-missing-album-url hint). 15 new files (~2300 lines code + tests), 4 modified files (Album model + workers/main.py + routers/v1.py + atlas_search/albums_index.json). 352→400 tests (+48) + 3 skip; ruff + format + mypy --strict clean across 93 source files. §6 backend cluster COMPLETE — frontend portion (T070/T071/T072) waits for §3 Next.js scaffold. 42/170 tasks done. Operator follow-up: apply updated Atlas Search index to the dev cluster via UI or atlas-cli (migrations/README.md). Prior sessions: 1 (T001/T003/T004/T008), 2 (T014/T015/T015a/T017/T018/T029), 3 (infra swaps), 4 (T009/T010/T010a/T012/T016/T021-T027), 5 (T011/T013/T019/T020/T028), 6 (CR-001), 7 (T041/T048-T052/T049a/b)."
   code_review:
     status: "pending"
   verify:
@@ -507,6 +507,78 @@ task_log:
     started_at: "2026-05-23T00:35:00Z"
     completed_at: "2026-05-23T00:45:00Z"
     notes: "DiscogsCatalogProvider impl + `respx>=0.21` added to dev deps (resolved 0.23.1). Reads DISCOGS_API_TOKEN lazily via get_settings(); no token = construction succeeds, all queries return empty/None (graceful-disabled). Authorization: Discogs token={token} scheme. UA same as MB. Maps Discogs JSON to CatalogAlbum (discogs_release_id from `id`, artists[0].name, year, images[0].uri). ResilienceTransport with cb=`discogs`. All 7 T049a contract tests PASS."
+  - task_id: "T063"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/albums/identity.py"
+      - "backend:apps/api/src/auxd_api/modules/albums/errors.py"
+      - "backend:apps/api/src/auxd_api/modules/albums/models.py"
+      - "backend:apps/api/tests/unit/test_albums_identity.py"
+    commit_sha: null
+    started_at: "2026-05-23T01:30:00Z"
+    completed_at: "2026-05-23T01:45:00Z"
+    notes: "resolve_identity(*, mbid?, discogs_release_id?, mb_provider, discogs_provider) → Album. MBID path: cache-hit returns; cache-miss lazy-fetches via MB and materializes with cache_expires_at = now + 7d. Discogs path: cache-hit returns; cache-miss lazy-fetches via Discogs and materializes with candidate=True (picked up later by T065 reconciliation worker). New Album.candidate: bool field. New AlbumNotFoundError. 8 unit tests."
+  - task_id: "T064"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/albums/workers.py"
+      - "backend:apps/api/src/auxd_api/workers/main.py"
+      - "backend:apps/api/tests/unit/test_albums_workers.py"
+    commit_sha: null
+    started_at: "2026-05-23T01:45:00Z"
+    completed_at: "2026-05-23T01:50:00Z"
+    notes: "refresh_stale_album_metadata arq job. Cron: daily 04:00 UTC via arq's `cron(...)` helper. Query: Album.find({cache_expires_at < now, mbid is not None}).limit(100). For each: re-fetch via MB provider, merge fields, set cache_expires_at = now + 7d. Provider injected via WorkerSettings._on_startup hook so MB's 1 req/sec etiquette is honored across cron runs (single httpx client reused). 6 unit tests. Code at modules/albums/workers.py (not workers/album_cache_refresh.py per original Paths) — keeps album code colocated."
+  - task_id: "T065"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/albums/workers.py"
+      - "backend:apps/api/src/auxd_api/workers/main.py"
+      - "backend:apps/api/tests/unit/test_albums_workers.py"
+    commit_sha: null
+    started_at: "2026-05-23T01:50:00Z"
+    completed_at: "2026-05-23T01:55:00Z"
+    notes: "reconcile_candidate_albums arq job. Cron: weekly Sun 03:00 UTC. Query: Album.find({candidate: true}).limit(100). For each: MB search by artist+title, fuzzy-score-best-match → merge MBID into the candidate, set candidate=False, source_provider=musicbrainz, refresh cover_art_url. 5 unit tests covering match/no-match/multi-match/no-candidates/provider-error-skip. Same _on_startup MB-provider sharing as T064."
+  - task_id: "T066"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/albums/editions.py"
+      - "backend:apps/api/tests/unit/test_albums_editions.py"
+    commit_sha: null
+    started_at: "2026-05-23T01:55:00Z"
+    completed_at: "2026-05-23T02:00:00Z"
+    notes: "get_editions(release_group_mbid) + get_canonical_edition (prefer earliest release_year + longest tracklist as tiebreak) + aggregate_ratings (sum DiaryEntry + Review across editions, exclude soft-deleted). 11 unit tests. **Known MVP limitation: Album.mbid unique-sparse index collapses editions to 1 row per release-group; future migration drops the unique constraint + adds explicit release_group_mbid field. Documented in module docstring + flagged as follow-up CR candidate.**"
+  - task_id: "T067"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/albums/routes.py"
+      - "backend:apps/api/src/auxd_api/routers/v1.py"
+      - "backend:apps/api/tests/integration/test_album_detail_endpoint.py"
+    commit_sha: null
+    started_at: "2026-05-23T02:00:00Z"
+    completed_at: "2026-05-23T02:10:00Z"
+    notes: "GET /api/v1/albums/{album_id} returns {album, editions, aggregate, my_history, friends, public_reviews}. Auth: optional (request.state.session may be None). Visibility-filtered via lib/visibility.can_read: anonymous = public reviews only; owner = own private history shown; followers = followed-user content visible per Review.visibility. 6 integration tests via FastAPI TestClient + mongomock-motor conftest. Note: Review.visibility coerced via Visibility(value) with try/except fallback to PUBLIC for forward-compat."
+  - task_id: "T068"
+    status: "completed"
+    paths:
+      - "backend:apps/api/migrations/atlas_search/albums_index.json"
+      - "backend:apps/api/migrations/README.md"
+      - "backend:apps/api/tests/unit/test_albums_atlas_index.py"
+    commit_sha: null
+    started_at: "2026-05-23T02:10:00Z"
+    completed_at: "2026-05-23T02:15:00Z"
+    notes: "Extended existing Atlas Search index JSON (from T022) with: lucene.standard analyzer + dual string/autocomplete field shapes on title + artist_credit (edgeNgram 2-8 chars + diacritic folding) + rating_count numeric field + scoreDetails.popularity using log1p(rating_count). New migrations/README.md documents the manual UI apply path + the atlas-cli automated path. 5 unit tests guard the JSON shape so future edits can't accidentally regress it. **Operator follow-up: apply the updated index to the dev cluster via Atlas UI or `atlas-cli` per the README.**"
+  - task_id: "T069"
+    status: "completed"
+    paths:
+      - "backend:apps/api/src/auxd_api/modules/search/__init__.py"
+      - "backend:apps/api/src/auxd_api/modules/search/routes.py"
+      - "backend:apps/api/src/auxd_api/modules/search/service.py"
+      - "backend:apps/api/src/auxd_api/routers/v1.py"
+      - "backend:apps/api/tests/integration/test_search_endpoint.py"
+    commit_sha: null
+    started_at: "2026-05-23T02:15:00Z"
+    completed_at: "2026-05-23T02:25:00Z"
+    notes: "GET /api/v1/search?q=...&type=album&limit=N three-tier search. (1) Atlas $search aggregation first — gracefully degrades to [] under mongomock so tests don't fall apart. (2) If <5 hits, MB.search_albums; for each not-already-in-Atlas (dedupe by mbid OR case-folded title+artist) materialize via resolve_identity → adds to results. (3) If still <5 and DISCOGS_API_TOKEN set, Discogs.search_albums + materialize as candidates. Sort: Atlas relevance first, then release_year desc. Empty result returns `{report_missing_album_url: '/api/v1/reports/missing-album'}` hint pointing at future T053a. 7 integration tests via respx mocking. Performance note: tasks.md Done criterion is <200ms p95; MB-fallback path serialises through 1 req/sec etiquette so cold-search may exceed — consider async fan-out + race or 'searching external sources…' UI signal in v2."
 
 scope:
   paths:

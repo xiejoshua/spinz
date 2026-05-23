@@ -9,11 +9,17 @@ environment, pulls jobs enqueued by the API process via
 :func:`auxd_api.redis_client.enqueue_job`, and executes them
 sequentially per the arq job model.
 
-At T013 the worker registers a single :func:`noop_job` so the
-end-to-end pipeline (API enqueue → worker dequeue → log line) can be
-verified before downstream tasks add real jobs (GDPR export, weekly
-digest, just-finished detection, suggested-follows recompute — plan
-§8.4).
+Job registry (mirrors plan §8.4 + the §6 album backbone):
+
+* :func:`noop_job` (T013) — connectivity smoke test.
+* :func:`refresh_stale_album_metadata` (T064) — daily 04:00 UTC sweep
+  that refreshes Albums whose ``cache_expires_at`` has elapsed.
+* :func:`reconcile_candidate_albums` (T065) — weekly Sunday 03:00 UTC
+  sweep that attempts MBID reconciliation on Discogs-sourced candidates.
+
+Cron jobs share the ``mb_provider`` injected on startup so the
+MusicBrainz client is reused across runs rather than rebuilt per
+invocation (which would compound the 1 req/sec etiquette policy).
 
 REDIS_URL is read directly from :mod:`os.environ` rather than via
 :func:`auxd_api.settings.get_settings` because :class:`WorkerSettings`
@@ -31,7 +37,16 @@ import logging
 import os
 from typing import Any, Final
 
+from arq import cron
 from arq.connections import RedisSettings
+
+from auxd_api.db import init_db
+from auxd_api.modules.albums.workers import (
+    reconcile_candidate_albums,
+    refresh_stale_album_metadata,
+)
+from auxd_api.providers.musicbrainz import MusicBrainzCatalogProvider
+from auxd_api.settings import get_settings
 
 _LOGGER = logging.getLogger("auxd.worker")
 
@@ -57,6 +72,36 @@ async def noop_job(ctx: dict[str, Any]) -> str:
     return "ok"
 
 
+async def _on_startup(ctx: dict[str, Any]) -> None:
+    """Initialise long-lived resources used by jobs.
+
+    Sets up:
+
+    * Beanie + Motor against ``MONGODB_URI`` so Document queries inside
+      jobs Just Work without each job re-running ``init_beanie``.
+    * A reusable :class:`MusicBrainzCatalogProvider` injected as
+      ``ctx["mb_provider"]`` — both album workers share it (T064/T065).
+
+    arq calls this once when the worker process boots; the matching
+    teardown lives in :func:`_on_shutdown`.
+    """
+    settings = get_settings()
+    await init_db(settings.MONGODB_URI)
+    ctx["mb_provider"] = MusicBrainzCatalogProvider()
+
+
+async def _on_shutdown(ctx: dict[str, Any]) -> None:
+    """Release long-lived resources from :func:`_on_startup`.
+
+    Closes the MusicBrainz provider's httpx client so the worker exits
+    cleanly. Mongo client teardown lives inside the db module and is
+    triggered separately by arq's signal handler.
+    """
+    provider = ctx.pop("mb_provider", None)
+    if provider is not None:
+        await provider.aclose()
+
+
 def _redis_settings_from_env() -> RedisSettings:
     """Build the worker's :class:`RedisSettings` from ``REDIS_URL``.
 
@@ -78,8 +123,31 @@ class WorkerSettings:
     :attr:`functions` — no other registration step.
     """
 
-    functions = [noop_job]
+    functions = [
+        noop_job,
+        refresh_stale_album_metadata,
+        reconcile_candidate_albums,
+    ]
+    cron_jobs = [
+        # T064 — daily 04:00 UTC album cache refresh.
+        cron(
+            refresh_stale_album_metadata,
+            hour=4,
+            minute=0,
+            run_at_startup=False,
+        ),
+        # T065 — weekly Sunday 03:00 UTC MBID reconciliation.
+        cron(
+            reconcile_candidate_albums,
+            weekday="sun",
+            hour=3,
+            minute=0,
+            run_at_startup=False,
+        ),
+    ]
     redis_settings: RedisSettings = _redis_settings_from_env()
+    on_startup = _on_startup
+    on_shutdown = _on_shutdown
     # Keep results for 10 minutes (arq default) — long enough for tests
     # and short enough that we don't accumulate cruft in Redis.
     keep_result = 600

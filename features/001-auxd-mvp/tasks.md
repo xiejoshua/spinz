@@ -577,7 +577,7 @@
 ## §6 Albums + Search
 
 <!-- CR-001: T063 deps + description updated — Spotify ID identity path dropped; MBID-first + Discogs candidate fallback. -->
-- [ ] **T063 — Album identity normalization service**
+- [x] **T063 — Album identity normalization service** *(completed 2026-05-23 Session 8; `resolve_identity(*, mbid?, discogs_release_id?, mb_provider, discogs_provider)` → Album. MBID-first lookup with 7d TTL cache; Discogs path materializes as `candidate=True` for later MBID reconciliation. New `AlbumNotFoundError` in `modules/albums/errors.py`. New `Album.candidate: bool = False` field. 8 unit tests pass.)*
       Paths: apps/api/src/auxd_api/modules/albums/identity.py, apps/api/tests/unit/test_album_identity.py
       Size: M
       Deps: T022, T049, T049b
@@ -587,7 +587,7 @@
       Done: TC-008/009/010 unit tests pass.
 
 <!-- CR-001: T064 description updated — cache refresh from MusicBrainz, not Spotify. -->
-- [ ] **T064 — Album cache + TTL refresh worker**
+- [x] **T064 — Album cache + TTL refresh worker** *(completed 2026-05-23 Session 8; arq cron daily 04:00 UTC; `refresh_stale_album_metadata` queries Albums with stale `cache_expires_at` + non-null MBID, refreshes via MB provider, extends TTL. Shared `mb_provider` injected via WorkerSettings `_on_startup` so the 1 req/sec etiquette is honored across cron invocations. 6 unit tests. Note: code lives in `modules/albums/workers.py` (not `workers/album_cache_refresh.py` per original Paths) — keeps album-related code colocated.)*
       Paths: apps/api/src/auxd_api/workers/album_cache_refresh.py
       Size: S
       Deps: T063, T013
@@ -595,7 +595,7 @@
       Description: Daily arq job that finds Albums with `cache_expires_at < now()` and refreshes metadata from MusicBrainz (rate-limited per provider policy in T049).
       Done: worker runs; refresh observed.
 
-- [ ] **T065 — MBID reconciliation worker**
+- [x] **T065 — MBID reconciliation worker** *(completed 2026-05-23 Session 8; arq cron weekly Sun 03:00 UTC; `reconcile_candidate_albums` finds `candidate=True` Albums, searches MB by artist+title, picks best match by fuzzy-score, merges MBID → marks `candidate=False`. 5 unit tests. Same `workers.py` colocation as T064.)*
       Paths: apps/api/src/auxd_api/workers/mbid_reconcile.py
       Size: S
       Deps: T063, T049
@@ -603,7 +603,7 @@
       Description: Periodic job that finds Albums with `candidate=true` and attempts MBID reconciliation via MusicBrainz. On match, merge candidate into canonical.
       Done: worker runs; candidate records reconcile over time.
 
-- [ ] **T066 — Edition aggregation (release-group → editions)**
+- [x] **T066 — Edition aggregation (release-group → editions)** *(completed 2026-05-23 Session 8; `get_editions`, `get_canonical_edition` (prefers earliest release_year + longest tracklist), `aggregate_ratings` (sums DiaryEntry + Review across editions, excludes soft-deleted). 11 unit tests. **Known limitation: Album.mbid is unique-sparse at MVP so editions collapse to 1 row per release-group; future migration drops the unique constraint + adds release_group_mbid field. Documented in module docstring + flagged as follow-up CR.**)*
       Paths: apps/api/src/auxd_api/modules/albums/editions.py, apps/api/tests/unit/test_editions.py
       Size: M
       Deps: T063
@@ -611,7 +611,7 @@
       Description: Group albums by release-group MBID; expose "All editions" view that aggregates ratings/reviews/likes across editions. Edition selector returns list of editions for a release-group.
       Done: TC-010 unit test passes.
 
-- [ ] **T067 — Album detail endpoint**
+- [x] **T067 — Album detail endpoint** *(completed 2026-05-23 Session 8; `GET /api/v1/albums/{album_id}` returns `{album, editions, aggregate, my_history, friends, public_reviews}`. Visibility-filtered via `lib/visibility.can_read`; anonymous viewers see public reviews only; owners see own private history; followers see followed-user content per visibility rules. 6 integration tests via FastAPI TestClient + mongomock-motor conftest.)*
       Paths: apps/api/src/auxd_api/modules/albums/routes.py, apps/api/tests/integration/test_album_detail.py
       Size: M
       Deps: T063, T066, T016
@@ -619,7 +619,7 @@
       Description: `GET /api/v1/albums/{id}` returns album + tracklist + my history + friends-who-rated-and-auxed + public reviews + edition list. Visibility-filtered via lib/visibility.
       Done: integration test covers logged-in/anonymous/blocked/private cases.
 
-- [ ] **T068 — Atlas Search index for albums**
+- [x] **T068 — Atlas Search index for albums** *(completed 2026-05-23 Session 8; extended `apps/api/migrations/atlas_search/albums_index.json` with `lucene.standard` analyzer, dual `string` + `autocomplete` field shapes on title/artist_credit (edgeNgram 2–8 chars, diacritic folding), `rating_count` field, `scoreDetails.popularity` block using `log1p(rating_count)`. New `migrations/README.md` documents manual UI + `atlas-cli` apply paths. 5 unit tests guard the JSON shape. **Operator follow-up: apply the updated index to the Atlas Search cluster via UI or `atlas-cli`.**)*
       Paths: apps/api/migrations/atlas_search/albums_index.json, docs/atlas-search-setup.md
       Size: S
       Deps: T022
@@ -628,7 +628,7 @@
       Done: search query returns relevant results.
 
 <!-- CR-001: T069 retitled + deps/description updated — Atlas + MusicBrainz primary + Discogs fallback merge; Spotify fallback dropped. -->
-- [ ] **T069 — Search endpoint (Atlas + MusicBrainz + Discogs fallback merge)**
+- [x] **T069 — Search endpoint (Atlas + MusicBrainz + Discogs fallback merge)** *(completed 2026-05-23 Session 8; `GET /api/v1/search?q=...&type=album&limit=N` three-tier search: Atlas $search first (gracefully degrades to [] under mongomock); if <5 hits adds MB results via `resolve_identity` materialization; if still <5 adds Discogs (graceful-disabled when token unset). Dedupe by `mbid` else `(title.casefold(), artist.casefold())`. Sorted by Atlas relevance then `release_year` desc. Empty result returns `{report_missing_album_url: "/api/v1/reports/missing-album"}` hint pointing at future T053a. 7 integration tests via respx.)*
       Paths: apps/api/src/auxd_api/modules/search/routes.py, apps/api/src/auxd_api/modules/search/service.py, apps/api/tests/integration/test_search.py
       Size: M
       Deps: T068, T049, T049b

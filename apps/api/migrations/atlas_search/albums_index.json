@@ -1,18 +1,38 @@
 {
   "name": "albums_text_search",
   "definition": {
+    "analyzer": "lucene.standard",
+    "searchAnalyzer": "lucene.standard",
     "mappings": {
       "dynamic": false,
       "fields": {
-        "title": {
-          "type": "string",
-          "analyzer": "lucene.standard",
-          "searchAnalyzer": "lucene.standard"
-        },
-        "artist_credit": {
-          "type": "string",
-          "analyzer": "lucene.standard"
-        },
+        "title": [
+          {
+            "type": "string",
+            "analyzer": "lucene.standard",
+            "searchAnalyzer": "lucene.standard"
+          },
+          {
+            "type": "autocomplete",
+            "tokenization": "edgeGram",
+            "minGrams": 2,
+            "maxGrams": 8,
+            "foldDiacritics": true
+          }
+        ],
+        "artist_credit": [
+          {
+            "type": "string",
+            "analyzer": "lucene.standard"
+          },
+          {
+            "type": "autocomplete",
+            "tokenization": "edgeGram",
+            "minGrams": 2,
+            "maxGrams": 8,
+            "foldDiacritics": true
+          }
+        ],
         "artists": {
           "type": "document",
           "fields": {
@@ -24,11 +44,33 @@
         },
         "popularity_score": {
           "type": "number"
+        },
+        "rating_count": {
+          "type": "number"
         }
       }
     },
     "storedSource": {
-      "include": ["title", "artist_credit", "artists.name", "cover_art_url"]
+      "include": [
+        "title",
+        "artist_credit",
+        "artists.name",
+        "cover_art_url",
+        "release_year"
+      ]
+    },
+    "scoreDetails": {
+      "popularity": {
+        "function": {
+          "score": "function",
+          "args": {
+            "function": "log1p",
+            "args": {
+              "path": "rating_count"
+            }
+          }
+        }
+      }
     }
   }
 }

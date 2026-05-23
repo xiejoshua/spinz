@@ -90,3 +90,79 @@
 **For verify-full (Phase 7):** Same as above — verification is premature when only the constitution is committed.
 
 **For sync-verify:** After all autonomous §0 tasks land in a commit, re-run sync-verify. Expected structural drift count: 0 (from 27 at Run #1). The 14 INFO items remain advisory.
+
+---
+
+# Sessions 2–8 cumulative rollup (2026-05-22 PM → 2026-05-23 early AM)
+
+> Tasks executed across sessions 2–8: **42 of 170** (post-CR-001 baseline). See [implementation-log.md](../implementation-log.md) for per-session blow-by-blow. This digest summarises decisions, artifacts, risks, and handoff notes that span sessions.
+
+## Sessions at a glance
+
+| Session | Date | Scope | Tasks | Δ Tests |
+|---|---|---|:-:|:-:|
+| 2 | 2026-05-22 PM | Foundation libs wave — resilience/observability/OTel/secrets/KSUID/Settings | +6 (T014/T015/T015a/T017/T018/T029) | +76 |
+| 3 | 2026-05-22 PM | Infra-decision swaps (Postmark→Resend, S3→R2, PostHog self-host→Cloud, sjc→iad) | docs-only | 0 |
+| 4 | 2026-05-22 evening | §0 deployment automation + backend data layer — workflows + Beanie connection + 17 Documents + visibility | +12 (T009/T010/T010a/T012/T016/T021–T027) | +153 |
+| 5 | 2026-05-22 evening | Request-path wave — FastAPI skeleton + Redis arq + session middleware + rate-limit + OpenAPI codegen | +5 (T011/T013/T019/T020/T028) | +76 |
+| 6 | 2026-05-22 night | **CR-001** Spotify pivot — remove Spotify, transition to MusicBrainz + Discogs catalog backbone; Letterboxd-style manual log | (no tasks; 16 hard-removed, 9 deferred, 5 amended, 3 added) | +1 |
+| 7 | 2026-05-23 early AM | §4 Providers wave — CatalogProvider/MusicProvider Protocols + Resilience transport + observability + MusicBrainz pair (P4 test-first) + Discogs pair (P4 test-first) + error taxonomy | +8 (T041/T048/T049/T049a/T049b/T050/T051/T052) | +46 |
+| 8 | 2026-05-23 early AM | §6 Albums + Search backend — identity normalization + cron workers + edition aggregation + album detail endpoint + Atlas index + three-tier search | +7 (T063–T069) | +48 |
+
+**Phase 6 cumulative test count: 1 → 400 pass + 3 skip.**
+
+## Key cumulative decisions
+
+- **CR-001 Spotify pivot (Session 6)** — Spotify Extended Quota now requires 250k MAUs, structurally unreachable pre-launch. MVP catalog backbone shifted to MusicBrainz primary + Discogs fallback + Cover Art Archive for covers. Provider abstraction kept; `MusicProvider` Protocol declared but no MVP impl. Just-finished cluster (§12) deferred to v2. Full audit trail in [change-log.md](../change-log.md).
+- **Sync-verify cadence locked at 4 runs** — Run #1 pre-Phase 6, Run #2 mid-Session 4, Run #3 post-Session 4, Run #4 post-CR-001 + post-§4. Each run's verdict carried forward via `applied_split_with_override` discipline since the strict structural=0 budget repeatedly trips on doc-propagation findings that have no runtime impact.
+- **Two-process Fly layout (Session 5)** — `[processes]` rename from `app` → `web` (resolved fly.toml-parse collision with top-level `app = "auxd-api"` field). The collision was caught only on first push to remote — a Run #4 finding that would have been caught earlier had we tested deploy locally first.
+- **Test-first audit trail discipline (Session 7)** — Constitution P4 enforced rigorously on T048→T049 (MusicBrainz) and T049a→T049b (Discogs) pairs: contract tests verified FAILING with ImportError before impl was written; verified PASSING after. This is the discipline future provider integrations (Apple Music, Last.fm) should inherit.
+- **Provider sharing across arq cron runs (Session 8)** — `WorkerSettings._on_startup` injects a single `MusicBrainzCatalogProvider` into `ctx["mb_provider"]` so the 1 req/sec etiquette policy (enforced via in-instance asyncio.Lock + monotonic) is preserved across consecutive cron firings rather than reset per-invocation.
+- **Path divergence acknowledgment (Sessions 7 + 8)** — Two cases where landed code paths differed from tasks.md `Paths:` declarations: §4 single-file provider modules vs the original 3-file packages (Session 7); §6 album workers under `modules/albums/workers.py` vs `workers/album_cache_refresh.py` (Session 8). In both cases the architectural choice was reasonable for MVP scope; tasks.md `[x]` annotations carry the `Note: ...` explanation so the divergence is discoverable.
+
+## Cumulative artifacts produced
+
+- **Backend source (apps/api/src/auxd_api/):** 35+ modules across `lib/`, `modules/{users,albums,diary,reviews,backlog,social,moderation,notifications,prompts,seeding}`, `providers/{,musicbrainz,discogs}`, `routers/`, `workers/`, plus root files (db, redis_client, settings, main, middleware).
+- **Tests:** 70+ test files across `tests/unit/`, `tests/integration/`. 400 passing + 3 skipped.
+- **Infra:** `Dockerfile` + `fly.toml` (two-process layout) + 3 GitHub workflows (`ci.yml`, `deploy-api.yml`, `codegen.yml`, `synthetic.yml`, `backup-mongo.yml`) + `migrations/` (forward/rollback + atlas_search/albums_index.json + README) + `pyproject.toml` + `uv.lock`.
+- **Shared:** `packages/shared-types/src/api.ts` (auto-generated from OpenAPI) + `scripts/codegen.sh`.
+- **Frontend stub:** `apps/web/` minimal Next.js 15 scaffold (T003); full §3 frontend foundation (T031–T040) still open.
+- **Docs:** `change-log.md` (CR-001 audit trail), `sync-report.md` + `sync-report.json` (4 runs), `implementation-log.md`, `tasks.md`, `plan.md`, `spec.md`, full `product-spec/` set including 5 wireframes redesigned for the Letterboxd pivot.
+
+## Cumulative open risks
+
+| Risk | Severity | First flagged | Status |
+|---|:-:|---|---|
+| Critic-seed cold-start under-delivery (CR-001 wedge replacement) | **High** | Session 6 (cross-agent consensus) | Open — instrumentation flag set: if `log.commit.duration_ms` p50 > 3 min during M-2 closed beta, UX intervention needed before public launch |
+| Album.mbid unique-sparse collapses editions at MVP | Medium | Session 8 | Open — future CR candidate; drops unique constraint + adds `release_group_mbid` field |
+| T069 p95 search latency may exceed 200ms NFR on cold-cache MB-fallback path | Medium | Session 8 | Open — acceptable for v0; rethink in v1.x if signal lands; mitigations include async fan-out + race or explicit "searching external sources…" UI signal |
+| Atlas Search not testable under mongomock (`$search` aggregation unsupported) | Low | Session 8 | Mitigated via `_atlas_search` graceful fallback to `[]`; dev-env search runs in provider-only mode |
+| 4 of 4 sync-verify runs hit the strict structural=0 budget | Low (advisory) | Run #1 (cumulative) | Carry-forward `applied_split_with_override` disposition; budget may need to relax for the long-tail of cross-doc propagation findings |
+| Worker module path divergence from tasks.md Paths | Low | Session 7, Session 8 | Mitigated via `Note: ...` annotations on the `[x]` task lines; semantically correct since the chosen layouts are sound |
+
+## Cumulative handoff notes (for Phase 6B Code Review + Phase 7 Verify Full)
+
+**For Phase 6B code review (when run):**
+1. **Focus area 1: §4 Providers + §6 Search service composition.** The three-tier search (Atlas → MB → Discogs) in `modules/search/service.py` is the most architecturally novel surface in the codebase post-CR-001. Verify the dedupe heuristic (`mbid` else case-folded `(title, artist)`) doesn't have false-positive collisions.
+2. **Focus area 2: Visibility filtering in `modules/albums/routes.py`.** 6 integration tests cover the matrix but real-world adversarial paths (e.g., a follower querying after the followee blocks them mid-request) aren't exercised yet.
+3. **Focus area 3: Session middleware HMAC + CSRF (T019).** Standard pattern but the tamper-rejection path returns 401 not silent-anonymous — verify this is the desired UX. Login CSRF mitigation is just SameSite=Lax; document if that's acceptable.
+4. **Focus area 4: Constitution P4 audit trail.** §4 provider pairs were verified FAILING before impl was written. §6 workers/services used tests-after pattern (not contract-test pairs). Spot-check whether the P4 discipline holds where it should.
+
+**For Phase 7 verify-full (when run):**
+1. **Layer 5 (tasks ↔ code) is the highest-fan-out check.** §4 + §6 added ~30 new files; the Paths annotations on tasks.md have some intentional divergence (worker module location, single-file provider modules) — verify-full should walk through each and assert the documented divergence is acceptable.
+2. **Layer 6 (spec ↔ code) becomes meaningful for the first time.** Pre-§6 there was no business logic; the album-detail endpoint + search endpoint + edition aggregation + Atlas index are the first end-to-end surfaces that can be traced from US-F1/US-F2/US-B1 + FR-005/FR-033 down to actual code.
+3. **CR-001 propagation completeness.** Run #4 caught 4 doc-propagation WARNs + 3 INFOs and fixed them; verify-full should confirm no new Spotify residuals snuck in across the §6 work.
+
+**For sync-verify (Run #5, when run):**
+- Expected new drift items: any §6 spec/plan/tasks coverage that didn't surface during Session 8 (e.g., FR-033 cross-link to T053a; new Atlas index applied operationally).
+- Recurring INFOs from prior runs (~11) carry forward; same advisory class.
+- Apply the manual Atlas Search index update before Run #5 to close the operator-follow-up loop.
+
+**For phase 6 completion gate:**
+This digest cumulatively covers Sessions 1–8. Phase 6 stays `in_progress` because **128 tasks remain** of the 170-task MVP. Natural next slices, in dependency-order:
+1. **§3 Frontend foundation** (T031–T040) — unblocks T070/T071/T072 + lets the user click through the app end-to-end against the live backend.
+2. **§5 Auth handlers** (T053/T053a/T057–T062) — unlocks user-protected endpoints across §7–§10.
+3. **§7 Diary + Log sheet** (T073–T084) — the new MVP wedge interaction.
+4. **§8 Reviews + Likes + sort** (T085–T094) — depends on §7.
+
+A `/speckit.product-forge.code-review` (Phase 6B) run on the current state is premature — most surfaces don't exist yet. Re-evaluate after §3 + §5 (or after §7 if backend-only review is appropriate).
