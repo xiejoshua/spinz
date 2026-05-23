@@ -92,9 +92,7 @@ app = FastAPI(
 # cross-origin request — CORS stays as defense for direct API access (curl,
 # OG fetchers, future native clients) and dev (localhost:3000 → :8000).
 _ALLOWED_ORIGINS_RAW = os.environ.get("ALLOWED_ORIGINS", "http://localhost:3000")
-_ALLOWED_ORIGINS = [
-    origin.strip() for origin in _ALLOWED_ORIGINS_RAW.split(",") if origin.strip()
-]
+_ALLOWED_ORIGINS = [origin.strip() for origin in _ALLOWED_ORIGINS_RAW.split(",") if origin.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_ALLOWED_ORIGINS,
