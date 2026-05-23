@@ -54,6 +54,8 @@ jobs:
         run: pnpm --filter @auxd/web lint
       - name: Type-check
         run: pnpm --filter @auxd/web typecheck
+      - name: Unit tests (vitest)
+        run: pnpm --filter @auxd/web test:unit
       - name: Build
         run: pnpm --filter @auxd/web build
 
