@@ -108,7 +108,10 @@ def test_album_discogs_release_id_field_and_index() -> None:
     # NOT sparse — partial filter instead.
     assert discogs_index.document.get("sparse") is None
     partial = discogs_index.document.get("partialFilterExpression")
-    assert partial == {"discogs_release_id": {"$exists": True, "$ne": None}}
+    # MongoDB's partialFilterExpression grammar disallows $ne / $not, so
+    # we use $type: "string" instead — same semantic (only index real
+    # string values, exclude null + missing).
+    assert partial == {"discogs_release_id": {"$type": "string"}}
 
     # No residual ``spotify_id`` index survived CR-001.
     for idx in indexes:
@@ -128,7 +131,7 @@ def test_album_mbid_partial_filter_index_matches_discogs() -> None:
     mbid_index = unique[0]
     assert mbid_index.document.get("sparse") is None
     partial = mbid_index.document.get("partialFilterExpression")
-    assert partial == {"mbid": {"$exists": True, "$ne": None}}
+    assert partial == {"mbid": {"$type": "string"}}
 
 
 def test_album_with_tracklist() -> None:

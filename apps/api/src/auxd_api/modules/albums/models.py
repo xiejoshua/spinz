@@ -213,24 +213,33 @@ class Album(Document):
         # CR-001: replaced the ``spotify_id`` sparse-unique index with
         # ``discogs_release_id``.
         #
-        # Why ``partialFilterExpression`` instead of ``sparse``: Pydantic
+        # Why ``partialFilterExpression`` (not ``sparse``): Pydantic
         # serialises ``None`` as the MongoDB BSON value ``null`` (not a
         # missing field), so a sparse index still indexes every doc whose
         # field is explicitly ``None`` — and the unique constraint then
-        # fires on the second such insert with E11000. The partial filter
-        # `{$exists: true, $ne: null}` excludes both missing AND null,
-        # which is what we actually want: only rows that carry a real
-        # identifier participate in the unique constraint.
+        # fires on the second such insert with E11000.
+        #
+        # Why ``{$type: "string"}`` (not ``{$exists: true, $ne: null}``):
+        # the latter expands to ``$not($eq: null)`` semantically, and
+        # MongoDB's partialFilterExpression grammar disallows ``$not`` /
+        # ``$ne`` / ``$nor``. ``$type: "string"`` is in the supported
+        # grammar AND has the right semantics here: it restricts the
+        # index to documents where the field is a string, which excludes
+        # both ``null`` and missing-field cases. Caught on the second
+        # prod deploy after the original fix (commit ``66f0403``) — Atlas
+        # raised ``CannotCreateIndex: Expression not supported in partial
+        # index: $not`` and ``init_beanie`` aborted process startup,
+        # which the load-balancer surfaced as ``/healthz`` 503s.
         indexes = [
             IndexModel(
                 [("mbid", ASCENDING)],
                 unique=True,
-                partialFilterExpression={"mbid": {"$exists": True, "$ne": None}},
+                partialFilterExpression={"mbid": {"$type": "string"}},
             ),
             IndexModel(
                 [("discogs_release_id", ASCENDING)],
                 unique=True,
-                partialFilterExpression={"discogs_release_id": {"$exists": True, "$ne": None}},
+                partialFilterExpression={"discogs_release_id": {"$type": "string"}},
             ),
             IndexModel([("cache_expires_at", ASCENDING)], sparse=True),
             IndexModel([("popularity_score", DESCENDING)]),
