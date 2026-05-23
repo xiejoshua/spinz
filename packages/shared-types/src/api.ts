@@ -350,6 +350,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/notifications": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notifications
+         * @description Paginated current-user inbox sorted by ``created_at`` DESC.
+         *
+         *     Page size is capped at :data:`_MAX_LIST_LIMIT` (50). The cursor is a
+         *     composite ``(created_at, _id)`` token; malformed cursors restart from
+         *     the top of the inbox.
+         */
+        get: operations["list_notifications_api_v1_notifications_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/mark-all-read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark All Notifications Read
+         * @description Mark every unread notification for the current user as read.
+         */
+        post: operations["mark_all_notifications_read_api_v1_notifications_mark_all_read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/unread-count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Unread Count
+         * @description Return the count of unread notifications for the bell-badge poll.
+         */
+        get: operations["get_unread_count_api_v1_notifications_unread_count_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/notifications/{notification_id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark Notification Read
+         * @description Mark a single notification read. Owner-only; idempotent.
+         */
+        post: operations["mark_notification_read_api_v1_notifications__notification_id__read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/onboarding/cards": {
         parameters: {
             query?: never;
@@ -725,6 +809,81 @@ export interface paths {
          */
         post: operations["post_change_handle_api_v1_users_me_handle_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/notification-preferences": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Notification Preferences
+         * @description Return the current-user's notification preferences + quiet hours.
+         */
+        get: operations["get_notification_preferences_api_v1_users_me_notification_preferences_get"];
+        /**
+         * Put Notification Preferences
+         * @description Replace the current-user's notification preferences + quiet hours.
+         *
+         *     Validates:
+         *
+         *     * ``quiet_hours.enabled=True`` requires both ``start`` and ``end`` set.
+         *     * ``quiet_hours.tz`` must be a valid IANA timezone.
+         *     * Email channel for N-016 / N-017 cannot be turned off (rejects 422
+         *       with ``security_email_locked``).
+         */
+        put: operations["put_notification_preferences_api_v1_users_me_notification_preferences_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/push-subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Register Push Subscription
+         * @description Register a new Web Push subscription for the authenticated user.
+         *
+         *     Idempotent on ``endpoint``: if a row with the same endpoint exists,
+         *     its ``last_used_at`` is refreshed and the row is returned with
+         *     ``created=False``.
+         */
+        post: operations["register_push_subscription_api_v1_users_me_push_subscriptions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/push-subscriptions/{subscription_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Push Subscription
+         * @description Owner-only delete of a registered push subscription.
+         */
+        delete: operations["delete_push_subscription_api_v1_users_me_push_subscriptions__subscription_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1123,6 +1282,27 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** _MarkAllReadResponse */
+        _MarkAllReadResponse: {
+            /**
+             * Marked
+             * @default 0
+             */
+            marked: number;
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
+        };
+        /** _MarkReadResponse */
+        _MarkReadResponse: {
+            /**
+             * Ok
+             * @default true
+             */
+            ok: boolean;
+        };
         /**
          * _MissingAlbumRequest
          * @description Wire shape for ``POST /reports/missing-album``.
@@ -1146,6 +1326,136 @@ export interface components {
             mbid_hint?: string | null;
             /** Query */
             query?: string | null;
+        };
+        /**
+         * _NotificationOut
+         * @description One row in the inbox list response.
+         *
+         *     Mirrors :class:`Notification` plus the actor display fields denormalised
+         *     so the UI doesn't N+1 lookup the actor on every card. ``coalesced_count``
+         *     surfaces the rollup counter the in-app adapter stashes in payload.
+         */
+        _NotificationOut: {
+            /** Actor Avatar Url */
+            actor_avatar_url: string | null;
+            /** Actor Display Name */
+            actor_display_name: string | null;
+            /** Actor Handle */
+            actor_handle: string | null;
+            /** Actor Id */
+            actor_id: string | null;
+            /**
+             * Coalesced Count
+             * @default 0
+             */
+            coalesced_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: string;
+            /** Payload */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Read At */
+            read_at: string | null;
+            /** Type */
+            type: string;
+        };
+        /** _NotificationsListResponse */
+        _NotificationsListResponse: {
+            /** Next Cursor */
+            next_cursor?: string | null;
+            /** Notifications */
+            notifications: components["schemas"]["_NotificationOut"][];
+        };
+        /**
+         * _PreferencesIO
+         * @description Wire shape for both GET response and PUT request body.
+         *
+         *     ``in_app`` / ``email`` / ``push`` are keyed by the canonical
+         *     :class:`NotificationType` string value (e.g. ``"follow.new"``).
+         */
+        _PreferencesIO: {
+            /** Email */
+            email?: {
+                [key: string]: boolean;
+            };
+            /** In App */
+            in_app?: {
+                [key: string]: boolean;
+            };
+            /** Push */
+            push?: {
+                [key: string]: boolean;
+            };
+            quiet_hours?: components["schemas"]["_QuietHoursIO"];
+            /**
+             * Weekly Digest
+             * @default true
+             */
+            weekly_digest: boolean;
+        };
+        /**
+         * _PushKeys
+         * @description Inner ``keys`` block of the browser PushSubscription JSON shape.
+         */
+        _PushKeys: {
+            /** Auth */
+            auth: string;
+            /** P256Dh */
+            p256dh: string;
+        };
+        /**
+         * _PushSubscriptionRequest
+         * @description Wire shape mirrors the browser PushSubscription.toJSON() output.
+         */
+        _PushSubscriptionRequest: {
+            /** Endpoint */
+            endpoint: string;
+            keys: components["schemas"]["_PushKeys"];
+        };
+        /**
+         * _PushSubscriptionResponse
+         * @description Slim response — id + endpoint suffice for the client cache.
+         */
+        _PushSubscriptionResponse: {
+            /** Created */
+            created: boolean;
+            /** Endpoint */
+            endpoint: string;
+            /** Id */
+            id: string;
+        };
+        /**
+         * _QuietHoursIO
+         * @description Flattened quiet-hours sub-payload for both GET and PUT.
+         *
+         *     On disk the user row carries ``quiet_hours_start: time | None``,
+         *     ``quiet_hours_end: time | None``, ``quiet_hours_tz: str`` as three
+         *     separate fields. The route flattens them into one ``quiet_hours``
+         *     object for cleaner UI binding. ``enabled`` is computed on GET as
+         *     ``True`` iff both start AND end are set; on PUT it's the request
+         *     flag, validated against the presence of start/end.
+         */
+        _QuietHoursIO: {
+            /**
+             * Enabled
+             * @default false
+             */
+            enabled: boolean;
+            /** End */
+            end?: string | null;
+            /** Start */
+            start?: string | null;
+            /**
+             * Tz
+             * @default UTC
+             */
+            tz: string;
         };
         /**
          * _ReorderRequest
@@ -1175,6 +1485,11 @@ export interface components {
             handle: string;
             /** Password */
             password: string;
+        };
+        /** _UnreadCountResponse */
+        _UnreadCountResponse: {
+            /** Count */
+            count: number;
         };
         /**
          * Visibility
@@ -1207,9 +1522,19 @@ export type FollowRequestBody = components['schemas']['_FollowRequestBody'];
 export type HandleChangeRequest = components['schemas']['_HandleChangeRequest'];
 export type LogEntryRequest = components['schemas']['_LogEntryRequest'];
 export type LoginRequest = components['schemas']['_LoginRequest'];
+export type MarkAllReadResponse = components['schemas']['_MarkAllReadResponse'];
+export type MarkReadResponse = components['schemas']['_MarkReadResponse'];
 export type MissingAlbumRequest = components['schemas']['_MissingAlbumRequest'];
+export type NotificationOut = components['schemas']['_NotificationOut'];
+export type NotificationsListResponse = components['schemas']['_NotificationsListResponse'];
+export type PreferencesIo = components['schemas']['_PreferencesIO'];
+export type PushKeys = components['schemas']['_PushKeys'];
+export type PushSubscriptionRequest = components['schemas']['_PushSubscriptionRequest'];
+export type PushSubscriptionResponse = components['schemas']['_PushSubscriptionResponse'];
+export type QuietHoursIo = components['schemas']['_QuietHoursIO'];
 export type ReorderRequest = components['schemas']['_ReorderRequest'];
 export type SignupRequest = components['schemas']['_SignupRequest'];
+export type UnreadCountResponse = components['schemas']['_UnreadCountResponse'];
 export type AuxdApiLibVisibilityVisibility = components['schemas']['auxd_api__lib__visibility__Visibility'];
 export type AuxdApiModulesDiaryModelsVisibility = components['schemas']['auxd_api__modules__diary__models__Visibility'];
 export type $defs = Record<string, never>;
@@ -1583,6 +1908,109 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_notifications_api_v1_notifications_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_NotificationsListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_all_notifications_read_api_v1_notifications_mark_all_read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_MarkAllReadResponse"];
+                };
+            };
+        };
+    };
+    get_unread_count_api_v1_notifications_unread_count_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_UnreadCountResponse"];
+                };
+            };
+        };
+    };
+    mark_notification_read_api_v1_notifications__notification_id__read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notification_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_MarkReadResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2143,6 +2571,121 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_notification_preferences_api_v1_users_me_notification_preferences_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_PreferencesIO"];
+                };
+            };
+        };
+    };
+    put_notification_preferences_api_v1_users_me_notification_preferences_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_PreferencesIO"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_PreferencesIO"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    register_push_subscription_api_v1_users_me_push_subscriptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_PushSubscriptionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_PushSubscriptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_push_subscription_api_v1_users_me_push_subscriptions__subscription_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                subscription_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

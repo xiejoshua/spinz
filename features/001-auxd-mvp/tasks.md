@@ -1185,30 +1185,12 @@
 <!-- CR-002: hero count amended from single → three-hero carousel (NT-2). -->
 - [x] **T138 — Weekly digest job** *(completed 2026-05-23 Session 20; `dispatch_weekly_digests` arq job at workers/digest_dispatch.py + registered in workers/main.py WorkerSettings with `minute={0,5,10,...,55}` cron. Streams Users with `notification_preferences.weekly_digest=True` + `status=ACTIVE` via async iteration; per-user `now_utc.astimezone(ZoneInfo(quiet_hours_tz or "UTC"))` → eligible iff `weekday==Monday and 09:00 ≤ local_time < 09:05`. Three-hero carousel via Beanie aggregation pipelines on the follow-graph: most-rated (avg DiaryEntry.rating), most-reviewed (Review count), most-Aux'd (DiaryEntry.auxed=True count) over 7d. Empty metrics gracefully drop (2- or 1- or 0-hero render). Chrono body from `feed.service.get_home_feed(user_id, since=now-7d, limit=10)`. Dispatches via the standard chain — calls `dispatch(user_id, N008_WEEKLY_DIGEST, payload)` so EmailAdapter renders n008_weekly_digest.html with autoescape+StrictUndefined-safe `{% if x is defined %}` guards. NT-3 honored: email channel bypasses quiet hours. Emits `digest.sent` PostHog per send with `{user_id, hero_count, body_count, has_review_likes_hero}`. 13 integration tests incl. TC-027.)*
 
-- [ ] **T139 — Notification preferences UI**
-      Paths: apps/web/src/app/(app)/settings/notifications/page.tsx
-      Size: M
-      Deps: T137
-      Refs: US-G3; notification-taxonomy.md settings UI
-      Description: Per-type per-channel toggles grouped per taxonomy. Quiet hours config. Quick controls (Mute all push / email / in-app).
-      Done: UI works; updates persist.
+- [x] **T139 — Notification preferences UI** *(completed 2026-05-23 Session 21; apps/web/src/app/(app)/settings/notifications/page.tsx + prefs-form.tsx. Per-type per-channel toggles grouped per taxonomy (Activity / Digests / Account & system / Quiet hours). Quick controls (Mute all push / email / in-app). N-008 push hardcoded-off and N-016/N-017 email locked-on (server enforces; UI disables the switch). Quiet-hours timezone select uses curated IANA list + browser-resolved tz fallback. Backend GET + PUT `/api/v1/users/me/notification-preferences` endpoints added (response flattens User.quiet_hours_{start,end,tz} into nested `{quiet_hours: {enabled, start, end, tz}}`; PUT validates IANA tz via `zoneinfo.ZoneInfo` + rejects security-email lock attempts with 422 `security_email_locked`). RHF + Zod form with `setApiFormErrors`; optimistic update + toast. PostHog `settings.notifications_updated`. Backend bson_encoders for `datetime.time` added to User.Settings to make quiet-hours persist round-trip cleanly. New `components/ui/switch.tsx` (minimal headless, no Radix dep). New api-client `put` method.)*
 
-- [ ] **T140 — In-app notification feed UI**
-      Paths: apps/web/src/components/notifications/notification-list.tsx, apps/web/src/app/(app)/notifications/page.tsx
-      Size: M
-      Deps: T134
-      Refs: US-G3
-      Description: Bell icon in top bar with unread count; clicking opens notification list (paginated). Mark-read on view + explicit mark-all-read.
-      Done: works end-to-end.
+- [x] **T140 — In-app notification feed UI** *(completed 2026-05-23 Session 21; notification-bell.tsx mounted in (app)/layout.tsx sticky header polls `GET /api/v1/notifications/unread-count` every 60s (`staleTime: 30s, refetchInterval: 60s`); badge caps at "99+". `/notifications` page uses useInfiniteQuery against `GET /api/v1/notifications` (cursor pagination on `created_at|id` base64 — same composite-cursor pattern as T074 diary). notification-card.tsx renders type-specific copy via `copyPartsFor(notification)` helper covering all 16 active types incl. coalesced rollups ("X and N others posted new updates"). Click-action navigates via `clickUrlFor(notification)` helper + POSTs mark-read; "Mark all as read" button at top calls `POST /api/v1/notifications/mark-all-read` with optimistic invalidation of list + count. Backend endpoints: GET /api/v1/notifications (cursor + sidecar denormalised actor_handle/display_name on each row to avoid N+1), GET unread-count (120/min rate limit for badge-poll), POST {id}/read (owner-only, idempotent), POST mark-all-read (10/min rate limit). 25 backend integration tests + 30 frontend copy/routing unit tests.)*
 
 <!-- CR-001: T141 deps updated — T128 deferred; T136 is the new owner of the web-push adapter. -->
-- [ ] **T141 — Web push subscribe flow (prompt at right time)**
-      Paths: apps/web/src/components/notifications/push-prompt.tsx
-      Size: S
-      Deps: T140, T136
-      Refs: plan §15 push
-      Description: Push permission prompt shown after user's 3rd follow OR 7d of activity (whichever first), not on first session.
-      Done: prompt logic verified.
+- [x] **T141 — Web push subscribe flow (prompt at right time)** *(completed 2026-05-23 Session 21; push-prompt.tsx non-modal banner on /notifications page; criteria: `follows_count >= 3 OR (now - first_visit_at) >= 7d`. `markFollow()` wired into FollowButton mutation onSuccess + onboarding step-2 follow loop. push-bootstrap.tsx silently registers SW at app boot + stamps first_visit_at. push-subscription.ts owns isPushSupported/getCurrentPermission/subscribeToPush; the subscribe flow calls swReg.pushManager.subscribe with NEXT_PUBLIC_VAPID_PUBLIC_KEY then POSTs to /api/v1/users/me/push-subscriptions (already from S20). public/sw.js minimal SW: push event renders `self.registration.showNotification(title, {body, tag, data:{click_url,type}, icon, badge})`; notificationclick handler focuses existing tab matching click_url or opens new. "Not now" sets `dismissed_at` in localStorage (re-show after 14d). PostHog events `push.prompt_shown / permission_granted / permission_denied / dismissed`. 8 frontend criteria-evaluation unit tests.)*
 
 - [x] **T142 — Critic-seed onboarding wave: suppress N-001 follow notifications** *(completed 2026-05-23 Session 19; wired inside dispatcher.dispatch at the suppression-check stage. `notif_type is N001_FOLLOW_NEW and follow_source == "onboarding_preselected"` → log `notification.suppressed_onboarding_preselected` + emit a `decision=suppressed` PostHog event + return None. `ONBOARDING_PRESELECTED_SOURCE` exported from dispatcher.py as single source of truth. 4 integration tests assert N-001 suppressed only when onboarding_preselected, N-002 NOT suppressed even with that source.)*
 

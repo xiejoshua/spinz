@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { stashOnboardingFollows } from "@/lib/analytics";
 import { ApiError, apiClient } from "@/lib/api-client";
 import { capture } from "@/lib/posthog";
+import { markFollow } from "@/lib/push-subscription";
 import type {
   FollowMutationResponse,
   OnboardingCard as OnboardingCardType,
@@ -82,6 +83,12 @@ export function FollowCriticsDeck() {
     const failures = results
       .map((r, i) => ({ result: r, card: targets[i] }))
       .filter((x) => x.result.status === "rejected");
+
+    // T141 — record successful follows so the push prompt can fire once
+    // the threshold is crossed.
+    for (let i = 0; i < succeeded; i++) {
+      markFollow();
+    }
 
     const succeededCards = targets.filter((_card, i) => results[i].status === "fulfilled");
     const criticSeedKeptPct =

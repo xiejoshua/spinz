@@ -12,6 +12,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, apiClient } from "@/lib/api-client";
 import { capture } from "@/lib/posthog";
+import { markFollow } from "@/lib/push-subscription";
 import type { FollowMutationResponse, FollowState, ProfileResponse } from "@/lib/social-types";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -59,6 +60,9 @@ export function FollowButton({ handle, initialRelation, initialFollowerCount, vi
     },
     onSuccess: (data) => {
       capture("social.follow", { followee_handle: handle, state: data.state });
+      // T141 — bump the push-prompt counter so we can show the enable
+      // banner after the user has followed enough people.
+      markFollow();
       if (data.state === "pending") {
         toast({ title: "Request sent", description: "Awaiting approval." });
         queryClient.setQueryData<ProfileResponse>(PROFILE_KEY(handle), (cur) =>

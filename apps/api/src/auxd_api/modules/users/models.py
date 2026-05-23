@@ -204,6 +204,12 @@ class User(Document):
           to cover deleted / suspended accounts.
         * ``deletion_scheduled_for`` sparse — drives the daily GDPR sweep job
           that hard-deletes accounts past their 30-day grace window.
+
+        ``bson_encoders`` registers a serializer for :class:`datetime.time`
+        (used by ``quiet_hours_start`` / ``quiet_hours_end``). Beanie /
+        MongoDB do not natively encode bare time values; we persist them
+        as ``"HH:MM:SS"`` ISO-format strings and parse back via
+        ``time.fromisoformat`` on read (Pydantic's default parser).
         """
 
         name = "users"
@@ -216,6 +222,7 @@ class User(Document):
             ),
             IndexModel([("deletion_scheduled_for", ASCENDING)], sparse=True),
         ]
+        bson_encoders = {time: lambda t: t.isoformat()}  # noqa: RUF012
 
 
 class HandleRedirect(Document):

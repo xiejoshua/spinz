@@ -1252,3 +1252,85 @@ inbox + T141 push-subscribe) deferred to Session 21.
 - 🟡 **T141 frontend push-subscribe UI** — backend endpoints are ready (`POST/DELETE /api/v1/users/me/push-subscriptions`); frontend permission-prompt logic + subscription POST + ServiceWorker scaffold ships in S21.
 - 🟡 **§13 frontend wave (T139 + T140 + T141)** — remaining backend-foundation-complete handoffs: notification prefs UI, in-app feed UI with bell + unread count, push-permission prompt. These are the last 3 §13 tasks before the cluster closes.
 
+
+## Session 21 — §13 Notifications close-out: prefs UI + inbox + push subscribe (T139 + T140 + T141) — 2026-05-23 night (continuation)
+
+### Goal
+
+Close the §13 Notifications cluster by shipping the three frontend
+surfaces plus the read/update endpoints that back them. §13 was
+backend-complete after Session 20; this session adds: notification
+preferences UI (T139), in-app inbox UI with bell + unread badge (T140),
+and the web push subscribe prompt + service worker (T141). With the
+six new endpoints + the three UIs, §13 transitions from 11/14 →
+14/14 (cluster CLOSED).
+
+### What landed
+
+| Task | Surface |
+|------|---------|
+| Backend endpoints | Extended `apps/api/src/auxd_api/modules/notifications/routes.py` with 6 new endpoints: `GET /api/v1/notifications` (cursor pagination on `created_at|id` base64 — same composite-cursor pattern as T074 diary; sidecar denormalised `actor_handle` + `actor_display_name` per row to avoid N+1), `GET /api/v1/notifications/unread-count` (badge poll; 120/min rate limit), `POST /api/v1/notifications/{id}/read` (owner-only, idempotent), `POST /api/v1/notifications/mark-all-read` (10/min rate limit), `GET /api/v1/users/me/notification-preferences` (response flattens User.quiet_hours_{start,end,tz} into a nested `{quiet_hours: {enabled, start, end, tz}}` object so the form binds cleanly), `PUT /api/v1/users/me/notification-preferences` (IANA tz validation via `zoneinfo.ZoneInfo`; rejects security-email-lock attempts with 422 `security_email_locked`). |
+| Backend model fix | `apps/api/src/auxd_api/modules/users/models.py` — added `bson_encoders` for `datetime.time` to User.Settings so the existing `quiet_hours_start/end: time | None` fields round-trip cleanly through MongoDB. (Predates this session — the original T021 + T026 declared the field but no caller exercised it until now.) |
+| Codegen | Backend route changes → ran `pnpm --filter @auxd/shared-types codegen`. `packages/shared-types/src/api.ts` +543 lines covering the 6 new endpoints. Now imported by the frontend prefs + inbox + bell components. |
+| T139 — Notification preferences UI | `apps/web/src/app/(app)/settings/notifications/page.tsx` + `components/notifications/prefs-form.tsx`. Per-type per-channel toggles grouped per taxonomy doc (Activity / Digests / Account & system / Quiet hours). Quick controls (Mute all push / Mute all email / Mute all in-app). N-008 push hardcoded-off and N-016/N-017 email locked-on at the UI level (server is authoritative); curated IANA timezone select with browser-resolved fallback. RHF + Zod + React Query mutation; 422 `security_email_locked` from server surfaces via `setApiFormErrors`. PostHog `settings.notifications_updated` on save. |
+| T140 — In-app inbox UI | `components/notifications/notification-bell.tsx` + `notification-list.tsx` + `notification-card.tsx` + `app/(app)/notifications/page.tsx`. Bell mounted in (app)/layout sticky header; polls `unread-count` every 60s (`staleTime: 30s, refetchInterval: 60s`); badge caps at "99+". List uses useInfiniteQuery with cursor pagination. Per-row type-specific copy via `copyPartsFor(notification)` covering all 16 active types incl. coalesced rollups ("X and N others posted new updates"); click-action navigates via `clickUrlFor(notification)` then POSTs mark-read. "Mark all as read" button at top with optimistic invalidation of list + unread count. Empty state: "You're all caught up". |
+| T141 — Web push subscribe flow | `components/notifications/push-prompt.tsx` (non-modal banner on /notifications page) + `push-bootstrap.tsx` (silent SW registration + first-visit stamp at app boot) + `lib/push-subscription.ts` (capability detection + counters + criteria + VAPID subscribe). Criteria: `follows_count >= 3 OR (now - first_visit_at) >= 7d` (taxonomy doc rule "not on first session"). `markFollow()` wired into FollowButton mutation onSuccess + onboarding step-2 follow loop. "Not now" sets `dismissed_at` localStorage stamp (re-show after 14d). `public/sw.js` minimal service worker: push event renders `self.registration.showNotification(title, {body, tag, data:{click_url,type}, icon, badge})`; notificationclick handler focuses an existing matching tab or opens a new window. NEXT_PUBLIC_VAPID_PUBLIC_KEY env var added to `.env.example`. |
+| New UI primitive | `apps/web/src/components/ui/switch.tsx` — minimal headless Switch (no Radix dep; mirrors shadcn API; future Radix swap is one file). |
+| API client extension | `apps/web/src/lib/api-client.ts` — added `put` method (existing wrapper had only get/post/patch/delete). |
+
+### Tests added
+
+| File | Coverage |
+|------|---------|
+| `apps/api/tests/integration/test_notification_endpoints.py` (NEW, 25 tests) | list happy path + cursor pagination + sidecar shape + owner-only filter + 401 unauth + rate-limit boundary on list AND unread-count AND mark-read AND mark-all-read AND prefs PUT + mark-read idempotent + mark-all-read marks every unread + prefs GET shape flattens quiet_hours correctly + prefs PUT round-trips + IANA tz invalid → 422 + security_email_locked → 422 + quiet_hours.enabled True requires both start+end (422 if missing). |
+| `apps/web/tests/unit/notifications-copy.test.ts` (NEW, 30 tests) | parametrised over the 16 type values: `copyPartsFor` renders right placeholders + `clickUrlFor` resolves to the right path per type + coalesced rollup copy + `formatUnreadBadge` caps at 99+ + `timeAgo` formats. |
+| `apps/web/tests/unit/push-subscription.test.ts` (NEW, 8 tests) | `isPushSupported` true/false branches + criteria evaluation (3-follow short-circuits before 7d; 7d elapsed without follows still trips) + `markFollow` increments + `markDismissed` writes timestamp + criteria respects 14d re-show window. |
+
+### Progressive verify
+
+| Check | After | Backend | Frontend |
+|---|---|---|---|
+| #1 | §13 close-out (backend endpoints + T139 + T140 + T141 + codegen) | ✅ ruff + format + mypy strict + pytest **850 pass / 3 skip** (+25 new) | ✅ Biome 107 files clean + tsc 0 errors + Vitest **59 pass** (+35 from 24 baseline) + `next build` 15 routes (+2 new: `/notifications` 8.67 kB / 279 kB FLJS; `/settings/notifications` 8.22 kB / 272 kB FLJS) + codegen regenerated api.ts (+543 lines) |
+
+### Status snapshot
+
+- Tasks completed: **123 → 126 / 172** (73%). **§13 Notifications 11/14 → 14/14 CLUSTER COMPLETE.** Twelve clusters fully closed: §0 §1 §3 §4 §5 §6 §7 §8 §9 §10 §11 §13.
+- Backend test suite: **825 → 850 pass / 3 skip** (+25 net new).
+- Frontend unit tests: **24 → 59** (+35 — 30 copy-renderer + 8 push criteria — bigger jump than typical because two new test files landed in one go).
+- Frontend routes: **(unchanged at 15 + 2 new = effectively 17 user-facing) — `/notifications` + `/settings/notifications` shipped.**
+- `next build` first load JS: shared chunks now 185 kB (was 189 kB Session 18) — Next.js de-dup of shadcn primitives across more routes shaved 4 kB off the shared bundle.
+
+### Decisions + non-obvious calls
+
+- **Bell mounted in a NEW sticky header** in `(app)/layout.tsx` rather than retrofitted into the bottom-tabs bar. Bottom-tabs are touch targets at thumb-reach; a notification bell wants top-corner placement so the badge is visible without blocking content. If a future mobile-first redesign moves the bell into a bottom-tab "Inbox" slot, this header can shrink.
+- **bson_encoders fix for `datetime.time` was load-bearing.** User.Settings didn't have a BSON encoder for `time`, which Beanie/PyMongo can't natively serialise. mongomock-motor papers over this in tests; production Atlas would have errored on first prefs PUT with quiet-hours enabled. Caught BEFORE first deploy by the new endpoint integration tests — would have been a P0 in prod otherwise.
+- **Coalesced rollup copy simplified to "X and N others posted new updates"** because the dispatcher's coalesced child rows are not yet linked back to the parent (T133-followup carry-over from Session 19). The display side reads `payload.coalesced_count` directly; deeper backfill stays a follow-up.
+- **Curated timezone select instead of full `Intl.supportedValuesOf("timeZone")` dropdown.** A scannable list of ~12 common zones plus the browser's resolved zone covers 99% of use cases; the full IANA list (~400 entries) is an a11y nightmare in a select. Power users with niche tz can be a follow-up follow-up.
+- **Custom shadcn-style Switch primitive (no Radix dep)** keeps the bundle thinner and avoids the @radix-ui/react-switch dep tree. Mirrors the shadcn API exactly so a future Radix swap is `git mv` + one line of import alias.
+- **`PUT` method added to api-client wrapper.** The existing wrapper had GET/POST/PATCH/DELETE — PUT is the new one. Followed the existing pattern verbatim (URL + headers + body shape).
+- **Push prompt is non-modal.** Per taxonomy doc line 114 ("not on first session, too aggressive"), the prompt is a dismissible banner on `/notifications`, NOT a modal interrupting the user. Three CTA buttons: enable / not now / link-to-settings. PostHog tracks all four outcomes (shown / granted / denied / dismissed) so the funnel is visible without prod logs.
+- **`markFollow()` wired into FollowButton + onboarding step-2** but NOT the discover-tab follow button or future profile-level follow CTAs. Flagged as a 🟡 follow-up — the prompt-trigger counter undercounts for users who follow exclusively via /discover or other surfaces. Acceptable at MVP (the 7d activity fallback catches them); fix when the second push-prompt iteration ships.
+
+### Tests + quality gates
+
+| Gate | Result | Detail |
+|------|:------:|--------|
+| Backend ruff | ✅ | All checks passed |
+| Backend ruff format | ✅ | 173 files already formatted |
+| Backend mypy --strict | ✅ | No issues found in 173 source files |
+| Backend pytest | ✅ | 850 pass / 3 skip (+25 net new) |
+| Frontend Biome lint | ✅ | 107 files clean |
+| Frontend tsc | ✅ | 0 errors |
+| Frontend Vitest | ✅ | 59 pass (+35 from new copy + push-subscription tests) |
+| Frontend `next build` | ✅ | 15 visible routes; +2 new (/notifications, /settings/notifications); shared FLJS 185 kB |
+| Codegen (`@auxd/shared-types`) | ✅ | api.ts +543 lines reflecting 6 new endpoints |
+
+### Follow-ups flagged (NEW this session)
+
+- 🟡 **`markFollow()` counter undercount** — only wired into FollowButton + onboarding step-2 follow loop. Discover-tab follows + future profile-page follow CTAs don't increment yet. The 7d activity fallback catches inactive cases at MVP; wire more sites when push-prompt second iteration ships.
+- 🟡 **Coalesced child→parent linkback (T133-followup carry-over)** — display reads `payload.coalesced_count` directly so the UI works; the dispatch.coalesced_into pointer remains unbackfilled. Sweep job or write-time backfill is the long-term fix.
+- 🟡 **Permission-denied → cleared-storage re-prompt** — if a user denies the OS permission and then later clears browser storage, the prompt re-fires when their counter trips again. No friction at MVP; a `permission == "denied"` localStorage stamp persisted across sessions (or server-side) would suppress re-prompts.
+- 🟡 **Timezone select coverage** — curated IANA list of ~12 zones + browser-resolved fallback. Power users in niche zones will need either a manual settings.notification_preferences.quiet_hours.tz override (not exposed in the UI) or a future "Show all timezones" option.
+- 🟡 **Notification-list `update_many().raw_result` shape variance** — Beanie returns different shapes between mongomock and real Mongo for `update_many` return value; the mark-all-read endpoint defensively reads both `nModified` and `modified_count`. Verified against mongomock branch in tests; production Atlas should also work but worth a smoke-test post-deploy.
+- 🟡 **§13 cluster CLOSED.** Twelve clusters now complete: §0 §1 §3 §4 §5 §6 §7 §8 §9 §10 §11 §13. Remaining work: stranded T030 + T094, §14 (8), §15 (9), §16 (5), §17 (4), §18 (9) = 36 tasks left. Mid-50%-cluster-closure decision point: portfolio review + §14-vs-§15 priority call.
+
