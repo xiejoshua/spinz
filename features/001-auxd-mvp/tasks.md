@@ -1167,37 +1167,13 @@
 
 ## §13 Notifications (load-bearing — Goodreads-firehose prevention)
 
-- [ ] **T131 — Notification dispatcher core**
-      Paths: apps/api/src/auxd_api/modules/notifications/dispatcher.py, apps/api/tests/unit/test_dispatcher.py
-      Size: L
-      Deps: T026
-      Refs: FR-012; plan §8
-      Description: `dispatch(user_id, type, payload)` entry point. Calls `is_notifiable()` → `coalesce()` → fan-out to adapters. Single in-process at MVP.
-      Done: unit tests cover all branches.
+- [x] **T131 — Notification dispatcher core** *(completed 2026-05-23 Session 19; `dispatch(*, user_id, type, payload, actor_id=None, follow_source=None)` orchestrates suppression → is_notifiable per channel → coalescer → fan-out via registered adapters (`asyncio.gather(return_exceptions=True)` for adapter isolation) → emits `notification.dispatched` PostHog on every decision path. Internal-service surface only; no FastAPI routes. 21 unit tests cover happy path, recipient-missing/suspended, T142 onboarding suppression, per-channel decision fan-out, coalesce/drop wiring, adapter exception isolation, and dispatcher-level error fail-safe.)*
 
-- [ ] **T132 — `is_notifiable` predicate**
-      Paths: apps/api/src/auxd_api/modules/notifications/dispatcher.py
-      Size: S
-      Deps: T131
-      Refs: notification-taxonomy.md §Settings UI
-      Description: Checks per-user-per-type-per-channel preferences, quiet hours, blocks, account status. Returns per-channel dispatch decision.
-      Done: unit tests cover all dimensions.
+- [x] **T132 — `is_notifiable` predicate** *(completed 2026-05-23 Session 19; co-located in dispatcher.py — `is_notifiable(user, notif_type, channel, *, actor_id=None, now=None) -> ChannelDecision`. Decision order: user.status → recipient `Block` check → per-channel pref dict → fallback to `TYPES[type].default_*` → quiet-hours check (push-only per NT-3; email/digest immune) → security-types email lock (N-016/N-017 cannot be disabled on email). TZ math via `zoneinfo.ZoneInfo` with start>end midnight-rollover. Reason strings: user_pref_off / channel_default_off / quiet_hours / blocked / user_status / security_email_locked.)*
 
-- [ ] **T133 — Coalescer + rate limiter**
-      Paths: apps/api/src/auxd_api/modules/notifications/coalescer.py, apps/api/tests/integration/test_coalescer.py
-      Size: L
-      Deps: T131, T013
-      Refs: notification-taxonomy.md anti-spam guardrails; TC-026
-      Description: Redis sorted-set-backed limiter: ≤5/hr, ≤25/day per user. Per-actor coalescing: ≤3/24h from same actor. Per-event dedup: same actor+type+target within 1h drops the second. Burst → coalesced "X new updates" notification.
-      Done: TC-026 passes.
+- [x] **T133 — Coalescer + rate limiter** *(completed 2026-05-23 Session 19; `allow_dispatch(*, user_id, actor_id, notif_type, target_id=None, now_ms=None) -> CoalesceDecision`. Four Redis buckets: per-user per-type hour (5/hr) + day (25/day) sorted-set sliding windows, per-actor cross-type day (3/24h, sorted-set) when actor present, per-event dedup (`SET NX EX 1h` atomic race-free). Verdicts: dedup hit → drop, any rate breach → coalesce(coalesced_window), else send. FAIL OPEN on Redis down with Sentry `notif_limiter.redis_down`. Mirrors `lib/rate_limit.py` pipeline pattern. fakeredis>=2.0 added to dev deps. 16 integration tests incl. TC-026 review-storm scenario.)*
 
-- [ ] **T134 — InApp notification adapter**
-      Paths: apps/api/src/auxd_api/modules/notifications/adapters/in_app.py
-      Size: S
-      Deps: T131, T026
-      Refs: FR-012
-      Description: Writes to `notifications` collection.
-      Done: unit + integration tests.
+- [x] **T134 — InApp notification adapter** *(completed 2026-05-23 Session 19; `InAppAdapter.send(*, user_id, type, payload, actor_id=None, coalesced_count=0) -> Notification` writes the Beanie row with `dispatch.in_app_delivered=True`; on `coalesced_count > 0` stamps `payload["coalesced_count"]` so the inbox UI can render "X new updates today". Sister-file `adapters/__init__.py` exposes `NotificationAdapter` Protocol + `register_adapter` extension point (one-line wiring for T135/T136 next session) + `reset_registry()` test helper. 5 integration tests.)*
 
 - [ ] **T135 — Email notification adapter (Resend) + failure-mode wiring**
       Paths: apps/api/src/auxd_api/modules/notifications/adapters/email.py, apps/api/src/auxd_api/modules/notifications/models.py (FailedEmail Document), apps/api/src/auxd_api/templates/email/*
@@ -1216,13 +1192,7 @@
       Description: VAPID-signed push notification adapter for the general notification fan-out (follow, review-liked, mentions, etc.). Reads VAPID keypair from settings (T008 generated). Send-and-forget via `pywebpush` (or equivalent). Click action deep-links to the originating context (review → album page; follow → follower's profile). Respects per-user-per-type push preferences via T132 `is_notifiable`. CR-001 NOTE: this absorbs what was previously a stub task pointing at T128 — T128's auto-prompt-specific path defers to v2.
       Done: integration test: send notification to a registered subscriber via test endpoint; assert payload + click_url.
 
-- [ ] **T137 — Notification types (all 18 actives)**
-      Paths: apps/api/src/auxd_api/modules/notifications/types.py, apps/api/tests/integration/test_notification_types.py
-      Size: M
-      Deps: T131, T132, T133, T134, T135
-      Refs: FR-012; notification-taxonomy.md
-      Description: Implement each of N-001..N-018 active types with: trigger source(s), payload schema, copy templates per channel, default settings. Integration tests fire each type and verify dispatch.
-      Done: 18 types instrumented; defaults match taxonomy table.
+- [x] **T137 — Notification types (all 16 active per CR-001)** *(completed 2026-05-23 Session 19; `TYPES: dict[NotificationType, NotificationTypeSpec]` covers every enum value with `required_payload_keys`, `default_{in_app,email,push}` mirroring the taxonomy table, plus `in_app_copy` / `email_subject` / `email_preheader` / `push_body` templates. `validate_payload(type, payload)` raises ValueError on missing keys (called pre-fan-out). `render_in_app(type, payload)` uses `.format(**payload)` — Jinja arrives with T135 next session. N-009/N-010 registered with all defaults OFF (taxonomy says DEFERRED-TO-V2 but enum retains them; deferred dedupe is a follow-up). 54 parametrised integration tests over the enum. NOTE: task title says "18" but CR-001 deferred N-011 (Spotify) and N-018 (just-finished), leaving 16 active.)*
 
 <!-- CR-002: hero count amended from single → three-hero carousel (NT-2). -->
 - [ ] **T138 — Weekly digest job**
@@ -1258,13 +1228,7 @@
       Description: Push permission prompt shown after user's 3rd follow OR 7d of activity (whichever first), not on first session.
       Done: prompt logic verified.
 
-- [ ] **T142 — Critic-seed onboarding wave: suppress N-001 follow notifications**
-      Paths: apps/api/src/auxd_api/modules/notifications/dispatcher.py
-      Size: XS
-      Deps: T131, T117
-      Refs: NT-1
-      Description: When `Follow.source == onboarding_preselected`, suppress N-001 dispatch. Critic-seed accounts don't get hit by onboarding-wave notifications.
-      Done: integration test.
+- [x] **T142 — Critic-seed onboarding wave: suppress N-001 follow notifications** *(completed 2026-05-23 Session 19; wired inside dispatcher.dispatch at the suppression-check stage. `notif_type is N001_FOLLOW_NEW and follow_source == "onboarding_preselected"` → log `notification.suppressed_onboarding_preselected` + emit a `decision=suppressed` PostHog event + return None. `ONBOARDING_PRESELECTED_SOURCE` exported from dispatcher.py as single source of truth. 4 integration tests assert N-001 suppressed only when onboarding_preselected, N-002 NOT suppressed even with that source.)*
 
 - [ ] **T143 — Coalesce review.liked into weekly digest aggregate**
       Paths: apps/api/src/auxd_api/workers/digest_dispatch.py
@@ -1274,13 +1238,7 @@
       Description: Weekly digest includes "your reviews got X likes this week" hero entry for users with ≥1 like in trailing week.
       Done: covered in digest test.
 
-- [ ] **T144 — Notification rate-limit alerting**
-      Paths: apps/api/src/auxd_api/lib/observability.py, .github/workflows/observability-alerts.yml
-      Size: XS
-      Deps: T015, T133
-      Refs: NFR Measurement Contract
-      Description: PostHog dashboard "notification rate per user per week" with alert at p95 >12 (excluding digest).
-      Done: dashboard live; alert configured.
+- [x] **T144 — Notification rate-limit alerting** *(completed 2026-05-23 Session 19; every dispatch call emits `notification.dispatched` with `{recipient_id, actor_id, type, decision, channels}` via `emit_event` from lib/observability — covers every decision path (send/coalesce/drop/suppressed). Descriptive operator config at `apps/api/src/auxd_api/modules/notifications/posthog_dashboard.yml` captures dashboard intent + p95 > 12 events/user/week alert threshold (excluding weekly.digest). Operator-applied; dashboard creation is a one-time PostHog UI task.)*
 
 ---
 

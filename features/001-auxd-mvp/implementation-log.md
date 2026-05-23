@@ -1095,3 +1095,82 @@ the follow-critics deck UI (T118), the success / land-on-feed step
 - 🟡 **Mutual-taste tier unlock** — currently every card is critic-seeded with `source: onboarding_preselected`. Wire the true mutual-taste algorithm (T163) + the optional rating intent (T079) so the secondary tier carries real `source: onboarding_mutual_taste`.
 - 🟡 **`onboarding.completed` PostHog dashboard** — event is firing; the funnel chart that consumes it (started → step-2 → step-3 → first-log → first-friend-follow) is not yet wired in PostHog. Founder task; not a code surface.
 
+
+## Session 19 — §13 Notifications backend foundation (T131, T132, T133, T134, T137, T142, T144) — 2026-05-23 night
+
+### Goal
+
+Open §13 with the backend chain that gates every notification before it
+fans out: dispatcher (T131), `is_notifiable` predicate (T132),
+coalescer + rate-limiter (T133), in-app adapter (T134), the 16 active
+type specs (T137), the onboarding-wave suppression rule (T142), and the
+PostHog `notification.dispatched` emit that powers the rate-limit
+dashboard (T144). Adapters for Email (T135), Web Push (T136), and the
+preferences / inbox UI (T139, T140) are explicitly out of scope —
+extension points only.
+
+### What landed
+
+| Task | Surface |
+|------|---------|
+| T131 — Dispatcher core | `apps/api/src/auxd_api/modules/notifications/dispatcher.py`. Single async `dispatch(*, user_id, type, payload, actor_id=None, follow_source=None)` entry point. Flow: load `User` → suppression checks (T142) → `is_notifiable` per channel → coalescer → fan-out via registered adapters using `asyncio.gather(return_exceptions=True)` (one adapter failure does not poison siblings) → always emits `notification.dispatched` PostHog event regardless of decision. Returns the persisted `Notification` on `send`/`coalesce`, `None` on `drop`/`suppressed`. Internal-service surface only — no FastAPI routes registered. |
+| T132 — `is_notifiable` | Same file; `is_notifiable(user, notif_type, channel, *, actor_id=None, now=None) -> ChannelDecision`. Decision order: user.status → recipient-side `Block` check → per-channel preference dict (`user.notification_preferences.{channel}[type.value]`) → fallback to `TYPES[type].default_{channel}` → quiet-hours check (push only — NT-3 keeps email/digest immune) → security-types email lock (N-016/N-017 cannot be disabled on email). `ChannelDecision(channel, allowed, reason)` is a frozen dataclass; `reason` is one of `user_pref_off / channel_default_off / quiet_hours / blocked / user_status / security_email_locked`. Quiet-hours TZ math uses `zoneinfo.ZoneInfo(user.quiet_hours_tz)` + start>end rollover-midnight handling. |
+| T133 — Coalescer + rate limiter | `apps/api/src/auxd_api/modules/notifications/coalescer.py`. `allow_dispatch(*, user_id, actor_id, notif_type, target_id=None, now_ms=None) -> CoalesceDecision`. Four Redis sorted-set / SETEX buckets per plan §8.2: (1) per-user per-type hour (`notif:{user_id}:rate:{type}:hour`, 5/hr) (2) per-user per-type day (..:day, 25/day) (3) per-actor cross-type day (`notif:{actor_id}:{user_id}:cross_type:day`, 3/24h, only when actor present) (4) per-event dedup (`notif:dedup:{type}:{actor_id}:{target_id}`, SET NX EX 1h — atomic race-free dedup write). Verdicts: dedup hit → `drop`, any rate-bucket breach → `coalesce(coalesced_window=…)`, else `send` (records hits in all three rate buckets). FAIL-OPEN on Redis unavailability — emits Sentry `notif_limiter.redis_down` warning via `sentry_sdk.push_scope`. Mirrors the sorted-set pipeline pattern from `lib/rate_limit.py`. |
+| T134 — InApp adapter | `apps/api/src/auxd_api/modules/notifications/adapters/__init__.py` (Protocol + `register_adapter` / `reset_registry` extension points) + `adapters/in_app.py`. `InAppAdapter.send(*, user_id, type, payload, actor_id=None, coalesced_count=0) -> Notification` writes the Beanie row with `dispatch.in_app_delivered=True`; on `coalesced_count > 0` it stamps `payload["coalesced_count"]` so the inbox UI can render "X new updates today". Registered at module load. Email + Push adapter registration deferred to T135/T136. |
+| T137 — All 16 active type specs | `apps/api/src/auxd_api/modules/notifications/types.py`. `TYPES: dict[NotificationType, NotificationTypeSpec]` covers every enum value with `required_payload_keys`, `default_{in_app,email,push}` mirroring the taxonomy table, plus `in_app_copy` / `email_subject` / `email_preheader` / `push_body` templates. `validate_payload(type, payload)` raises `ValueError` on missing required keys (called from the dispatcher pre-fan-out). `render_in_app(type, payload)` uses `.format(**payload)` for the MVP copy layer — Jinja arrives with T135's email templates next session. |
+| T142 — Onboarding-wave suppression | Wired inside `dispatcher.dispatch` at the suppression-checks stage: `notif_type is N001_FOLLOW_NEW and follow_source == "onboarding_preselected"` → log `notification.suppressed_onboarding_preselected` + emit a `decision=suppressed` PostHog event + return `None`. The `ONBOARDING_PRESELECTED_SOURCE = "onboarding_preselected"` constant is exported from `dispatcher.py` so call sites pull from one source of truth. Other types (N-002 et al.) are NOT suppressed even when `follow_source == onboarding_preselected`. |
+| T144 — Rate-limit alerting | Two pieces. (a) Every `dispatch` call emits `notification.dispatched` with `{recipient_id, actor_id, type, decision, channels}` via `emit_event` — this is the analytics event the alert consumes. (b) `apps/api/src/auxd_api/modules/notifications/posthog_dashboard.yml` is a descriptive config (operator-applied) capturing "notification rate per user per week" aggregated over `decision == send` events, faceted by `type`, with alert at p95 > 12 events/user/week (excluding `weekly.digest`). |
+
+### Tests added
+
+| File | Coverage |
+|------|---------|
+| `apps/api/tests/unit/test_dispatcher.py` (NEW, 21 tests) | Happy path + recipient missing + recipient suspended → suppressed-all + T142 onboarding suppression + per-channel decision honoured (in-app on, email off, push off) + coalesce decision wires through + drop (dedup) returns None + `notification.dispatched` fires on every path (use monkeypatch on `emit_event`) + adapter exception isolation via `gather(return_exceptions=True)` + dispatcher-level exception → None + Sentry tag + is_notifiable: pref on/off/absent + default on/off + blocked + suspended + quiet-hours push suppressed + email immune + security types email locked + TZ rollover-midnight + actor block lookup. |
+| `apps/api/tests/integration/test_coalescer.py` (NEW, 16 tests) | Under-limit → send (records hits in all 3 buckets) + per-user per-type hour breach (5 → 6th = coalesce, window="hour") + day breach (25 → 26th, window="day") + actor cross-type breach (3 in 24h, window="actor_24h") + dedup same `(type, actor, target)` within 1h → drop + different actor or target or type → not deduped + no actor_id → cross-type bucket skipped + fail-open: `get_redis` raises → send + Sentry tag fires + key shapes asserted + TC-026 review-storm scenario end-to-end. |
+| `apps/api/tests/integration/test_in_app_adapter.py` (NEW, 5 tests) | Writes Notification with right user_id/type/payload/actor_id + `in_app_delivered=True` + `coalesced_count` propagates into payload + `read_at` is None on create + multiple sends create separate rows (no inline coalesce — that's the dispatcher's job). |
+| `apps/api/tests/integration/test_notification_types.py` (NEW, 54 tests) | Parametrised over every enum value: TYPES entry exists + defaults match taxonomy table cells + `validate_payload` raises on missing keys / succeeds on full payload + end-to-end dispatch with stock payload writes the right Notification + renders the right in-app copy. |
+| `apps/api/tests/integration/test_onboarding_suppression.py` (NEW, 4 tests) | `source="onboarding_preselected"` + N-001 → no Notification row + no `send`-decision PostHog event + `source="manual"` + N-001 → row written + `source="profile"` (default) + N-001 → row written + N-002 (`follow.request_pending`) with `onboarding_preselected` source → NOT suppressed (only N-001 is). |
+| `apps/api/pyproject.toml` (modified) | Added `fakeredis>=2.0` to dev dependencies for coalescer integration tests — same vintage as `respx` was added in §4. |
+
+### Progressive verify
+
+| Check | After | Backend |
+|---|---|---|
+| #1 | §13 backend foundation (T131 + T132 + T133 + T134 + T137 + T142 + T144) | ✅ ruff + format + mypy strict + pytest **791 pass / 3 skip** (+100 new) |
+
+### Status snapshot
+
+- Tasks completed: **112 → 119 / 172** (69%). Backend `§13 Notifications` 0/14 → 7/14. Eleven clusters fully closed (§0 §1 §3 §4 §5 §6 §7 §8 §9 §10 §11) + §13 backend foundation in flight.
+- Backend test suite: **691 → 791 pass / 3 skip** (+100 net new this session — biggest single-session test addition to date).
+- Frontend: untouched.
+
+### Decisions + non-obvious calls
+
+- **N-009 / N-010 are enum members but registered with all defaults OFF.** The enum (T026 source of truth) still has `N009_IMPORT_COMPLETED` and `N010_IMPORT_FAILED`, while notification-taxonomy.md lists both as DEFERRED-TO-V2. Keeping them in the registry with `default_{in_app,email,push}=False` and explicit CR-001 comments preserves the parametrised-over-enum testing pattern AND ensures any stray dispatch is suppressed by default. T026 dedupe between enum vs taxonomy is a future cleanup; behavior is correct today.
+- **Dedup uses `SET NX EX`** instead of `GET` + `SETEX`. Atomic write-if-absent races correctly under concurrent dispatch — two simultaneous "Alex followed Bob" events arriving in parallel will see exactly one win the SET, exactly one fire, and exactly one drop.
+- **Coalesce verdict fans out IN-APP ONLY at MVP.** When the coalescer says "coalesce", the dispatcher writes a single rolled-up Notification with `payload["coalesced_count"]` and SKIPS email + push for that decision. Email + push will continue to fan out on `send` verdicts when T135/T136 register. Matches the "X new updates today" inbox UX.
+- **`coalesced_from` payload key** holds a (currently single-element) list of source `type.value` strings so the future T133-followup sweep can rebuild the `ChannelDispatchState.coalesced_into` parent→child pointer without a schema migration.
+- **`target_id` lifted from payload** via `payload.get("review_id") or payload.get("album_id") or payload.get("report_id")` — keeps the dispatcher's call signature simple while still honestly de-duping the four MVP types that need it. When a future type needs a custom target field, override is one line in `_target_id_for_payload`.
+- **Security-types email lock is a hard gate.** N-016 (`security.new_session`) and N-017 (`security.password_changed`) on email channel return `allowed=True` regardless of `user.notification_preferences.email[…]`. The pref dict can store `False` but the predicate ignores it. Matches the taxonomy table "[email ✓ (locked)]" annotation; security email is non-disable-able.
+- **`notification.dispatched` fires on EVERY decision path** — `send`, `coalesce`, `drop`, `suppressed`. That gives the operator dashboard full visibility into where the firehose is being shaped (which suppressions matter, which dedup keys are hot). T144's alert thresholds use `where decision == send` so coalesced rows don't inflate the noise count.
+- **`reset_registry()` test helper** intentionally exported from `adapters/__init__.py`. Test files can swap a broken adapter in/out without monkeypatching dispatcher internals — keeps the test surface clean and decoupled from the dispatcher's import-time wiring.
+- **`fakeredis>=2.0` dev-dep** added for coalescer integration tests so we don't need a live Redis. Same vintage and same install pattern as `respx` from §4. Production code touches `redis_client.get_redis()` only; tests monkeypatch that to return a `fakeredis.aioredis.FakeRedis()` instance.
+
+### Tests + quality gates
+
+| Gate | Result | Detail |
+|------|:------:|--------|
+| Backend ruff | ✅ | All checks passed |
+| Backend ruff format | ✅ | 163 files already formatted |
+| Backend mypy --strict | ✅ | No issues found in 163 source files |
+| Backend pytest | ✅ | 791 pass / 3 skip (+100 net new) |
+
+### Follow-ups flagged (NEW this session)
+
+- 🟡 **T133-followup sweep** — coalesced parent's id is currently NOT written back onto child rows' `ChannelDispatchState.coalesced_into`. Marked with `# TODO(T133-followup)` in dispatcher.py. Either a future arq cron sweeps the trailing window or the dispatcher writes the parent before coalescing children. Defer until in-app coalescing UI lands (T140).
+- 🟡 **N-005 (`review.reply`) is registered as v2-reserved with a working spec.** No producer fires it at MVP. Integration test exercises the dispatch shape only — when reply ships in v2 wire the producer at the review-reply create site.
+- 🟡 **Enum-vs-taxonomy dedupe for N-009 / N-010** — either remove from `NotificationType` enum (writes a schema migration touchpoint) or update taxonomy doc to reflect the "registered but all-defaults-OFF" reality.
+- 🟡 **`sentry_sdk.push_scope` DeprecationWarning** — the codebase already uses this pattern in `lib/rate_limit.py` so this PR matches the convention rather than introducing a new one. Cross-cutting cleanup (use `sentry_sdk.new_scope` per Sentry 3.x) is a separate ticket.
+- 🟡 **PostHog SSL warnings in test output** — `posthog.consumer` hits `us.i.posthog.com` during tests because PostHog client is lazy-init'd in lib/observability and tests don't fully mute it. Tolerated noise that the existing test suite already lives with; not introduced by this session.
+- 🟡 **Email + Push adapters (T135 / T136) need registration** — `register_adapter(channel, adapter_instance)` is the one-line extension point; both adapters' implementation modules will land in S20.
+

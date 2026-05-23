@@ -1,0 +1,71 @@
+# T144 — PostHog dashboard descriptor for the notification dispatcher.
+#
+# This file is OPERATOR-APPLIED (not auto-applied at deploy). It documents
+# the alerting contract for the notification subsystem so the dashboard
+# can be reconstructed deterministically from version control.
+#
+# Source event: ``notification.dispatched`` emitted by the dispatcher
+# (see dispatcher.py:_emit_dispatched). Every dispatch — send / coalesce /
+# drop / suppressed — fires exactly one event with these properties:
+#
+#   recipient_id : str       # KSUID of recipient
+#   actor_id     : str|null  # KSUID of originator (null for system)
+#   type         : str       # NotificationType value, e.g. "follow.new"
+#   decision     : str       # "send" | "coalesce" | "drop" | "suppressed"
+#   channels     : list[str] # fanned-out channel names ([] on drop/suppress)
+
+dashboard:
+  name: "Notification rate per user per week"
+  description: >
+    Anti-Goodreads-firehose guardrail. Counts notification.dispatched
+    events where decision == "send", grouped by recipient_id and week
+    (rolling 7-day window). Faceted by type for cohort comparison.
+  filters:
+    - event: notification.dispatched
+      where:
+        - "properties.decision == 'send'"
+        - "properties.type != 'weekly.digest'"  # the digest is exactly one/week — not noise
+  aggregation: count_per_user_per_week
+  facets:
+    - properties.type
+  primary_metric:
+    name: notifications_sent_per_user_per_week
+    unit: events
+    rollup: weekly
+
+alerts:
+  # Alert when the p95 of notifications-per-user-per-week exceeds 12.
+  # Threshold sourced from notification-taxonomy.md operating principle 6
+  # (≤5/hour, ≤25/day per type) — a healthy user should see ≤12 sends per
+  # week even after rate-limit coalescing. Past p95=12 indicates either a
+  # rogue producer or that the limiter is leaking.
+  - name: notification_rate_p95_high
+    when: p95(notifications_sent_per_user_per_week) > 12
+    over: rolling_7_days
+    excluding:
+      - properties.type == "weekly.digest"
+    severity: warning
+    runbook: |
+      1. Identify which `properties.type` is breaching by drilling into
+         the per-type facet — the alert hides the per-type breakdown.
+      2. Check Sentry for ``notif_limiter.redis_down`` events in the
+         same window — a Redis outage causes the coalescer to fail open
+         and breach this threshold legitimately.
+      3. If no Redis outage, the producer for that type is bypassing
+         the dispatcher. Audit recent changes to social/reviews modules.
+
+  # Secondary alert: the fail-open path itself. Surfaced separately so
+  # operators can correlate a rate-spike with a Redis outage without
+  # cross-referencing Sentry by hand.
+  - name: notification_limiter_redis_down_rate
+    when: count(sentry.notif_limiter.redis_down) > 10
+    over: rolling_5_minutes
+    severity: critical
+    runbook: |
+      Coalescer is failing open. Notifications are dispatching without
+      rate-limiting — expect a temporary spike in the primary metric
+      above. Restore Redis connectivity before alerting users.
+
+# Linked NFR row: plan.md "notification rate per user per week" (NFR
+# Measurement Contract). When the operator dashboard is rebuilt, the
+# `name` field above is the canonical PostHog dashboard title.
