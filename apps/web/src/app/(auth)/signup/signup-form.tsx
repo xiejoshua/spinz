@@ -34,10 +34,14 @@ export function SignupForm() {
       router.push("/onboarding/step-1");
     } catch (error) {
       if (error instanceof ApiError) {
-        // Helper returns true when it set at least one error (field or root).
-        // Don't read form.formState.errors here — setError() is async, so the
-        // check would race against the state update and see stale `undefined`.
-        const handled = setApiFormErrors(form, error);
+        // Pass error.detail (the parsed JSON body, shape {detail: ...}) — the
+        // helper reads payload.detail to find the inner {error, message} or
+        // Pydantic array. Passing `error` directly would double-nest because
+        // `error.detail === response body === {detail: {...}}`.
+        const handled = setApiFormErrors(
+          form,
+          error.detail as Parameters<typeof setApiFormErrors>[1]
+        );
         if (!handled) {
           form.setError("root", { message: `Signup failed (${error.status}).` });
         }

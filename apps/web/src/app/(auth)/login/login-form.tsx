@@ -43,9 +43,12 @@ export function LoginForm() {
           });
           return;
         }
-        // Helper returns true when it set at least one error. Don't read
-        // form.formState.errors after setError() — it's async; stale read.
-        const handled = setApiFormErrors(form, error);
+        // Pass error.detail (the JSON body) — see signup-form.tsx for the
+        // double-nesting trap if you pass `error` directly.
+        const handled = setApiFormErrors(
+          form,
+          error.detail as Parameters<typeof setApiFormErrors>[1]
+        );
         if (!handled) {
           form.setError("root", { message: `Login failed (${error.status}).` });
         }
