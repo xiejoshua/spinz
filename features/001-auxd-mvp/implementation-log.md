@@ -1334,3 +1334,15 @@ six new endpoints + the three UIs, §13 transitions from 11/14 →
 - 🟡 **Notification-list `update_many().raw_result` shape variance** — Beanie returns different shapes between mongomock and real Mongo for `update_many` return value; the mark-all-read endpoint defensively reads both `nModified` and `modified_count`. Verified against mongomock branch in tests; production Atlas should also work but worth a smoke-test post-deploy.
 - 🟡 **§13 cluster CLOSED.** Twelve clusters now complete: §0 §1 §3 §4 §5 §6 §7 §8 §9 §10 §11 §13. Remaining work: stranded T030 + T094, §14 (8), §15 (9), §16 (5), §17 (4), §18 (9) = 36 tasks left. Mid-50%-cluster-closure decision point: portfolio review + §14-vs-§15 priority call.
 
+### Post-session CI fix (commits 141b689 + 052eb32)
+
+After Session 21 pushed (commit 87a56fe), CI + e2e workflows turned red on the deploy:
+
+1. **e2e regression — `<Input type="email">` triggers Chromium native HTML5 validation BEFORE RHF/Zod runs.** Playwright `smoke.spec.ts:18` and `auth.spec.ts:13` expect `getByText("Enter a valid email address")` to render after submitting `"not-an-email"`, but the browser's native popup ("Please include an '@' in the email address…") intercepted the submit so the Zod message never made it into the DOM. **This was a pre-existing failure (10+ consecutive red pushes back to Session 14 era), not introduced by Session 21** — surfaced now because the e2e workflow only fails on the auth form pages we haven't been touching. **Fix at commit `141b689`**: added `noValidate` to the `<form>` in both `apps/web/src/app/(auth)/login/login-form.tsx` and `signup-form.tsx`. RHF + Zod own the validation UX; the browser popup was dead weight that was actively hiding our errors. The empty-string case passed all along because HTML5 type="email" considers empty input valid without `required` — only the "invalid format" case fell through.
+2. **Biome CI regression — `public/sw.js` used `&&` short-circuit where Biome wants optional chain.** Local `pnpm exec biome check src` missed this because the service worker lives at `public/sw.js` (outside `src/`). CI's `biome check .` (root scope) caught it. **Fix at commit `052eb32`**: replaced `(event.notification.data && event.notification.data.click_url)` with `event.notification.data?.click_url`. Behavior identical.
+3. **`apps/web/.gitignore` extended** with `test-results/` + `playwright-report/` so local Playwright runs don't dirty the working tree (was previously a single `.vercel` line).
+
+Both fixes verified locally (Playwright 8 passed / 3 skipped backend-dependent; Biome `.` 128 files clean) before push.
+
+Follow-up convention: run `pnpm exec biome check .` (not `biome check src`) before any commit that touches `public/`.
+
