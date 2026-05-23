@@ -4,6 +4,71 @@
  */
 
 export interface paths {
+    "/api/v1/albums/{album_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Album Detail
+         * @description Return the album-detail payload for the given album id.
+         *
+         *     Response shape::
+         *
+         *         {
+         *             "album": {...},
+         *             "editions": [{...}, ...],
+         *             "aggregate": {avg_rating, rating_count, review_count,
+         *                           aux_count, like_count},
+         *             "my_history": [{...}, ...],     // viewer's own diary entries
+         *             "friends": [{...}, ...],        // followed users' diary/reviews
+         *             "public_reviews": [{...}, ...]  // top reviews by likes_count
+         *         }
+         *
+         *     Returns ``HTTP 404`` when the album id is unknown.
+         */
+        get: operations["get_album_detail_api_v1_albums__album_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search
+         * @description Search the catalog with progressive provider fallback.
+         *
+         *     Args:
+         *         q: Free-text search term. Required, 1..200 chars.
+         *         type: Currently only ``"album"`` is supported.
+         *         limit: Maximum hits to return (1..25). Default 10.
+         *         mb_provider: Injected MusicBrainz :class:`CatalogProvider`.
+         *         discogs_provider: Injected Discogs :class:`CatalogProvider`.
+         *
+         *     Returns:
+         *         ``{results: [...], report_missing_album_url: str | None}``. The
+         *         report URL is non-null only when the merged result list is empty.
+         */
+        get: operations["search_api_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -38,15 +103,104 @@ export interface paths {
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
     headers: never;
     pathItems: never;
 }
+export type HttpValidationError = components['schemas']['HTTPValidationError'];
+export type ValidationError = components['schemas']['ValidationError'];
 export type $defs = Record<string, never>;
 export interface operations {
+    get_album_detail_api_v1_albums__album_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                album_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_api_v1_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                type?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     healthz_healthz_get: {
         parameters: {
             query?: never;
