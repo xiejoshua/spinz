@@ -38,6 +38,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/albums/{album_id}/friends": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Friends For Album
+         * @description Return the diary entries from followed users on ``album_id``.
+         *
+         *     Response shape::
+         *
+         *         {
+         *           "entries": [
+         *             {"user_id", "handle", "display_name", "avatar_url",
+         *              "rating", "auxed", "logged_at", "review_id"},
+         *             ...
+         *           ],
+         *           "next_cursor": null
+         *         }
+         *
+         *     Sort order: ``rating DESC, logged_at DESC``. Visibility filtering
+         *     uses the standard ``can_read_with_relation`` matrix so private and
+         *     follower-visibility entries follow the same rules as the rest of
+         *     the API.
+         *
+         *     No pagination at MVP — friends-who-rated lists are small per album.
+         */
+        get: operations["get_friends_for_album_api_v1_albums__album_id__friends_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/albums/{album_id}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Album Reviews
+         * @description Paginated list of reviews for an album with sort + tier ordering.
+         *
+         *     Query params:
+         *
+         *     * ``sort`` — ``newest`` (default), ``most_liked``, ``highest_rated``.
+         *     * ``cursor`` — opaque token from a prior call.
+         *     * ``limit`` — page size, default 25, capped at 100.
+         *
+         *     Response shape::
+         *
+         *         {
+         *             "reviews": [{...}, ...],
+         *             "next_cursor": "<base64>" | null,
+         *             "users": { "<user_id>": {id, handle, display_name, avatar_url}, ... }
+         *         }
+         *
+         *     Tier ordering (NOT exposed to the client):
+         *
+         *     1. **Friends** — reviews by users the viewer ACCEPTED-follows.
+         *     2. **Public** — any other public-visibility review.
+         *     3. **Critic seed** — reviews authored by users in the
+         *        :class:`CriticSeed` roster.
+         *
+         *     Within each tier, the requested sort applies. Visibility / block
+         *     filtering happens via the standard :class:`OwnedContent` matrix.
+         *
+         *     Returns ``HTTP 404`` when the album id is unknown.
+         */
+        get: operations["get_album_reviews_api_v1_albums__album_id__reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -151,6 +235,121 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/diary/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Diary Entry
+         * @description Log an album to the diary.
+         *
+         *     Returns ``201`` on a fresh insert, ``200`` when the idempotency
+         *     window swallows a double-tap (same ``(user_id, album_id)`` inside
+         *     60 seconds). Failure modes:
+         *
+         *     * ``404`` — unknown album.
+         *     * ``422`` — rating not in 0.5 increments (Pydantic bounds catch
+         *       out-of-range first).
+         */
+        post: operations["post_diary_entry_api_v1_diary_entries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/diary/entries/{entry_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Diary Entry
+         * @description Soft-delete an entry — owner-only. Returns 204 on success.
+         */
+        delete: operations["delete_diary_entry_api_v1_diary_entries__entry_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Patch Diary Entry
+         * @description Patch an entry — owner-only, active-only.
+         */
+        patch: operations["patch_diary_entry_api_v1_diary_entries__entry_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/diary/entries/{entry_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Restore Diary Entry
+         * @description Restore a soft-deleted entry within the 30-day grace window.
+         */
+        post: operations["restore_diary_entry_api_v1_diary_entries__entry_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Home Feed
+         * @description Return the viewer's home feed (fan-out-on-read + weighting).
+         *
+         *     Query params:
+         *
+         *     * ``cursor`` — composite base64 cursor from a prior page; malformed
+         *       cursors are silently treated as "no cursor" (matches diary).
+         *     * ``limit`` — page size, default 25, capped at
+         *       :data:`MAX_HOME_FEED_LIMIT`.
+         *     * ``mode`` — ``for_you`` (default) applies the weighting model;
+         *       ``latest`` disables weights and sorts ``logged_at DESC`` only.
+         *
+         *     Response shape::
+         *
+         *         {
+         *           "entries": [FeedEntry, ...],
+         *           "next_cursor": str | null,
+         *           "users":  {id: UserCard},
+         *           "albums": {id: AlbumCard},
+         *           "reviews": {id: ReviewSnippet}
+         *         }
+         *
+         *     Each ``FeedEntry`` carries ``score`` / ``score_components`` only for
+         *     ``mode=for_you``; ``latest`` strips them so the wire shape reflects
+         *     the actual sort key.
+         */
+        get: operations["get_home_feed_api_v1_feed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/missing-album": {
         parameters: {
             query?: never;
@@ -171,6 +370,121 @@ export interface paths {
          */
         post: operations["report_missing_album_api_v1_reports_missing_album_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Review
+         * @description Create a new review attached to a diary entry.
+         *
+         *     Returns ``201`` on a fresh insert. Failure modes:
+         *
+         *     * ``404`` — diary entry not found or deleted.
+         *     * ``403`` — caller is not the diary entry's owner.
+         *     * ``409`` — a Review already exists for that diary entry (1:1).
+         *     * ``422`` — body empty after sanitization or over the length cap.
+         */
+        post: operations["post_review_api_v1_reviews_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/reviews/{review_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Review By Id
+         * @description Fetch a single review by id with reviewer + album + viewer-entry sidecars.
+         *
+         *     Powers the ``/review/[id]`` SSR route (T093a). Visibility is enforced
+         *     via the same matrix used for the list endpoint — non-readers get
+         *     ``HTTP 404`` (not 403) so we don't leak the existence of private or
+         *     block-hidden reviews.
+         *
+         *     Response shape::
+         *
+         *         {
+         *             "review": {...},                 // _serialize_review
+         *             "user": {...} | null,            // reviewer's UserCard
+         *             "album": {...},                  // album payload (mirror of /albums/{id})
+         *             "viewer_entry": {...} | null     // viewer's own DiaryEntry on this album, if any
+         *         }
+         */
+        get: operations["get_review_by_id_api_v1_reviews__review_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Review Endpoint
+         * @description Soft-delete a review — owner-only. Returns 204 on success.
+         *
+         *     Failure modes:
+         *
+         *     * ``404`` — review not found.
+         *     * ``403`` — caller is not the review's owner.
+         *     * ``410`` — review already deleted (idempotent double-delete).
+         */
+        delete: operations["delete_review_endpoint_api_v1_reviews__review_id__delete"];
+        options?: never;
+        head?: never;
+        /**
+         * Patch Review
+         * @description Patch an existing review — owner-only.
+         *
+         *     Audit-log row is appended to :class:`ReviewEditHistory` before the
+         *     update lands. Failure modes:
+         *
+         *     * ``404`` — review not found or soft-deleted.
+         *     * ``403`` — caller is not the review's owner.
+         *     * ``422`` — body empty after sanitization.
+         */
+        patch: operations["patch_review_api_v1_reviews__review_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/reviews/{review_id}/like": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Review Like
+         * @description Like a review (idempotent).
+         *
+         *     Failure modes:
+         *
+         *     * ``404`` — review not found or deleted.
+         *     * ``400`` — caller is the review's author (self-like rejected).
+         */
+        post: operations["post_review_like_api_v1_reviews__review_id__like_post"];
+        /**
+         * Delete Review Like
+         * @description Remove a like (idempotent). NO notification emitted on un-like.
+         *
+         *     Failure modes:
+         *
+         *     * ``404`` — review not found or deleted.
+         */
+        delete: operations["delete_review_like_api_v1_reviews__review_id__like_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -199,6 +513,147 @@ export interface paths {
          *         report URL is non-null only when the merged result list is empty.
          */
         get: operations["search_api_v1_search_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/backlog/contains": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Backlog Contains
+         * @description Return ``{in_backlog: bool, item_id: str|None}`` for ``album_id``.
+         *
+         *     Drives the album-detail page's "+ Up Next" toggle. The endpoint is
+         *     intentionally cheap (one indexed lookup) so the album-detail mount
+         *     can call it without a perf concern.
+         */
+        get: operations["get_backlog_contains_api_v1_users_me_backlog_contains_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/backlog/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Backlog Items
+         * @description Paginated list of the user's backlog items.
+         *
+         *     Sort order is ``position ASC`` (the user-defined queue order). The
+         *     cursor is a base64-encoded ``(position, item_id)`` tuple so paging
+         *     stays stable under inserts. Malformed cursors are silently treated
+         *     as "no cursor".
+         */
+        get: operations["get_backlog_items_api_v1_users_me_backlog_items_get"];
+        put?: never;
+        /**
+         * Post Backlog Item
+         * @description Add ``payload.album_id`` to the user's backlog.
+         *
+         *     Returns ``201`` on success. Failure modes:
+         *
+         *     * ``404`` — unknown album.
+         *     * ``409`` — album already in the user's backlog.
+         */
+        post: operations["post_backlog_item_api_v1_users_me_backlog_items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/backlog/items/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Backlog Reorder
+         * @description Replace the queue ordering with the body's full id list.
+         *
+         *     Returns the reordered items in their new position order.
+         */
+        patch: operations["patch_backlog_reorder_api_v1_users_me_backlog_items_reorder_patch"];
+        trace?: never;
+    };
+    "/api/v1/users/me/backlog/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Backlog Item
+         * @description Remove an item from the user's backlog. Reorder to keep positions contiguous.
+         */
+        delete: operations["delete_backlog_item_api_v1_users_me_backlog_items__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/blocks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get My Blocks
+         * @description List the viewer's outgoing blocks.
+         *
+         *     Response shape::
+         *
+         *         {
+         *           "blocks": [
+         *             {
+         *               "blockee_id": "...",
+         *               "blockee_handle": "...",
+         *               "blockee_display_name": "...",
+         *               "blocked_at": "...",
+         *               "reason": "...",
+         *               "notes": "..." | null
+         *             },
+         *             ...
+         *           ],
+         *           "next_cursor": null
+         *         }
+         *
+         *     No pagination at MVP — block lists are small in practice. The
+         *     ``next_cursor: null`` field is included for forward-compat with the
+         *     rest of the list-endpoint API shape.
+         */
+        get: operations["get_my_blocks_api_v1_users_me_blocks_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -251,6 +706,219 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/me/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get My Suggestions
+         * @description Return the viewer's top precomputed follow suggestions.
+         *
+         *     Reads from the ``suggestions`` collection (precomputed by the T104
+         *     worker). The handler re-applies the follow / block / dismissal
+         *     filters even though the worker should have respected them at write
+         *     time — these races are rare but the defence-in-depth filter is
+         *     cheap.
+         *
+         *     Query params:
+         *
+         *     * ``limit`` — page size; default 5, capped at
+         *       :data:`MAX_SUGGESTIONS_LIMIT` (20).
+         *
+         *     Response shape::
+         *
+         *         {
+         *           "suggestions": [
+         *             {
+         *               "user": {"id", "handle", "display_name", "avatar_url"},
+         *               "score": float,
+         *               "reasons": [str],
+         *               "computed_at": iso-string
+         *             },
+         *             ...
+         *           ]
+         *         }
+         */
+        get: operations["get_my_suggestions_api_v1_users_me_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/me/suggestions/{suggested_user_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Dismiss Suggestion
+         * @description Dismiss a single suggestion for the viewer.
+         *
+         *     Idempotent: double-dismiss returns 204 with no error.
+         *     Side-effects: writes a :class:`SuggestionDismissal` row (TTL 30d so
+         *     the candidate re-enters the pool after the cooling-off window) and
+         *     clears the matching :class:`Suggestion` row so the API surface
+         *     doesn't show the dismissed candidate before the next worker run.
+         */
+        post: operations["post_dismiss_suggestion_api_v1_users_me_suggestions__suggested_user_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User Profile
+         * @description Public profile lookup — powers `/profile/[handle]` SSR header (T109).
+         *
+         *     Returns the user card + follower/following counts + the viewer's
+         *     relation to the target (so the frontend can render the Follow / Block
+         *     affordances without a second roundtrip). Privacy-aware: a blocked
+         *     viewer sees 404 (not 403) to avoid existence-leak.
+         */
+        get: operations["get_user_profile_api_v1_users__handle__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{handle}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Block
+         * @description Block the user identified by ``handle``.
+         *
+         *     Cascade-on-block (TC-028): deletes any Follow row in either direction
+         *     and cancels any pending FollowRequest in either direction.
+         *
+         *     Returns ``204`` on success (whether the Block row was freshly created
+         *     or already existed). Idempotent.
+         *
+         *     Errors:
+         *
+         *     * ``400`` self-block forbidden,
+         *     * ``404`` unknown handle,
+         *     * ``422`` notes exceeds cap (the Pydantic length bound catches this
+         *       first; the service-layer check is defence-in-depth).
+         */
+        post: operations["post_block_api_v1_users__handle__block_post"];
+        /**
+         * Delete Block
+         * @description Un-block the user identified by ``handle``.
+         *
+         *     Idempotent: returns 204 whether or not a Block row existed. Does
+         *     NOT auto-restore the cascaded follows — user has to re-follow
+         *     manually.
+         */
+        delete: operations["delete_block_api_v1_users__handle__block_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{handle}/diary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User Diary
+         * @description Paginated chronological diary for a user, visibility-filtered.
+         *
+         *     Query params:
+         *
+         *     * ``cursor`` — KSUID of the last entry from the previous page.
+         *       Entries with ``_id < cursor`` are returned; KSUIDs sort
+         *       chronologically so this is a stable cursor.
+         *     * ``limit`` — page size, default 25, capped at 100.
+         *     * ``auxed`` — when ``true``, restricts to entries with ``auxed=True``
+         *       (the "Aux'd" profile tab).
+         *
+         *     The visibility filter delegates to
+         *     :func:`auxd_api.lib.visibility.can_read_with_relation` so the same
+         *     matrix used everywhere else (followers must follow, private = owner
+         *     only, blocks are mutual) is honoured here. The implementation
+         *     intentionally over-fetches a small buffer when applying client-side
+         *     visibility filtering would otherwise short-cut a page.
+         */
+        get: operations["get_user_diary_api_v1_users__handle__diary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{handle}/follow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Post Follow
+         * @description Follow the user identified by ``handle``.
+         *
+         *     Returns:
+         *
+         *     * ``200`` on idempotent re-follow (already accepted or pending),
+         *     * ``201`` on a fresh accepted Follow row,
+         *     * ``202`` on a fresh pending FollowRequest (private profile).
+         *
+         *     Errors:
+         *
+         *     * ``400`` self-follow forbidden,
+         *     * ``403`` blocked across either direction,
+         *     * ``404`` unknown handle.
+         */
+        post: operations["post_follow_api_v1_users__handle__follow_post"];
+        /**
+         * Delete Follow
+         * @description Un-follow the user identified by ``handle``.
+         *
+         *     Idempotent: a 204 is returned whether or not a Follow row existed.
+         *     Cancels any pending FollowRequest in the same direction so a
+         *     private-profile request doesn't outlive the requester's intent.
+         */
+        delete: operations["delete_follow_api_v1_users__handle__follow_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -286,6 +954,16 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * BlockReason
+         * @description User-supplied reason for a :class:`Block`.
+         *
+         *     When :attr:`OTHER` is selected, the free-text rationale lives in
+         *     :attr:`Block.other_reason` (length-capped at
+         *     :data:`BLOCK_OTHER_REASON_MAX_LEN` by the service layer).
+         * @enum {string}
+         */
+        BlockReason: "harassment" | "spam" | "unwanted_contact" | "other";
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -305,12 +983,94 @@ export interface components {
             type: string;
         };
         /**
+         * _AddItemRequest
+         * @description Wire shape for ``POST /users/me/backlog/items``.
+         */
+        _AddItemRequest: {
+            /** Album Id */
+            album_id: string;
+            /** Notes */
+            notes?: string | null;
+            per_item_visibility?: components["schemas"]["auxd_api__lib__visibility__Visibility"] | null;
+        };
+        /**
+         * _BlockRequest
+         * @description Wire shape for ``POST /users/{handle}/block``.
+         *
+         *     ``reason`` is required so moderators can triage; ``notes`` is the
+         *     free-text rationale used when ``reason == BlockReason.OTHER``. The
+         *     400-char cap mirrors :data:`BLOCK_OTHER_REASON_MAX_LEN` so the
+         *     service-layer length check is consistent with the wire bound.
+         */
+        _BlockRequest: {
+            /** Notes */
+            notes?: string | null;
+            reason: components["schemas"]["BlockReason"];
+        };
+        /**
+         * _CreateReviewRequest
+         * @description Wire shape for ``POST /reviews``.
+         */
+        _CreateReviewRequest: {
+            /** Body */
+            body: string;
+            /** Diary Entry Id */
+            diary_entry_id: string;
+            /** Visibility */
+            visibility?: string | null;
+        };
+        /**
+         * _EditEntryRequest
+         * @description Wire shape for ``PATCH /diary/entries/{id}``.
+         *
+         *     Every field is optional. The route layer reads ``model_fields_set``
+         *     to distinguish "omit this field" from "set this field to null/empty".
+         */
+        _EditEntryRequest: {
+            /** Auxed */
+            auxed?: boolean | null;
+            /** Rating */
+            rating?: number | null;
+            /** Review Body */
+            review_body?: string | null;
+            visibility?: components["schemas"]["auxd_api__modules__diary__models__Visibility"] | null;
+        };
+        /**
+         * _EditReviewRequest
+         * @description Wire shape for ``PATCH /reviews/{id}``.
+         */
+        _EditReviewRequest: {
+            /** Body */
+            body?: string | null;
+            /** Visibility */
+            visibility?: string | null;
+        };
+        /**
          * _HandleChangeRequest
          * @description Wire shape for ``POST /users/me/handle``.
          */
         _HandleChangeRequest: {
             /** New Handle */
             new_handle: string;
+        };
+        /**
+         * _LogEntryRequest
+         * @description Wire shape for ``POST /diary/entries``.
+         */
+        _LogEntryRequest: {
+            /** Album Id */
+            album_id: string;
+            /**
+             * Auxed
+             * @default false
+             */
+            auxed: boolean;
+            /** Rating */
+            rating?: number | null;
+            /** Review Body */
+            review_body?: string | null;
+            /** @default public */
+            visibility: components["schemas"]["auxd_api__modules__diary__models__Visibility"];
         };
         /**
          * _LoginRequest
@@ -350,6 +1110,18 @@ export interface components {
             query?: string | null;
         };
         /**
+         * _ReorderRequest
+         * @description Wire shape for ``PATCH /users/me/backlog/items/reorder``.
+         *
+         *     The body carries the FULL new ordering — every existing item id must
+         *     appear exactly once. The service validates the exact-match invariant
+         *     and raises :class:`BacklogReorderMismatchError` on any deviation.
+         */
+        _ReorderRequest: {
+            /** Item Ids */
+            item_ids: string[];
+        };
+        /**
          * _SignupRequest
          * @description Wire shape for ``POST /auth/signup``.
          */
@@ -366,6 +1138,18 @@ export interface components {
             /** Password */
             password: string;
         };
+        /**
+         * Visibility
+         * @description Content visibility level chosen by the owner.
+         * @enum {string}
+         */
+        auxd_api__lib__visibility__Visibility: "public" | "followers" | "private";
+        /**
+         * Visibility
+         * @description Per-entry visibility scope; mirrored onto :class:`Review` for filterability.
+         * @enum {string}
+         */
+        auxd_api__modules__diary__models__Visibility: "public" | "followers" | "private";
     };
     responses: never;
     parameters: never;
@@ -373,17 +1157,97 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type BlockReason = components['schemas']['BlockReason'];
 export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type ValidationError = components['schemas']['ValidationError'];
+export type AddItemRequest = components['schemas']['_AddItemRequest'];
+export type BlockRequest = components['schemas']['_BlockRequest'];
+export type CreateReviewRequest = components['schemas']['_CreateReviewRequest'];
+export type EditEntryRequest = components['schemas']['_EditEntryRequest'];
+export type EditReviewRequest = components['schemas']['_EditReviewRequest'];
 export type HandleChangeRequest = components['schemas']['_HandleChangeRequest'];
+export type LogEntryRequest = components['schemas']['_LogEntryRequest'];
 export type LoginRequest = components['schemas']['_LoginRequest'];
 export type MissingAlbumRequest = components['schemas']['_MissingAlbumRequest'];
+export type ReorderRequest = components['schemas']['_ReorderRequest'];
 export type SignupRequest = components['schemas']['_SignupRequest'];
+export type AuxdApiLibVisibilityVisibility = components['schemas']['auxd_api__lib__visibility__Visibility'];
+export type AuxdApiModulesDiaryModelsVisibility = components['schemas']['auxd_api__modules__diary__models__Visibility'];
 export type $defs = Record<string, never>;
 export interface operations {
     get_album_detail_api_v1_albums__album_id__get: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                album_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_friends_for_album_api_v1_albums__album_id__friends_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                album_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_album_reviews_api_v1_albums__album_id__reviews_get: {
+        parameters: {
+            query?: {
+                sort?: string;
+                cursor?: string | null;
+                limit?: number;
+            };
             header?: never;
             path: {
                 album_id: string;
@@ -524,6 +1388,175 @@ export interface operations {
             };
         };
     };
+    post_diary_entry_api_v1_diary_entries_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_LogEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_diary_entry_api_v1_diary_entries__entry_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_diary_entry_api_v1_diary_entries__entry_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_EditEntryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_diary_entry_api_v1_diary_entries__entry_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entry_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_home_feed_api_v1_feed_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                mode?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     report_missing_album_api_v1_reports_missing_album_post: {
         parameters: {
             query?: never;
@@ -539,6 +1572,206 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_review_api_v1_reviews_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_CreateReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_by_id_api_v1_reviews__review_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_review_endpoint_api_v1_reviews__review_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_review_api_v1_reviews__review_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_EditReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_review_like_api_v1_reviews__review_id__like_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_review_like_api_v1_reviews__review_id__like_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                review_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -590,6 +1823,194 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_backlog_contains_api_v1_users_me_backlog_contains_get: {
+        parameters: {
+            query: {
+                album_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_backlog_items_api_v1_users_me_backlog_items_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_backlog_item_api_v1_users_me_backlog_items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_AddItemRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    patch_backlog_reorder_api_v1_users_me_backlog_items_reorder_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_ReorderRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_backlog_item_api_v1_users_me_backlog_items__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_my_blocks_api_v1_users_me_blocks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -661,6 +2082,262 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_my_suggestions_api_v1_users_me_suggestions_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_dismiss_suggestion_api_v1_users_me_suggestions__suggested_user_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                suggested_user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_profile_api_v1_users__handle__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_block_api_v1_users__handle__block_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_BlockRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_block_api_v1_users__handle__block_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_diary_api_v1_users__handle__diary_get: {
+        parameters: {
+            query?: {
+                cursor?: string | null;
+                limit?: number;
+                auxed?: boolean | null;
+            };
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    post_follow_api_v1_users__handle__follow_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_follow_api_v1_users__handle__follow_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
