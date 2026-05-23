@@ -9,6 +9,7 @@ import { apiClient } from "@/lib/api-client";
 import type { ProfileResponse } from "@/lib/social-types";
 import { useAuthStore } from "@/stores/auth";
 import { useQuery } from "@tanstack/react-query";
+import Link from "next/link";
 
 type Props = {
   handle: string;
@@ -88,6 +89,23 @@ export function ProfileClient({ handle }: Props) {
           )}
         </div>
       </header>
+      <nav aria-label="Profile sections" className="border-b text-sm">
+        <ul className="flex gap-4">
+          <li>
+            <span className="inline-block border-b-2 border-foreground px-1 py-2 font-medium">
+              Diary
+            </span>
+          </li>
+          <li>
+            <Link
+              href={`/profile/${encodeURIComponent(handle)}/reviews`}
+              className="inline-block px-1 py-2 text-muted-foreground hover:text-foreground"
+            >
+              Reviews
+            </Link>
+          </li>
+        </ul>
+      </nav>
       <DiaryList handle={handle} isOwner={isOwner} />
     </div>
   );

@@ -1103,6 +1103,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users/{handle}/reviews": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get User Reviews
+         * @description Paginated list of reviews authored by a single user.
+         *
+         *     Mirrors :func:`get_album_reviews` (T089) but keys off the author's
+         *     user-id instead of the album id, and skips the tier classification —
+         *     every row on this surface is authored by the same person, so
+         *     friends-vs-public ordering is meaningless.
+         *
+         *     Query params:
+         *
+         *     * ``sort`` — ``newest`` (default), ``most_liked``, ``highest_rated``.
+         *     * ``cursor`` — opaque token from a prior call.
+         *     * ``limit`` — page size, default 25, capped at 100.
+         *
+         *     Response shape::
+         *
+         *         {
+         *             "reviews": [{...}, ...],
+         *             "next_cursor": "<base64>" | null,
+         *             "users":  { "<user_id>": {id, handle, display_name, avatar_url} },
+         *             "albums": { "<album_id>": {id, mbid, title, artist_credit, ...} }
+         *         }
+         *
+         *     Visibility is enforced via the standard
+         *     :func:`auxd_api.lib.visibility.can_read_with_relation` matrix — the
+         *     owner always sees own private rows; an anonymous viewer sees only
+         *     public; followers see followers-only rows; blocks suppress
+         *     mutually.
+         *
+         *     Handle redirects via :func:`auxd_api.modules.users.redirect.resolve_handle`
+         *     so old ``@handle`` URLs keep working. Returns ``HTTP 404`` when the
+         *     handle has no matching user (current or redirected).
+         */
+        get: operations["get_user_reviews_api_v1_users__handle__reviews_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -2946,6 +2996,43 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_user_reviews_api_v1_users__handle__reviews_get: {
+        parameters: {
+            query?: {
+                sort?: string;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
             /** @description Validation Error */
             422: {

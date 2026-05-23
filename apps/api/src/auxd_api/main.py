@@ -27,11 +27,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from auxd_api import __version__
-from auxd_api.db import close_db, init_db, ping_db
+from auxd_api.db import close_db, get_database, init_db, ping_db
 from auxd_api.lib.logging import configure_logging
 from auxd_api.lib.observability import init_sentry
 from auxd_api.lib.otel import init_otel
 from auxd_api.middleware import SessionMiddleware
+from auxd_api.migrations import run_migrations
 from auxd_api.redis_client import (
     JobEnqueueUnavailable,
     close_arq_pool,
@@ -59,6 +60,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     emit_startup_audit(settings, logging.getLogger("auxd.startup"))
 
     await init_db(settings.MONGODB_URI)
+    # Run any lazy schema migrations (T030, Constitution P2). MUST run
+    # AFTER ``init_db`` (Beanie needs to be wired so models can be
+    # queried) and BEFORE ``init_redis`` so that the data layer is
+    # consistent before any background-worker enqueue or HTTP traffic
+    # touches it. Failures propagate — fail-loud is the only safe stance.
+    await run_migrations(get_database(settings.MONGODB_URI))
     await init_redis(settings.REDIS_URL)
     await init_arq_pool(settings.REDIS_URL)
     init_sentry(

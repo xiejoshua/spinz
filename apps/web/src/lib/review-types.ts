@@ -29,6 +29,24 @@ export type ReviewsListResponse = {
   users: Record<string, ReviewUserCard>;
 };
 
+/** Minimal album-card payload joined into the user-reviews sidecar (T094). */
+export type ReviewAlbumCard = {
+  id: string;
+  mbid: string | null;
+  title: string;
+  artist_credit: string;
+  release_year: number | null;
+  cover_art_url: string | null;
+};
+
+/** Response shape for ``GET /api/v1/users/{handle}/reviews`` (T094). */
+export type UserReviewsListResponse = {
+  reviews: Review[];
+  next_cursor: string | null;
+  users: Record<string, ReviewUserCard>;
+  albums: Record<string, ReviewAlbumCard>;
+};
+
 export type ReviewLikeResponse = {
   liked: boolean;
   likes_count: number;

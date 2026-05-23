@@ -79,6 +79,7 @@ from auxd_api.modules.reviews.service import (
 from auxd_api.modules.seeding.models import CriticSeed
 from auxd_api.modules.social.models import Block, Follow, FollowState
 from auxd_api.modules.users.models import User
+from auxd_api.modules.users.redirect import resolve_handle
 
 _LOGGER = logging.getLogger("auxd.reviews.routes")
 
@@ -296,6 +297,25 @@ def _serialize_user_card(user: User) -> dict[str, Any]:
         "handle": user.handle,
         "display_name": user.display_name,
         "avatar_url": user.avatar_url,
+    }
+
+
+def _serialize_album_card(album: Album) -> dict[str, Any]:
+    """Return the minimal album-card payload bundled in the reviews-by-user sidecar.
+
+    Mirrors :func:`auxd_api.modules.diary.routes._serialize_album_card`
+    — the user-reviews endpoint joins each review to its album so the
+    client can render a card with cover + title + artist without a
+    per-row roundtrip. The full album detail still lives behind
+    ``GET /api/v1/albums/{id}``.
+    """
+    return {
+        "id": album.id,
+        "mbid": album.mbid,
+        "title": album.title,
+        "artist_credit": album.artist_credit,
+        "release_year": album.release_year,
+        "cover_art_url": album.cover_art_url,
     }
 
 
@@ -1003,6 +1023,223 @@ def _serialize_album_payload(album: Album) -> dict[str, Any]:
         "duration_ms": album.duration_ms,
         "source": album.source.value,
     }
+
+
+# ---------------------------------------------------------------------------
+# T094 — GET /users/{handle}/reviews (reviews-only profile sub-route)
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/users/{handle}/reviews",
+    dependencies=[Depends(_REVIEW_LIST_RATE_LIMIT)],
+)
+async def get_user_reviews(
+    handle: str,
+    request: Request,
+    sort: Annotated[str, Query(pattern="^(newest|most_liked|highest_rated)$")] = _SORT_NEWEST,
+    cursor: str | None = None,
+    limit: int = _DEFAULT_REVIEW_LIST_LIMIT,
+) -> dict[str, Any]:
+    """Paginated list of reviews authored by a single user.
+
+    Mirrors :func:`get_album_reviews` (T089) but keys off the author's
+    user-id instead of the album id, and skips the tier classification —
+    every row on this surface is authored by the same person, so
+    friends-vs-public ordering is meaningless.
+
+    Query params:
+
+    * ``sort`` — ``newest`` (default), ``most_liked``, ``highest_rated``.
+    * ``cursor`` — opaque token from a prior call.
+    * ``limit`` — page size, default 25, capped at 100.
+
+    Response shape::
+
+        {
+            "reviews": [{...}, ...],
+            "next_cursor": "<base64>" | null,
+            "users":  { "<user_id>": {id, handle, display_name, avatar_url} },
+            "albums": { "<album_id>": {id, mbid, title, artist_credit, ...} }
+        }
+
+    Visibility is enforced via the standard
+    :func:`auxd_api.lib.visibility.can_read_with_relation` matrix — the
+    owner always sees own private rows; an anonymous viewer sees only
+    public; followers see followers-only rows; blocks suppress
+    mutually.
+
+    Handle redirects via :func:`auxd_api.modules.users.redirect.resolve_handle`
+    so old ``@handle`` URLs keep working. Returns ``HTTP 404`` when the
+    handle has no matching user (current or redirected).
+    """
+    if limit < 1:
+        limit = _DEFAULT_REVIEW_LIST_LIMIT
+    if limit > _MAX_REVIEW_LIST_LIMIT:
+        limit = _MAX_REVIEW_LIST_LIMIT
+
+    if sort not in _ALLOWED_SORTS:
+        sort = _SORT_NEWEST
+
+    target, _canonical = await resolve_handle(handle)
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="user_not_found")
+
+    session = _optional_session(request)
+    viewer: Viewer | None = None
+    viewer_id: str | None = None
+    if session is not None:
+        viewer_id = session.user_id
+        viewer = _SessionViewer(viewer_id)
+
+    # Over-fetch a small buffer so visibility filtering can't shrink
+    # the page below the requested ``limit``. Cap so the worst-case
+    # payload stays bounded.
+    fetch_limit = min(limit * 4, _MAX_REVIEW_LIST_LIMIT * 4)
+
+    reviews = await _fetch_user_reviews(
+        user_id=target.id,
+        sort=sort,
+        cursor=cursor,
+        fetch_limit=fetch_limit,
+    )
+
+    # Visibility filter against the single author. ``_resolve_relations``
+    # handles owner / blocks / follows in one batched query.
+    relations = await _resolve_relations(viewer_id, {target.id})
+    relation = relations.get(
+        target.id,
+        ViewerRelation.ANONYMOUS if viewer_id is None else ViewerRelation.NOT_FOLLOWER,
+    )
+
+    visible: list[Review] = []
+    for review in reviews:
+        if can_read_with_relation(viewer, _ReviewContent(review), relation):
+            visible.append(review)
+
+    page = visible[:limit]
+    next_cursor: str | None = None
+    if len(visible) > limit and page:
+        next_cursor = _cursor_for(sort=sort, review=page[-1])
+
+    # User sidecar — always exactly one row (the author). The frontend
+    # keeps the same lookup shape as the album endpoint so it can share
+    # the ReviewCard component.
+    users_payload: dict[str, dict[str, Any]] = {target.id: _serialize_user_card(target)}
+
+    # Album sidecar — joined for every review on the page. Deduped by
+    # album_id so the worst case is one Album lookup per distinct album
+    # in the page.
+    album_ids = {review.album_id for review in page}
+    albums_payload: dict[str, dict[str, Any]] = {}
+    if album_ids:
+        album_rows = await Album.find({"_id": {"$in": list(album_ids)}}).to_list()
+        albums_payload = {album.id: _serialize_album_card(album) for album in album_rows}
+
+    return {
+        "reviews": [_serialize_review(review) for review in page],
+        "next_cursor": next_cursor,
+        "users": users_payload,
+        "albums": albums_payload,
+    }
+
+
+async def _fetch_user_reviews(
+    *,
+    user_id: str,
+    sort: str,
+    cursor: str | None,
+    fetch_limit: int,
+) -> list[Review]:
+    """Query reviews authored by ``user_id`` under the given sort + cursor.
+
+    Mirrors :func:`_fetch_album_reviews` but pivots on ``user_id``
+    instead of ``album_id``. The ``highest_rated`` sort still joins
+    against :class:`DiaryEntry.rating` in memory — same in-memory join
+    the album endpoint uses, bounded by ``fetch_limit``.
+    """
+    decoded = _decode_cursor(cursor) if cursor else None
+    base_filter: dict[str, Any] = {"user_id": user_id, "deleted_at": None}
+
+    if sort == _SORT_NEWEST:
+        if decoded is not None:
+            cursor_created = decoded.get("c")
+            cursor_id = decoded.get("i")
+            if isinstance(cursor_created, str) and isinstance(cursor_id, str):
+                try:
+                    cursor_dt = datetime.fromisoformat(cursor_created)
+                except ValueError:
+                    cursor_dt = None
+                if cursor_dt is not None:
+                    base_filter["$or"] = [
+                        {"created_at": {"$lt": cursor_dt}},
+                        {"created_at": cursor_dt, "_id": {"$lt": cursor_id}},
+                    ]
+        return (
+            await Review.find(base_filter).sort("-created_at", "-_id").limit(fetch_limit).to_list()
+        )
+
+    if sort == _SORT_MOST_LIKED:
+        if decoded is not None:
+            cursor_likes = decoded.get("lc")
+            cursor_created = decoded.get("c")
+            cursor_id = decoded.get("i")
+            if isinstance(cursor_likes, int) and isinstance(cursor_id, str):
+                try:
+                    cursor_dt = (
+                        datetime.fromisoformat(cursor_created)
+                        if isinstance(cursor_created, str)
+                        else None
+                    )
+                except ValueError:
+                    cursor_dt = None
+                if cursor_dt is not None:
+                    base_filter["$or"] = [
+                        {"reactions.likes_count": {"$lt": cursor_likes}},
+                        {
+                            "reactions.likes_count": cursor_likes,
+                            "created_at": {"$lt": cursor_dt},
+                        },
+                        {
+                            "reactions.likes_count": cursor_likes,
+                            "created_at": cursor_dt,
+                            "_id": {"$lt": cursor_id},
+                        },
+                    ]
+        return (
+            await Review.find(base_filter)
+            .sort("-reactions.likes_count", "-created_at", "-_id")
+            .limit(fetch_limit)
+            .to_list()
+        )
+
+    # highest_rated — join with DiaryEntry.rating in memory.
+    if decoded is not None:
+        cursor_created = decoded.get("c")
+        cursor_id = decoded.get("i")
+        if isinstance(cursor_created, str) and isinstance(cursor_id, str):
+            try:
+                cursor_dt = datetime.fromisoformat(cursor_created)
+            except ValueError:
+                cursor_dt = None
+            if cursor_dt is not None:
+                base_filter["$or"] = [
+                    {"created_at": {"$lt": cursor_dt}},
+                    {"created_at": cursor_dt, "_id": {"$lt": cursor_id}},
+                ]
+    reviews = (
+        await Review.find(base_filter).sort("-created_at", "-_id").limit(fetch_limit).to_list()
+    )
+    diary_ids = [r.diary_entry_id for r in reviews]
+    entries = await DiaryEntry.find({"_id": {"$in": diary_ids}}).to_list()
+    rating_by_entry = {entry.id: entry.rating for entry in entries}
+    reviews.sort(
+        key=lambda r: (
+            -(rating_by_entry.get(r.diary_entry_id) or 0),
+            -int(r.created_at.timestamp() * 1000),
+        )
+    )
+    return reviews
 
 
 # Static reference so OwnedContent stays imported.

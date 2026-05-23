@@ -1346,3 +1346,77 @@ Both fixes verified locally (Playwright 8 passed / 3 skipped backend-dependent; 
 
 Follow-up convention: run `pnpm exec biome check .` (not `biome check src`) before any commit that touches `public/`.
 
+
+## Session 22 — Stranded tasks: migration runner (T030) + reviews-only profile sub-route (T094) — 2026-05-23 late night
+
+### Goal
+
+Knock out the two long-stranded tasks that didn't fit into any cluster:
+T030 (the backend migration runner skeleton from §2, declared dependency
+on T012 since Session 5 but never landed) and T094 (the reviews-only
+profile sub-route from §8, deferred while §10 social shipped). Both
+small (S), independent, perfect cleanup-session fit.
+
+### What landed
+
+| Task | Surface |
+|------|---------|
+| T030 — Migration runner | `apps/api/src/auxd_api/migrations/{__init__,runner,001_initial}.py`. Runner discovers `00N_*.py` modules by filename order; each exports `from_version: int`, `to_version: int`, `async def apply(db) -> int` (returns docs modified). Skips silently when a migration's `from_version` is above every document's `_schema_version`. Fail-loud re-raise on any apply error — botched migration must never let the app serve traffic. Wired into `main.py` lifespan AFTER `init_db()` and BEFORE `init_redis()`. `db.py` gained a `get_database()` helper to hand the runner the active database handle. 001_initial.py is the explicit no-op that establishes the pattern. Emits `migration.applied` PostHog/log_call event per migration with `{migration_name, from_version, to_version, modified_count, duration_ms}` — the field is `migration_name` not `name` because Python's stdlib `LogRecord` reserves `name` and `extra={"name": ...}` raises `KeyError`. |
+| T030 — Tests | `tests/unit/test_migration_runner.py` (6 tests): discovery (finds 001_initial + parses front-matter), sort order (002_foo runs after 001_initial), no-op happy path on empty DB returns 0, skip-already-applied silently, fail-loud (re-raises on bad migration), idempotency. `tests/integration/test_app_lifespan_migrations.py` (2 tests): asserts the runner is invoked during lifespan and emits the structured event. Spy on `log_call` directly (NOT `caplog`) because `configure_logging` strips pytest's caplog handler from the root logger during lifespan. |
+| T030 — Pre-existing tests patched | `test_healthz.py` + `test_otel.py` patch the new `run_migrations` + `get_database` calls to no-op — these tests bypass `init_db` and never wire a real Mongo client, so the migrations boot path would have errored. Minimal invasive patch (purely additive lines, no logic edits). |
+| T094 — Backend endpoint (NEW) | `GET /api/v1/users/{handle}/reviews?sort=&cursor=&limit=` added to `modules/reviews/routes.py`. Mirrors the album-reviews shape from T089: same `_encode_cursor`/`_decode_cursor` opaque-token pattern, same sort options (newest / most_liked / highest_rated), same visibility filter via `lib/visibility.can_read_with_relation`, same soft-delete exclusion. Resolves handle via `users.service.resolve_handle()` so old-handle redirects work. Differences from album endpoint: (1) new `albums: {[id]: AlbumCard}` sidecar (one Album.find per page, deduped on album_id — mirrors T074 diary sidecar pattern), (2) tier-classification (friends → public → critic-seed) branch DROPPED because every row shares the same author so cross-tier merge is meaningless here. Viewer sees own private reviews always. |
+| T094 — Frontend page | `apps/web/src/app/(app)/profile/[handle]/reviews/page.tsx` (SSR shell) + `components/profile-reviews/profile-reviews-list.tsx` (client component). `useInfiniteQuery` against the new endpoint with `UiStore.feedSort` driving the queryKey (same pattern as album-detail reviews-list). Reuses existing `ReviewCard` (which already has Like button + click-to-/review/{id}) and mounts `EditReviewDialog` + `DeleteReviewConfirmation` owner controls when `useAuthStore().user.handle === handle`. Empty state: friendly "No reviews yet". |
+| T094 — Profile nav surface | `components/diary/profile-client.tsx` extended with a Diary/Reviews tab nav that switches between the existing diary list and the new reviews list. Single tabset; URL state via `next/navigation`. |
+| Codegen | `pnpm --filter @auxd/shared-types codegen` ran cleanly after the backend route change. `packages/shared-types/src/api.ts` +87 lines covering the new path. |
+
+### Tests added
+
+| File | Coverage |
+|------|---------|
+| `apps/api/tests/unit/test_migration_runner.py` (NEW, 6 tests) | Discovery, sort order, no-op happy path, skip-already-applied, fail-loud re-raise, idempotency. |
+| `apps/api/tests/integration/test_app_lifespan_migrations.py` (NEW, 2 tests) | Runner invoked during lifespan; structured `migration.applied` event emitted with correct fields. log_call spied directly. |
+| `apps/api/tests/integration/test_user_reviews_endpoint.py` (NEW, 9 tests) | 404 unknown handle, 200 happy path with newest sort + cursor pagination + albums sidecar shape, anonymous-viewer visibility filter, 200 most_liked sort, 200 highest_rated sort (diary join), viewer sees own private, soft-deleted excluded, handle redirect (old → canonical), block suppression. |
+| `apps/web/tests/unit/profile-reviews.test.ts` (NEW, 4 tests) | Sort selector defaults to `newest`, owner-vs-viewer renders different control sets, empty-state copy, query-key shape. |
+
+### Progressive verify
+
+| Check | After | Backend | Frontend |
+|---|---|---|---|
+| #1 | T030 + T094 (both backend + frontend + codegen) | ✅ ruff + format + mypy strict + pytest **867 pass / 3 skip** (+17 new) | ✅ Biome 131 files clean + tsc 0 errors + Vitest **63 pass** (+4 new) + `next build` adds `/profile/[handle]/reviews` 5.51 kB / 317 kB FLJS + codegen api.ts +87 lines |
+
+### Status snapshot
+
+- Tasks completed: **126 → 128 / 172** (74%). Both stranded tasks now closed; no orphans remain in the §0–§13 range.
+- Backend test suite: **850 → 867 pass / 3 skip** (+17 net new — 6 migration unit + 2 lifespan integration + 9 user-reviews integration).
+- Frontend unit tests: **59 → 63** (+4).
+- Frontend routes: **15 + 2 → 16 + 2** (new `/profile/[handle]/reviews`).
+- mypy source-file count: **173 → 179**.
+
+### Decisions + non-obvious calls
+
+- **`migration_name` not `name` in log extras** is mandatory. Python's stdlib `LogRecord` already has a `name` attribute (the logger name), and passing `extra={"name": ...}` to a logging call raises `KeyError`. Every migration-related structured log uses `migration_name` for the migration filename.
+- **Spy on `log_call` directly, NOT `caplog`** in lifespan tests. `configure_logging()` (called during app lifespan) clears handlers from the root logger, including pytest's `caplog` handler. Patching `log_call` directly via monkeypatch is the robust pattern — caplog assertions would silently pass with zero captured records.
+- **Two pre-existing tests patched defensively.** `test_healthz.py` and `test_otel.py` bypass `init_db` and never wire a real Mongo client. With the new lifespan migrations call, they would have errored at boot. The patch is additive: monkeypatch `run_migrations` + `get_database` to no-op factories for those test sessions. Doesn't touch the production code path; preserves their original test intent.
+- **Tier-classification dropped for user-reviews endpoint.** The album-reviews endpoint at T089 merges three tiers (friends → public → critic-seed) within each sort because the result set is naturally cross-author. The user-reviews endpoint queries by author, so every row shares the same `user_id` and the tier branch is structurally a no-op. The new `_fetch_user_reviews` helper omits it entirely instead of running a degenerate version — cleaner code, fewer dead branches.
+- **`albums` sidecar added** because callers of the user-reviews endpoint don't know which album each review covers (unlike the album-reviews endpoint where the album is the path parameter). One Album.find per page, deduped by album_id — same idempotent sidecar pattern as T074 diary endpoint.
+- **Diary/Reviews tab nav** on the profile chrome was the cleanest discovery surface for the new route. Considered making /profile/[handle]/reviews a stand-alone link in the profile header but the existing diary-vs-reviews split is too symmetric to NOT tab. Click changes URL via next/navigation so deep-links to /profile/{handle}/reviews still work directly.
+
+### Tests + quality gates
+
+| Gate | Result | Detail |
+|------|:------:|--------|
+| Backend ruff | ✅ | All checks passed |
+| Backend ruff format | ✅ | 179 files already formatted |
+| Backend mypy --strict | ✅ | No issues found in 179 source files |
+| Backend pytest | ✅ | 867 pass / 3 skip (+17 net new) |
+| Frontend Biome lint (root) | ✅ | 131 files clean |
+| Frontend tsc | ✅ | 0 errors |
+| Frontend Vitest | ✅ | 63 pass (+4 new profile-reviews tests) |
+| Frontend `next build` | ✅ | Adds `/profile/[handle]/reviews` 5.51 kB / 317 kB FLJS; shared FLJS unchanged at 185 kB |
+| Codegen (`@auxd/shared-types`) | ✅ | api.ts +87 lines reflecting the new `/api/v1/users/{handle}/reviews` path |
+
+### Follow-ups flagged (NEW this session)
+
+- 🟡 **No new follow-ups from this session.** T030 is intentionally a no-op skeleton; the next time a schema rolls forward, drop in `002_<name>.py` following the pattern in `runner.py`'s module docstring. T094 reuses existing infrastructure (ReviewCard + dialogs) with no new debt.
+
+

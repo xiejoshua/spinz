@@ -145,6 +145,10 @@ def _reset_otel_state(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterato
     monkeypatch.setattr(main_module, "close_redis", _noop_async)
     monkeypatch.setattr(main_module, "init_arq_pool", _noop_async)
     monkeypatch.setattr(main_module, "close_arq_pool", _noop_async)
+    # T030 — migration runner is wired into the lifespan; bypass it
+    # here since ``init_db`` is no-op'd and no real Motor client exists.
+    monkeypatch.setattr(main_module, "get_database", lambda _uri: None)
+    monkeypatch.setattr(main_module, "run_migrations", _noop_async)
 
     yield
 

@@ -156,6 +156,18 @@ def get_client() -> AsyncIOMotorClient[dict[str, object]]:
     return _client
 
 
+def get_database(mongodb_uri: str) -> AsyncIOMotorDatabase[dict[str, object]]:
+    """Return the active Motor database handle, parsing its name from ``mongodb_uri``.
+
+    Convenience for callers (the migration runner, ad-hoc admin
+    scripts) that need a database handle without re-creating one of
+    their own. Raises ``RuntimeError`` when :func:`init_db` has not
+    yet been called, mirroring :func:`get_client`.
+    """
+    database_name = _database_name_from_uri(mongodb_uri)
+    return get_client()[database_name]
+
+
 async def ping_db() -> str:
     """Return :data:`OK` if MongoDB is reachable, :data:`DOWN` otherwise.
 
@@ -182,6 +194,7 @@ __all__ = [
     "OK",
     "close_db",
     "get_client",
+    "get_database",
     "init_db",
     "ping_db",
 ]

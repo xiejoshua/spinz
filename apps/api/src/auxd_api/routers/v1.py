@@ -16,6 +16,10 @@ Mounted feature routers:
 * ``/api/v1/diary/entries`` + ``/api/v1/users/{handle}/diary`` (T073-T075)
   — diary log endpoint (the wedge), chronological diary read, plus the
   edit / delete / restore resource surface.
+* ``/api/v1/users/{handle}/reviews`` (T094) — reviews-only profile
+  sub-route. Paginated list of one user's reviews, sort options
+  identical to the album-keyed reviews list. Used by the
+  ``/profile/{handle}/reviews`` Next.js route.
 * ``/api/v1/users/me/backlog/...`` (T095) — Up Next CRUD: add, remove,
   reorder, list, contains-check.
 * ``/api/v1/users/{handle}/follow`` + ``/users/{handle}/block`` +

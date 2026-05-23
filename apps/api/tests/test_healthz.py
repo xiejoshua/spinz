@@ -107,6 +107,11 @@ def test_healthz_returns_ok_when_lifespan_initialises_clients(
     monkeypatch.setattr(main_module, "close_redis", _noop_async)
     monkeypatch.setattr(main_module, "init_arq_pool", _noop_async)
     monkeypatch.setattr(main_module, "close_arq_pool", _noop_async)
+    # T030 — migration runner is wired into the lifespan; tests that
+    # bypass ``init_db`` must also bypass the migration step (no
+    # Mongo client is initialised).
+    monkeypatch.setattr(main_module, "get_database", lambda _uri: None)
+    monkeypatch.setattr(main_module, "run_migrations", _noop_async)
     monkeypatch.setattr(main_module, "ping_db", _ping_ok)
     monkeypatch.setattr(main_module, "ping_redis", _ping_ok)
 
@@ -141,6 +146,8 @@ def test_healthz_reports_db_only_degraded_when_redis_ok(
     monkeypatch.setattr(main_module, "close_redis", _noop_async)
     monkeypatch.setattr(main_module, "init_arq_pool", _noop_async)
     monkeypatch.setattr(main_module, "close_arq_pool", _noop_async)
+    monkeypatch.setattr(main_module, "get_database", lambda _uri: None)
+    monkeypatch.setattr(main_module, "run_migrations", _noop_async)
     monkeypatch.setattr(main_module, "ping_db", _ping_db_down)
     monkeypatch.setattr(main_module, "ping_redis", _ping_redis_ok)
 
@@ -171,6 +178,8 @@ def test_healthz_reports_redis_only_degraded_when_db_ok(
     monkeypatch.setattr(main_module, "close_redis", _noop_async)
     monkeypatch.setattr(main_module, "init_arq_pool", _noop_async)
     monkeypatch.setattr(main_module, "close_arq_pool", _noop_async)
+    monkeypatch.setattr(main_module, "get_database", lambda _uri: None)
+    monkeypatch.setattr(main_module, "run_migrations", _noop_async)
     monkeypatch.setattr(main_module, "ping_db", _ping_db_ok)
     monkeypatch.setattr(main_module, "ping_redis", _ping_redis_down)
 

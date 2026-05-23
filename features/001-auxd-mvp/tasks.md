@@ -327,13 +327,7 @@
       Description: `Settings` class with all required env vars, validated at app start; missing values fail loudly with helpful messages. Document each env var in `apps/api/.env.example`.
       Done: app refuses to start without required env; happy-path startup writes a config audit log line.
 
-- [ ] **T030 — Migration runner skeleton**
-      Paths: apps/api/src/auxd_api/migrations/__init__.py, apps/api/src/auxd_api/migrations/runner.py
-      Size: S
-      Deps: T012
-      Refs: Constitution P2; plan §3
-      Description: Migration runner that reads `_schema_version` on documents and lazy-upgrades. Initial migration `001_initial.py` is a no-op (seeds schema_version=1 on existing docs). Pattern documented for future migrations.
-      Done: runner executes on app boot; no-op migration completes.
+- [x] **T030 — Migration runner skeleton** *(completed 2026-05-23 Session 22; apps/api/src/auxd_api/migrations/{__init__,runner,001_initial}.py. runner discovers `00N_*.py` modules by filename order, each exporting `from_version: int`, `to_version: int`, and `async def apply(db) -> int`. Skips a migration silently when its `from_version` is above all documents' `_schema_version`; fail-loud (re-raises) on any apply error so a botched migration can never serve traffic. Wired into main.py lifespan AFTER init_db and BEFORE init_redis. 001_initial.py is a no-op returning 0. log_call emits `migration.applied` with `{migration_name, from_version, to_version, modified_count, duration_ms}` per migration — uses `migration_name` not `name` to avoid colliding with LogRecord's built-in `name` attribute. Added `get_database()` helper to db.py. 6 unit tests + 2 lifespan integration tests; patched test_healthz + test_otel to no-op the new migrations call since those tests bypass init_db.)*
 
 ---
 
@@ -861,13 +855,7 @@
       Done: component renders all four state variants (owner, follower, public, no-rating-context); Like button works; Share opens OS sheet with correct URL.
 
 <!-- sync-fix L4-019 (Run #9): T094 header restored. The §8 cluster index claimed T085-T094 but the task body below had no header — only Paths/Size/Deps/Refs/Description/Done lines. This task surfaces the EditReviewDialog + DeleteReviewConfirmation owner controls (T092) on the profile sub-route. -->
-- [ ] **T094 — Reviews-only profile sub-route**
-      Paths: apps/web/src/app/(app)/profile/[handle]/reviews/page.tsx
-      Size: S
-      Deps: T089
-      Refs: cross-cutting profile
-      Description: Reviews-only view of a user's profile. Lists the user's reviews with the same sort + pagination as the album-detail reviews-list. Mounts the EditReviewDialog + DeleteReviewConfirmation owner controls (T092) when viewer == owner — these dialogs were built in Session 15 but are not currently surfaced anywhere (sync-fix L6-004 mounts an Edit affordance on the reading-view footer as an interim).
-      Done: page renders.
+- [x] **T094 — Reviews-only profile sub-route** *(completed 2026-05-23 Session 22; backend GET /api/v1/users/{handle}/reviews added to reviews/routes.py — mirrors the album-reviews shape with sort + cursor + visibility filter via `lib/visibility.can_read_with_relation` + handle redirect via `resolve_handle`; sort options newest / most_liked / highest_rated (highest_rated joins DiaryEntry rating in-memory same as album endpoint); new `albums: {[id]: AlbumCard}` sidecar deduped per page; soft-deleted reviews excluded; viewer sees own private reviews always. Tier-classification branch (friends → public → critic-seed) dropped here since every row shares the same author. Frontend apps/web/src/app/(app)/profile/[handle]/reviews/page.tsx (SSR shell) + components/profile-reviews/profile-reviews-list.tsx (client `useInfiniteQuery` with `UiStore.feedSort` driving queryKey); reuses existing ReviewCard + EditReviewDialog + DeleteReviewConfirmation owner controls when `useAuthStore().user.handle === handle`. Diary/Reviews tab nav added to existing profile-client.tsx. Codegen api.ts +87 lines covering the new path. 9 backend integration tests + 4 frontend unit tests. Next build new route 5.51 kB / 317 kB FLJS.)*
 
 ---
 
