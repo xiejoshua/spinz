@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { ChevronDown, Pencil } from "lucide-react";
 import { useState } from "react";
 
@@ -16,44 +15,54 @@ export function ReviewEditor({ value, onChange }: Props) {
 
   if (!expanded) {
     return (
-      <Button
+      <button
         type="button"
-        variant="ghost"
         onClick={() => setExpanded(true)}
-        className="w-full justify-start gap-2 text-muted-foreground"
+        className="inline-flex cursor-pointer items-center gap-2 font-sans text-[14px] hover:underline"
+        style={{ color: "var(--muted)" }}
       >
         <Pencil className="size-4" aria-hidden="true" />
         Add a review
-      </Button>
+      </button>
     );
   }
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       <label htmlFor="log-review" className="sr-only">
         Review
       </label>
       <textarea
         id="log-review"
-        rows={4}
+        rows={5}
         value={value}
         onChange={(e) => onChange(e.target.value.slice(0, MAX_LENGTH))}
         placeholder="What did you think?"
-        className="block w-full resize-y rounded-md border border-input bg-transparent px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="block w-full resize-y rounded-md px-4 py-3 font-sans text-[15px] leading-[1.55] focus:outline-none focus:ring-2"
+        style={{
+          background: "var(--field-background)",
+          color: "var(--field-foreground)",
+          border: "1px solid var(--field-border)",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ["--tw-ring-color" as any]: "var(--focus)",
+        }}
       />
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div
+        className="flex items-center justify-between font-mono"
+        style={{ fontSize: "11px", color: "var(--muted)" }}
+      >
         <button
           type="button"
           onClick={() => {
             onChange("");
             setExpanded(false);
           }}
-          className="inline-flex items-center gap-1 hover:text-foreground"
+          className="inline-flex cursor-pointer items-center gap-1 uppercase tracking-[0.12em] hover:underline"
         >
           <ChevronDown className="size-3" aria-hidden="true" />
           Collapse
         </button>
-        <span>
+        <span className="tabular-nums">
           {value.length} / {MAX_LENGTH.toLocaleString()}
         </span>
       </div>

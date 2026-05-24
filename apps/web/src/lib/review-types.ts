@@ -6,6 +6,8 @@ export type Review = {
   diary_entry_id: string;
   album_id: string;
   body: string;
+  /** Author's rating, joined from the DiaryEntry. null when no rating was set. */
+  rating: number | null;
   visibility: ReviewVisibility;
   likes_count: number;
   recent_likers: string[];

@@ -1,0 +1,239 @@
+/* auxd Editorial Minimal theme — OKLCH tokens for HeroUI v3.
+   Light: data-theme="auxd"   Dark: data-theme="auxd-dark" */
+
+@layer base {
+  [data-theme="auxd"] {
+    color-scheme: light;
+
+    /* primitives */
+    --white: oklch(100% 0 0);
+    --black: oklch(0% 0 0);
+    --paper: oklch(98% 0.012 80);
+    --ink: oklch(0.205 0 0);
+    --ink-muted: oklch(0.55 0 0);
+    --gold: oklch(0.74 0.13 87);
+    --gold-soft: oklch(0.94 0.06 87 / 22%);
+
+    /* layout */
+    --radius: 0.5rem;
+    --field-radius: calc(var(--radius) * 1.5);
+    --spacing: 0.25rem;
+    --border-width: 1px;
+    --field-border-width: 1px;
+    --disabled-opacity: 0.5;
+    --ring-offset-width: 2px;
+    --cursor-interactive: pointer;
+    --cursor-disabled: not-allowed;
+
+    /* surfaces */
+    --background: var(--white);
+    --foreground: var(--ink);
+    --surface: var(--paper);
+    --surface-foreground: var(--ink);
+    --surface-secondary: oklch(96% 0.008 80);
+    --surface-secondary-foreground: var(--ink);
+    --surface-tertiary: oklch(94% 0.006 80);
+    --surface-tertiary-foreground: var(--ink);
+    --overlay: var(--white);
+    --overlay-foreground: var(--ink);
+
+    --muted: var(--ink-muted);
+    --scrollbar: oklch(0.85 0 0);
+    --default: oklch(0.94 0 0);
+    --default-foreground: var(--ink);
+
+    /* accent = burgundy / oxblood — editorial heritage (FT, NYRB, Penguin) */
+    --accent: oklch(0.40 0.12 25);
+    --accent-foreground: var(--white);
+
+    /* form fields */
+    --field-background: var(--white);
+    --field-foreground: var(--ink);
+    --field-placeholder: var(--ink-muted);
+    --field-border: oklch(0.88 0 0);
+
+    /* state */
+    --success: oklch(0.65 0.15 152);
+    --success-foreground: var(--ink);
+    --warning: oklch(0.78 0.16 72);
+    --warning-foreground: var(--ink);
+    --danger: oklch(0.62 0.21 25);
+    --danger-foreground: var(--white);
+
+    /* misc */
+    --segment: var(--white);
+    --segment-foreground: var(--ink);
+    --border: oklch(0.91 0 0);
+    --separator: oklch(0.93 0 0);
+    --focus: var(--accent);
+    --link: var(--accent);
+    --backdrop: rgba(20, 18, 16, 0.45);
+
+    /* shadows */
+    --surface-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.06);
+    --overlay-shadow: 0 8px 24px rgba(24, 24, 27, 0.10), 0 16px 40px rgba(24, 24, 27, 0.08);
+    --field-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --skeleton-animation: shimmer;
+
+    /* Derived state tokens — HeroUI components reference these for
+       hover / pressed / focus / soft variants. Without them buttons
+       turn transparent on press. */
+    --surface-hover: color-mix(in oklab, var(--surface) 92%, var(--surface-foreground) 8%);
+    --default-hover: color-mix(in oklab, var(--default) 96%, var(--default-foreground) 4%);
+    --accent-hover: color-mix(in oklab, var(--accent) 90%, var(--accent-foreground) 10%);
+    --success-hover: color-mix(in oklab, var(--success) 90%, var(--success-foreground) 10%);
+    --warning-hover: color-mix(in oklab, var(--warning) 90%, var(--warning-foreground) 10%);
+    --danger-hover: color-mix(in oklab, var(--danger) 90%, var(--danger-foreground) 10%);
+    --field-hover: color-mix(in oklab, var(--field-background) 90%, var(--field-foreground) 2%);
+    --field-focus: var(--field-background);
+    --field-border-hover: color-mix(in oklab, var(--field-border) 88%, var(--field-foreground) 10%);
+    --field-border-focus: color-mix(in oklab, var(--field-border) 74%, var(--field-foreground) 22%);
+    --accent-soft: color-mix(in oklab, var(--accent) 15%, transparent);
+    --accent-soft-hover: color-mix(in oklab, var(--accent) 20%, transparent);
+    --accent-soft-foreground: var(--accent);
+    --danger-soft: color-mix(in oklab, var(--danger) 15%, transparent);
+    --danger-soft-hover: color-mix(in oklab, var(--danger) 20%, transparent);
+    --danger-soft-foreground: var(--danger);
+    --warning-soft: color-mix(in oklab, var(--warning) 15%, transparent);
+    --warning-soft-hover: color-mix(in oklab, var(--warning) 20%, transparent);
+    --warning-soft-foreground: var(--warning);
+    --success-soft: color-mix(in oklab, var(--success) 15%, transparent);
+    --success-soft-hover: color-mix(in oklab, var(--success) 20%, transparent);
+    --success-soft-foreground: var(--success);
+  }
+
+  [data-theme="auxd-dark"] {
+    color-scheme: dark;
+
+    --white: oklch(100% 0 0);
+    --black: oklch(0% 0 0);
+    --paper-dark: oklch(0.19 0.005 80);
+    --ink-light: oklch(0.96 0 0);
+    --gold: oklch(0.80 0.13 87);
+    --gold-soft: oklch(0.80 0.13 87 / 18%);
+
+    --radius: 0.5rem;
+    --field-radius: calc(var(--radius) * 1.5);
+    --spacing: 0.25rem;
+    --border-width: 1px;
+    --field-border-width: 1px;
+    --disabled-opacity: 0.5;
+    --ring-offset-width: 2px;
+    --cursor-interactive: pointer;
+    --cursor-disabled: not-allowed;
+
+    --background: oklch(0.13 0.003 80);
+    --foreground: var(--ink-light);
+    --surface: var(--paper-dark);
+    --surface-foreground: var(--ink-light);
+    --surface-secondary: oklch(0.23 0.006 80);
+    --surface-secondary-foreground: var(--ink-light);
+    --surface-tertiary: oklch(0.27 0.006 80);
+    --surface-tertiary-foreground: var(--ink-light);
+    --overlay: oklch(0.22 0.006 80);
+    --overlay-foreground: var(--ink-light);
+
+    --muted: oklch(0.66 0 0);
+    --scrollbar: oklch(0.30 0 0);
+    --default: oklch(0.26 0 0);
+    --default-foreground: var(--ink-light);
+
+    /* dark-mode burgundy bumped 1 step — stays warm-rose, not pink */
+    --accent: oklch(0.65 0.14 25);
+    --accent-foreground: oklch(0.13 0.003 80);
+
+    --field-background: oklch(0.21 0 0);
+    --field-foreground: var(--ink-light);
+    --field-placeholder: oklch(0.6 0 0);
+    --field-border: oklch(0.30 0 0);
+
+    --success: oklch(0.73 0.19 152);
+    --success-foreground: oklch(0.13 0.003 80);
+    --warning: oklch(0.82 0.14 76);
+    --warning-foreground: oklch(0.13 0.003 80);
+    --danger: oklch(0.59 0.20 25);
+    --danger-foreground: var(--ink-light);
+
+    --segment: oklch(0.38 0.01 80);
+    --segment-foreground: var(--ink-light);
+    --border: oklch(0.27 0 0);
+    --separator: oklch(0.24 0 0);
+    --focus: var(--accent);
+    --link: oklch(0.72 0.12 25);
+    --backdrop: rgba(0, 0, 0, 0.65);
+
+    --surface-shadow: 0 0 0 1px oklch(0.27 0 0) inset;
+    --overlay-shadow: 0 0 0 1px oklch(0.30 0 0) inset;
+    --field-shadow: 0 0 0 0 transparent;
+    --skeleton-animation: shimmer;
+
+    /* Derived state tokens — same formulas as light mode, recomputed
+       from the dark-mode base colors. */
+    --surface-hover: color-mix(in oklab, var(--surface) 92%, var(--surface-foreground) 8%);
+    --default-hover: color-mix(in oklab, var(--default) 96%, var(--default-foreground) 4%);
+    --accent-hover: color-mix(in oklab, var(--accent) 90%, var(--accent-foreground) 10%);
+    --success-hover: color-mix(in oklab, var(--success) 90%, var(--success-foreground) 10%);
+    --warning-hover: color-mix(in oklab, var(--warning) 90%, var(--warning-foreground) 10%);
+    --danger-hover: color-mix(in oklab, var(--danger) 90%, var(--danger-foreground) 10%);
+    --field-hover: color-mix(in oklab, var(--field-background) 90%, var(--field-foreground) 2%);
+    --field-focus: var(--field-background);
+    --field-border-hover: color-mix(in oklab, var(--field-border) 88%, var(--field-foreground) 10%);
+    --field-border-focus: color-mix(in oklab, var(--field-border) 74%, var(--field-foreground) 22%);
+    --accent-soft: color-mix(in oklab, var(--accent) 15%, transparent);
+    --accent-soft-hover: color-mix(in oklab, var(--accent) 20%, transparent);
+    --accent-soft-foreground: var(--accent);
+    --danger-soft: color-mix(in oklab, var(--danger) 15%, transparent);
+    --danger-soft-hover: color-mix(in oklab, var(--danger) 20%, transparent);
+    --danger-soft-foreground: var(--danger);
+    --warning-soft: color-mix(in oklab, var(--warning) 15%, transparent);
+    --warning-soft-hover: color-mix(in oklab, var(--warning) 20%, transparent);
+    --warning-soft-foreground: var(--warning);
+    --success-soft: color-mix(in oklab, var(--success) 15%, transparent);
+    --success-soft-hover: color-mix(in oklab, var(--success) 20%, transparent);
+    --success-soft-foreground: var(--success);
+  }
+}
+
+/* Expose auxd-specific tokens to Tailwind utilities */
+@theme inline {
+  /* ── Editorial tokens ─────────────────────────────────────────── */
+  --color-paper: var(--surface);
+  --color-ink: var(--foreground);
+  --color-ink-muted: var(--muted);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-rule: var(--separator);
+  --color-link-blue: var(--link);
+
+  /* ── Shadcn-style aliases ─────────────────────────────────────── */
+  /*    Backward-compat for existing components that reference the
+        v3 / shadcn token names (bg-primary, text-muted-foreground, …).
+        Every alias points to the editorial token of equivalent intent. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--surface);
+  --color-card-foreground: var(--surface-foreground);
+  --color-popover: var(--overlay);
+  --color-popover-foreground: var(--overlay-foreground);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--accent-foreground);
+  --color-secondary: var(--default);
+  --color-secondary-foreground: var(--default-foreground);
+  /* --color-muted resolves to the muted *text* token (HeroUI semantics).
+     For shadcn's bg-muted usage the muted color works fine as a subtle
+     wash, especially when paired with /30, /20 opacity modifiers. */
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--danger);
+  --color-destructive-foreground: var(--danger-foreground);
+  --color-border: var(--border);
+  --color-input: var(--field-border);
+  --color-ring: var(--focus);
+
+  /* ── Fonts ────────────────────────────────────────────────────── */
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter-tight), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+}

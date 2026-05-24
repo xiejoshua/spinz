@@ -1,5 +1,6 @@
 "use client";
 
+import { AuxIcon } from "@/components/icons/aux";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -22,8 +23,14 @@ export function AuxToggle({ value, onChange }: Props) {
           : "border-border text-muted-foreground hover:bg-muted"
       )}
     >
-      <span aria-hidden="true" className={cn("text-lg", value ? "" : "opacity-40 grayscale")}>
-        🏅
+      <span
+        style={{
+          color: value ? "var(--gold)" : "var(--muted)",
+          display: "inline-flex",
+          alignItems: "center",
+        }}
+      >
+        <AuxIcon filled={value} size={18} />
       </span>
       <span>{value ? "Aux'd" : "Aux"}</span>
     </button>

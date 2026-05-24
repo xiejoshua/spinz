@@ -1,33 +1,64 @@
-import { type VariantProps, cva } from "class-variance-authority";
-import type * as React from "react";
+"use client";
+
+import { Chip } from "@heroui/react";
+import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-  {
-    variants: {
-      variant: {
-        default: "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
-        outline: "text-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-);
+type ShadcnVariant = "default" | "secondary" | "destructive" | "outline";
 
-export interface BadgeProps
-  extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+const COLOR_MAP: Record<ShadcnVariant, "default" | "accent" | "danger"> = {
+  default: "accent",
+  secondary: "default",
+  destructive: "danger",
+  outline: "default",
+};
 
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+const VARIANT_MAP: Record<
+  ShadcnVariant,
+  "primary" | "secondary" | "tertiary" | "soft"
+> = {
+  default: "primary",
+  secondary: "soft",
+  destructive: "primary",
+  outline: "secondary",
+};
+
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
+  variant?: ShadcnVariant;
 }
 
-export { Badge, badgeVariants };
+function Badge({
+  className,
+  variant = "default",
+  children,
+  ...props
+}: BadgeProps) {
+  return (
+    <Chip
+      size="sm"
+      color={COLOR_MAP[variant]}
+      variant={VARIANT_MAP[variant]}
+      className={cn("text-xs font-semibold", className)}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {...(props as any)}
+    >
+      {children}
+    </Chip>
+  );
+}
+
+export function badgeVariants({
+  variant = "default",
+  className,
+}: { variant?: ShadcnVariant; className?: string } = {}): string {
+  return cn(
+    "chip",
+    "chip--sm",
+    `chip--${COLOR_MAP[variant]}`,
+    `chip--${VARIANT_MAP[variant]}`,
+    className
+  );
+}
+
+export { Badge };

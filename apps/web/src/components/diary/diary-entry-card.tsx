@@ -1,5 +1,6 @@
 "use client";
 
+import { AuxIcon } from "@/components/icons/aux";
 import { Badge } from "@/components/ui/badge";
 import type { DiaryAlbumCard, DiaryEntry } from "@/lib/diary-types";
 import Link from "next/link";
@@ -67,8 +68,12 @@ export function DiaryEntryCard({ entry, album, showOwnerControls, onEdit, onDele
           )}
           {entry.auxed && (
             <Badge variant="secondary" className="h-5 px-1.5 py-0">
-              <span aria-hidden="true" className="mr-1">
-                🏅
+              <span
+                aria-hidden="true"
+                className="mr-1 inline-flex items-center"
+                style={{ color: "var(--gold)" }}
+              >
+                <AuxIcon filled size={12} />
               </span>
               Aux’d
             </Badge>

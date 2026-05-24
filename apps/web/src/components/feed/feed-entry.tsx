@@ -1,6 +1,8 @@
 "use client";
 
 import { CriticBadge } from "@/components/critic-badge";
+import { AuxIcon } from "@/components/icons/aux";
+import { LikeIcon } from "@/components/icons/like";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { DiaryAlbumCard } from "@/lib/diary-types";
@@ -85,8 +87,12 @@ export function FeedEntryCard({ entry, user, album, review }: Props) {
             )}
             {entry.auxed && (
               <Badge variant="secondary" className="h-5 px-1.5 py-0">
-                <span aria-hidden="true" className="mr-1">
-                  🏅
+                <span
+                  aria-hidden="true"
+                  className="mr-1 inline-flex items-center"
+                  style={{ color: "var(--gold)" }}
+                >
+                  <AuxIcon filled size={12} />
                 </span>
                 Aux’d
               </Badge>
@@ -96,7 +102,14 @@ export function FeedEntryCard({ entry, user, album, review }: Props) {
                 href={`/review/${encodeURIComponent(entry.review_id)}`}
                 className="text-muted-foreground hover:underline"
               >
-                review · 👍 {review?.likes_count ?? 0}
+                review ·{" "}
+                <span
+                  aria-hidden="true"
+                  className="inline-flex items-center align-text-bottom"
+                >
+                  <LikeIcon filled size={12} />
+                </span>{" "}
+                {review?.likes_count ?? 0}
               </Link>
             )}
             {entry.score_components?.source === "critic_seed_padding" && (

@@ -1,6 +1,5 @@
 "use client";
 
-import { cn } from "@/lib/utils";
 import { usePathname } from "next/navigation";
 
 const STEPS = [
@@ -9,36 +8,48 @@ const STEPS = [
   { slug: "step-3", label: "All set" },
 ];
 
+/**
+ * Editorial progress indicator — small-caps mono numerals connected by
+ * hairlines. Active step is foreground, future steps are muted.
+ */
 export function OnboardingProgress() {
   const pathname = usePathname() ?? "";
   const currentIdx = STEPS.findIndex((s) => pathname.endsWith(s.slug));
   return (
-    <div className="container max-w-3xl pb-4">
-      <ol className="flex items-center gap-2" aria-label="Onboarding progress">
+    <div className="mt-6">
+      <ol
+        className="flex items-center gap-3"
+        aria-label="Onboarding progress"
+      >
         {STEPS.map((step, i) => {
           const reached = i <= currentIdx;
+          const isCurrent = i === currentIdx;
           return (
-            <li key={step.slug} className="flex flex-1 items-center gap-2">
+            <li key={step.slug} className="flex flex-1 items-center gap-3">
               <span
-                aria-current={i === currentIdx ? "step" : undefined}
-                className={cn(
-                  "flex size-7 items-center justify-center rounded-full border text-xs font-medium",
-                  reached
-                    ? "border-foreground bg-foreground text-background"
-                    : "border-border text-muted-foreground"
-                )}
+                aria-current={isCurrent ? "step" : undefined}
+                className="font-mono"
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.18em",
+                  fontWeight: isCurrent ? 600 : 500,
+                  color: reached ? "var(--foreground)" : "var(--muted)",
+                  textTransform: "uppercase",
+                }}
               >
-                {i + 1}
-              </span>
-              <span
-                className={cn("text-xs", reached ? "text-foreground" : "text-muted-foreground")}
-              >
+                {String(i + 1).padStart(2, "0")}
+                {"  "}
                 {step.label}
               </span>
               {i < STEPS.length - 1 && (
                 <span
                   aria-hidden="true"
-                  className={cn("h-px flex-1", reached ? "bg-foreground" : "bg-border")}
+                  className="h-px flex-1"
+                  style={{
+                    background: reached
+                      ? "var(--foreground)"
+                      : "var(--separator)",
+                  }}
                 />
               )}
             </li>

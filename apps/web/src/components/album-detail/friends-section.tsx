@@ -1,3 +1,4 @@
+import { AuxIcon } from "@/components/icons/aux";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { DiaryRow } from "@/lib/album-types";
 
@@ -29,7 +30,15 @@ export function FriendsSection({ friends }: { friends: DiaryRow[] }) {
                   <span className="sr-only">Rated {entry.rating} of 5 stars</span>
                 </span>
               )}
-              {entry.auxed && <span aria-hidden="true">🏅</span>}
+              {entry.auxed && (
+                <span
+                  aria-hidden="true"
+                  className="inline-flex items-center"
+                  style={{ color: "var(--gold)" }}
+                >
+                  <AuxIcon filled size={14} />
+                </span>
+              )}
             </div>
           </li>
         ))}

@@ -90,6 +90,34 @@ class CatalogAlbum(BaseModel):
             "obscure ones for popular-artist queries."
         ),
     )
+    genres: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Genres + styles flattened into a single list. Discogs masters carry "
+            "both `genres` and `styles` arrays; we concat genres-first and dedupe."
+        ),
+    )
+    tracklist: list["CatalogTrack"] = Field(
+        default_factory=list,
+        description=(
+            "Track-level details. Discogs master responses include position, "
+            "title, duration (mm:ss); MusicBrainz release-group responses "
+            "leave this empty."
+        ),
+    )
+
+
+class CatalogTrack(BaseModel):
+    """Provider-agnostic track row inside :class:`CatalogAlbum.tracklist`."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    position: int = Field(description="Ordinal track position, 1-indexed.")
+    title: str = Field(description="Track title.")
+    duration_ms: int | None = Field(
+        default=None,
+        description="Duration in milliseconds. None when the provider omits it.",
+    )
 
 
 class ListeningEvent(BaseModel):

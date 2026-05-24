@@ -10,9 +10,18 @@ export const metadata: Metadata = {
 export default function PrivacySettingsPage() {
   return (
     <section className="space-y-8">
-      <div className="space-y-1">
-        <h2 className="text-lg font-medium">Privacy</h2>
-        <p className="text-sm text-muted-foreground">
+      <div className="space-y-2">
+        <h2
+          className="font-serif font-semibold tracking-[-0.01em]"
+          style={{
+            fontSize: "22px",
+            color: "var(--foreground)",
+            fontFamily: "var(--font-serif)",
+          }}
+        >
+          Privacy
+        </h2>
+        <p className="font-sans text-[14px]" style={{ color: "var(--muted)" }}>
           Control who can see your diary, reviews, lists, and Up Next backlog.
         </p>
       </div>

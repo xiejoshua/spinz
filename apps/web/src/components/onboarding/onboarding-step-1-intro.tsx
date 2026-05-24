@@ -11,22 +11,59 @@ export function OnboardingStep1Intro() {
   }, []);
 
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Welcome to auxd</h2>
-        <p className="text-sm text-muted-foreground">
-          Log albums in under 8 seconds. See what your friends are listening to. Track everything
-          you&rsquo;ve ever loved.
+    <div className="space-y-8 pt-8">
+      <div className="space-y-3">
+        <div
+          className="font-mono uppercase"
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.18em",
+            color: "var(--muted)",
+          }}
+        >
+          Welcome
+        </div>
+        <h1
+          className="font-serif font-semibold leading-[1.05] tracking-[-0.02em]"
+          style={{
+            fontSize: "clamp(32px, 5vw, 44px)",
+            color: "var(--foreground)",
+            fontFamily: "var(--font-serif)",
+          }}
+        >
+          A diary to bring back albums as{" "}
+          <em className="italic" style={{ fontFamily: "var(--font-serif)" }}>
+            art
+          </em>
+          .
+        </h1>
+        <p
+          className="font-sans text-[16px] leading-[1.55]"
+          style={{ color: "var(--muted)" }}
+        >
+          Log albums in under eight seconds. See what the people you follow
+          played last night.
         </p>
       </div>
-      <div className="space-y-2 text-sm">
-        <p>You&rsquo;ll set this up in three steps:</p>
-        <ul className="list-inside list-disc space-y-1 text-muted-foreground">
-          <li>Follow at least three critics to fill your feed</li>
-          <li>Log your first album</li>
-          <li>Start exploring</li>
+
+      <div className="space-y-2">
+        <div
+          className="font-mono uppercase"
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.18em",
+            color: "var(--muted)",
+          }}
+        >
+          Three steps
+        </div>
+        <ul className="space-y-1.5 pt-1 font-sans text-[15px]" style={{ color: "var(--foreground)" }}>
+          <li>— Follow at least three critics to fill your feed.</li>
+          <li>— Log your first album.</li>
+          <li>— Start exploring.</li>
         </ul>
       </div>
+
       <Button asChild className="w-full">
         <Link href="/onboarding/step-2">Continue</Link>
       </Button>

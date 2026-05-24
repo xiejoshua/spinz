@@ -38,7 +38,31 @@ from __future__ import annotations
 
 import httpx
 
-from auxd_api.providers.base import CatalogAlbum, CatalogProvider
+from auxd_api.providers.base import CatalogAlbum, CatalogProvider, CatalogTrack
+
+
+def _parse_discogs_duration(value: object) -> int | None:
+    """Parse a Discogs "mm:ss" / "h:mm:ss" duration into milliseconds.
+
+    Returns None for empty / malformed values — Discogs sometimes omits
+    duration on bonus tracks and bootlegs.
+    """
+    if not isinstance(value, str):
+        return None
+    parts = value.strip().split(":")
+    if len(parts) < 2 or len(parts) > 3:
+        return None
+    try:
+        nums = [int(p) for p in parts]
+    except ValueError:
+        return None
+    if any(n < 0 for n in nums):
+        return None
+    if len(nums) == 2:
+        minutes, seconds = nums
+        return (minutes * 60 + seconds) * 1000
+    hours, minutes, seconds = nums
+    return (hours * 3600 + minutes * 60 + seconds) * 1000
 from auxd_api.providers.errors import ProviderRateLimited, ProviderUnavailable
 from auxd_api.providers.transport import build_async_client
 from auxd_api.settings import get_settings
@@ -353,7 +377,75 @@ class DiscogsCatalogProvider(CatalogProvider):
             cover_art_url=cover_art_url,
             community_have=community_have,
             external_ids=({"discogs_master": master_id_str} if master_id_str else {}),
+            genres=DiscogsCatalogProvider._extract_genres(item),
+            tracklist=DiscogsCatalogProvider._extract_tracklist(item),
         )
+
+    @staticmethod
+    def _extract_genres(item: dict[str, object]) -> list[str]:
+        """Flatten Discogs `genres` + `styles` into one ordered list.
+
+        Both fields can contain duplicates (e.g. "Hip Hop" in both arrays
+        or capitalisation variants). We preserve insertion order, dedupe
+        case-insensitively, and cap at 5 to keep the chip row sane.
+        """
+        out: list[str] = []
+        seen: set[str] = set()
+        for key in ("genres", "styles"):
+            raw = item.get(key)
+            if not isinstance(raw, list):
+                continue
+            for entry in raw:
+                if not isinstance(entry, str):
+                    continue
+                cleaned = entry.strip()
+                if not cleaned:
+                    continue
+                lower = cleaned.casefold()
+                if lower in seen:
+                    continue
+                seen.add(lower)
+                out.append(cleaned)
+                if len(out) >= 5:
+                    return out
+        return out
+
+    @staticmethod
+    def _extract_tracklist(item: dict[str, object]) -> list["CatalogTrack"]:
+        """Pull Discogs master tracklist into CatalogTrack rows.
+
+        Discogs encodes durations as "mm:ss" strings (sometimes "h:mm:ss"
+        for long tracks). We parse into ms or leave None on malformed
+        entries — the cumulative duration_ms on the album materialise
+        path then sums whatever we got.
+
+        Tracks of `type_` other than "track" (e.g. "heading", "index")
+        are skipped — they're side / disc dividers, not playable items.
+        """
+        raw = item.get("tracklist")
+        if not isinstance(raw, list):
+            return []
+        out: list[CatalogTrack] = []
+        position = 0
+        for entry in raw:
+            if not isinstance(entry, dict):
+                continue
+            type_ = entry.get("type_")
+            if isinstance(type_, str) and type_.lower() != "track":
+                continue
+            title = entry.get("title")
+            if not isinstance(title, str) or not title.strip():
+                continue
+            position += 1
+            duration_ms = _parse_discogs_duration(entry.get("duration"))
+            out.append(
+                CatalogTrack(
+                    position=position,
+                    title=title.strip(),
+                    duration_ms=duration_ms,
+                )
+            )
+        return out
 
     @staticmethod
     def _map_release(item: dict[str, object]) -> CatalogAlbum:

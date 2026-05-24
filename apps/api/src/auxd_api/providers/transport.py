@@ -114,8 +114,19 @@ class ResilienceTransport(httpx.AsyncBaseTransport):
         self._retry_backoff: BackoffStrategy = retry_backoff
         self._retry_base_delay = retry_base_delay
         self._timeout_seconds = timeout_seconds
+        # Use certifi's bundle explicitly. On Python 3.14 macOS builds
+        # httpx's default SSL context resolves to the system OpenSSL
+        # bundle which fails to verify modern CAs ("Basic Constraints
+        # of CA cert not marked critical" / "unable to get local issuer
+        # certificate"). Pinning verify= to certifi.where() makes the
+        # provider HTTPS calls work across every Python build that has
+        # certifi installed (which is a transitive dep of httpx).
+        import certifi  # noqa: PLC0415 — local import keeps the module surface clean
+
         self._inner: httpx.AsyncBaseTransport = (
-            inner_transport if inner_transport is not None else httpx.AsyncHTTPTransport()
+            inner_transport
+            if inner_transport is not None
+            else httpx.AsyncHTTPTransport(verify=certifi.where())
         )
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:

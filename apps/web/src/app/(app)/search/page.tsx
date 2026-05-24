@@ -1,9 +1,10 @@
+import { PageHeader } from "@/components/nav/page-header";
 import { SearchClient } from "@/components/search/search-client";
 
 export default function SearchPage() {
   return (
-    <section className="container max-w-3xl py-6 space-y-4">
-      <h1 className="text-2xl font-bold tracking-tight">Search</h1>
+    <section className="container max-w-3xl space-y-8 py-10">
+      <PageHeader eyebrow="Catalog" title="Search." />
       <SearchClient />
     </section>
   );

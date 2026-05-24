@@ -17,6 +17,17 @@ the versioned namespace and is consumed by the T028 codegen pipeline.
 
 from __future__ import annotations
 
+# Make Python's SSL stack use the OS's native trust store (macOS
+# keychain / Windows cert store / Linux system bundle) instead of the
+# bundled certifi roots. Required on corporate networks that do TLS
+# inspection (e.g. Zscaler) where the intercepting proxy re-signs
+# upstream certs with a CA that ships only in the OS trust store, never
+# in certifi. MUST run before any HTTPS client (httpx, requests, sentry)
+# is constructed — hence the early-import position above the rest.
+import truststore
+
+truststore.inject_into_ssl()
+
 import logging
 import os
 from collections.abc import AsyncIterator

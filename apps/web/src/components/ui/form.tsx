@@ -1,7 +1,5 @@
 "use client";
 
-import * as LabelPrimitive from "@radix-ui/react-label";
-import { Slot } from "@radix-ui/react-slot";
 import * as React from "react";
 import {
   Controller,
@@ -14,6 +12,13 @@ import {
 
 import { cn } from "@/lib/utils";
 
+/**
+ * react-hook-form integration. Identical API to the shadcn Form recipe,
+ * but with the Radix Label + Slot removed:
+ *   • <FormLabel>  → native <label>
+ *   • <FormControl> → React.cloneElement passes a11y attrs to the child
+ */
+
 const Form = FormProvider;
 
 type FormFieldContextValue<
@@ -23,7 +28,9 @@ type FormFieldContextValue<
   name: TName;
 };
 
-const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue);
+const FormFieldContext = React.createContext<FormFieldContextValue>(
+  {} as FormFieldContextValue
+);
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
@@ -63,34 +70,37 @@ const useFormField = () => {
 
 type FormItemContextValue = { id: string };
 
-const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
-
-const FormItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => {
-    const id = React.useId();
-    return (
-      <FormItemContext.Provider value={{ id }}>
-        <div ref={ref} className={cn("space-y-2", className)} {...props} />
-      </FormItemContext.Provider>
-    );
-  }
+const FormItemContext = React.createContext<FormItemContextValue>(
+  {} as FormItemContextValue
 );
+
+const FormItem = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => {
+  const id = React.useId();
+  return (
+    <FormItemContext.Provider value={{ id }}>
+      <div ref={ref} className={cn("space-y-2", className)} {...props} />
+    </FormItemContext.Provider>
+  );
+});
 FormItem.displayName = "FormItem";
 
 const FormLabel = React.forwardRef<
-  React.ElementRef<typeof LabelPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
+  HTMLLabelElement,
+  React.LabelHTMLAttributes<HTMLLabelElement>
 >(({ className, ...props }, ref) => {
   const { error, formItemId } = useFormField();
   return (
-    <LabelPrimitive.Root
+    <label
       ref={ref}
+      htmlFor={formItemId}
       className={cn(
         "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-        error && "text-destructive",
         className
       )}
-      htmlFor={formItemId}
+      style={{ color: error ? "var(--danger)" : "var(--foreground)" }}
       {...props}
     />
   );
@@ -98,19 +108,24 @@ const FormLabel = React.forwardRef<
 FormLabel.displayName = "FormLabel";
 
 const FormControl = React.forwardRef<
-  React.ElementRef<typeof Slot>,
-  React.ComponentPropsWithoutRef<typeof Slot>
->(({ ...props }, ref) => {
-  const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
-  return (
-    <Slot
-      ref={ref}
-      id={formItemId}
-      aria-describedby={error ? `${formDescriptionId} ${formMessageId}` : formDescriptionId}
-      aria-invalid={!!error}
-      {...props}
-    />
-  );
+  HTMLElement,
+  { children: React.ReactNode }
+>(({ children }, ref) => {
+  const { error, formItemId, formDescriptionId, formMessageId } =
+    useFormField();
+  if (!React.isValidElement(children)) {
+    return <>{children}</>;
+  }
+  const child = children as React.ReactElement<Record<string, unknown>>;
+  return React.cloneElement(child, {
+    ref,
+    id: formItemId,
+    "aria-describedby": error
+      ? `${formDescriptionId} ${formMessageId}`
+      : formDescriptionId,
+    "aria-invalid": !!error,
+    ...(child.props as Record<string, unknown>),
+  });
 });
 FormControl.displayName = "FormControl";
 
@@ -123,7 +138,8 @@ const FormDescription = React.forwardRef<
     <p
       ref={ref}
       id={formDescriptionId}
-      className={cn("text-sm text-muted-foreground", className)}
+      className={cn("text-sm", className)}
+      style={{ color: "var(--muted)" }}
       {...props}
     />
   );
@@ -141,7 +157,8 @@ const FormMessage = React.forwardRef<
     <p
       ref={ref}
       id={formMessageId}
-      className={cn("text-sm font-medium text-destructive", className)}
+      className={cn("text-sm font-medium", className)}
+      style={{ color: "var(--danger)" }}
       {...props}
     >
       {body}

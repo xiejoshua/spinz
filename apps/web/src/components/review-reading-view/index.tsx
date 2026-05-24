@@ -21,14 +21,18 @@ type Props = {
 };
 
 /**
- * Letterboxd-parity reading view for a single review.
+ * Editorial article-frame for a single review (Phase 5).
+ *
+ *   - Newsreader 32-48px headline on the album title
+ *   - 65ch reading column (typographic optimum, ~Pitchfork / The Quietus)
+ *   - ::first-letter drop-cap on the first paragraph of body
+ *   - Small-caps "edited" tag, no chip
+ *   - Sticky Like affordance bottom-right on mobile, inline on desktop
  *
  * State variants (handled implicitly via props):
- * - **Owner**  — `useAuthStore().user.id === review.user_id`. Like button
- *   is shown but disabled (TC-016: can't like own review).
- * - **Follower / public** — Like button enabled.
- * - **No rating context** — `viewerEntry === null`. The hero omits the
- *   "You rated this …" line.
+ *   - Owner    — Like disabled (TC-016: can't like own review). Edit shown.
+ *   - Follower / public — Like enabled.
+ *   - No rating context — hero omits the rating row.
  *
  * Comments thread is explicitly NOT in scope (v2 per CR-002).
  */
@@ -39,18 +43,66 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
   const [editing, setEditing] = useState(false);
 
   return (
-    <article className="container max-w-2xl space-y-6 px-4 py-6">
+    <article className="mx-auto max-w-[65ch] px-6 py-10">
       <Link
         href={`/album/${encodeURIComponent(album.id)}`}
-        className="inline-block text-sm text-muted-foreground hover:text-foreground"
+        className="mb-8 inline-block font-sans text-[13px] hover:underline"
+        style={{ color: "var(--muted)" }}
       >
         ← Back to {album.title}
       </Link>
-      <ReadingHero review={review} user={user} album={album} viewerEntry={viewerEntry} />
-      <div className="prose prose-sm max-w-none whitespace-pre-line leading-relaxed">
-        {review.body}
-      </div>
-      <footer className="flex items-center gap-3 border-t pt-4">
+
+      <ReadingHero
+        review={review}
+        user={user}
+        album={album}
+        viewerEntry={viewerEntry}
+      />
+
+      {/* Body — editorial article frame. */}
+      {(() => {
+        // Drop-cap is reserved for essay-length bodies. A one-sentence
+        // review reads awkwardly with a giant first letter, so we gate
+        // on body length (>= 240 chars) AND at least one paragraph
+        // break, which together pick up actual essays without applying
+        // to short reactions.
+        const eligibleForDropCap =
+          review.body.length >= 240 && review.body.includes("\n\n");
+        return (
+          <>
+            <div
+              className={`review-body mt-10 whitespace-pre-line font-sans${eligibleForDropCap ? " review-body--drop-cap" : ""}`}
+              style={{
+                fontSize: "18px",
+                lineHeight: 1.65,
+                color: "var(--foreground)",
+              }}
+            >
+              {review.body}
+            </div>
+            {/* Drop-cap matches the body font family (Inter Tight) so the
+                first letter doesn't read as a different typeface — just
+                a larger, heavier version of the same sans. */}
+            <style>{`
+              .review-body--drop-cap::first-letter {
+                float: left;
+                font-family: inherit;
+                font-size: 3.2em;
+                line-height: 0.88;
+                font-weight: 600;
+                padding-right: 0.1em;
+                padding-top: 0.04em;
+                color: var(--foreground);
+              }
+            `}</style>
+          </>
+        );
+      })()}
+
+      <footer
+        className="mt-12 flex flex-wrap items-center gap-3 pt-6"
+        style={{ borderTop: "1px solid var(--separator)" }}
+      >
         <LikeButton
           reviewId={review.id}
           initialLiked={initialLiked}
@@ -59,7 +111,12 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
           disabled={isOwn}
         />
         {isOwn && (
-          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setEditing(true)}
+          >
             <Pencil className="mr-1 size-4" aria-hidden="true" />
             Edit
           </Button>
@@ -69,7 +126,11 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
           title={`${user?.handle ?? "review"}'s review of ${album.title}`}
         />
       </footer>
-      <EditReviewDialog review={editing ? review : null} onClose={() => setEditing(false)} />
+
+      <EditReviewDialog
+        review={editing ? review : null}
+        onClose={() => setEditing(false)}
+      />
     </article>
   );
 }

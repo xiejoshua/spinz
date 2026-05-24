@@ -1,47 +1,63 @@
 "use client";
 
-import * as AvatarPrimitive from "@radix-ui/react-avatar";
+import { Avatar as HeroAvatar } from "@heroui/react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
+/**
+ * Adapter — exposes Avatar / AvatarImage / AvatarFallback names for
+ * existing call-sites, backed by HeroUI's compound Avatar API.
+ */
+
 const Avatar = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Root>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Root
-    ref={ref}
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, children, ...props }, ref) => (
+  <HeroAvatar
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ref={ref as any}
     className={cn("relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full", className)}
-    {...props}
-  />
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    {...(props as any)}
+  >
+    {children}
+  </HeroAvatar>
 ));
-Avatar.displayName = AvatarPrimitive.Root.displayName;
+Avatar.displayName = "Avatar";
 
 const AvatarImage = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Image>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image
-    ref={ref}
+  HTMLImageElement,
+  React.ImgHTMLAttributes<HTMLImageElement>
+>(({ className, alt = "", src, ...props }, ref) => (
+  <HeroAvatar.Image
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ref={ref as any}
+    src={src}
+    alt={alt}
     className={cn("aspect-square h-full w-full", className)}
     {...props}
   />
 ));
-AvatarImage.displayName = AvatarPrimitive.Image.displayName;
+AvatarImage.displayName = "AvatarImage";
 
 const AvatarFallback = React.forwardRef<
-  React.ElementRef<typeof AvatarPrimitive.Fallback>,
-  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Fallback
-    ref={ref}
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, children, ...props }, ref) => (
+  <HeroAvatar.Fallback
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ref={ref as any}
     className={cn(
-      "flex h-full w-full items-center justify-center rounded-full bg-muted",
+      "flex h-full w-full items-center justify-center rounded-full",
       className
     )}
-    {...props}
-  />
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    {...(props as any)}
+  >
+    {children}
+  </HeroAvatar.Fallback>
 ));
-AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName;
+AvatarFallback.displayName = "AvatarFallback";
 
 export { Avatar, AvatarImage, AvatarFallback };
