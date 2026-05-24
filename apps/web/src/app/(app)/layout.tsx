@@ -1,6 +1,7 @@
 import { AuthHydrator } from "@/components/auth/auth-hydrator";
 import { LogSheet } from "@/components/log-sheet";
 import { BottomTabs } from "@/components/nav/bottom-tabs";
+import { FloatingThemeToggle } from "@/components/nav/floating-theme-toggle";
 import { LogFab } from "@/components/nav/log-fab";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { PushBootstrap } from "@/components/notifications/push-bootstrap";
@@ -55,6 +56,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <main className="flex-1">{children}</main>
       <LogFab />
       <LogSheet />
+      <FloatingThemeToggle />
       <BottomTabs />
       <PushBootstrap />
     </div>

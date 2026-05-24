@@ -9,7 +9,12 @@ import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, apiClient } from "@/lib/api-client";
 import { capture } from "@/lib/posthog";
-import type { Review, ReviewUserCard, UserReviewsListResponse } from "@/lib/review-types";
+import type {
+  Review,
+  ReviewAlbumCard,
+  ReviewUserCard,
+  UserReviewsListResponse,
+} from "@/lib/review-types";
 import { useAuthStore } from "@/stores/auth";
 import { useUiStore } from "@/stores/ui";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
@@ -66,6 +71,14 @@ export function ProfileReviewsList({ handle }: Props) {
     const map: Record<string, ReviewUserCard> = {};
     for (const page of query.data?.pages ?? []) {
       Object.assign(map, page.users);
+    }
+    return map;
+  }, [query.data]);
+
+  const albums = useMemo(() => {
+    const map: Record<string, ReviewAlbumCard> = {};
+    for (const page of query.data?.pages ?? []) {
+      Object.assign(map, page.albums);
     }
     return map;
   }, [query.data]);
@@ -129,17 +142,34 @@ export function ProfileReviewsList({ handle }: Props) {
   const reviews = (query.data?.pages ?? []).flatMap((page) => page.reviews);
 
   return (
-    <section aria-labelledby="profile-reviews-heading" className="space-y-3">
+    <section aria-labelledby="profile-reviews-heading" className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 id="profile-reviews-heading" className="text-lg font-semibold">
+        <h2
+          id="profile-reviews-heading"
+          className="font-mono uppercase"
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.18em",
+            color: "var(--muted)",
+          }}
+        >
           Reviews
         </h2>
         <ReviewSortSelect />
       </div>
+      <div className="h-px" style={{ background: "var(--separator)" }} />
       {query.isLoading ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">Loading reviews…</p>
+        <p
+          className="py-4 text-center font-sans text-sm"
+          style={{ color: "var(--muted)" }}
+        >
+          Loading reviews…
+        </p>
       ) : query.isError ? (
-        <p className="py-4 text-center text-sm text-destructive">
+        <p
+          className="py-4 text-center font-sans text-sm"
+          style={{ color: "var(--danger)" }}
+        >
           Could not load reviews.{" "}
           <button
             type="button"
@@ -152,17 +182,25 @@ export function ProfileReviewsList({ handle }: Props) {
           </button>
         </p>
       ) : reviews.length === 0 ? (
-        <p className="rounded-md border border-dashed bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+        <p
+          className="rounded-md border border-dashed px-4 py-8 text-center font-sans text-sm"
+          style={{
+            background: "var(--surface)",
+            borderColor: "var(--border)",
+            color: "var(--muted)",
+          }}
+        >
           {isOwner ? "You haven't written any reviews yet." : "No reviews yet."}
         </p>
       ) : (
         <>
-          <ul className="space-y-2">
+          <ul>
             {reviews.map((review) => (
               <ReviewCard
                 key={review.id}
                 review={review}
                 user={users[review.user_id]}
+                album={albums[review.album_id]}
                 showOwnerControls={isOwner}
                 onEdit={isOwner ? setEditing : undefined}
                 onDelete={isOwner ? setPendingDelete : undefined}

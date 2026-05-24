@@ -60,30 +60,44 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
       />
 
       {/* Body — editorial article frame. */}
-      <div
-        className="review-body mt-10 whitespace-pre-line font-sans"
-        style={{
-          fontSize: "18px",
-          lineHeight: 1.65,
-          color: "var(--foreground)",
-        }}
-      >
-        {review.body}
-      </div>
-
-      {/* Drop-cap on the first paragraph of body via CSS */}
-      <style>{`
-        .review-body::first-letter {
-          float: left;
-          font-family: var(--font-serif);
-          font-size: 3.6em;
-          line-height: 0.85;
-          font-weight: 600;
-          padding-right: 0.08em;
-          padding-top: 0.04em;
-          color: var(--foreground);
-        }
-      `}</style>
+      {(() => {
+        // Drop-cap is reserved for essay-length bodies. A one-sentence
+        // review reads awkwardly with a giant first letter, so we gate
+        // on body length (>= 240 chars) AND at least one paragraph
+        // break, which together pick up actual essays without applying
+        // to short reactions.
+        const eligibleForDropCap =
+          review.body.length >= 240 && review.body.includes("\n\n");
+        return (
+          <>
+            <div
+              className={`review-body mt-10 whitespace-pre-line font-sans${eligibleForDropCap ? " review-body--drop-cap" : ""}`}
+              style={{
+                fontSize: "18px",
+                lineHeight: 1.65,
+                color: "var(--foreground)",
+              }}
+            >
+              {review.body}
+            </div>
+            {/* Drop-cap matches the body font family (Inter Tight) so the
+                first letter doesn't read as a different typeface — just
+                a larger, heavier version of the same sans. */}
+            <style>{`
+              .review-body--drop-cap::first-letter {
+                float: left;
+                font-family: inherit;
+                font-size: 3.2em;
+                line-height: 0.88;
+                font-weight: 600;
+                padding-right: 0.1em;
+                padding-top: 0.04em;
+                color: var(--foreground);
+              }
+            `}</style>
+          </>
+        );
+      })()}
 
       <footer
         className="mt-12 flex flex-wrap items-center gap-3 pt-6"
