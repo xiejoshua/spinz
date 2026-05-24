@@ -76,7 +76,13 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra="forbid",
+        # ``ignore`` rather than ``forbid`` so the same ``.env`` file can
+        # carry non-backend operator vars (e.g., ``TESTMAIL_NAMESPACE`` /
+        # ``TESTMAIL_API_KEY`` used by Playwright E2E specs) without
+        # tripping a backend boot failure. The strict typing on every
+        # declared field above is the canonical defence against
+        # misconfiguration — extras are silently passed through.
+        extra="ignore",
     )
 
     # --- Core ------------------------------------------------------------
