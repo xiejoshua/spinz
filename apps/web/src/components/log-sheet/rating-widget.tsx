@@ -1,7 +1,6 @@
 "use client";
 
-import { cn } from "@/lib/utils";
-import { Star, StarHalf } from "lucide-react";
+import { StarHalfIcon, StarIcon } from "@/components/icons/star";
 import { type KeyboardEvent, type MouseEvent, useState } from "react";
 
 type Props = {
@@ -11,6 +10,14 @@ type Props = {
 
 const SLOTS = [1, 2, 3, 4, 5] as const;
 
+/**
+ * Editorial ½-star rating widget.
+ *  - Empty slots:  full star outline in --accent (burgundy)
+ *  - Half slot:    literal LEFT half of a star (Letterboxd-exact),
+ *                  fill in --accent
+ *  - Full slot:    filled star in --accent
+ * Two half-width hit zones per slot for ½ vs whole rating.
+ */
 export function RatingWidget({ value, onChange }: Props) {
   const [hover, setHover] = useState<number | null>(null);
   const display = hover ?? value ?? 0;
@@ -46,9 +53,13 @@ export function RatingWidget({ value, onChange }: Props) {
       tabIndex={0}
       onKeyDown={handleKey}
       onMouseLeave={() => setHover(null)}
-      className="flex items-center gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-md px-1 py-1"
+      className="inline-flex items-center gap-3 rounded-md px-1 py-1 focus-visible:outline-none focus-visible:ring-2"
+      style={{
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ["--tw-ring-color" as any]: "var(--focus)",
+      }}
     >
-      <div className="flex">
+      <div className="inline-flex items-center gap-1" style={{ color: "var(--accent)" }}>
         {SLOTS.map((slot) => (
           <StarSlot
             key={slot}
@@ -61,7 +72,15 @@ export function RatingWidget({ value, onChange }: Props) {
           />
         ))}
       </div>
-      <span aria-hidden="true" className="text-sm tabular-nums text-muted-foreground">
+      <span
+        aria-hidden="true"
+        className="font-mono tabular-nums"
+        style={{
+          fontSize: "13px",
+          color: "var(--muted)",
+          letterSpacing: "0.04em",
+        }}
+      >
         {value == null ? "—" : value.toFixed(1)}
       </span>
     </div>
@@ -85,43 +104,38 @@ function StarSlot({
   onClickLeft,
   onClickRight,
 }: SlotProps) {
-  const filledFull = display >= slot;
-  const filledHalf = !filledFull && display >= slot - 0.5;
-  const halfHandler = (handler: () => void) => (e: MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    handler();
-  };
+  const isFull = display >= slot;
+  const isHalf = !isFull && display >= slot - 0.5;
+  const halfHandler =
+    (handler: () => void) => (e: MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      handler();
+    };
   return (
-    <div className="relative">
-      {filledHalf ? (
-        <StarHalf
-          className="size-8 fill-foreground stroke-foreground transition-colors duration-200 ease-out"
-          aria-hidden="true"
-        />
-      ) : filledFull ? (
-        <Star
-          className="size-8 fill-foreground stroke-foreground transition-colors duration-200 ease-out"
-          aria-hidden="true"
-        />
+    <div
+      className="relative"
+      style={{ width: 32, height: 32, lineHeight: 0 }}
+    >
+      {isFull ? (
+        <StarIcon size={32} filled />
+      ) : isHalf ? (
+        <StarHalfIcon size={32} />
       ) : (
-        <Star
-          className="size-8 fill-transparent stroke-muted-foreground transition-colors duration-200 ease-out"
-          aria-hidden="true"
-        />
+        <StarIcon size={32} filled={false} />
       )}
       <button
         type="button"
         aria-label={`Set rating to ${slot - 0.5} stars`}
         onMouseEnter={onPointerEnterLeft}
         onClick={halfHandler(onClickLeft)}
-        className="absolute inset-y-0 left-0 w-1/2"
+        className="absolute inset-y-0 left-0 w-1/2 cursor-pointer bg-transparent"
       />
       <button
         type="button"
         aria-label={`Set rating to ${slot} stars`}
         onMouseEnter={onPointerEnterRight}
         onClick={halfHandler(onClickRight)}
-        className="absolute inset-y-0 right-0 w-1/2"
+        className="absolute inset-y-0 right-0 w-1/2 cursor-pointer bg-transparent"
       />
     </div>
   );

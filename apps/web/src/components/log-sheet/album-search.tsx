@@ -1,7 +1,6 @@
 "use client";
 
 import type { SearchAlbum, SearchResponse } from "@/components/search/search-client";
-import { Input } from "@/components/ui/input";
 import { apiClient } from "@/lib/api-client";
 import { capture } from "@/lib/posthog";
 import type { LogSheetSeed } from "@/stores/ui";
@@ -19,11 +18,6 @@ type Props = {
 };
 
 function albumToSeed(album: SearchAlbum): LogSheetSeed {
-  // album_id is the materialised Album row's KSUID — search hits are
-  // resolved via identity.resolve_identity before the response is sent,
-  // so every hit carries a stable id. Discogs-master-only hits (no MBID,
-  // no release_id) used to be unloggable; now we route through the KSUID
-  // and the backend looks the row up directly.
   return {
     album_id: album.id,
     mbid: album.mbid,
@@ -67,28 +61,35 @@ export function AlbumSearch({ onPick }: Props) {
   }
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="space-y-4">
       <div className="relative">
         <Search
           aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2"
+          style={{ color: "var(--muted)" }}
         />
-        <Input
+        <input
           type="search"
           inputMode="search"
           autoFocus
           autoComplete="off"
           spellCheck={false}
-          placeholder="Search for an album…"
+          placeholder="Album or artist…"
           aria-label="Search album"
-          className="pl-9 pr-10"
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          className="block w-full rounded-md py-3 pl-10 pr-10 font-sans text-[15px] focus:outline-none"
+          style={{
+            background: "var(--field-background)",
+            color: "var(--field-foreground)",
+            border: "1px solid var(--field-border)",
+          }}
         />
         {isFetching && enabled && (
           <Loader2
             aria-hidden="true"
-            className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground"
+            className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin"
+            style={{ color: "var(--muted)" }}
           />
         )}
       </div>
@@ -98,12 +99,24 @@ export function AlbumSearch({ onPick }: Props) {
       )}
 
       {enabled && data && data.results.length === 0 && !isFetching && (
-        <div className="rounded-md border p-3 text-sm space-y-2">
-          <p className="text-muted-foreground">
-            No matches for <span className="text-foreground">“{debounced}”</span>.
+        <div
+          className="space-y-2 rounded-md p-4 font-sans text-sm"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            color: "var(--muted)",
+          }}
+        >
+          <p>
+            No matches for{" "}
+            <span style={{ color: "var(--foreground)" }}>"{debounced}"</span>.
           </p>
           {data.report_missing_album_url && (
-            <Link href={data.report_missing_album_url} className="font-medium underline">
+            <Link
+              href={data.report_missing_album_url}
+              className="font-medium hover:underline"
+              style={{ color: "var(--link)" }}
+            >
               Report missing album
             </Link>
           )}
@@ -111,34 +124,67 @@ export function AlbumSearch({ onPick }: Props) {
       )}
 
       {enabled && data && data.results.length > 0 && (
-        <ul
-          className="divide-y rounded-md border max-h-64 overflow-y-auto"
-          aria-label="Album results"
-        >
-          {data.results.map((album, i) => {
-            const seed = albumToSeed(album);
-            return (
-              <li key={album.id}>
-                <button
-                  type="button"
-                  disabled={!seed}
-                  onClick={() => handlePick(album, i)}
-                  className="flex w-full items-center gap-3 p-2 text-left hover:bg-muted disabled:opacity-50"
-                >
-                  <CoverThumb album={album} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{album.title}</p>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {album.artist_name}
-                      {album.release_year ? ` · ${album.release_year}` : ""}
-                    </p>
-                  </div>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        <ResultsList
+          results={data.results}
+          eyebrow={`${data.results.length} ${data.results.length === 1 ? "result" : "results"} · MusicBrainz`}
+          onPick={(album, i) => handlePick(album, i)}
+        />
       )}
+    </div>
+  );
+}
+
+function ResultsList({
+  results,
+  eyebrow,
+  onPick,
+}: {
+  results: SearchAlbum[];
+  eyebrow: string;
+  onPick: (album: SearchAlbum, atIndex: number) => void;
+}) {
+  return (
+    <div>
+      <SectionEyebrow text={eyebrow} />
+      <ul
+        className="overflow-y-auto rounded-md"
+        style={{
+          border: "1px solid var(--border)",
+          maxHeight: "260px",
+        }}
+        aria-label="Album results"
+      >
+        {results.map((album, i) => (
+          <li
+            key={album.id}
+            style={{
+              borderBottom:
+                i < results.length - 1 ? "1px solid var(--separator)" : "none",
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => onPick(album, i)}
+              className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors"
+              style={{ color: "var(--foreground)" }}
+            >
+              <CoverThumb album={album} />
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-serif text-[15px] font-semibold tracking-[-0.005em]" style={{ fontFamily: "var(--font-serif)" }}>
+                  {album.title}
+                </p>
+                <p
+                  className="truncate font-sans text-[12px]"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {album.artist_name}
+                  {album.release_year ? ` · ${album.release_year}` : ""}
+                </p>
+              </div>
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -151,15 +197,24 @@ function RecentList({
   onPick: (seed: LogSheetSeed) => void;
 }) {
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Recent</p>
-      <ul className="divide-y rounded-md border">
-        {recent.map((seed) => (
-          <li key={seed.album_id}>
+    <div>
+      <SectionEyebrow text="Recent" />
+      <ul
+        className="rounded-md"
+        style={{ border: "1px solid var(--border)" }}
+      >
+        {recent.map((seed, i) => (
+          <li
+            key={seed.album_id}
+            style={{
+              borderBottom:
+                i < recent.length - 1 ? "1px solid var(--separator)" : "none",
+            }}
+          >
             <button
               type="button"
               onClick={() => onPick(seed)}
-              className="flex w-full items-center gap-3 p-2 text-left hover:bg-muted"
+              className="flex w-full cursor-pointer items-center gap-3 px-3 py-2.5 text-left transition-colors"
             >
               <CoverThumb
                 album={{
@@ -173,8 +228,21 @@ function RecentList({
                 }}
               />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{seed.title}</p>
-                <p className="truncate text-xs text-muted-foreground">{seed.artist_credit}</p>
+                <p
+                  className="truncate font-serif text-[15px] font-semibold tracking-[-0.005em]"
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    color: "var(--foreground)",
+                  }}
+                >
+                  {seed.title}
+                </p>
+                <p
+                  className="truncate font-sans text-[12px]"
+                  style={{ color: "var(--muted)" }}
+                >
+                  {seed.artist_credit}
+                </p>
               </div>
             </button>
           </li>
@@ -184,33 +252,48 @@ function RecentList({
   );
 }
 
+function SectionEyebrow({ text }: { text: string }) {
+  return (
+    <p
+      className="mb-2 font-mono uppercase"
+      style={{
+        fontSize: "11px",
+        letterSpacing: "0.15em",
+        color: "var(--muted)",
+      }}
+    >
+      {text}
+    </p>
+  );
+}
+
 function CoverThumb({ album }: { album: SearchAlbum }) {
+  const wrap = (src: string) => (
+    <img
+      src={src}
+      alt=""
+      width={44}
+      height={44}
+      loading="lazy"
+      className="size-11 shrink-0 rounded object-cover"
+      style={{ background: "var(--surface-secondary)" }}
+    />
+  );
   if (album.mbid) {
     const fallback = album.cover_art_url
       ? `?fallback=${encodeURIComponent(album.cover_art_url)}`
       : "";
-    return (
-      <img
-        src={`/api/cover/250/${album.mbid}${fallback}`}
-        alt=""
-        width={40}
-        height={40}
-        loading="lazy"
-        className="size-10 shrink-0 rounded bg-muted object-cover"
-      />
-    );
+    return wrap(`/api/cover/250/${album.mbid}${fallback}`);
   }
-  if (album.cover_art_url) {
-    return (
-      <img
-        src={album.cover_art_url}
-        alt=""
-        width={40}
-        height={40}
-        loading="lazy"
-        className="size-10 shrink-0 rounded bg-muted object-cover"
-      />
-    );
-  }
-  return <div aria-hidden="true" className="size-10 shrink-0 rounded bg-muted" />;
+  if (album.cover_art_url) return wrap(album.cover_art_url);
+  return (
+    <div
+      aria-hidden="true"
+      className="size-11 shrink-0 rounded"
+      style={{
+        background:
+          "linear-gradient(135deg, var(--surface-secondary), var(--surface-tertiary))",
+      }}
+    />
+  );
 }
