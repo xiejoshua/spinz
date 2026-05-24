@@ -13,6 +13,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from auxd_api import settings as settings_module
+from auxd_api.lib.sessions import SESSION_COOKIE_NAME
 from auxd_api.middleware import SessionMiddleware
 from auxd_api.modules.auth.routes import router as auth_router
 from auxd_api.modules.users.models import HandleRedirect, User, UserStatus
@@ -99,13 +100,22 @@ async def test_cancel_deletion_clears_fields(
 ) -> None:
     client = TestClient(_make_app())
     user_id, csrf = _sign_up(client)
-    # Schedule then cancel.
+    # Schedule deletion. The POST also clears the session cookies as
+    # part of the immediate-sign-out behavior, so we re-login (via the
+    # cancel_deletion login path) and confirm the cancel landed cleanly.
     assert client.post("/api/v1/users/me/delete", headers={"X-CSRF-Token": csrf}).status_code == 200
-    cancel = client.delete("/api/v1/users/me/delete", headers={"X-CSRF-Token": csrf})
-    assert cancel.status_code == 200, cancel.text
-    body = cancel.json()
-    assert body["status"] == UserStatus.ACTIVE.value
-    assert body["scheduled_for"] is None
+    # Re-authenticate with cancel_deletion=true — the production cancel
+    # path now goes through the login screen rather than a same-session
+    # DELETE call (cookies are gone after schedule).
+    login = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": _VALID_PAYLOAD["email"],
+            "password": _VALID_PAYLOAD["password"],
+            "cancel_deletion": True,
+        },
+    )
+    assert login.status_code == 200, login.text
     persisted = await User.get(user_id)
     assert persisted is not None
     assert persisted.status is UserStatus.ACTIVE
@@ -120,17 +130,33 @@ async def test_schedule_deletion_is_idempotent(
     from datetime import datetime as _dt
 
     client = TestClient(_make_app())
-    user_id, csrf = _sign_up(client)
-    first = client.post("/api/v1/users/me/delete", headers={"X-CSRF-Token": csrf})
+    user_id, _csrf = _sign_up(client)
+    first = client.post("/api/v1/users/me/delete", headers={"X-CSRF-Token": _csrf})
     assert first.status_code == 200
     first_schedule = _dt.fromisoformat(first.json()["scheduled_for"])
-    second = client.post("/api/v1/users/me/delete", headers={"X-CSRF-Token": csrf})
-    assert second.status_code == 200
-    second_schedule = _dt.fromisoformat(second.json()["scheduled_for"])
-    # BSON storage truncates sub-millisecond precision so we compare at
-    # 10ms resolution rather than identity — the idempotent path must
-    # not extend the window.
-    delta = abs((first_schedule - second_schedule).total_seconds())
+    # Cookies were cleared on the first schedule (immediate sign-out).
+    # Re-login through the deletion-pending allow path so we can probe
+    # the idempotent second call. ``allow_deletion_pending`` via the
+    # login flag returns the existing session without cancelling.
+    login = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": _VALID_PAYLOAD["email"],
+            "password": _VALID_PAYLOAD["password"],
+            "cancel_deletion": False,
+        },
+    )
+    # Without cancel_deletion the deletion-pending user gets a 403 —
+    # that's the correct UX. For this idempotency check we drive the
+    # service directly instead of round-tripping through HTTP.
+    assert login.status_code == 403
+    from auxd_api.modules.users.service import schedule_account_deletion
+
+    user = await User.get(user_id)
+    assert user is not None
+    state = await schedule_account_deletion(user)
+    assert state.scheduled_for is not None
+    delta = abs((first_schedule - state.scheduled_for).total_seconds())
     assert delta < 0.01, f"schedules drifted by {delta}s"
     persisted = await User.get(user_id)
     assert persisted is not None
@@ -148,3 +174,28 @@ async def test_schedule_deletion_unauthenticated_returns_401(
     assert response.status_code == 401
     response_del = client.delete("/api/v1/users/me/delete")
     assert response_del.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_schedule_deletion_clears_session_cookies(
+    _clean_env: None,
+    _clean_users: None,
+) -> None:
+    """Schedule-deletion response includes Set-Cookie headers that drop the session cookies.
+
+    Server-side sign-out: the user's browser stops sending the session
+    cookie on the next request, so navigating back into the app lands
+    them as anonymous (the (app) layout redirects to /login). Pairs
+    with the session_version bump as defence-in-depth.
+    """
+    client = TestClient(_make_app())
+    _sign_up(client)
+    csrf = client.cookies.get("auxd_csrf")
+    assert csrf is not None
+    response = client.post("/api/v1/users/me/delete", headers={"X-CSRF-Token": csrf})
+    assert response.status_code == 200
+    cookie_headers = response.headers.get_list("set-cookie")
+    # The clearing Set-Cookie header has max-age=0 for the session cookie.
+    assert any(
+        SESSION_COOKIE_NAME in h and "max-age=0" in h.lower() for h in cookie_headers
+    ), cookie_headers

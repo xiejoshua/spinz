@@ -59,6 +59,7 @@ from fastapi import (
     File,
     HTTPException,
     Request,
+    Response,
     UploadFile,
     status,
 )
@@ -75,6 +76,7 @@ from auxd_api.lib.storage import (
     upload_avatar,
 )
 from auxd_api.lib.visibility import Visibility
+from auxd_api.middleware import clear_session_cookies
 from auxd_api.modules.auth.password import hash_password, verify_password
 from auxd_api.modules.auth.service import (
     AuthError,
@@ -244,10 +246,20 @@ def _serialize_deletion_state(state_status: str, scheduled_for: Any) -> dict[str
 @router.post("/me/delete", status_code=status.HTTP_200_OK)
 async def post_schedule_deletion(
     session: Annotated[Session, Depends(_require_session)],
+    response: Response,
 ) -> dict[str, Any]:
-    """Schedule account deletion 30 days from now (idempotent)."""
+    """Schedule account deletion 30 days from now (idempotent).
+
+    Side-effect: clears the caller's session cookies on the response so
+    the browser is signed out the moment the deletion is scheduled.
+    ``schedule_account_deletion`` also bumps ``session_version`` to
+    invalidate cookies on other devices (best-effort — middleware
+    re-validates at refresh time, not per request, per the documented
+    trade-off in ``auth/routes.py:logout_all_devices``).
+    """
     user = await _load_current_user(session)
     state = await schedule_account_deletion(user)
+    clear_session_cookies(response)
     log_call(
         provider="auxd",
         endpoint="users.account_deletion_scheduled",

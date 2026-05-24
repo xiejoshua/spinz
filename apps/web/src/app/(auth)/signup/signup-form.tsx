@@ -15,8 +15,11 @@ import { ApiError, apiClient } from "@/lib/api-client";
 import { type SignupFormValues, signupSchema } from "@/lib/auth-schemas";
 import { setApiFormErrors, zodResolver } from "@/lib/forms";
 import { type SanitizedUser, useAuthStore } from "@/stores/auth";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+
+const RECOVERY_EMAIL = "appeals@auxd.xiejoshua.com";
 
 export function SignupForm() {
   const router = useRouter();
@@ -113,6 +116,28 @@ export function SignupForm() {
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? "Creating account…" : "Sign up"}
         </Button>
+        {/* CTA row — covers the "already have an account" pivot and
+            the recently-deleted recovery path. Backend keeps duplicate
+            errors generic (no enumeration of active vs deleted); the
+            Contact-support link is the legitimate former-owner's
+            escape hatch when they see "already in use" on what they
+            know was their account. */}
+        <div
+          className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-2 font-mono uppercase"
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.12em",
+            color: "var(--muted)",
+          }}
+        >
+          <Link href="/login" className="hover:underline">
+            Already have an account?
+          </Link>
+          <span aria-hidden="true">·</span>
+          <a href={`mailto:${RECOVERY_EMAIL}`} className="hover:underline">
+            Recover a deleted account
+          </a>
+        </div>
       </form>
     </Form>
   );

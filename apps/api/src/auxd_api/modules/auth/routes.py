@@ -46,6 +46,8 @@ from auxd_api.lib.rate_limit import RateLimit, rate_limit
 from auxd_api.lib.sessions import Session
 from auxd_api.middleware import clear_session_cookies, issue_session
 from auxd_api.modules.auth.service import (
+    AccountDeletionPendingError,
+    AccountSuspendedError,
     AuthError,
     DuplicateEmailError,
     DuplicateHandleError,
@@ -63,6 +65,7 @@ from auxd_api.modules.users.models import (
     User,
     UserStatus,
 )
+from auxd_api.modules.users.service import cancel_account_deletion
 
 _LOGGER = logging.getLogger("auxd.auth.routes")
 
@@ -88,6 +91,11 @@ class _LoginRequest(BaseModel):
 
     email: EmailStr
     password: str = Field(min_length=1)  # length checked in policy; only require non-empty here.
+    # Opt-in: when the user re-submits from the "account scheduled for
+    # deletion" banner on /login, this flag tells the route to cancel
+    # the pending deletion atomically before issuing a session. Default
+    # ``False`` keeps the normal login path enumeration-resistant.
+    cancel_deletion: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -105,16 +113,23 @@ _ERROR_STATUS_MAP: dict[type[AuthError], int] = {
     InvalidHandleError: status.HTTP_422_UNPROCESSABLE_ENTITY,
     WeakPasswordError: status.HTTP_422_UNPROCESSABLE_ENTITY,
     InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
+    AccountSuspendedError: status.HTTP_403_FORBIDDEN,
+    AccountDeletionPendingError: status.HTTP_403_FORBIDDEN,
 }
 
 
 def _auth_error_response(exc: AuthError) -> HTTPException:
-    """Translate an :class:`AuthError` into an HTTPException with stable shape."""
+    """Translate an :class:`AuthError` into an HTTPException with stable shape.
+
+    AccountDeletionPendingError carries an extra ``scheduled_for`` field
+    in the detail payload so the frontend can surface the date on the
+    login banner without a second round-trip.
+    """
     status_code = _ERROR_STATUS_MAP.get(type(exc), status.HTTP_400_BAD_REQUEST)
-    return HTTPException(
-        status_code=status_code,
-        detail={"error": exc.code, "message": str(exc)},
-    )
+    detail: dict[str, Any] = {"error": exc.code, "message": str(exc)}
+    if isinstance(exc, AccountDeletionPendingError) and exc.scheduled_for is not None:
+        detail["scheduled_for"] = exc.scheduled_for.isoformat()
+    return HTTPException(status_code=status_code, detail=detail)
 
 
 def _public_user_payload(user: User) -> dict[str, Any]:
@@ -215,15 +230,33 @@ _LOGIN_RATE_LIMIT = rate_limit(
 async def login(payload: _LoginRequest, response: Response) -> dict[str, Any]:
     """Verify credentials and issue a session cookie.
 
-    Returns ``200`` with the public-user payload on success and ``401``
-    with a generic ``invalid_credentials`` error code on any failure
-    path. The route logs which sub-case fired internally so ops can
-    distinguish "unknown email" from "wrong password" without leaking
-    the distinction to the client.
+    Returns ``200`` with the public-user payload on success. Failure
+    modes:
+
+    * ``401 invalid_credentials`` — unknown email OR wrong password.
+      The two sub-cases are deliberately collapsed so the route cannot
+      be used to enumerate registered emails.
+    * ``403 account_suspended`` — password correct but the account is
+      suspended. Only fires after password verification; never leaks
+      for wrong-password attempts.
+    * ``403 account_deletion_pending`` — password correct but the
+      account is inside the 30-day deletion grace window. Detail body
+      carries ``scheduled_for`` (ISO timestamp) so the frontend can
+      surface it on the login banner alongside a "cancel deletion and
+      sign in" CTA that re-submits with ``cancel_deletion: true``.
+
+    When ``cancel_deletion=true`` is set and the matched user is in
+    ``DELETION_PENDING`` state, the route cancels the pending deletion
+    via :func:`cancel_account_deletion` BEFORE issuing the session so
+    the cookie lands against an ``ACTIVE`` user.
     """
     try:
-        user = await authenticate_user(email=payload.email, password=payload.password)
-    except InvalidCredentialsError as exc:
+        user = await authenticate_user(
+            email=payload.email,
+            password=payload.password,
+            allow_deletion_pending=payload.cancel_deletion,
+        )
+    except AuthError as exc:
         log_call(
             provider="auxd",
             endpoint="auth.login_failed",
@@ -238,19 +271,34 @@ async def login(payload: _LoginRequest, response: Response) -> dict[str, Any]:
         )
         raise _auth_error_response(exc) from exc
 
+    # If the caller opted in to cancelling deletion, do it atomically
+    # before issuing the session so the cookie tracks the freshly-ACTIVE
+    # session_version (cancel_account_deletion preserves it; the bump
+    # happened at schedule_account_deletion time).
+    deletion_cancelled = False
+    if payload.cancel_deletion and user.status is UserStatus.DELETION_PENDING:
+        await cancel_account_deletion(user)
+        deletion_cancelled = True
+
     issue_session(response, user_id=user.id, session_version=user.session_version)
     log_call(
         provider="auxd",
         endpoint="auth.login_completed",
         latency_ms=0.0,
         status="ok",
-        extra={"user_id": user.id},
+        extra={"user_id": user.id, "deletion_cancelled": deletion_cancelled},
     )
     emit_event(
         user_id=user.id,
         event="login.completed",
-        properties={"handle": user.handle},
+        properties={"handle": user.handle, "deletion_cancelled": deletion_cancelled},
     )
+    if deletion_cancelled:
+        emit_event(
+            user_id=user.id,
+            event="account.deletion_cancelled",
+            properties={"via": "login_cancel"},
+        )
     return _public_user_payload(user)
 
 

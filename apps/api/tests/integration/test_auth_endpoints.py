@@ -330,3 +330,107 @@ async def test_signup_password_hash_never_echoed_anywhere(
     assert _VALID_PASSWORD not in response.text
     # Argon2 hashes start with ``$argon2``.
     assert "$argon2" not in response.text
+
+
+# ---------------------------------------------------------------------------
+# Deletion-pending login flow
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_login_deletion_pending_returns_403_with_scheduled_for(
+    _clean_env: None,
+    _clean_users: None,
+) -> None:
+    """Password-correct login against a DELETION_PENDING account → 403 with the schedule."""
+    from auxd_api.modules.users.models import UserStatus
+    from auxd_api.modules.users.service import schedule_account_deletion
+
+    client = TestClient(_make_app())
+    signup = client.post("/api/v1/auth/signup", json=_VALID_PAYLOAD)
+    assert signup.status_code == 201
+
+    user = await User.find_one(User.email == _VALID_PAYLOAD["email"])
+    assert user is not None
+    state = await schedule_account_deletion(user)
+    assert state.scheduled_for is not None
+    client.cookies.clear()
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": _VALID_PAYLOAD["email"], "password": _VALID_PASSWORD},
+    )
+    assert response.status_code == 403
+    detail = response.json()["detail"]
+    assert detail["error"] == "account_deletion_pending"
+    assert "scheduled_for" in detail
+    # No session cookie issued — the response should not authenticate the caller.
+    cookies = response.headers.get_list("set-cookie")
+    session_set = [
+        c
+        for c in cookies
+        if c.startswith(f"{SESSION_COOKIE_NAME}=") and "max-age=0" not in c.lower()
+    ]
+    assert not session_set, session_set
+    # And the user status is unchanged (still pending).
+    reloaded = await User.find_one(User.email == _VALID_PAYLOAD["email"])
+    assert reloaded is not None
+    assert reloaded.status is UserStatus.DELETION_PENDING
+
+
+@pytest.mark.asyncio
+async def test_login_deletion_pending_wrong_password_still_generic_401(
+    _clean_env: None,
+    _clean_users: None,
+) -> None:
+    """Wrong password against a DELETION_PENDING account must NOT leak the status."""
+    from auxd_api.modules.users.service import schedule_account_deletion
+
+    client = TestClient(_make_app())
+    signup = client.post("/api/v1/auth/signup", json=_VALID_PAYLOAD)
+    assert signup.status_code == 201
+    user = await User.find_one(User.email == _VALID_PAYLOAD["email"])
+    assert user is not None
+    await schedule_account_deletion(user)
+    client.cookies.clear()
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={"email": _VALID_PAYLOAD["email"], "password": "wrong-password-99"},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"]["error"] == "invalid_credentials"
+
+
+@pytest.mark.asyncio
+async def test_login_cancel_deletion_flag_cancels_and_issues_session(
+    _clean_env: None,
+    _clean_users: None,
+) -> None:
+    """cancel_deletion=true on a DELETION_PENDING account cancels + logs in atomically."""
+    from auxd_api.modules.users.models import UserStatus
+    from auxd_api.modules.users.service import schedule_account_deletion
+
+    client = TestClient(_make_app())
+    signup = client.post("/api/v1/auth/signup", json=_VALID_PAYLOAD)
+    assert signup.status_code == 201
+    user = await User.find_one(User.email == _VALID_PAYLOAD["email"])
+    assert user is not None
+    await schedule_account_deletion(user)
+    client.cookies.clear()
+
+    response = client.post(
+        "/api/v1/auth/login",
+        json={
+            "email": _VALID_PAYLOAD["email"],
+            "password": _VALID_PASSWORD,
+            "cancel_deletion": True,
+        },
+    )
+    assert response.status_code == 200
+    cookies = response.headers.get_list("set-cookie")
+    assert any(c.startswith(f"{SESSION_COOKIE_NAME}=") for c in cookies)
+    reloaded = await User.find_one(User.email == _VALID_PAYLOAD["email"])
+    assert reloaded is not None
+    assert reloaded.status is UserStatus.ACTIVE
+    assert reloaded.deletion_scheduled_for is None

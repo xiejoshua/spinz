@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from datetime import datetime
 
 from auxd_api.modules.auth.password import hash_password, verify_password
 from auxd_api.modules.users.models import (
@@ -26,6 +27,8 @@ from auxd_api.modules.users.models import (
 from auxd_api.modules.users.reserved import is_reserved_handle
 
 __all__ = [
+    "AccountDeletionPendingError",
+    "AccountSuspendedError",
     "AuthError",
     "AuthSignupResult",
     "DuplicateEmailError",
@@ -78,9 +81,42 @@ class DuplicateEmailError(AuthError):
 
 
 class InvalidCredentialsError(AuthError):
-    """Raised on login when the email/password pair does not authenticate."""
+    """Raised on login when the email/password pair does not authenticate.
+
+    Deliberately covers both "unknown email" and "wrong password" with
+    the same code — distinguishing them would let attackers enumerate
+    which emails are registered on auxd. Per-IP rate limits on the
+    /login route are the second line of defence against brute force.
+    """
 
     code = "invalid_credentials"
+
+
+class AccountSuspendedError(AuthError):
+    """Raised on login when password is correct but the account is suspended.
+
+    The account-status branch fires only AFTER password verification, so
+    this code never leaks for a wrong-password attempt — preserving the
+    enumeration-resistance of ``InvalidCredentialsError``.
+    """
+
+    code = "account_suspended"
+
+
+class AccountDeletionPendingError(AuthError):
+    """Raised on login when password is correct + account is in the deletion grace window.
+
+    Carries ``scheduled_for`` so the route layer can surface the date to
+    the legitimate owner with a "cancel deletion and sign in" CTA. The
+    payload only fires after password verification — wrong-password
+    attempts still see the generic ``InvalidCredentialsError``.
+    """
+
+    code = "account_deletion_pending"
+
+    def __init__(self, message: str, *, scheduled_for: datetime | None) -> None:
+        super().__init__(message)
+        self.scheduled_for = scheduled_for
 
 
 # ---------------------------------------------------------------------------
@@ -209,13 +245,33 @@ async def create_user_account(
 # ---------------------------------------------------------------------------
 
 
-async def authenticate_user(*, email: str, password: str) -> User:
+async def authenticate_user(
+    *,
+    email: str,
+    password: str,
+    allow_deletion_pending: bool = False,
+) -> User:
     """Look up ``email`` and verify ``password``; return the matched :class:`User`.
 
-    Raises :class:`InvalidCredentialsError` for every failure path
-    (unknown email, wrong password, deleted/suspended account). The
-    caller logs which sub-case fired so we can debug without leaking
-    the distinction to the client.
+    Failure mapping (enumeration-aware):
+
+    * Unknown email OR wrong password → :class:`InvalidCredentialsError`.
+      The two sub-cases are deliberately collapsed onto the same code so
+      attackers can't probe which addresses are registered. The caller
+      logs the distinction internally for ops debugging.
+    * Correct password + ``UserStatus.SUSPENDED`` → :class:`AccountSuspendedError`.
+    * Correct password + ``UserStatus.DELETION_PENDING`` →
+      :class:`AccountDeletionPendingError` (carries ``scheduled_for``)
+      unless ``allow_deletion_pending=True`` is passed by the cancel-
+      deletion login path, in which case the user is returned and the
+      caller is expected to invoke ``cancel_account_deletion`` before
+      issuing a session.
+    * Correct password + ``UserStatus.ACTIVE`` → return the user.
+
+    The status branches are evaluated only AFTER password verification.
+    A wrong-password attempt against a suspended/deletion-pending
+    account therefore still sees ``InvalidCredentialsError`` — never the
+    state-specific codes.
     """
     normalised_email = email.strip().lower()
     user = await User.find_one(User.email == normalised_email)
@@ -225,9 +281,22 @@ async def authenticate_user(*, email: str, password: str) -> User:
         # Account exists but has no password — defence-in-depth; should
         # not happen at MVP since signup always sets one.
         raise InvalidCredentialsError("invalid email or password")
-    if user.status is not UserStatus.ACTIVE:
-        # Deletion-pending or suspended accounts cannot log in.
-        raise InvalidCredentialsError("invalid email or password")
     if not verify_password(password, user.password_hash):
+        raise InvalidCredentialsError("invalid email or password")
+    # Password OK from here — safe to surface state-specific errors.
+    if user.status is UserStatus.SUSPENDED:
+        raise AccountSuspendedError("account is suspended")
+    if user.status is UserStatus.DELETION_PENDING:
+        if allow_deletion_pending:
+            return user
+        raise AccountDeletionPendingError(
+            "account is scheduled for deletion",
+            scheduled_for=user.deletion_scheduled_for,
+        )
+    if user.status is not UserStatus.ACTIVE:
+        # Legacy ``DELETED`` status — pre-DELETION_PENDING soft-delete
+        # rows. Should never appear for active logins, but if it does
+        # the safest default is generic credentials failure (legitimate
+        # owners of these rows can't recover via login anyway).
         raise InvalidCredentialsError("invalid email or password")
     return user
