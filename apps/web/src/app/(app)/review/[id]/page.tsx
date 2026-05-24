@@ -57,8 +57,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       title: `@${handle}'s review of ${album.title}`,
       description: preview,
       url: `${siteUrl}/review/${encodeURIComponent(review.id)}`,
-      images: album.cover_art_url ? [{ url: album.cover_art_url }] : undefined,
+      images: [{ url: `/api/og/review/${encodeURIComponent(review.id)}` }],
     },
+    twitter: { card: "summary_large_image" },
   };
 }
 

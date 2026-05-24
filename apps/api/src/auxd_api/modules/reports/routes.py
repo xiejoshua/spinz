@@ -1,4 +1,4 @@
-"""Reports HTTP routes (T053a + T155 + T163a).
+"""Reports HTTP routes (T053a + T155 + T163a + T167).
 
 Endpoints under ``/api/v1/reports``:
 
@@ -19,6 +19,10 @@ Endpoints under ``/api/v1/reports``:
 
 * ``POST /reports/diary-entry`` (T163a) — authenticated user reports
   a diary entry. Validates the entry exists (FK).
+
+* ``POST /reports/album`` (T167) — authenticated user reports an
+  album entry as having wrong metadata or being a duplicate. Feeds the
+  founder-run merge CLI at ``apps/api/scripts/merge_albums.py``.
 
 Rate limits:
 
@@ -235,6 +239,38 @@ class _DiaryEntryReportRequest(BaseModel):
     detail: str | None = Field(default=None, max_length=REPORT_DETAIL_MAX_LEN)
 
 
+class _AlbumReportRequest(BaseModel):
+    """Wire shape for ``POST /reports/album`` (T167)."""
+
+    album_id: str = Field(min_length=1, max_length=80)
+    reason: ReportReason
+    detail: str | None = Field(default=None, max_length=REPORT_DETAIL_MAX_LEN)
+
+
+# Album-report reasons — narrower than content reasons; only the album-
+# specific values + ``OTHER`` are accepted.
+_ALBUM_REPORT_REASONS: frozenset[ReportReason] = frozenset(
+    {
+        ReportReason.WRONG_METADATA,
+        ReportReason.DUPLICATE,
+        ReportReason.OTHER,
+    }
+)
+
+
+def _validate_album_reason(reason: ReportReason) -> ReportReason:
+    """Reject a content/catalog reason smuggled onto an album report."""
+    if reason not in _ALBUM_REPORT_REASONS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={
+                "error": "invalid_reason",
+                "message": f"{reason.value!r} is not a valid album-report reason",
+            },
+        )
+    return reason
+
+
 def _serialize_submit_response(report: Report, created: bool) -> dict[str, Any]:
     """Common response shape for all three content-report endpoints."""
     return {
@@ -362,6 +398,34 @@ async def report_diary_entry(
         reporter_id=session.user_id,
         target_type=ReportTargetType.DIARY_ENTRY,
         target_id=payload.entry_id,
+        reason=reason,
+        detail=payload.detail,
+    )
+    from fastapi.responses import JSONResponse
+
+    return JSONResponse(content=body, status_code=status_code)
+
+
+@router.post(
+    "/album",
+    dependencies=[Depends(_CONTENT_REPORT_RATE_LIMIT)],
+)
+async def report_album(
+    payload: _AlbumReportRequest,
+    session: Annotated[Session, Depends(_require_session)],
+) -> Any:
+    """Persist a report against an album (T167).
+
+    Album reports feed the founder-run album-merge CLI at
+    ``apps/api/scripts/merge_albums.py``. Reasons are narrowed to
+    album-specific values; smuggling a content reason (e.g.
+    ``harassment``) returns a 422.
+    """
+    reason = _validate_album_reason(payload.reason)
+    body, status_code = await _submit_content_report(
+        reporter_id=session.user_id,
+        target_type=ReportTargetType.ALBUM,
+        target_id=payload.album_id,
         reason=reason,
         detail=payload.detail,
     )

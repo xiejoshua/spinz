@@ -40,8 +40,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraph: {
       title: `${album.title} — ${album.artist_credit}`,
       description: `${aggregate.rating_count} ${aggregate.rating_count === 1 ? "log" : "logs"} on auxd${ratingSuffix}`,
-      images: album.cover_art_url ? [{ url: album.cover_art_url }] : undefined,
+      images: [{ url: `/api/og/album/${encodeURIComponent(album.id)}` }],
     },
+    twitter: { card: "summary_large_image" },
   };
 }
 

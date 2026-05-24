@@ -458,6 +458,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/reports/album": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Report Album
+         * @description Persist a report against an album (T167).
+         *
+         *     Album reports feed the founder-run album-merge CLI at
+         *     ``apps/api/scripts/merge_albums.py``. Reasons are narrowed to
+         *     album-specific values; smuggling a content reason (e.g.
+         *     ``harassment``) returns a 422.
+         */
+        post: operations["report_album_api_v1_reports_album_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/reports/diary-entry": {
         parameters: {
             query?: never;
@@ -1494,7 +1519,7 @@ export interface components {
          *     single rejected combination doesn't require a schema migration.
          * @enum {string}
          */
-        ReportReason: "harassment" | "spam" | "nsfw" | "impersonation" | "hate_speech" | "catalog_gap" | "other";
+        ReportReason: "harassment" | "spam" | "nsfw" | "impersonation" | "hate_speech" | "catalog_gap" | "wrong_metadata" | "duplicate" | "other";
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1518,6 +1543,17 @@ export interface components {
             /** Notes */
             notes?: string | null;
             per_item_visibility?: components["schemas"]["auxd_api__lib__visibility__Visibility"] | null;
+        };
+        /**
+         * _AlbumReportRequest
+         * @description Wire shape for ``POST /reports/album`` (T167).
+         */
+        _AlbumReportRequest: {
+            /** Album Id */
+            album_id: string;
+            /** Detail */
+            detail?: string | null;
+            reason: components["schemas"]["ReportReason"];
         };
         /**
          * _BlockRequest
@@ -1950,6 +1986,7 @@ export type HttpValidationError = components['schemas']['HTTPValidationError'];
 export type ReportReason = components['schemas']['ReportReason'];
 export type ValidationError = components['schemas']['ValidationError'];
 export type AddItemRequest = components['schemas']['_AddItemRequest'];
+export type AlbumReportRequest = components['schemas']['_AlbumReportRequest'];
 export type BlockRequest = components['schemas']['_BlockRequest'];
 export type CreateReviewRequest = components['schemas']['_CreateReviewRequest'];
 export type DiaryEntryReportRequest = components['schemas']['_DiaryEntryReportRequest'];
@@ -2485,6 +2522,39 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    report_album_api_v1_reports_album_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_AlbumReportRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

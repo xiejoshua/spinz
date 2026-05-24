@@ -47,6 +47,11 @@ class ReportTargetType(str, Enum):  # noqa: UP042 — spec mandates `(str, Enum)
     DIARY_ENTRY = "diary_entry"
     REVIEW = "review"
     MISSING_ALBUM = "missing_album"  # sync-fix L3-006 (FR-005, US-F2)
+    # T167: report-wrong-album / album-merge admin path. Same Report
+    # collection, distinct ``target_type`` so the moderation queue can
+    # filter on it and the founder CLI (apps/api/scripts/merge_albums.py)
+    # can prioritise album merges from user reports.
+    ALBUM = "album"
 
 
 class ReportReason(str, Enum):  # noqa: UP042 — spec mandates `(str, Enum)` form
@@ -64,6 +69,11 @@ class ReportReason(str, Enum):  # noqa: UP042 — spec mandates `(str, Enum)` fo
     IMPERSONATION = "impersonation"
     HATE_SPEECH = "hate_speech"
     CATALOG_GAP = "catalog_gap"  # only with target_type=missing_album
+    # T167 — album-report reasons. Distinct values so the founder
+    # moderation funnel can track "wrong metadata" vs "duplicate album"
+    # without inferring intent from a free-text detail field.
+    WRONG_METADATA = "wrong_metadata"  # only with target_type=album
+    DUPLICATE = "duplicate"  # only with target_type=album
     OTHER = "other"
 
 

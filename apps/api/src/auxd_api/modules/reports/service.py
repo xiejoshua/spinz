@@ -30,6 +30,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
+from auxd_api.modules.albums.models import Album
 from auxd_api.modules.diary.models import DiaryEntry
 from auxd_api.modules.moderation.models import (
     Report,
@@ -84,6 +85,8 @@ async def _target_exists(target_type: ReportTargetType, target_id: str) -> bool:
         return await Review.find_one(Review.id == target_id) is not None
     if target_type is ReportTargetType.DIARY_ENTRY:
         return await DiaryEntry.find_one(DiaryEntry.id == target_id) is not None
+    if target_type is ReportTargetType.ALBUM:
+        return await Album.find_one(Album.id == target_id) is not None
     # The catalog-gap path passes a free-text query as target_id — no FK
     # check is meaningful there. Caller never passes that target_type
     # into this service; routes for MISSING_ALBUM live in routes.py.

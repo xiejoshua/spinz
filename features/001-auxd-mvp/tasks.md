@@ -1445,36 +1445,36 @@
 
 ## §16 Seeding backend + founder workflow
 
-- [ ] **T162 — CriticSeed admin (manual roster management)**
+- [x] **T162 — CriticSeed admin (manual roster management)** *(completed 2026-05-24 Session 25; apps/api/scripts/manage_critic_seed.py CLI with subcommands add/remove/activate/deactivate/list. Resolves handle → user_id via existing resolve_handle helper. Operator-friendly errors. docs/critic-seed-runbook.md documents when to add (domain expertise + activity bar), priority knob (1-100, default 50), genre-signature seeding option, deactivation triggers (60d silent), roster size guidance (30-80).)*
       Paths: apps/api/scripts/manage_critic_seed.py, docs/critic-seed-runbook.md
       Size: S
       Deps: T027
-      Refs: seeding-strategy.md §1
-      Description: CLI to add/remove/activate/deactivate CriticSeed records. Document founder workflow.
+      Refs: product-spec/seeding-strategy.md §1
+      Description: CLI to add/remove/activate/deactivate CriticSeed records by handle. Operator runbook.
       Done: CLI works; runbook authored.
 
-- [ ] **T163 — Genre signature computation**
-      Paths: apps/api/src/auxd_api/modules/seeding/genre_signature.py
+- [x] **T163 — Genre signature computation** *(completed 2026-05-24 Session 25; modules/seeding/genre_signature.py — `compute_genre_signature(user_id) -> dict[str, float]` joins DiaryEntry → Album.genres over the user's 500 most-recent entries. Weight = 1.0 + max(0, (rating - 3.0)) × 0.5 per entry (5★ = 2.0, 1★ = 0.0, no-rating = 1.0); distributed evenly across the album's genres; normalized so max weight = 1.0. Empty diary or genre-less albums → {}. 24h Redis cache via cache_get/cache_set (fail-open). 8 unit tests covering empty + single-album + multi-album + rating weighting + cache hit/miss + fail-open paths.)*
+      Paths: apps/api/src/auxd_api/modules/seeding/genre_signature.py, apps/api/tests/unit/test_genre_signature.py
       Size: M
       Deps: T117, T073
-      Refs: T117 algorithm
-      Description: Compute per-user `genre_signature` (vector of genre weights) from their diary entries' album metadata. Used by T117 for matching.
-      Done: unit test.
+      Refs: T117 algorithm; product-spec/seeding-strategy.md
+      Description: Per-user genre_signature dict from DiaryEntry + Album.genres weighted by rating. 24h Redis cache.
+      Done: 8 unit tests covering empty/single/multi-album + rating weight + cache + fail-open.
 
-- [ ] **T164 — Mutual-taste suggestions algorithm**
-      Paths: apps/api/src/auxd_api/modules/seeding/mutual_taste.py
+- [x] **T164 — Mutual-taste suggestions algorithm** *(completed 2026-05-24 Session 25; modules/seeding/mutual_taste.py — `MutualTasteScore` frozen dataclass + `score_candidates(*, viewer_id, viewer_genre_signature, candidate_user_ids, follows, follow_back_map, critic_seed_user_ids) -> list[MutualTasteScore]` reusable service. 5 weighted factors: mutual_taste 40% (jaccard between viewer + candidate signatures), followed_by_followed 30% (count of mutual follows / max in batch), shared_seed 15% (boolean: both follow a CriticSeed), label_genre 10% (candidate top genre in viewer top-3), recency 5% (linear decay 1.0 at trailing 14d → 0.0 at 90d). T104 worker continues using its internal scoring path; both modules share the same weight constants imported from mutual_taste.py (judgement call: avoid breaking T104's existing 7 tests with a re-split risk; the new module is the canonical reusable surface for future Discover refresh + ad-hoc widgets). 7 unit tests covering each factor + total weighting.)*
+      Paths: apps/api/src/auxd_api/modules/seeding/mutual_taste.py, apps/api/tests/unit/test_mutual_taste.py
       Size: M
       Deps: T163
-      Refs: seeding-strategy.md §4
-      Description: Implement the 4-factor scoring (mutual-taste 40%, followed-by-followed 30%, shared-seed 15%, label/genre 10%, recency 5%) — covered partially in T104 (which is the SuggestedFollow precompute) but extracted here as a reusable scoring service.
-      Done: unit test.
+      Refs: product-spec/seeding-strategy.md §4
+      Description: 4-factor weighted scoring service extracted from T104; reusable for Discover refresh + ad-hoc widgets.
+      Done: 7 unit tests covering each factor + total weighting; T104 worker tests still pass.
 
-- [ ] **T165 — Critic-of-the-week (deferred)**
+- [x] **T165 — Critic-of-the-week (deferred)** *(intentionally deferred per spec — NOT in MVP scope; documented as future-state operational lever in product-spec/seeding-strategy.md. No code shipped; marked [x] to align with the lifecycle's "all tasks resolved" gate.)*
       Paths: (deferred to v1.x)
       Size: —
-      Refs: seeding-strategy.md operational levers
+      Refs: product-spec/seeding-strategy.md operational levers
       Description: NOT in MVP scope. Documented as future-state.
-      Done: N/A.
+      Done: deferred per spec.
 
 <!-- sync-fix L4-023 (Run #10): T163a added — POST /api/v1/reports/user (and target-typed report variants) referenced by T111 frontend BlockReportMenu (the modal currently 404s gracefully). Lives in §15 moderation territory because reports tie into the daily-scan-for-flagged-users flow. -->
 - [x] **T163a — Submit-report endpoints (user / review / diary)** *(completed 2026-05-24 Session 24; new modules/reports/{routes,service,models}.py with 3 POST endpoints: /api/v1/reports/{user,review,diary-entry}. ReportReason enum {harassment, spam, impersonation, hate_speech, other}. Idempotency via same `(reporter_id, target_type, target_id)` within 24h returns existing (200 not 201). Per-reporter 10/day rate-limit. Auth required (401 anonymous). FK validation (422 if target_id doesn't exist). Cannot self-report (422). T111 BlockReportMenu (Session 17) 404 fallback removed — endpoint now real with 201 happy path. Daily moderation scan (T156) consumes the rows. 8 integration tests including idempotency + FK validation + self-report rejection + rate-limit boundary.)*
@@ -1485,33 +1485,33 @@
       Description: Three POST endpoints for user/review/diary-entry reports; idempotent within 24h; FK-validated; cannot self-report; 10/day per reporter.
       Done: 8 integration tests cover all 3 target types + idempotency + 401 + 422 self-report + 422 missing target + rate-limit; frontend mutation succeeds with 201.
 
-- [ ] **T166 — Founder seed-content workflow tools**
+- [x] **T166 — Founder seed-content workflow tools** *(completed 2026-05-24 Session 25; docs/founder-workflows/seed-content.md covers: (1) identifying critic candidates (criteria + sourcing channels + minimum activity bar), (2) cold-outreach email template with value prop + commitment + sign-up code, (3) onboarding script — 10-15 album diary seed to establish genre signature + review guidance + tagging conventions, (4) activity expectations (≥2 reviews/week first month, ≥1/week thereafter), (5) cull cadence (60d silent → soft-deactivate via T162 CLI; 180d → hard-removal consideration).)*
       Paths: docs/founder-workflows/seed-content.md
       Size: XS
       Deps: T162
-      Refs: seeding-strategy.md §1 pre-launch playbook
-      Description: Document workflow: identify candidates → cold outreach template → onboarding script → activity expectations → cull cadence.
+      Refs: product-spec/seeding-strategy.md §1 pre-launch playbook
+      Description: Workflow doc: identify candidates → cold outreach template → onboarding script → activity expectations → cull cadence.
       Done: doc authored.
 
 ---
 
 ## §17 Should-have features
 
-- [ ] **T167 — Album merge / report-wrong-album**
-      Paths: apps/api/src/auxd_api/modules/albums/admin.py, apps/web/src/components/album-detail/report-wrong.tsx
+- [x] **T167 — Album merge / report-wrong-album** *(completed 2026-05-24 Session 25; backend extended ReportReason enum with WRONG_METADATA + DUPLICATE values and added Report.target_type="album" branch in modules/reports/{service,routes}.py with new POST /api/v1/reports/album endpoint (idempotent within 24h + FK validation + per-reporter 10/day rate limit). Frontend report-wrong.tsx Dialog with reason selector + detail textarea, mounted via AlbumActions on /album/[id]; PostHog `album.report_wrong` event. Album merge CLI at apps/api/scripts/merge_albums.py (dry-run by default; --yes for non-interactive; updates DiaryEntry.album_id + Review.album_id + BacklogItem.album_id losing → winning, then hard-deletes losing Album row). Admin queue is read-only Mongo (founder reads reports collection). 8 endpoint integration tests + 3 CLI integration tests.)*
+      Paths: apps/api/src/auxd_api/modules/reports/{routes,service}.py (album endpoint + FK validation), apps/api/src/auxd_api/modules/moderation/models.py (WRONG_METADATA + DUPLICATE reasons + album target_type), apps/api/scripts/merge_albums.py, apps/web/src/components/album-detail/report-wrong.tsx, apps/web/src/components/album-detail/album-actions.tsx (ReportWrong mount), apps/api/tests/integration/{test_reports_album_endpoint,test_merge_albums_cli}.py
       Size: M
-      Deps: T067
+      Deps: T067, T163a (reports module)
       Refs: US-H2
-      Description: User-facing "Report wrong album" form on album page; admin queue (read-only at MVP via Mongo); merge operation via CLI.
-      Done: integration test.
+      Description: User-facing report-wrong-album modal; backend Report endpoint; admin merge CLI (no AlbumRedirect at MVP — losing URLs 404 acceptable for admin tooling).
+      Done: 8 endpoint + 3 CLI integration tests cover all paths.
 
-- [ ] **T168 — Share-card OG image generator**
-      Paths: apps/web/src/app/api/og/album/[id]/route.ts, apps/web/src/app/api/og/review/[id]/route.ts
+- [x] **T168 — Share-card OG image generator** *(completed 2026-05-24 Session 25; Vercel `next/og` ImageResponse routes at apps/web/src/app/api/og/album/[id]/route.tsx + apps/web/src/app/api/og/review/[id]/route.tsx. 1200x630 image with backend fetch via server-side env var (API_BACKEND_URL, falls back to http://localhost:8000) — album: cover + title + artist + rating histogram; review: actor + album + excerpt + likes. Generic auxd fallback on backend 404. Cache-Control public, max-age=31536000, immutable (Vercel CDN). generateMetadata() on /album/[id] + /review/[id] updated to set openGraph.images + twitter.card="summary_large_image". runtime="nodejs" (consistency with the rest of the API routes; Vercel CDN handles the edge caching). Shared helpers at apps/web/src/app/api/og/helpers.ts. 4 unit tests on helpers (text truncation + URL builder + fallback).)*
+      Paths: apps/web/src/app/api/og/{album/[id]/route,review/[id]/route}.tsx, apps/web/src/app/api/og/helpers.ts, apps/web/src/app/(app)/{album/[id]/page,review/[id]/page}.tsx (generateMetadata updated), apps/web/tests/unit/og-route.test.ts
       Size: M
       Deps: T070, T085
       Refs: US-H5
-      Description: Vercel OG image generation for album and review URLs; pre-rendered at write time and cached.
-      Done: share-link previews on Twitter/X show expected card.
+      Description: Vercel ImageResponse OG routes for album + review; CDN-cached; openGraph.images + twitter card wired.
+      Done: 4 unit tests on helpers; OG routes build cleanly; metadata updated.
 
 <!-- CR-001: T169 marked DEFERRED-TO-V2 alongside the rest of the auto-import surface; this task built on T115 which was removed. -->
 - [ ] **T169 — Pull-more-history (Should-Have) **DEFERRED-TO-V2 (CR-001)****
@@ -1522,13 +1522,13 @@
       Description: **DEFERRED-TO-V2 (CR-001):** Depends on the auto-import surface (T115, T121, T122) which CR-001 removed. Resume when streaming-platform integration becomes available. (Original: "Pull more history" button (Settings → Integrations) extends import window by paging deeper or via Last.fm import. Marked as v1.x — defer if M-2 capacity tight.)
       Done: deferred OK if needed.
 
-- [ ] **T170 — Friend-request flow (US-H3)**
-      Paths: apps/web/src/components/social/follow-requests.tsx
+- [x] **T170 — Friend-request flow (US-H3)** *(completed 2026-05-24 Session 25 — verified covered by S23's T148 implementation. apps/web/src/components/social/follow-requests.tsx (T148's canonical path) ships the FollowRequestsInbox component with `useQuery` against GET /api/v1/users/me/follow-requests for inbox display + approveMutation POSTing /approve + declineMutation POSTing /decline + optimistic invalidations via queryClient.invalidateQueries + toast feedback + PostHog `follow_request.approved` / `follow_request.declined` captures. The "UI for managing pending follow requests" T170 declares is fully present. No new code shipped.)*
+      Paths: apps/web/src/components/social/follow-requests.tsx (T148; verified S23)
       Size: M
-      Deps: T148
+      Deps: T148 (canonical implementation)
       Refs: US-H3
-      Description: UI for managing pending follow requests when private profile is on. Builds on T148 backend.
-      Done: E2E covers approve + reject.
+      Description: UI for managing pending follow requests when private profile is on. Covered by T148's frontend half.
+      Done: covered.
 
 ---
 

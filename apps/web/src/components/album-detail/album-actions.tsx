@@ -1,5 +1,6 @@
 "use client";
 
+import { ReportWrongAlbum } from "@/components/album-detail/report-wrong";
 import { UpNextButton } from "@/components/album-detail/up-next-button";
 import { Button } from "@/components/ui/button";
 import type { AlbumPayload, DiaryRow } from "@/lib/album-types";
@@ -25,7 +26,7 @@ export function AlbumActions({ album, myEntry }: Props) {
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <Button onClick={startLog}>
         <Plus className="mr-1 size-4" aria-hidden="true" />
         {myEntry ? "Log again" : "Log"}
@@ -42,6 +43,9 @@ export function AlbumActions({ album, myEntry }: Props) {
           )}
         </span>
       )}
+      <div className="ml-auto">
+        <ReportWrongAlbum albumId={album.id} albumTitle={album.title} />
+      </div>
     </div>
   );
 }
