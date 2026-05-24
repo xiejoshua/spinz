@@ -219,7 +219,10 @@
   --color-primary-foreground: var(--accent-foreground);
   --color-secondary: var(--default);
   --color-secondary-foreground: var(--default-foreground);
-  --color-muted: var(--default);
+  /* --color-muted resolves to the muted *text* token (HeroUI semantics).
+     For shadcn's bg-muted usage the muted color works fine as a subtle
+     wash, especially when paired with /30, /20 opacity modifiers. */
+  --color-muted: var(--muted);
   --color-muted-foreground: var(--muted);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
