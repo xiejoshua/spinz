@@ -1,0 +1,158 @@
+/* auxd Editorial Minimal theme — OKLCH tokens for HeroUI v3.
+   Light: data-theme="auxd"   Dark: data-theme="auxd-dark" */
+
+@layer base {
+  [data-theme="auxd"] {
+    color-scheme: light;
+
+    /* primitives */
+    --white: oklch(100% 0 0);
+    --black: oklch(0% 0 0);
+    --paper: oklch(98% 0.012 80);
+    --ink: oklch(0.205 0 0);
+    --ink-muted: oklch(0.55 0 0);
+    --gold: oklch(0.74 0.13 87);
+    --gold-soft: oklch(0.94 0.06 87 / 22%);
+
+    /* layout */
+    --radius: 0.5rem;
+    --field-radius: calc(var(--radius) * 1.5);
+    --spacing: 0.25rem;
+    --border-width: 1px;
+    --field-border-width: 1px;
+    --disabled-opacity: 0.5;
+    --ring-offset-width: 2px;
+    --cursor-interactive: pointer;
+    --cursor-disabled: not-allowed;
+
+    /* surfaces */
+    --background: var(--white);
+    --foreground: var(--ink);
+    --surface: var(--paper);
+    --surface-foreground: var(--ink);
+    --surface-secondary: oklch(96% 0.008 80);
+    --surface-secondary-foreground: var(--ink);
+    --surface-tertiary: oklch(94% 0.006 80);
+    --surface-tertiary-foreground: var(--ink);
+    --overlay: var(--white);
+    --overlay-foreground: var(--ink);
+
+    --muted: var(--ink-muted);
+    --scrollbar: oklch(0.85 0 0);
+    --default: oklch(0.94 0 0);
+    --default-foreground: var(--ink);
+
+    /* accent = steel-blue (calmer than saas brand-blue) */
+    --accent: oklch(0.48 0.12 240);
+    --accent-foreground: var(--white);
+
+    /* form fields */
+    --field-background: var(--white);
+    --field-foreground: var(--ink);
+    --field-placeholder: var(--ink-muted);
+    --field-border: oklch(0.88 0 0);
+
+    /* state */
+    --success: oklch(0.65 0.15 152);
+    --success-foreground: var(--ink);
+    --warning: oklch(0.78 0.16 72);
+    --warning-foreground: var(--ink);
+    --danger: oklch(0.62 0.21 25);
+    --danger-foreground: var(--white);
+
+    /* misc */
+    --segment: var(--white);
+    --segment-foreground: var(--ink);
+    --border: oklch(0.91 0 0);
+    --separator: oklch(0.93 0 0);
+    --focus: var(--accent);
+    --link: var(--accent);
+    --backdrop: rgba(20, 18, 16, 0.45);
+
+    /* shadows */
+    --surface-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 2px 8px rgba(0, 0, 0, 0.06);
+    --overlay-shadow: 0 8px 24px rgba(24, 24, 27, 0.10), 0 16px 40px rgba(24, 24, 27, 0.08);
+    --field-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --skeleton-animation: shimmer;
+  }
+
+  [data-theme="auxd-dark"] {
+    color-scheme: dark;
+
+    --white: oklch(100% 0 0);
+    --black: oklch(0% 0 0);
+    --paper-dark: oklch(0.19 0.005 80);
+    --ink-light: oklch(0.96 0 0);
+    --gold: oklch(0.80 0.13 87);
+    --gold-soft: oklch(0.80 0.13 87 / 18%);
+
+    --radius: 0.5rem;
+    --field-radius: calc(var(--radius) * 1.5);
+    --spacing: 0.25rem;
+    --border-width: 1px;
+    --field-border-width: 1px;
+    --disabled-opacity: 0.5;
+    --ring-offset-width: 2px;
+    --cursor-interactive: pointer;
+    --cursor-disabled: not-allowed;
+
+    --background: oklch(0.13 0.003 80);
+    --foreground: var(--ink-light);
+    --surface: var(--paper-dark);
+    --surface-foreground: var(--ink-light);
+    --surface-secondary: oklch(0.23 0.006 80);
+    --surface-secondary-foreground: var(--ink-light);
+    --surface-tertiary: oklch(0.27 0.006 80);
+    --surface-tertiary-foreground: var(--ink-light);
+    --overlay: oklch(0.22 0.006 80);
+    --overlay-foreground: var(--ink-light);
+
+    --muted: oklch(0.66 0 0);
+    --scrollbar: oklch(0.30 0 0);
+    --default: oklch(0.26 0 0);
+    --default-foreground: var(--ink-light);
+
+    --accent: oklch(0.72 0.10 240);
+    --accent-foreground: oklch(0.13 0.003 80);
+
+    --field-background: oklch(0.21 0 0);
+    --field-foreground: var(--ink-light);
+    --field-placeholder: oklch(0.6 0 0);
+    --field-border: oklch(0.30 0 0);
+
+    --success: oklch(0.73 0.19 152);
+    --success-foreground: oklch(0.13 0.003 80);
+    --warning: oklch(0.82 0.14 76);
+    --warning-foreground: oklch(0.13 0.003 80);
+    --danger: oklch(0.59 0.20 25);
+    --danger-foreground: var(--ink-light);
+
+    --segment: oklch(0.38 0.01 80);
+    --segment-foreground: var(--ink-light);
+    --border: oklch(0.27 0 0);
+    --separator: oklch(0.24 0 0);
+    --focus: var(--accent);
+    --link: oklch(0.78 0.09 240);
+    --backdrop: rgba(0, 0, 0, 0.65);
+
+    --surface-shadow: 0 0 0 1px oklch(0.27 0 0) inset;
+    --overlay-shadow: 0 0 0 1px oklch(0.30 0 0) inset;
+    --field-shadow: 0 0 0 0 transparent;
+    --skeleton-animation: shimmer;
+  }
+}
+
+/* Expose auxd-specific tokens to Tailwind utilities */
+@theme inline {
+  --color-paper: var(--surface);
+  --color-ink: var(--foreground);
+  --color-ink-muted: var(--muted);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-rule: var(--separator);
+  --color-link-blue: var(--link);
+
+  --font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --font-sans: var(--font-inter-tight), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, monospace;
+}
