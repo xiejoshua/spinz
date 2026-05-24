@@ -3,6 +3,7 @@
 import { CriticBadge } from "@/components/critic-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type NotificationItem, clickUrlFor, copyPartsFor, timeAgo } from "@/lib/notifications";
+import { useAuthStore } from "@/stores/auth";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 
@@ -12,8 +13,9 @@ type Props = {
 };
 
 export function NotificationCard({ notification, onActivate }: Props) {
+  const viewerHandle = useAuthStore((s) => s.user?.handle);
   const parts = copyPartsFor(notification);
-  const href = clickUrlFor(notification);
+  const href = clickUrlFor(notification, viewerHandle);
   const isRead = notification.read_at !== null;
 
   const avatarFallbackChar = (

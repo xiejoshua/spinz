@@ -64,7 +64,10 @@ export type NotificationPreferences = {
 // Click-through router — mirrors the backend web_push._click_url_for shape.
 // ---------------------------------------------------------------------------
 
-export function clickUrlFor(notif: NotificationItem): string {
+export function clickUrlFor(
+  notif: NotificationItem,
+  viewerHandle?: string
+): string {
   const payload = notif.payload;
   switch (notif.type) {
     case "review.liked":
@@ -96,13 +99,19 @@ export function clickUrlFor(notif: NotificationItem): string {
       return "/";
     }
     case "report.acknowledged":
-      return "/settings/notifications";
+      return viewerHandle
+        ? `/profile/${encodeURIComponent(viewerHandle)}/settings/notifications`
+        : "/";
     case "account.deletion_scheduled":
     case "account.deletion_reminder_7d":
-      return "/settings";
+      return viewerHandle
+        ? `/profile/${encodeURIComponent(viewerHandle)}/settings/data`
+        : "/";
     case "security.new_session":
     case "security.password_changed":
-      return "/settings";
+      return viewerHandle
+        ? `/profile/${encodeURIComponent(viewerHandle)}/settings`
+        : "/";
     case "system.announcement": {
       const link = payload.link;
       if (typeof link === "string" && link.length > 0) return link;
