@@ -29,3 +29,40 @@
     -moz-osx-font-smoothing: grayscale;
   }
 }
+
+/* Tailwind v4 dropped the v3 built-in `container` utility that auto-
+   centered with margin-inline: auto and responsive max-widths.
+   Re-instate v3 behaviour here so the ~14 routes using `className="container"`
+   keep centering without per-file `mx-auto` edits. */
+@layer utilities {
+  .container {
+    width: 100%;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .container {
+      max-width: 640px;
+    }
+  }
+  @media (min-width: 768px) {
+    .container {
+      max-width: 768px;
+    }
+  }
+  @media (min-width: 1024px) {
+    .container {
+      max-width: 1024px;
+    }
+  }
+  @media (min-width: 1280px) {
+    .container {
+      max-width: 1280px;
+    }
+  }
+  @media (min-width: 1536px) {
+    .container {
+      max-width: 1400px;
+    }
+  }
+}
