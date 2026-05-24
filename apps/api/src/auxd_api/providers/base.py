@@ -63,6 +63,15 @@ class CatalogAlbum(BaseModel):
             "Provider→id map. Currently 'mbid' and/or 'discogs'; future v2 may add 'spotify'."
         ),
     )
+    score: int | None = Field(
+        default=None,
+        description=(
+            "Provider-supplied relevance score (0-100). MusicBrainz returns this "
+            "on search results; lookups don't include it. Used by the search "
+            "service to re-rank fallback-tier hits so canonical releases beat "
+            "obscure ones for popular-artist queries."
+        ),
+    )
 
 
 class ListeningEvent(BaseModel):

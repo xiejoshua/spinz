@@ -61,12 +61,14 @@ def _search_payload() -> dict[str, object]:
                 "title": "OK Computer",
                 "first-release-date": "1997-05-21",
                 "artist-credit": [{"name": "Radiohead"}],
+                "score": 100,
             },
             {
                 "id": "11111111-2222-3333-4444-555555555555",
                 "title": "Kid A",
                 "first-release-date": "2000-10-02",
                 "artist-credit": [{"name": "Radiohead"}],
+                "score": 85,
             },
         ],
     }
@@ -103,6 +105,42 @@ class TestMusicBrainzCatalogProvider:
         assert first.cover_art_url == (
             f"https://coverartarchive.org/release-group/{OK_COMPUTER_MBID}/front"
         )
+        # MB search hits MUST carry the relevance score so the search
+        # service can re-rank fallback-tier results (post-2026-05-24
+        # fix for the "canonical releases buried under obscure ones"
+        # bug). 100 = perfect match per MB's own scale.
+        assert first.score == 100
+        assert results[1].score == 85
+
+    @respx.mock
+    async def test_search_album_score_missing_is_none(self) -> None:
+        """Older MB records may omit ``score`` — provider MUST default to
+        ``None`` rather than crashing or coercing to 0 (which would
+        wrongly sort them ahead of legitimate low-score hits).
+        """
+        respx.get(f"{MB_BASE}/release-group").mock(
+            return_value=Response(
+                200,
+                json={
+                    "release-groups": [
+                        {
+                            "id": OK_COMPUTER_MBID,
+                            "title": "OK Computer",
+                            "first-release-date": "1997-05-21",
+                            "artist-credit": [{"name": "Radiohead"}],
+                            # No ``score`` key.
+                        }
+                    ]
+                },
+            )
+        )
+        provider = MusicBrainzCatalogProvider()
+        try:
+            results = await provider.search_albums("Radiohead OK Computer")
+        finally:
+            await provider.aclose()
+        assert len(results) == 1
+        assert results[0].score is None
 
     @respx.mock
     async def test_get_album_by_mbid_returns_album(self) -> None:
@@ -127,6 +165,10 @@ class TestMusicBrainzCatalogProvider:
         assert "inc=artist-credits" in str(called_url), (
             f"expected inc=artist-credits in lookup URL, got {called_url}"
         )
+        # MB lookup endpoint never returns a ``score`` (nothing to compare
+        # against on a single-row fetch); ensure the mapping reflects that
+        # rather than fabricating a fake score.
+        assert album.score is None
 
     @respx.mock
     async def test_get_album_by_mbid_returns_none_on_404(self) -> None:

@@ -162,6 +162,12 @@ class MusicBrainzCatalogProvider(CatalogProvider):
 
         Defensive about optional fields — older MB records can lack
         ``first-release-date`` or have an empty ``artist-credit`` list.
+
+        ``score`` is populated only when MB supplies it. The search
+        endpoint returns ``"score": <0-100>`` on every hit (100 = perfect
+        match); the lookup endpoint omits it because there's nothing to
+        compare against. For lookups we leave it ``None`` and the search
+        service treats missing scores as the lowest tier.
         """
         mbid = str(item.get("id", ""))
         title = str(item.get("title", ""))
@@ -179,6 +185,12 @@ class MusicBrainzCatalogProvider(CatalogProvider):
             year_part = first_release_date[:4]
             if year_part.isdigit():
                 release_year = int(year_part)
+        score_raw = item.get("score")
+        score: int | None = None
+        if isinstance(score_raw, int):
+            score = score_raw
+        elif isinstance(score_raw, str) and score_raw.isdigit():
+            score = int(score_raw)
         cover_art_url = f"{_CAA_BASE}/release-group/{mbid}/front" if mbid else None
         return CatalogAlbum(
             mbid=mbid or None,
@@ -188,6 +200,7 @@ class MusicBrainzCatalogProvider(CatalogProvider):
             release_year=release_year,
             cover_art_url=cover_art_url,
             external_ids={"mbid": mbid} if mbid else {},
+            score=score,
         )
 
 

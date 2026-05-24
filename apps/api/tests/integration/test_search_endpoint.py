@@ -267,6 +267,141 @@ async def test_dedupe_skips_provider_hit_already_in_atlas(
 
 
 @pytest.mark.asyncio
+async def test_mb_hits_sorted_by_score_desc(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """MB hits with mixed scores must come back ordered by score desc.
+
+    Pins the post-MVP feedback fix (2026-05-24): canonical popular
+    release-groups score ~90-100 from MB while obscure unofficial
+    releases score ~30-50 — surfacing the high-score hits first stops
+    the "Graduation doesn't appear unless typed exactly" complaint.
+    """
+    low = CatalogAlbum(
+        mbid="11111111-1111-1111-1111-111111111111",
+        title="Low Score Release",
+        artist_name="Artist",
+        release_year=2010,
+        external_ids={"mbid": "11111111-1111-1111-1111-111111111111"},
+        score=50,
+    )
+    high = CatalogAlbum(
+        mbid="22222222-2222-2222-2222-222222222222",
+        title="High Score Release",
+        artist_name="Artist",
+        release_year=2011,
+        external_ids={"mbid": "22222222-2222-2222-2222-222222222222"},
+        score=90,
+    )
+    mid = CatalogAlbum(
+        mbid="33333333-3333-3333-3333-333333333333",
+        title="Mid Score Release",
+        artist_name="Artist",
+        release_year=2012,
+        external_ids={"mbid": "33333333-3333-3333-3333-333333333333"},
+        score=70,
+    )
+    by_mbid = {hit.mbid: hit for hit in (low, high, mid) if hit.mbid is not None}
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    # Deliberately unsorted order — the service must sort, not rely on
+    # the provider to return scores pre-ordered.
+    mb_provider.search_albums.return_value = [low, high, mid]
+    mb_provider.get_album_by_mbid.side_effect = lambda mbid: by_mbid[mbid]
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = []
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "artist"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    assert titles == ["High Score Release", "Mid Score Release", "Low Score Release"]
+
+
+@pytest.mark.asyncio
+async def test_mb_hits_none_score_sinks_to_bottom(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """Hits with ``score=None`` (e.g. fed through lookups) sort last.
+
+    Belt-and-braces: a future provider quirk that yields ``None`` for
+    score MUST NOT crash the comparator and MUST land below any scored
+    hit, even one with score zero. The ``-1`` sentinel in the sort key
+    encodes that contract.
+    """
+    scored_low = CatalogAlbum(
+        mbid="aaaaaaaa-1111-1111-1111-111111111111",
+        title="Scored Low",
+        artist_name="Artist",
+        release_year=2010,
+        external_ids={"mbid": "aaaaaaaa-1111-1111-1111-111111111111"},
+        score=50,
+    )
+    no_score = CatalogAlbum(
+        mbid="bbbbbbbb-2222-2222-2222-222222222222",
+        title="No Score",
+        artist_name="Artist",
+        release_year=2011,
+        external_ids={"mbid": "bbbbbbbb-2222-2222-2222-222222222222"},
+        score=None,
+    )
+    scored_high = CatalogAlbum(
+        mbid="cccccccc-3333-3333-3333-333333333333",
+        title="Scored High",
+        artist_name="Artist",
+        release_year=2012,
+        external_ids={"mbid": "cccccccc-3333-3333-3333-333333333333"},
+        score=70,
+    )
+    by_mbid = {hit.mbid: hit for hit in (scored_low, no_score, scored_high) if hit.mbid is not None}
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = [scored_low, no_score, scored_high]
+    mb_provider.get_album_by_mbid.side_effect = lambda mbid: by_mbid[mbid]
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = []
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "artist"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    assert titles == ["Scored High", "Scored Low", "No Score"]
+
+
+@pytest.mark.asyncio
+async def test_response_shape_uses_artist_name_not_artist_credit(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """The serialised search hit MUST surface ``artist_name`` (not
+    ``artist_credit``) so the frontend ``SearchAlbum`` type binds the
+    right field. The DB column stays ``Album.artist_credit`` but the
+    wire shape pins ``artist_name`` post-2026-05-24.
+    """
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = [_ok_computer_hit()]
+    mb_provider.get_album_by_mbid.return_value = _ok_computer_hit()
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = []
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "radiohead"})
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body["results"]) == 1
+    hit = body["results"][0]
+    assert hit["artist_name"] == "Radiohead"
+    # Legacy field name MUST NOT leak — guards against accidental
+    # re-introduction of the bug.
+    assert "artist_credit" not in hit
+
+
+@pytest.mark.asyncio
 async def test_query_type_unsupported_returns_400(_clean_env: None) -> None:
     """``type=artist`` (or anything other than ``album``) → ``HTTP 422``.
 

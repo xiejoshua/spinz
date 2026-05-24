@@ -12,12 +12,13 @@ Fallback flow:
 1. Atlas Search via :func:`Album.aggregate` with the ``albums_text_search``
    index (autocomplete on ``title`` + ``artist_credit``). Atlas returns
    the most-relevant hits in a single round-trip. The index also
-   indexes ``rating_count`` as a numeric field so a future query-time
+   indexes ``rating_count`` as a numeric field so the query-time
    popularity boost (``compound.should`` with a ``function`` score
-   clause referencing ``log1p(rating_count)``) can be wired without
-   re-applying the index — see ``apps/api/migrations/atlas_search/
-   albums_index.json``. The current ``_atlas_search`` query is
-   relevance-only at MVP; popularity-boost wiring is a v1.x follow-up.
+   clause referencing ``log1p(rating_count)``) is wired here — see
+   ``apps/api/migrations/atlas_search/albums_index.json``. The
+   ``log1p`` shape damps the boost so a 1000-rating album doesn't
+   dwarf text relevance; the ``boost.value`` of 2 keeps popularity in
+   the same order-of-magnitude as the autocomplete score.
 
 2. If fewer than :data:`_FALLBACK_THRESHOLD` hits, also query
    MusicBrainz via :meth:`CatalogProvider.search_albums`. New MBIDs are
@@ -72,13 +73,23 @@ def _dedupe_key(*, mbid: str | None, title: str, artist: str) -> str:
 
 
 def _serialize_album(album: Album) -> dict[str, Any]:
-    """Return the search-hit payload for a locally-cached :class:`Album`."""
+    """Return the search-hit payload for a locally-cached :class:`Album`.
+
+    The DB column on :class:`Album` is ``artist_credit`` (matches the
+    MusicBrainz vocabulary) but the API response key is ``artist_name``
+    to match the frontend's ``SearchAlbum`` type. The two names existed
+    in parallel until 2026-05-24 when the missing-artist UI bug was
+    diagnosed — the response was serialising ``artist_credit`` and the
+    React components were reading ``artist_name``, so the artist line
+    rendered as ``undefined``. Pinning the response key to
+    ``artist_name`` aligns serialiser → wire → component.
+    """
     return {
         "id": album.id,
         "mbid": album.mbid,
         "discogs_release_id": album.discogs_release_id,
         "title": album.title,
-        "artist_credit": album.artist_credit,
+        "artist_name": album.artist_credit,
         "release_year": album.release_year,
         "cover_art_url": album.cover_art_url,
         "source": album.source.value,
@@ -90,9 +101,19 @@ async def _atlas_search(query: str, limit: int) -> list[Album]:
 
     Uses the ``compound.should`` form so a query that matches *either*
     ``title`` or ``artist_credit`` scores well — Lucene picks the higher
-    of the two. Falls back to an empty list if Atlas Search isn't
-    configured (e.g. local mongomock); the route layer treats that as
-    "zero Atlas hits, fall through to provider tier".
+    of the two. A third ``function``-score clause adds a popularity
+    boost driven by ``log1p(rating_count)`` so canonical, widely-rated
+    releases sort ahead of obscure ones at equal text relevance. The
+    ``boost.value`` of 2 keeps popularity within the same order of
+    magnitude as the autocomplete clauses without overwhelming them
+    (a perfect title-match still beats a popular near-miss).
+
+    Falls back to an empty list if Atlas Search isn't configured (e.g.
+    local mongomock); the route layer treats that as "zero Atlas hits,
+    fall through to provider tier". mongomock rejects the unknown
+    ``$search`` operator, so the existing try/except continues to short
+    out the whole pipeline — the popularity-boost clause is only ever
+    evaluated against real Atlas in staging / prod.
     """
     pipeline: list[dict[str, Any]] = [
         {
@@ -112,6 +133,14 @@ async def _atlas_search(query: str, limit: int) -> list[Album]:
                                 "query": query,
                                 "path": "artist_credit",
                                 "tokenOrder": "any",
+                            }
+                        },
+                        {
+                            "function": {
+                                "score": {
+                                    "function": {"log1p": {"path": {"value": "rating_count"}}}
+                                },
+                                "boost": {"value": 2},
                             }
                         },
                     ]
@@ -176,6 +205,13 @@ async def search_albums(
             extra={"event": "search.musicbrainz_error", "error": str(exc)},
         )
         mb_hits = []
+    # Sort MB hits by relevance score desc; ``None`` scores sink to the
+    # bottom so post-MVP feedback about "Graduation doesn't appear unless
+    # typed exactly" is addressed by surfacing the canonical 90-100 score
+    # release-groups above the long tail of unofficial / scrap releases.
+    # ``-1`` sentinel < every valid 0-100 score, so None-scored hits sort
+    # last while staying mypy-clean (no Optional comparison).
+    mb_hits.sort(key=lambda h: h.score if h.score is not None else -1, reverse=True)
     merged += await _materialize_fallback(
         hits=mb_hits,
         seen=seen,

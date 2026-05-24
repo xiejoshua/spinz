@@ -58,6 +58,18 @@ Everything else (processes, http_service, vm sizing) stays the same.
 3. Database access → Add user `auxd_staging` with `readWrite` on
    database `auxd_staging`.
 4. Copy the SRV connection string. Encode the password.
+5. **Atlas Search index** — apply `apps/api/migrations/atlas_search/albums_index.json`
+   to the cluster:
+   - Atlas UI → cluster → Search tab → "+ Create Search Index" → JSON editor.
+   - Paste the contents of `albums_index.json`; index name must be
+     `albums_text_search` (matches `_ATLAS_INDEX` constant in
+     `modules/search/service.py`).
+   - Wait for status `ACTIVE` (~1 min).
+   - **Without this step, all search queries fall through to the
+     MusicBrainz tier** — local Album rows are not indexed, the
+     popularity boost (`log1p(rating_count)`) never fires, and search
+     quality degrades for cold-DB-stage queries. See T068 follow-up
+     in implementation-log Session 8.
 
 ### 1.3 Upstash Redis
 
