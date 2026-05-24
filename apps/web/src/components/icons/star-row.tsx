@@ -1,27 +1,55 @@
 import { StarHalfIcon, StarIcon } from "./star";
 
 type StarRowProps = {
-  value: number; // 0 .. 5 in half-star increments
+  value: number; // 0..5 in half-star increments
   size?: number;
+  max?: number;
   className?: string;
 };
 
-export function StarRow({ value, size = 18, className }: StarRowProps) {
-  const full = Math.floor(value);
-  const hasHalf = value - full >= 0.5;
-  const empty = 5 - full - (hasHalf ? 1 : 0);
-
+export function StarRow({
+  value,
+  size = 18,
+  max = 5,
+  className,
+}: StarRowProps) {
   return (
-    <span className={className} aria-label={`${value} out of 5 stars`}>
-      {Array.from({ length: full }).map((_, i) => (
-        <StarIcon key={`f-${i}`} size={size} filled style={{ display: "inline-block" }} />
-      ))}
-      {hasHalf && (
-        <StarHalfIcon size={size} style={{ display: "inline-block" }} />
-      )}
-      {Array.from({ length: empty }).map((_, i) => (
-        <StarIcon key={`e-${i}`} size={size} filled={false} style={{ display: "inline-block", opacity: 0.25 }} />
-      ))}
+    <span className={className} aria-label={`${value} out of ${max} stars`}>
+      {Array.from({ length: max }).map((_, i) => {
+        const position = i + 1;
+        const isFull = value >= position;
+        const isHalf = !isFull && value >= position - 0.5;
+        if (isFull) {
+          return (
+            <StarIcon
+              key={i}
+              size={size}
+              filled
+              style={{ display: "inline-block" }}
+            />
+          );
+        }
+        if (isHalf) {
+          return (
+            <StarHalfIcon
+              key={i}
+              size={size}
+              style={{ display: "inline-block" }}
+            />
+          );
+        }
+        return (
+          <StarIcon
+            key={i}
+            size={size}
+            filled={false}
+            style={{
+              display: "inline-block",
+              color: "var(--accent)",
+            }}
+          />
+        );
+      })}
     </span>
   );
 }

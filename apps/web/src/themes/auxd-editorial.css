@@ -42,8 +42,8 @@
     --default: oklch(0.94 0 0);
     --default-foreground: var(--ink);
 
-    /* accent = steel-blue (calmer than saas brand-blue) */
-    --accent: oklch(0.48 0.12 240);
+    /* accent = burgundy / oxblood — editorial heritage (FT, NYRB, Penguin) */
+    --accent: oklch(0.40 0.12 25);
     --accent-foreground: var(--white);
 
     /* form fields */
@@ -112,7 +112,8 @@
     --default: oklch(0.26 0 0);
     --default-foreground: var(--ink-light);
 
-    --accent: oklch(0.72 0.10 240);
+    /* dark-mode burgundy bumped 1 step — stays warm-rose, not pink */
+    --accent: oklch(0.65 0.14 25);
     --accent-foreground: oklch(0.13 0.003 80);
 
     --field-background: oklch(0.21 0 0);
@@ -132,7 +133,7 @@
     --border: oklch(0.27 0 0);
     --separator: oklch(0.24 0 0);
     --focus: var(--accent);
-    --link: oklch(0.78 0.09 240);
+    --link: oklch(0.72 0.12 25);
     --backdrop: rgba(0, 0, 0, 0.65);
 
     --surface-shadow: 0 0 0 1px oklch(0.27 0 0) inset;

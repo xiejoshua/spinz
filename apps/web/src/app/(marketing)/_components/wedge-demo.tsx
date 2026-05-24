@@ -1,10 +1,9 @@
 "use client";
 
 import { Button, Card } from "@heroui/react";
-import Rating from "@mui/material/Rating";
 import { useState } from "react";
 import { AuxIcon } from "@/components/icons/aux";
-import { StarIcon } from "@/components/icons/star";
+import { StarRating } from "@/components/icons/star-rating";
 
 const ALBUM_OPTIONS = [
   { key: "gnx", title: "GNX", artist: "Kendrick Lamar", year: "2024", tracks: 12 },
@@ -14,7 +13,7 @@ const ALBUM_OPTIONS = [
 
 export function WedgeDemo() {
   const [selectedKey, setSelectedKey] = useState<string>("gnx");
-  const [rating, setRating] = useState<number | null>(4.5);
+  const [rating, setRating] = useState<number>(4.5);
   const [auxed, setAuxed] = useState(true);
 
   return (
@@ -144,20 +143,8 @@ export function WedgeDemo() {
               </ul>
             </div>
 
-            <Row label="Rate" hint="tap a star — drag for half-stars">
-              <Rating
-                value={rating}
-                onChange={(_, v) => setRating(v)}
-                precision={0.5}
-                size="medium"
-                icon={<StarIcon size={28} filled />}
-                emptyIcon={<StarIcon size={28} filled={false} />}
-                sx={{
-                  "& .MuiRating-iconFilled": { color: "var(--foreground)" },
-                  "& .MuiRating-iconHover": { color: "var(--foreground)" },
-                  "& .MuiRating-iconEmpty": { color: "var(--muted)" },
-                }}
-              />
+            <Row label="Rate" hint="tap the left half for ½-stars">
+              <StarRating value={rating} onChange={setRating} size={28} />
             </Row>
 
             <Row label="Aux" hint="your “this is one of my standouts” signal">

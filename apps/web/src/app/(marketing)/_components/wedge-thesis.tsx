@@ -12,7 +12,7 @@ const columns = [
   {
     num: "03",
     title: "Reviews as essays.",
-    body: "Join the discourse on your favorite works and take back music as an art form.",
+    body: "A review can be one sentence or a thousand words. Join the discourse on your favorite works and take back music as an art form.",
   },
 ];
 
