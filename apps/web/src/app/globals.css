@@ -1,5 +1,19 @@
+/* Tailwind v4 + HeroUI v3 (selective — NO default theme to avoid saas-blue
+   flashing on first paint) + auxd editorial theme. */
+
+@layer theme, base, components, utilities;
+
 @import "tailwindcss";
-@import "@heroui/styles";
+
+/* HeroUI: base resets + shared theme utilities + components only.
+   We deliberately DO NOT import @heroui/styles/themes/default — the
+   auxd-editorial.css below provides the full token set. */
+@import "@heroui/styles/base" layer(base);
+@import "@heroui/styles/themes/shared/theme.css" layer(theme);
+@import "@heroui/styles/components/index.css" layer(components);
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";
+
 @import "tw-animate-css";
 @import "../themes/auxd-editorial.css";
 
