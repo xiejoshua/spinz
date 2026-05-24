@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SignupForm } from "./signup-form";
 
 export default function SignupPage() {
@@ -30,16 +29,6 @@ export default function SignupPage() {
         </p>
       </div>
       <SignupForm />
-      <p className="text-center font-sans text-sm" style={{ color: "var(--muted)" }}>
-        Already have an account?{" "}
-        <Link
-          href="/login"
-          className="font-medium hover:underline"
-          style={{ color: "var(--foreground)" }}
-        >
-          Log in
-        </Link>
-      </p>
     </div>
   );
 }

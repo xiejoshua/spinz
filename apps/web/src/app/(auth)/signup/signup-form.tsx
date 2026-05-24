@@ -19,8 +19,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
-const RECOVERY_EMAIL = "appeals@auxd.xiejoshua.com";
-
 export function SignupForm() {
   const router = useRouter();
   const setUser = useAuthStore((s) => s.setUser);
@@ -116,28 +114,24 @@ export function SignupForm() {
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? "Creating account…" : "Sign up"}
         </Button>
-        {/* CTA row — covers the "already have an account" pivot and
-            the recently-deleted recovery path. Backend keeps duplicate
-            errors generic (no enumeration of active vs deleted); the
-            Contact-support link is the legitimate former-owner's
-            escape hatch when they see "already in use" on what they
-            know was their account. */}
-        <div
-          className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-2 font-mono uppercase"
+        {/* Single editorial pivot to /login. The recovery CTA for a
+            recently-deleted account lives on the deletion-pending
+            banner on /login itself (rather than here on signup) so the
+            mailto: link only surfaces in the context where the user
+            actually saw the "scheduled for deletion" state. */}
+        <p
+          className="pt-2 text-center font-mono uppercase"
           style={{
             fontSize: "11px",
             letterSpacing: "0.12em",
             color: "var(--muted)",
           }}
         >
-          <Link href="/login" className="hover:underline">
-            Already have an account?
+          Already have an account?{" "}
+          <Link href="/login" className="hover:underline" style={{ color: "var(--foreground)" }}>
+            Log in
           </Link>
-          <span aria-hidden="true">·</span>
-          <a href={`mailto:${RECOVERY_EMAIL}`} className="hover:underline">
-            Recover a deleted account
-          </a>
-        </div>
+        </p>
       </form>
     </Form>
   );

@@ -66,8 +66,6 @@ export function LoginForm() {
           setPendingDeletion(null);
           return;
         }
-        // Pass error.detail (the JSON body) — see signup-form.tsx for the
-        // double-nesting trap if you pass `error` directly.
         const handled = setApiFormErrors(
           form,
           error.detail as Parameters<typeof setApiFormErrors>[1]
@@ -99,66 +97,16 @@ export function LoginForm() {
   return (
     <Form {...form}>
       {/* noValidate disables HTML5 native validation so RHF + Zod own the error UX. */}
-      {/* Without it, type="email" intercepts submit with the browser's own tooltip. */}
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5" noValidate>
         {pendingDeletion ? (
-          <div
-            role="alert"
-            className="space-y-3 rounded-md p-4"
-            style={{
-              background: "color-mix(in oklab, var(--danger) 6%, transparent)",
-              border: "1px solid var(--danger)",
-            }}
-          >
-            <div
-              className="font-mono uppercase"
-              style={{
-                fontSize: "11px",
-                letterSpacing: "0.18em",
-                color: "var(--danger)",
-              }}
-            >
-              Pending deletion
-            </div>
-            <p
-              className="font-sans text-[14px] leading-[1.55]"
-              style={{ color: "var(--foreground)" }}
-            >
-              {scheduledDate
-                ? `This account is scheduled for deletion on ${scheduledDate}. Cancel it to sign in.`
-                : "This account is scheduled for deletion. Cancel it to sign in."}
-            </p>
-            <div className="flex flex-wrap items-center gap-3 pt-1">
-              <Button
-                type="button"
-                variant="destructive"
-                size="sm"
-                disabled={form.formState.isSubmitting}
-                onClick={handleCancelDeletion}
-              >
-                {form.formState.isSubmitting ? "Cancelling…" : "Cancel deletion and sign in"}
-              </Button>
-              <button
-                type="button"
-                onClick={() => setPendingDeletion(null)}
-                className="font-mono uppercase hover:underline"
-                style={{
-                  fontSize: "11px",
-                  letterSpacing: "0.12em",
-                  color: "var(--muted)",
-                }}
-              >
-                Keep scheduled
-              </button>
-            </div>
-          </div>
+          <DeletionPendingBanner
+            scheduledDate={scheduledDate}
+            submitting={form.formState.isSubmitting}
+            onCancel={handleCancelDeletion}
+            onDismiss={() => setPendingDeletion(null)}
+          />
         ) : rootError ? (
-          <p
-            role="alert"
-            className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
-          >
-            {rootError}
-          </p>
+          <FormAlert message={rootError} />
         ) : null}
         <FormField
           control={form.control}
@@ -183,29 +131,141 @@ export function LoginForm() {
                 <Input type="password" autoComplete="current-password" {...field} />
               </FormControl>
               <FormMessage />
+              <div className="pt-1 text-right">
+                <a
+                  href={`mailto:${RECOVERY_EMAIL}`}
+                  className="font-mono uppercase hover:underline"
+                  style={{
+                    fontSize: "11px",
+                    letterSpacing: "0.12em",
+                    color: "var(--muted)",
+                  }}
+                >
+                  Forgot password?
+                </a>
+              </div>
             </FormItem>
           )}
         />
         <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
           {form.formState.isSubmitting ? "Logging in…" : "Log in"}
         </Button>
-        <div
-          className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-2 font-mono uppercase"
+        <p
+          className="pt-2 text-center font-mono uppercase"
           style={{
             fontSize: "11px",
             letterSpacing: "0.12em",
             color: "var(--muted)",
           }}
         >
-          <a href={`mailto:${RECOVERY_EMAIL}`} className="hover:underline">
-            Forgot password?
-          </a>
-          <span aria-hidden="true">·</span>
-          <Link href="/signup" className="hover:underline">
-            Sign up
+          New here?{" "}
+          <Link href="/signup" className="hover:underline" style={{ color: "var(--foreground)" }}>
+            Create an account
           </Link>
-        </div>
+        </p>
       </form>
     </Form>
+  );
+}
+
+/**
+ * Editorial deletion-pending banner. Matches the `<Section tone="danger">`
+ * helper in data-settings.tsx — mono-uppercase eyebrow + hairline rule in
+ * `--danger`, sans body in `--muted`, then a row of actions. No filled
+ * card shell; the danger tone is carried by the eyebrow + rule + button
+ * variant, not a tinted background.
+ */
+function DeletionPendingBanner({
+  scheduledDate,
+  submitting,
+  onCancel,
+  onDismiss,
+}: {
+  scheduledDate: string | null;
+  submitting: boolean;
+  onCancel: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <section role="alert" className="space-y-3">
+      <div
+        className="font-mono uppercase"
+        style={{
+          fontSize: "11px",
+          letterSpacing: "0.18em",
+          color: "var(--danger)",
+        }}
+      >
+        Pending deletion
+      </div>
+      <div className="h-px" style={{ background: "var(--danger)", opacity: 0.6 }} />
+      <p
+        className="pt-1 font-sans text-[14px] leading-[1.55]"
+        style={{ color: "var(--muted)", maxWidth: "60ch" }}
+      >
+        {scheduledDate
+          ? `This account is scheduled for deletion on ${scheduledDate}. Cancel it to sign in.`
+          : "This account is scheduled for deletion. Cancel it to sign in."}
+      </p>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-1">
+        <Button
+          type="button"
+          variant="destructive"
+          size="sm"
+          disabled={submitting}
+          onClick={onCancel}
+        >
+          {submitting ? "Cancelling…" : "Cancel deletion and sign in"}
+        </Button>
+        <a
+          href={`mailto:${RECOVERY_EMAIL}`}
+          className="font-mono uppercase hover:underline"
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.12em",
+            color: "var(--muted)",
+          }}
+        >
+          Recover a deleted account
+        </a>
+        <button
+          type="button"
+          onClick={onDismiss}
+          className="font-mono uppercase hover:underline"
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.12em",
+            color: "var(--muted)",
+          }}
+        >
+          Keep scheduled
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/** Generic editorial error alert — hairline + danger eyebrow, no fill. */
+function FormAlert({ message }: { message: string }) {
+  return (
+    <section role="alert" className="space-y-2">
+      <div
+        className="font-mono uppercase"
+        style={{
+          fontSize: "11px",
+          letterSpacing: "0.18em",
+          color: "var(--danger)",
+        }}
+      >
+        Error
+      </div>
+      <div className="h-px" style={{ background: "var(--danger)", opacity: 0.6 }} />
+      <p
+        className="pt-1 font-sans text-[14px] leading-[1.55]"
+        style={{ color: "var(--foreground)" }}
+      >
+        {message}
+      </p>
+    </section>
   );
 }
