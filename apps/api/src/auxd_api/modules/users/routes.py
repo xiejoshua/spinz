@@ -370,6 +370,34 @@ def _serialize_user_card(user: User, *, is_critic_seed: bool = False) -> dict[st
     }
 
 
+@router.get("/me", status_code=status.HTTP_200_OK)
+async def get_me_current(
+    session: Annotated[Session, Depends(_require_session)],
+) -> dict[str, Any]:
+    """Return the SanitizedUser payload for the current session.
+
+    MUST be declared before ``GET /{handle}`` — otherwise FastAPI's
+    path-match-first-wins routing captures "me" as a handle parameter
+    and dispatches to :func:`get_user_profile`, which then 404s with
+    ``user_not_found`` because no user has the handle "me".
+
+    Mirrors the response shape of ``POST /api/v1/auth/login`` so the
+    frontend can rehydrate ``useAuthStore`` on cold boot via a single
+    server-side fetch in ``app/(app)/layout.tsx``. Without this the
+    auth store relied entirely on the in-memory state from the prior
+    login flow, which meant a hard reload could leave the BottomTabs
+    Profile link pointing at /login (and then bouncing to /feed via
+    the (auth) shell's logged-in redirect).
+    """
+    user = await _load_current_user(session)
+    return {
+        "id": user.id,
+        "handle": user.handle,
+        "email": user.email,
+        "display_name": user.display_name,
+    }
+
+
 @router.get("/{handle}")
 async def get_user_profile(handle: str, request: Request) -> dict[str, Any]:
     """Public profile lookup — powers `/profile/[handle]` SSR header (T109).

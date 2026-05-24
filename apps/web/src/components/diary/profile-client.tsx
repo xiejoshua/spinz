@@ -32,9 +32,6 @@ export function ProfileClient({ handle }: Props) {
   const showSocialControls =
     profile != null && relation !== "self" && relation !== "anonymous" && relation !== "blocked";
 
-  // T151 — visibility gate. Block check first (must not leak existence), then
-  // pending follow-request to a private profile, then the general
-  // private-profile gate when the viewer isn't already following.
   const blockedGate = profile != null && relation === "blocked";
   const privateGate =
     !!profile?.user.private_profile &&
@@ -43,78 +40,152 @@ export function ProfileClient({ handle }: Props) {
     !blockedGate;
   const pendingRequest = privateGate && relation === "pending";
 
+  const displayName = profile?.user.display_name ?? handle;
+
   return (
-    <div className="space-y-6">
-      <header className="flex items-start gap-4">
-        <Avatar className="size-16">
-          <AvatarFallback className="text-lg">
-            {(profile?.user.display_name ?? handle).slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1 space-y-1">
-          <h1 className="truncate text-xl font-bold tracking-tight">
-            {profile?.user.display_name ?? handle}
-            <CriticBadge isCritic={profile?.user.is_critic_seed} />
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            @{handle}
-            {profile?.user.private_profile && (
-              <Badge variant="outline" className="ml-2 h-5 px-1.5 py-0 text-[10px]">
-                Private
-              </Badge>
+    <div className="space-y-10">
+      {/* Editorial profile header */}
+      <header className="space-y-6">
+        <div
+          className="font-mono uppercase"
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.18em",
+            color: "var(--muted)",
+          }}
+        >
+          Profile
+        </div>
+
+        <div className="flex items-start gap-5">
+          <Avatar className="size-20 shrink-0">
+            <AvatarFallback>
+              <span
+                className="font-serif text-[24px] font-semibold tracking-[-0.01em]"
+                style={{
+                  color: "var(--foreground)",
+                  fontFamily: "var(--font-serif)",
+                }}
+              >
+                {displayName.slice(0, 2).toUpperCase()}
+              </span>
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1 space-y-2">
+            <h1
+              className="flex flex-wrap items-baseline gap-3 font-serif font-semibold leading-[1.05] tracking-[-0.015em]"
+              style={{
+                fontSize: "clamp(28px, 4.5vw, 40px)",
+                color: "var(--foreground)",
+                fontFamily: "var(--font-serif)",
+              }}
+            >
+              <span className="truncate">{displayName}</span>
+              <CriticBadge isCritic={profile?.user.is_critic_seed} />
+            </h1>
+            <div className="flex flex-wrap items-baseline gap-2">
+              <span
+                className="font-mono"
+                style={{ fontSize: "13px", color: "var(--muted)" }}
+              >
+                @{handle}
+              </span>
+              {profile?.user.private_profile && (
+                <Badge
+                  variant="outline"
+                  className="h-5 px-1.5 py-0 text-[10px] uppercase"
+                >
+                  Private
+                </Badge>
+              )}
+            </div>
+            {profile?.user.bio && !blockedGate && (
+              <p
+                className="pt-2 font-sans text-[15px] leading-[1.55]"
+                style={{ color: "var(--foreground)", maxWidth: "55ch" }}
+              >
+                {profile.user.bio}
+              </p>
             )}
-          </p>
-          {profile?.user.bio && !blockedGate && (
-            <p className="pt-1 text-sm leading-relaxed">{profile.user.bio}</p>
-          )}
-          {profile && !blockedGate && (
-            <dl className="flex gap-4 pt-2 text-sm">
-              <div>
-                <dt className="sr-only">Followers</dt>
-                <dd>
-                  <span className="font-medium">{profile.counts.followers}</span>{" "}
-                  <span className="text-muted-foreground">followers</span>
-                </dd>
-              </div>
-              <div>
-                <dt className="sr-only">Following</dt>
-                <dd>
-                  <span className="font-medium">{profile.counts.following}</span>{" "}
-                  <span className="text-muted-foreground">following</span>
-                </dd>
-              </div>
+          </div>
+          <div className="hidden shrink-0 items-center gap-2 sm:flex">
+            {profile && (
+              <FollowButton
+                handle={handle}
+                initialRelation={profile.relation}
+                initialFollowerCount={profile.counts.followers}
+                visible={showSocialControls}
+              />
+            )}
+            {profile && (
+              <BlockReportMenu
+                handle={handle}
+                userId={profile.user.id}
+                visible={showSocialControls}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Stats row + mobile social controls */}
+        {profile && !blockedGate && (
+          <div
+            className="flex flex-wrap items-center justify-between gap-y-3 pt-4"
+            style={{ borderTop: "1px solid var(--separator)" }}
+          >
+            <dl className="flex gap-6">
+              <Stat label="Followers" value={profile.counts.followers} />
+              <Stat label="Following" value={profile.counts.following} />
             </dl>
-          )}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {profile && (
-            <FollowButton
-              handle={handle}
-              initialRelation={profile.relation}
-              initialFollowerCount={profile.counts.followers}
-              visible={showSocialControls}
-            />
-          )}
-          {profile && (
-            <BlockReportMenu
-              handle={handle}
-              userId={profile.user.id}
-              visible={showSocialControls}
-            />
-          )}
-        </div>
+            <div className="flex items-center gap-2 sm:hidden">
+              <FollowButton
+                handle={handle}
+                initialRelation={profile.relation}
+                initialFollowerCount={profile.counts.followers}
+                visible={showSocialControls}
+              />
+              <BlockReportMenu
+                handle={handle}
+                userId={profile.user.id}
+                visible={showSocialControls}
+              />
+            </div>
+          </div>
+        )}
       </header>
 
       {blockedGate && (
-        <p className="rounded-md border bg-muted/40 p-6 text-center text-sm text-muted-foreground">
+        <p
+          className="rounded-md p-8 text-center font-sans text-sm"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            color: "var(--muted)",
+          }}
+        >
           This account is unavailable.
         </p>
       )}
 
       {privateGate && !blockedGate && (
-        <div className="rounded-md border bg-muted/40 p-6 text-center text-sm">
-          <p className="font-medium">This account is private.</p>
-          <p className="text-muted-foreground">
+        <div
+          className="space-y-1 rounded-md p-8 text-center"
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <p
+            className="font-serif font-semibold tracking-[-0.01em]"
+            style={{
+              fontSize: "18px",
+              color: "var(--foreground)",
+              fontFamily: "var(--font-serif)",
+            }}
+          >
+            This account is private.
+          </p>
+          <p className="font-sans text-sm" style={{ color: "var(--muted)" }}>
             {pendingRequest
               ? "Follow request sent — waiting for approval."
               : "Follow this user to see their diary, reviews, and lists."}
@@ -124,26 +195,75 @@ export function ProfileClient({ handle }: Props) {
 
       {!blockedGate && !privateGate && (
         <>
-          <nav aria-label="Profile sections" className="border-b text-sm">
-            <ul className="flex gap-4">
-              <li>
-                <span className="inline-block border-b-2 border-foreground px-1 py-2 font-medium">
-                  Diary
-                </span>
-              </li>
-              <li>
-                <Link
-                  href={`/profile/${encodeURIComponent(handle)}/reviews`}
-                  className="inline-block px-1 py-2 text-muted-foreground hover:text-foreground"
-                >
-                  Reviews
-                </Link>
-              </li>
-            </ul>
+          <nav
+            aria-label="Profile sections"
+            className="flex gap-6"
+            style={{ borderBottom: "1px solid var(--separator)" }}
+          >
+            <TabLink href="#" active label="Diary" />
+            <TabLink
+              href={`/profile/${encodeURIComponent(handle)}/reviews`}
+              active={false}
+              label="Reviews"
+            />
           </nav>
           <DiaryList handle={handle} isOwner={isOwner} />
         </>
       )}
     </div>
   );
+}
+
+function Stat({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <dt
+        className="font-mono uppercase"
+        style={{
+          fontSize: "10px",
+          letterSpacing: "0.15em",
+          color: "var(--muted)",
+        }}
+      >
+        {label}
+      </dt>
+      <dd
+        className="mt-1 font-serif tabular-nums"
+        style={{
+          fontSize: "20px",
+          fontWeight: 600,
+          color: "var(--foreground)",
+          fontFamily: "var(--font-serif)",
+        }}
+      >
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+function TabLink({
+  href,
+  active,
+  label,
+}: {
+  href: string;
+  active: boolean;
+  label: string;
+}) {
+  const inner = (
+    <span
+      className="inline-block px-1 py-3 font-sans text-[14px] font-medium"
+      style={{
+        color: active ? "var(--foreground)" : "var(--muted)",
+        borderBottom: active
+          ? "2px solid var(--foreground)"
+          : "2px solid transparent",
+        marginBottom: "-1px",
+      }}
+    >
+      {label}
+    </span>
+  );
+  return active ? inner : <Link href={href}>{inner}</Link>;
 }

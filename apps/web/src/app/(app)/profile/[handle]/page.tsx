@@ -20,11 +20,7 @@ export default async function ProfilePage({ params }: { params: Params }) {
   const { handle } = await params;
   const cleaned = handle.startsWith("@") ? handle.slice(1) : handle;
   return (
-    <article className="container max-w-3xl space-y-6 py-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">@{cleaned}</h1>
-        <p className="text-sm text-muted-foreground">Diary</p>
-      </header>
+    <article className="container max-w-3xl py-10">
       <ProfileClient handle={cleaned} />
     </article>
   );
