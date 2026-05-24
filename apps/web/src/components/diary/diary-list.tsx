@@ -3,7 +3,7 @@
 import { DeleteConfirmation } from "@/components/diary/delete-confirmation";
 import { DiaryEntryCard } from "@/components/diary/diary-entry-card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, apiClient } from "@/lib/api-client";
@@ -159,6 +159,10 @@ export function DiaryList({ handle, isOwner }: Props) {
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="auxed">Aux’d</TabsTrigger>
         </TabsList>
+        {/* Empty TabsContent panels keep Radix's aria-controls valid
+         * (T171). See feed-list.tsx for the same fix + rationale. */}
+        <TabsContent value="all" className="sr-only" />
+        <TabsContent value="auxed" className="sr-only" />
       </Tabs>
       {entries.length === 0 ? (
         <EmptyState filter={filter} isOwner={isOwner} />

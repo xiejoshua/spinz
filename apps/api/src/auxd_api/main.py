@@ -105,7 +105,7 @@ app.add_middleware(
     allow_origins=_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["Content-Type", "Accept", "X-Requested-With"],
+    allow_headers=["Content-Type", "Accept", "X-Requested-With", "X-CSRF-Token"],
 )
 # Session middleware must wrap every route, including future /api/v1/auth
 # endpoints, so register it before the router include.

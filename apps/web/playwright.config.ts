@@ -4,7 +4,11 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
 const isCI = !!process.env.CI;
 
 export default defineConfig({
-  testDir: "./tests/e2e",
+  // Discover all Playwright-driven specs — e2e (TC-E2E-NNN), a11y
+  // (T171 per-route axe-core scans), and perf (T172 Lighthouse).
+  // Unit tests under tests/unit/ stay under vitest's discovery.
+  testDir: "./tests",
+  testMatch: ["e2e/**/*.spec.ts", "a11y/**/*.spec.ts", "perf/**/*.spec.ts"],
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,

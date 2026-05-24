@@ -94,11 +94,20 @@ function StarSlot({
   return (
     <div className="relative">
       {filledHalf ? (
-        <StarHalf className="size-8 fill-foreground stroke-foreground" aria-hidden="true" />
+        <StarHalf
+          className="size-8 fill-foreground stroke-foreground transition-colors duration-200 ease-out"
+          aria-hidden="true"
+        />
       ) : filledFull ? (
-        <Star className="size-8 fill-foreground stroke-foreground" aria-hidden="true" />
+        <Star
+          className="size-8 fill-foreground stroke-foreground transition-colors duration-200 ease-out"
+          aria-hidden="true"
+        />
       ) : (
-        <Star className="size-8 fill-transparent stroke-muted-foreground" aria-hidden="true" />
+        <Star
+          className="size-8 fill-transparent stroke-muted-foreground transition-colors duration-200 ease-out"
+          aria-hidden="true"
+        />
       )}
       <button
         type="button"

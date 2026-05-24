@@ -42,6 +42,10 @@ type FetchOptions = Omit<RequestInit, "body"> & {
   searchParams?: Record<string, string | number | boolean | undefined>;
 };
 
+const CSRF_COOKIE_NAME = "auxd_csrf";
+const CSRF_HEADER_NAME = "X-CSRF-Token";
+const CSRF_PROTECTED_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
 function buildUrl(path: string, searchParams?: FetchOptions["searchParams"]): string {
   // Relative URL — browser resolves against the current origin and the
   // request goes through Next.js's rewrites layer.
@@ -56,14 +60,44 @@ function buildUrl(path: string, searchParams?: FetchOptions["searchParams"]): st
   return search ? `${path}?${search}` : path;
 }
 
+/**
+ * T173 — security review fix: read the `auxd_csrf` double-submit cookie
+ * the backend's `SessionMiddleware` writes on login (see
+ * `apps/api/src/auxd_api/middleware.py`). The cookie is HttpOnly=false
+ * exactly so JS can lift the value into the `X-CSRF-Token` header.
+ * Returns the empty string on SSR (no `document`) — server-rendered
+ * components only do GETs, so CSRF isn't enforced for them anyway.
+ */
+function readCsrfToken(): string {
+  if (typeof document === "undefined") return "";
+  const prefix = `${CSRF_COOKIE_NAME}=`;
+  for (const raw of document.cookie.split(";")) {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith(prefix)) {
+      return decodeURIComponent(trimmed.slice(prefix.length));
+    }
+  }
+  return "";
+}
+
 export async function apiFetch<T>(path: string, options: FetchOptions = {}): Promise<T> {
-  const { body, searchParams, headers, ...rest } = options;
+  const { body, searchParams, headers, method, ...rest } = options;
+  const upperMethod = (method ?? "GET").toUpperCase();
+  const csrfHeaders: Record<string, string> = {};
+  if (CSRF_PROTECTED_METHODS.has(upperMethod)) {
+    const token = readCsrfToken();
+    if (token) {
+      csrfHeaders[CSRF_HEADER_NAME] = token;
+    }
+  }
   const response = await fetch(buildUrl(path, searchParams), {
     ...rest,
+    method,
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
+      ...csrfHeaders,
       ...headers,
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,

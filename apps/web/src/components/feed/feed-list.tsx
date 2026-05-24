@@ -2,7 +2,7 @@
 
 import { FeedEntryCard } from "@/components/feed/feed-entry";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "@/lib/api-client";
 import type { DiaryAlbumCard } from "@/lib/diary-types";
 import type { FeedListResponse, FeedMode, FeedReviewSnippet } from "@/lib/feed-types";
@@ -51,6 +51,16 @@ export function FeedList() {
           <TabsTrigger value="for_you">For You</TabsTrigger>
           <TabsTrigger value="latest">Latest</TabsTrigger>
         </TabsList>
+        {/*
+         * Both panels reference the same feed list below — the value of
+         * `mode` drives the actual data fetch. We render empty TabsContent
+         * elements so Radix's aria-controls wiring resolves to real DOM
+         * nodes (T171 a11y audit). Without this the trigger's aria-controls
+         * points at an id that doesn't exist, which axe-core flags as a
+         * CRITICAL aria-valid-attr-value violation.
+         */}
+        <TabsContent value="for_you" className="sr-only" />
+        <TabsContent value="latest" className="sr-only" />
       </Tabs>
       {query.isLoading ? (
         <p className="py-6 text-center text-sm text-muted-foreground">Loading feed…</p>
