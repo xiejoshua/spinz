@@ -1,6 +1,7 @@
 "use client";
 
 import { ReviewSortSelect } from "@/components/album-detail/review-sort-select";
+import { SectionHeader } from "@/components/album-detail/section-header";
 import { ReviewCard } from "@/components/review-card";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "@/lib/api-client";
@@ -45,17 +46,29 @@ export function ReviewsList({ albumId }: Props) {
   const reviews = (query.data?.pages ?? []).flatMap((page) => page.reviews);
 
   return (
-    <section aria-labelledby="reviews-heading" className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 id="reviews-heading" className="text-lg font-semibold">
-          Reviews
-        </h2>
+    <section aria-labelledby="reviews-heading" className="space-y-4">
+      <div className="flex items-end justify-between gap-4">
+        <div className="flex-1">
+          <SectionHeader
+            id="reviews-heading"
+            label="Reviews"
+            count={reviews.length || undefined}
+          />
+        </div>
         <ReviewSortSelect />
       </div>
       {query.isLoading ? (
-        <p className="py-4 text-center text-sm text-muted-foreground">Loading reviews…</p>
+        <p
+          className="py-4 text-center font-sans text-sm"
+          style={{ color: "var(--muted)" }}
+        >
+          Loading reviews…
+        </p>
       ) : query.isError ? (
-        <p className="py-4 text-center text-sm text-destructive">
+        <p
+          className="py-4 text-center font-sans text-sm"
+          style={{ color: "var(--danger)" }}
+        >
           Could not load reviews.{" "}
           <button
             type="button"
@@ -68,12 +81,19 @@ export function ReviewsList({ albumId }: Props) {
           </button>
         </p>
       ) : reviews.length === 0 ? (
-        <p className="rounded-md border border-dashed bg-muted/30 px-4 py-6 text-center text-sm text-muted-foreground">
+        <p
+          className="rounded-md border border-dashed px-4 py-8 text-center font-sans text-sm"
+          style={{
+            background: "var(--surface)",
+            borderColor: "var(--border)",
+            color: "var(--muted)",
+          }}
+        >
           No reviews yet — be the first to write one.
         </p>
       ) : (
         <>
-          <ul className="space-y-2">
+          <ul>
             {reviews.map((review) => (
               <ReviewCard key={review.id} review={review} user={users[review.user_id]} />
             ))}

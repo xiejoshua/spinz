@@ -1,5 +1,6 @@
+import { SectionHeader } from "@/components/album-detail/section-header";
 import { AuxIcon } from "@/components/icons/aux";
-import { Badge } from "@/components/ui/badge";
+import { StarRow } from "@/components/icons/star-row";
 import type { DiaryRow } from "@/lib/album-types";
 
 type Props = {
@@ -11,14 +12,32 @@ export function MyHistory({ history }: Props) {
     return null;
   }
   return (
-    <section aria-labelledby="my-history-heading" className="space-y-2">
-      <h2 id="my-history-heading" className="text-lg font-semibold">
-        My history ({history.length})
-      </h2>
-      <ul className="divide-y rounded-md border">
-        {history.map((entry) => (
-          <li key={entry.id} className="flex items-center gap-3 px-3 py-2 text-sm">
-            <span className="text-muted-foreground">
+    <section aria-labelledby="my-history-heading" className="space-y-4">
+      <SectionHeader
+        id="my-history-heading"
+        label="Your history"
+        count={history.length}
+      />
+      <ul>
+        {history.map((entry, i) => (
+          <li
+            key={entry.id}
+            className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3"
+            style={{
+              borderBottom:
+                i < history.length - 1
+                  ? "1px solid var(--separator)"
+                  : "none",
+            }}
+          >
+            <span
+              className="font-mono"
+              style={{
+                fontSize: "12px",
+                color: "var(--muted)",
+                minWidth: "100px",
+              }}
+            >
               {new Date(entry.logged_at).toLocaleDateString(undefined, {
                 year: "numeric",
                 month: "short",
@@ -26,28 +45,42 @@ export function MyHistory({ history }: Props) {
               })}
             </span>
             {entry.rating != null && (
-              <span>
-                <span aria-hidden="true">{"★".repeat(Math.round(entry.rating))}</span>
-                <span className="sr-only">Rated {entry.rating} of 5 stars</span>
-                <span className="ml-1 text-muted-foreground">{entry.rating.toFixed(1)}</span>
+              <span
+                className="inline-flex items-center gap-1.5"
+                style={{ color: "var(--accent)" }}
+              >
+                <StarRow value={entry.rating} size={14} />
+                <span
+                  className="font-mono tabular-nums"
+                  style={{ fontSize: "12px", color: "var(--muted)" }}
+                >
+                  {entry.rating.toFixed(1)}
+                </span>
               </span>
             )}
             {entry.auxed && (
-              <Badge variant="secondary" className="h-5 px-1.5 py-0">
-                <span
-                  aria-hidden="true"
-                  className="mr-1 inline-flex items-center"
-                  style={{ color: "var(--gold)" }}
-                >
-                  <AuxIcon filled size={12} />
-                </span>
-                Aux’d
-              </Badge>
+              <span
+                className="inline-flex items-center gap-1 font-mono uppercase"
+                style={{
+                  fontSize: "10px",
+                  letterSpacing: "0.15em",
+                  color: "var(--gold)",
+                }}
+              >
+                <AuxIcon filled size={12} /> Aux'd
+              </span>
             )}
             {entry.visibility !== "public" && (
-              <Badge variant="outline" className="h-5 px-1.5 py-0 capitalize">
+              <span
+                className="font-mono uppercase"
+                style={{
+                  fontSize: "10px",
+                  letterSpacing: "0.15em",
+                  color: "var(--muted)",
+                }}
+              >
                 {entry.visibility}
-              </Badge>
+              </span>
             )}
           </li>
         ))}

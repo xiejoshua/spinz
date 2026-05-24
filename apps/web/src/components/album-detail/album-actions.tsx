@@ -27,15 +27,19 @@ export function AlbumActions({ album, myEntry }: Props) {
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button onClick={startLog}>
+    <div className="flex flex-wrap items-center gap-3">
+      <Button onClick={startLog} size="lg">
         <Plus className="mr-1 size-4" aria-hidden="true" />
-        {myEntry ? "Log again" : "Log"}
+        {myEntry ? "Log again" : "Log this"}
       </Button>
       <UpNextButton albumId={album.id} />
       {myEntry?.rating != null && (
-        <span className="self-center text-sm text-muted-foreground">
-          You rated this <span className="text-foreground">{myEntry.rating}★</span>
+        <span
+          className="self-center font-sans text-[13px]"
+          style={{ color: "var(--muted)" }}
+        >
+          You rated{" "}
+          <span style={{ color: "var(--foreground)" }}>{myEntry.rating}★</span>
           {myEntry.auxed && (
             <>
               {" "}
@@ -45,9 +49,9 @@ export function AlbumActions({ album, myEntry }: Props) {
                 className="inline-flex items-center align-text-bottom"
                 style={{ color: "var(--gold)" }}
               >
-                <AuxIcon filled size={14} />
+                <AuxIcon filled size={13} />
               </span>{" "}
-              Aux’d
+              Aux'd
             </>
           )}
         </span>

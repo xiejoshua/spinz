@@ -1,3 +1,4 @@
+import { SectionHeader } from "@/components/album-detail/section-header";
 import type { Track } from "@/lib/album-types";
 
 function formatDuration(ms: number | null): string {
@@ -10,19 +11,51 @@ function formatDuration(ms: number | null): string {
 
 export function Tracklist({ tracks }: { tracks: Track[] }) {
   return (
-    <section aria-labelledby="tracklist-heading" className="space-y-2">
-      <h2 id="tracklist-heading" className="text-lg font-semibold">
-        Tracklist
-      </h2>
-      <ol className="divide-y rounded-md border">
-        {tracks.map((track) => (
+    <section aria-labelledby="tracklist-heading" className="space-y-4">
+      <SectionHeader
+        id="tracklist-heading"
+        label="Tracklist"
+        count={tracks.length}
+      />
+      <ol>
+        {tracks.map((track, i) => (
           <li
             key={`${track.position}-${track.title}`}
-            className="flex items-center gap-3 px-3 py-2 text-sm"
+            className="flex items-center gap-4 py-2.5"
+            style={{
+              borderBottom:
+                i < tracks.length - 1
+                  ? "1px solid var(--separator)"
+                  : "none",
+            }}
           >
-            <span className="w-6 shrink-0 text-right text-muted-foreground">{track.position}</span>
-            <span className="min-w-0 flex-1 truncate">{track.title}</span>
-            <span className="shrink-0 text-muted-foreground">
+            <span
+              className="w-7 shrink-0 text-right font-mono tabular-nums"
+              style={{
+                fontSize: "12px",
+                color: "var(--muted)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {String(track.position).padStart(2, "0")}
+            </span>
+            <span
+              className="min-w-0 flex-1 truncate font-serif"
+              style={{
+                fontSize: "15px",
+                color: "var(--foreground)",
+                fontFamily: "var(--font-serif)",
+              }}
+            >
+              {track.title}
+            </span>
+            <span
+              className="shrink-0 font-mono tabular-nums"
+              style={{
+                fontSize: "12px",
+                color: "var(--muted)",
+              }}
+            >
               {formatDuration(track.duration_ms)}
             </span>
           </li>
