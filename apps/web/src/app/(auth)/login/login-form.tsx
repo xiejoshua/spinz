@@ -30,7 +30,7 @@ export function LoginForm() {
     try {
       const user = await apiClient.post<SanitizedUser>("/api/v1/auth/login", values);
       setUser(user);
-      router.push("/");
+      router.push("/feed");
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.status === 401) {
