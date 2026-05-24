@@ -10,20 +10,20 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, apiClient } from "@/lib/api-client";
 import { capture } from "@/lib/posthog";
 import { useAuthStore } from "@/stores/auth";
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 
 type DeletionStateResponse = {
   status: string;
   scheduled_for: string | null;
 };
+
+const DELETE_TOKEN = "DELETE";
 
 export function DataSettings() {
   const router = useRouter();
@@ -36,6 +36,7 @@ export function DataSettings() {
   // button still calls DELETE /users/me/delete so the user can recover
   // if they hit "delete" but reconsider before navigating away.
   const [scheduledFor, setScheduledFor] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
 
   // T153 — backend export endpoint returns 202 (Accepted) with a job
@@ -49,7 +50,7 @@ export function DataSettings() {
     onSuccess: () => {
       toast({
         title: "Export queued",
-        description: "We&rsquo;ll email you when your archive is ready.",
+        description: "We’ll email you when your archive is ready.",
       });
       capture("data.export_requested");
     },
@@ -103,37 +104,34 @@ export function DataSettings() {
     },
   });
 
-  const canSubmitDelete = deleteConfirm === "DELETE";
+  const canSubmitDelete = deleteConfirm === DELETE_TOKEN;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-14">
       {scheduledFor && (
-        <section className="rounded-md border border-destructive/40 bg-destructive/5 p-4">
-          <p className="text-sm font-medium">Account scheduled for deletion</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Your account will be permanently deleted on{" "}
-            {new Date(scheduledFor).toLocaleDateString()}. You can cancel any time before then.
-          </p>
+        <Section
+          label="Pending deletion"
+          tone="danger"
+          description={`Your account will be permanently deleted on ${new Date(
+            scheduledFor
+          ).toLocaleDateString()}. You can cancel any time before then.`}
+        >
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="mt-3"
             onClick={() => cancelDeletionMutation.mutate()}
             disabled={cancelDeletionMutation.isPending}
           >
-            Cancel deletion
+            {cancelDeletionMutation.isPending ? "Cancelling…" : "Cancel deletion"}
           </Button>
-        </section>
+        </Section>
       )}
 
-      <section className="space-y-2 rounded-md border p-4">
-        <h3 className="text-sm font-medium">Export your data</h3>
-        <p className="text-xs text-muted-foreground">
-          We&rsquo;ll prepare a JSON archive containing your diary entries, reviews, Up Next
-          backlog, and profile fields. You&rsquo;ll receive an email when it&rsquo;s ready to
-          download.
-        </p>
+      <Section
+        label="Export"
+        description="We’ll prepare a JSON archive containing your diary entries, reviews, Up Next backlog, and profile fields. You’ll receive an email when it’s ready to download."
+      >
         <Button
           type="button"
           variant="outline"
@@ -142,15 +140,20 @@ export function DataSettings() {
         >
           {exportMutation.isPending ? "Requesting…" : "Export my data"}
         </Button>
-      </section>
+      </Section>
 
-      <section className="space-y-2 rounded-md border border-destructive/30 p-4">
-        <h3 className="text-sm font-medium text-destructive">Delete account</h3>
-        <p className="text-xs text-muted-foreground">
-          Permanently delete your account and all associated data after a 30-day grace period. You
-          can cancel during the grace window.
-        </p>
-        <Dialog>
+      <Section
+        label="Delete account"
+        tone="danger"
+        description="Permanently delete your account and all associated data after a 30-day grace period. Diary entries, reviews, backlog, follows, and aux’d cards are all removed when the window closes. You can cancel during the grace window; once the window closes, nothing recovers."
+      >
+        <Dialog
+          open={confirmOpen}
+          onOpenChange={(value) => {
+            setConfirmOpen(value);
+            if (!value) setDeleteConfirm("");
+          }}
+        >
           <DialogTrigger asChild>
             <Button type="button" variant="destructive">
               Delete my account
@@ -158,24 +161,78 @@ export function DataSettings() {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Delete your account?</DialogTitle>
-              <DialogDescription>
-                {viewer ? `@${viewer.handle} — ` : ""}
-                Type <strong>DELETE</strong> to confirm. Your account will be permanently deleted
-                after a 30-day grace period.
+              <div
+                className="font-mono uppercase"
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.18em",
+                  color: "var(--danger)",
+                }}
+              >
+                Permanent deletion
+              </div>
+              <DialogTitle
+                className="mt-3 font-serif font-semibold leading-[1.1] tracking-[-0.015em]"
+                style={{
+                  fontSize: "clamp(22px, 3vw, 28px)",
+                  color: "var(--foreground)",
+                  fontFamily: "var(--font-serif)",
+                }}
+              >
+                Delete {viewer ? `@${viewer.handle}` : "your account"}?
+              </DialogTitle>
+              <div
+                className="mt-3 h-px w-12"
+                style={{ background: "var(--danger)", opacity: 0.6 }}
+              />
+              <DialogDescription
+                className="pt-3 font-sans text-[14px] leading-[1.6]"
+                style={{ color: "var(--muted)" }}
+              >
+                Your account enters a 30-day grace period. Sign in any time before it closes to
+                cancel. Once the window closes, your data is removed for good.
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-2">
-              <Label htmlFor="delete-confirm">Confirmation</Label>
-              <Input
+
+            <div className="mt-6 space-y-2">
+              <label
+                htmlFor="delete-confirm"
+                className="block font-mono uppercase"
+                style={{
+                  fontSize: "11px",
+                  letterSpacing: "0.18em",
+                  color: "var(--muted)",
+                }}
+              >
+                Type <span style={{ color: "var(--foreground)" }}>{DELETE_TOKEN}</span> to confirm
+              </label>
+              <input
                 id="delete-confirm"
                 value={deleteConfirm}
-                onChange={(e) => setDeleteConfirm(e.target.value)}
-                placeholder="DELETE"
+                onChange={(e) => setDeleteConfirm(e.target.value.toUpperCase())}
+                placeholder={DELETE_TOKEN}
                 autoComplete="off"
+                spellCheck={false}
+                className="block w-full rounded-md px-4 py-3 font-mono text-[15px] tracking-[0.12em] focus:outline-none focus:ring-2"
+                style={{
+                  background: "var(--field-background)",
+                  color: "var(--field-foreground)",
+                  border: "1px solid var(--field-border)",
+                  // biome-ignore lint/suspicious/noExplicitAny: CSS custom property key needs cast to satisfy React.CSSProperties index signature
+                  ["--tw-ring-color" as any]: "var(--danger)",
+                }}
               />
             </div>
+
             <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setConfirmOpen(false)}
+                disabled={scheduleDeletionMutation.isPending}
+              >
+                Keep account
+              </Button>
               <Button
                 type="button"
                 variant="destructive"
@@ -187,7 +244,53 @@ export function DataSettings() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </section>
+      </Section>
     </div>
+  );
+}
+
+/**
+ * Editorial section: mono uppercase eyebrow → hairline → description →
+ * children. `tone="danger"` colors the eyebrow + hairline in --danger
+ * so the destructive section reads as such without resorting to a
+ * filled-card shell.
+ */
+function Section({
+  label,
+  description,
+  tone = "default",
+  children,
+}: {
+  label: string;
+  description: string;
+  tone?: "default" | "danger";
+  children: ReactNode;
+}) {
+  const eyebrowColor = tone === "danger" ? "var(--danger)" : "var(--muted)";
+  const ruleColor = tone === "danger" ? "var(--danger)" : "var(--separator)";
+  const ruleOpacity = tone === "danger" ? 0.6 : 1;
+  return (
+    <section className="space-y-4">
+      <div className="space-y-2">
+        <h3
+          className="font-mono uppercase"
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.18em",
+            color: eyebrowColor,
+          }}
+        >
+          {label}
+        </h3>
+        <div className="h-px" style={{ background: ruleColor, opacity: ruleOpacity }} />
+        <p
+          className="pt-1 font-sans text-[14px] leading-[1.55]"
+          style={{ color: "var(--muted)", maxWidth: "60ch" }}
+        >
+          {description}
+        </p>
+      </div>
+      {children}
+    </section>
   );
 }
