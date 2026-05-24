@@ -1,55 +1,99 @@
 "use client";
 
-import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
+import { Dropdown, Menu } from "@heroui/react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const DropdownMenu = DropdownMenuPrimitive.Root;
-const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
-const DropdownMenuPortal = DropdownMenuPrimitive.Portal;
-const DropdownMenuSeparator = DropdownMenuPrimitive.Separator;
+/**
+ * Adapter — shadcn DropdownMenu API backed by HeroUI Dropdown + Menu.
+ */
 
-const DropdownMenuContent = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <DropdownMenuPortal>
-    <DropdownMenuPrimitive.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        "z-50 min-w-[8rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md",
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
-        className
-      )}
-      {...props}
-    />
-  </DropdownMenuPortal>
-));
-DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
+const DropdownMenu = ({ children }: { children?: React.ReactNode }) => (
+  <Dropdown>{children}</Dropdown>
+);
 
-const DropdownMenuItem = React.forwardRef<
-  React.ElementRef<typeof DropdownMenuPrimitive.Item>,
-  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item>
->(({ className, ...props }, ref) => (
-  <DropdownMenuPrimitive.Item
-    ref={ref}
-    className={cn(
-      "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-      "focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-      className
-    )}
-    {...props}
+const DropdownMenuTrigger = ({
+  children,
+}: { children?: React.ReactNode; asChild?: boolean }) => {
+  return <>{children}</>;
+};
+
+const DropdownMenuPortal = ({ children }: { children?: React.ReactNode }) => (
+  <>{children}</>
+);
+
+type DropdownMenuContentProps = {
+  children?: React.ReactNode;
+  className?: string;
+  align?: "start" | "center" | "end";
+  sideOffset?: number;
+};
+
+const DropdownMenuContent = ({
+  children,
+  className,
+  align,
+}: DropdownMenuContentProps) => (
+  <Dropdown.Popover
+    className={cn(className)}
+    placement={
+      align === "end"
+        ? "bottom right"
+        : align === "center"
+          ? "bottom"
+          : "bottom left"
+    }
+  >
+    <Menu>{children}</Menu>
+  </Dropdown.Popover>
+);
+
+type DropdownMenuItemProps = {
+  children?: React.ReactNode;
+  onSelect?: () => void;
+  asChild?: boolean;
+  className?: string;
+  disabled?: boolean;
+};
+
+const DropdownMenuItem = ({
+  children,
+  onSelect,
+  className,
+  disabled,
+}: DropdownMenuItemProps) => (
+  <Menu.Item
+    className={cn(className)}
+    isDisabled={disabled}
+    onAction={onSelect}
+  >
+    {children}
+  </Menu.Item>
+);
+
+const DropdownMenuLabel = ({
+  children,
+  className,
+}: { children?: React.ReactNode; className?: string }) => (
+  <div className={cn("px-2 py-1.5 text-sm font-semibold", className)}>
+    {children}
+  </div>
+);
+
+const DropdownMenuSeparator = ({ className }: { className?: string }) => (
+  <div
+    className={cn("-mx-1 my-1 h-px", className)}
+    style={{ background: "var(--separator)" }}
   />
-));
-DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
+);
 
 export {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuPortal,
 };
