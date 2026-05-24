@@ -15,8 +15,8 @@ export function TopBar() {
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <a
           href="/"
-          className="font-sans text-[20px] font-bold tracking-[-0.02em]"
-          style={{ color: "var(--foreground)" }}
+          className="font-serif text-[24px] font-semibold leading-none tracking-[-0.015em]"
+          style={{ color: "var(--foreground)", fontFamily: "var(--font-serif)" }}
         >
           auxd
         </a>

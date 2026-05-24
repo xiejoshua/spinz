@@ -14,11 +14,11 @@ export function Hero() {
               color: "var(--foreground)",
             }}
           >
-            A diary to bring back{" "}
+            A diary to bring back albums as{" "}
             <em className="italic" style={{ fontFamily: "var(--font-serif)" }}>
-              albums
-            </em>{" "}
-            as art.
+              art
+            </em>
+            .
           </h1>
           <p
             className="mt-6 max-w-2xl font-sans text-[18px] leading-[1.55]"

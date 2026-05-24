@@ -11,8 +11,8 @@ const columns = [
   },
   {
     num: "03",
-    title: "Half-star simple.",
-    body: "½ to 5 stars, tap or drag. No 100-point metadata walls. No essays required.",
+    title: "Reviews as essays.",
+    body: "Join the discourse on your favorite works and take back music as an art form.",
   },
 ];
 

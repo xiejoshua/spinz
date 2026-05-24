@@ -151,7 +151,12 @@ export function WedgeDemo() {
                 precision={0.5}
                 size="medium"
                 icon={<StarIcon size={28} filled />}
-                emptyIcon={<StarIcon size={28} filled={false} style={{ opacity: 0.25 }} />}
+                emptyIcon={<StarIcon size={28} filled={false} />}
+                sx={{
+                  "& .MuiRating-iconFilled": { color: "var(--foreground)" },
+                  "& .MuiRating-iconHover": { color: "var(--foreground)" },
+                  "& .MuiRating-iconEmpty": { color: "var(--muted)" },
+                }}
               />
             </Row>
 

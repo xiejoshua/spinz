@@ -45,8 +45,12 @@ export function FinalCta() {
         <div className="mx-auto flex max-w-6xl flex-col items-start gap-4 px-6 py-10 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div
-              className="font-sans font-bold tracking-[-0.02em]"
-              style={{ fontSize: "16px", color: "var(--foreground)" }}
+              className="font-serif font-semibold tracking-[-0.015em]"
+              style={{
+                fontSize: "20px",
+                color: "var(--foreground)",
+                fontFamily: "var(--font-serif)",
+              }}
             >
               auxd
             </div>
