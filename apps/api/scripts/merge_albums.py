@@ -129,7 +129,8 @@ async def _amain(
             return 0
 
         if not yes:
-            answer = input("proceed with merge? [y/N] ").strip().lower()
+            # CLI confirm prompt; intentional blocking call in interactive context.
+            answer = input("proceed with merge? [y/N] ").strip().lower()  # noqa: ASYNC250
             if answer not in {"y", "yes"}:
                 print("aborted")
                 return 1

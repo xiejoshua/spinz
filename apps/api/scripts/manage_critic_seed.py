@@ -2,7 +2,8 @@
 
 Subcommands::
 
-    uv run python apps/api/scripts/manage_critic_seed.py add <handle> [--priority N] [--genres g1,g2]
+    uv run python apps/api/scripts/manage_critic_seed.py add <handle> \
+        [--priority N] [--genres g1,g2]
     uv run python apps/api/scripts/manage_critic_seed.py remove <handle>
     uv run python apps/api/scripts/manage_critic_seed.py activate <handle>
     uv run python apps/api/scripts/manage_critic_seed.py deactivate <handle>
@@ -126,9 +127,7 @@ async def _cmd_list(*, active_only: bool) -> str:
     ]
     for row in rows:
         genres_repr = ",".join(row.genre_signature) if row.genre_signature else "-"
-        lines.append(
-            f"{row.user_id:<28} {row.priority:>8} {str(row.active):>6}  {genres_repr}"
-        )
+        lines.append(f"{row.user_id:<28} {row.priority:>8} {str(row.active):>6}  {genres_repr}")
     lines.append(f"total: {len(rows)}")
     return "\n".join(lines)
 
