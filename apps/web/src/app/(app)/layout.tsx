@@ -4,6 +4,7 @@ import { LogFab } from "@/components/nav/log-fab";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { PushBootstrap } from "@/components/notifications/push-bootstrap";
 import { cookies } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 
@@ -16,7 +17,20 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
   return (
     <div className="flex min-h-dvh flex-col pb-16">
-      <header className="sticky top-0 z-20 flex h-12 items-center justify-end gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/75">
+      <header
+        className="sticky top-0 z-20 flex h-14 items-center justify-between px-6 backdrop-blur-md"
+        style={{
+          background: "color-mix(in oklab, var(--background) 80%, transparent)",
+          borderBottom: "1px solid var(--separator)",
+        }}
+      >
+        <Link
+          href="/"
+          className="font-serif text-[22px] font-semibold leading-none tracking-[-0.015em]"
+          style={{ color: "var(--foreground)", fontFamily: "var(--font-serif)" }}
+        >
+          auxd
+        </Link>
         <NotificationBell />
       </header>
       <main className="flex-1">{children}</main>

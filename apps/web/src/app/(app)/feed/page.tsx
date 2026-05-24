@@ -1,4 +1,5 @@
 import { FeedList } from "@/components/feed/feed-list";
+import { PageHeader } from "@/components/nav/page-header";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -8,10 +9,8 @@ export const metadata: Metadata = {
 
 export default function HomePage() {
   return (
-    <article className="container max-w-3xl space-y-4 py-6">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">Home</h1>
-      </header>
+    <article className="container max-w-3xl space-y-8 py-10">
+      <PageHeader eyebrow="Feed" title="Home." />
       <FeedList />
     </article>
   );

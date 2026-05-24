@@ -1,4 +1,5 @@
 import { SuggestionsList } from "@/components/discover/suggestions-list";
+import { PageHeader } from "@/components/nav/page-header";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -8,13 +9,12 @@ export const metadata: Metadata = {
 
 export default function DiscoverPage() {
   return (
-    <article className="container max-w-3xl space-y-4 py-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Discover</h1>
-        <p className="text-sm text-muted-foreground">
-          People you might like — based on mutual taste, your follow graph, and shared critics.
-        </p>
-      </header>
+    <article className="container max-w-3xl space-y-8 py-10">
+      <PageHeader
+        eyebrow="Discover"
+        title="People to follow."
+        subtitle="Suggestions from mutual taste, your follow graph, and shared critics."
+      />
       <SuggestionsList />
     </article>
   );
