@@ -196,6 +196,12 @@ class TestDiscogsCatalogProvider:
         assert params["q"] == "Graduation"
         assert params["type"] == "master"
         assert "per_page" in params
+        # Post-2026-05-24: sort by community wantlist desc — the user's
+        # "Most Wanted" preference. Discogs's default ``sort=score``
+        # was producing niche-title-first ordering for queries like
+        # "to pimp"; ``sort=want`` aligns with discogs.com Most Wanted.
+        assert params["sort"] == "want"
+        assert params["sort_order"] == "desc"
         # No leftover release-based parameters from the v3 implementation.
         assert "release_title" not in params
         assert "artist" not in params

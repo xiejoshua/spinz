@@ -95,13 +95,20 @@ class DiscogsCatalogProvider(CatalogProvider):
     # ------------------------------------------------------------------
 
     async def search_albums(self, query: str, limit: int = 10) -> list[CatalogAlbum]:
-        """Search Discogs masters by free-text query.
+        """Search Discogs masters by free-text query, sorted by community wantlist.
 
-        Uses ``/database/search?q=<q>&type=master&per_page=<limit>`` —
-        Discogs masters are canonical album entries (one per album, not
-        per pressing). Discogs's default ranking factors in popularity +
-        relevance and is the algorithm the user has explicitly endorsed:
-        results return in the same order as discogs.com search.
+        Uses ``/database/search?q=<q>&type=master&per_page=<limit>
+        &sort=want&sort_order=desc`` — Discogs masters are canonical
+        album entries (one per album, not per pressing). Discogs's
+        default ``sort=score`` ordering scored matches by relevance, but
+        operator + user testing on 2026-05-24 showed that picked up
+        niche masters whose titles happened to contain the query terms
+        ahead of the actual popular work (e.g. obscure "Pimp To Eat"
+        ahead of canonical "To Pimp a Butterfly"). Switching to
+        ``sort=want`` ranks by aggregate wantlist count across all
+        pressings of the master, which is the strongest popularity
+        signal Discogs exposes through the public API and aligns with
+        the user-reported behaviour of discogs.com's "Most Wanted" view.
 
         Returns :class:`CatalogAlbum` rows with ``discogs_master_id``
         populated; ``discogs_release_id`` is ``None`` for master hits
@@ -115,7 +122,13 @@ class DiscogsCatalogProvider(CatalogProvider):
             return []
         response = await self._client.get(
             "/database/search",
-            params={"q": query, "type": "master", "per_page": str(limit)},
+            params={
+                "q": query,
+                "type": "master",
+                "per_page": str(limit),
+                "sort": "want",
+                "sort_order": "desc",
+            },
         )
         if response.status_code >= 400:
             self._raise_for_status(response)

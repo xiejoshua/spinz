@@ -59,12 +59,11 @@ export function SearchResults({
   return (
     <ul className="divide-y rounded-md border" aria-label="Search results">
       {results.map((album) => {
-        const id = album.mbid ?? album.discogs_release_id ?? album.title;
         const year = album.release_year ? ` · ${album.release_year}` : "";
         return (
-          <li key={id}>
+          <li key={album.id}>
             <Link
-              href={album.mbid ? `/album/${album.mbid}` : "#"}
+              href={`/album/${album.id}`}
               className="flex items-center gap-3 p-3 hover:bg-muted"
             >
               <CoverThumb album={album} />

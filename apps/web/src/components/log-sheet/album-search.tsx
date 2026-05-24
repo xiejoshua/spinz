@@ -18,14 +18,14 @@ type Props = {
   onPick: (seed: LogSheetSeed) => void;
 };
 
-function albumToSeed(album: SearchAlbum): LogSheetSeed | null {
-  // album_id requires either an MBID or a discogs_release_id (the canonical
-  // catalog identifiers). Albums lacking both can't be logged through the
-  // search-driven flow at MVP.
-  const id = album.mbid ?? album.discogs_release_id;
-  if (!id) return null;
+function albumToSeed(album: SearchAlbum): LogSheetSeed {
+  // album_id is the materialised Album row's KSUID — search hits are
+  // resolved via identity.resolve_identity before the response is sent,
+  // so every hit carries a stable id. Discogs-master-only hits (no MBID,
+  // no release_id) used to be unloggable; now we route through the KSUID
+  // and the backend looks the row up directly.
   return {
-    album_id: id,
+    album_id: album.id,
     mbid: album.mbid,
     title: album.title,
     artist_credit: album.artist_name,
@@ -57,7 +57,6 @@ export function AlbumSearch({ onPick }: Props) {
 
   function handlePick(album: SearchAlbum, atIndex: number) {
     const seed = albumToSeed(album);
-    if (!seed) return;
     push({ ...seed, query: debounced, artist_name: album.artist_name });
     capture("log.search_accepted", {
       query_length: debounced.length,
@@ -119,7 +118,7 @@ export function AlbumSearch({ onPick }: Props) {
           {data.results.map((album, i) => {
             const seed = albumToSeed(album);
             return (
-              <li key={album.mbid ?? album.discogs_release_id ?? `${album.title}-${i}`}>
+              <li key={album.id}>
                 <button
                   type="button"
                   disabled={!seed}
@@ -164,6 +163,7 @@ function RecentList({
             >
               <CoverThumb
                 album={{
+                  id: seed.album_id,
                   mbid: seed.mbid,
                   discogs_release_id: null,
                   title: seed.title,
