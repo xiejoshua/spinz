@@ -449,6 +449,15 @@ Per-endpoint limits (defaults, tunable via `Settings`):
 | `GET /api/v1/onboarding/cards` | 30 | 60 | Inline critic-seed card ordering |
 | `GET /api/v1/notifications` | 60 | 120 | Inbox list pagination |
 | `GET /api/v1/users/{handle}/reviews` | 60 | 120 | T094 reviews-only profile sub-route |
+<!-- sync-fix L3-045 (Run #12): 8 new rows for Sessions 23-25 endpoints (PATCH /me + avatar + privacy + email + password + follow-requests + reports + data-export). -->
+| `PATCH /api/v1/users/me` | 30 | 60 | T145 — profile fields write |
+| `POST /api/v1/users/me/avatar` | 5/min | 10/min | T146 — 5MB max + JPEG/PNG/WebP only; bursty UX guard |
+| `POST /api/v1/users/me/email` | 5/hour | 10/hour | T150 — anti-takeover; bumps `session_version` |
+| `POST /api/v1/users/me/password` | 5/hour | 10/hour | T150 — anti-takeover; N-017 dispatch on success |
+| `PUT /api/v1/users/me/privacy` | 60 | 120 | T147 — small JSON body |
+| `GET /api/v1/users/me/follow-requests` + `POST .../{id}/{approve,decline}` | 60 | 120 | T148 — sidecar-enriched paginated list; approve/decline idempotent (shared bucket) |
+| `POST /api/v1/reports/{user,review,diary-entry,album}` | 10/day per reporter | — | T155/T163a/T167 — anti-spam (shared bucket); idempotent 24h |
+| `POST /api/v1/users/me/data-export` | 1/day | — | T153 — heavy worker; no real-time UX |
 
 Fail-mode is **FAIL OPEN** (see §1.1.1 — same policy as notification rate-limit). Sentry alert tag `endpoint_rate_limit.redis_down` fires on Redis unavailability. 429 responses include `Retry-After` header.
 
@@ -556,6 +565,10 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 | `seeding` | `get_critic_seeds_for_onboarding`, `record_card_response`, `compute_suggestions`, `score_critics_by_genre_signature`, `get_card_recommendations_for_user`, `get_onboarding_cards` · **Public HTTP:** `GET /api/v1/onboarding/cards` | Pre-checked card ordering; T117a Session 18 surfaced the HTTP endpoint for the inline critic-seed deck. |
 | `moderation` | `submit_report`, `daily_scan_for_flagged_users`, `action_report` | Daily cron |
 | `data_export` | `enqueue_export`, `process_export`, `mail_export` | GDPR pipeline |
+<!-- sync-fix L3-041 (Run #12): 3 new module rows for Sessions 23-25 — `users` (S23 self-service surface), `gdpr` (S24 audit-log internal helper), `reports` (S15+S25 reports module + S24 acknowledge). The legacy `data_export` row above stays for traceability; actual code lives in `users` (endpoint) + `gdpr` (audit) + `workers/gdpr_export.py` (worker). -->
+| `users` | PATCH /me (T145), POST /me/avatar (T146 — R2 upload + Pillow LANCZOS resize 256/128/64), PUT /me/privacy (T147), POST /me/email (T150 — current_password + session_version bump), POST /me/password (T150 — `validate_password_policy` reuse + N-017 dispatch), POST /me/delete (T058), DELETE /me/delete (T058 cancel), POST /me/data-export (T153 enqueue, returns 202), GET /me/follow-requests + POST .../{id}/{approve,decline} (T148) | 13 service methods including 4 from S17 (T057/T058/T059/T101a inline) + 9 new from S23. Profile + privacy + account self-service. |
+| `gdpr` | `record_gdpr_event(user_id, action, notes, *, completed)` lib helper (T154) — called from T058 cascade + T153 enqueue/complete. `GdprAuditLog` Document persisted to `gdpr_audit_logs` collection. | Internal-only — no public HTTP routes. 4 action values: `export_requested / export_completed / deletion_scheduled / deletion_completed / deletion_canceled`. T160 cascade extension calls `record_gdpr_event` on deletion lifecycle. |
+| `reports` | POST /reports/user (T155), POST /reports/review (T155/T163a), POST /reports/diary-entry (T155/T163a), POST /reports/album (T167) — all idempotent within 24h on `(reporter_id, target_type, target_id)`; self-report rejected with 422; FK-validated; per-reporter 10/day rate-limit. `acknowledge_report` service helper (T157) called by `apps/api/scripts/acknowledge_report.py` CLI. | 4 endpoints + 1 internal helper. ReportReason enum carries 7 of the 9 documented values; `target_type` includes `album` (S25 T167). |
 <!-- CR-001: providers/spotify row dropped; providers/musicbrainz + providers/discogs rows added -->
 <!-- sync-fix L3-013 (Run #4): method names re-aligned to actual T041 Protocol shape. cover-art URL is a *field* on CatalogAlbum (synthesized from CAA convention), not a Protocol method. -->
 | `providers/musicbrainz` | `search_albums`, `get_album_by_mbid`, `get_album_by_external_id` | Primary `CatalogProvider`. Rate-limited 1 req/sec per IP via in-class asyncio.Lock + monotonic (MusicBrainz policy). Cover art URL synthesized as CAA sibling-service path `coverartarchive.org/release-group/{mbid}/front` — populated into `CatalogAlbum.cover_art_url` field. |
@@ -572,6 +585,16 @@ Each module exposes a single `<module>.service.py` with public functions; routes
 - `(app)` route group — authenticated post-onboarding; bottom-tab nav.
 - `api/og/...` — server routes for OG image generation.
 - All `/album/[id]` and `/profile/[handle]` pages are SSR for share-link previews.
+<!-- sync-fix L3-046 (Run #12): 8 new routes from S23-25 (settings landing + 4 sub-pages, /suspended, /legal/*, /api/og/*). -->
+- `/settings` — landing page with `settings-nav.tsx` sidebar (S23).
+- `/settings/profile` — T145 edit-profile form (display_name, bio, avatar upload).
+- `/settings/privacy` — T147 privacy toggles + T148 pending follow-requests inbox.
+- `/settings/account` — T150 email + password change forms.
+- `/settings/data` — T149 data-export trigger + delete-account CTA.
+- `/settings/notifications` — S21 per-channel toggles + quiet hours (already in plan; called out here for completeness).
+- `/suspended` — T159 standalone page (no `(app)/layout`, no `(auth)/layout` chrome) shown when api-client catches a 403 with `error: account_suspended`.
+- `/legal/privacy` + `/legal/terms` — T161 placeholder pages (standalone, no app/auth chrome) with prominent banner: "🚧 This is a placeholder. Final policy lawyer-reviewed before public launch." Footer-linked from `(auth)/layout`.
+- `/api/og/album/[id]` + `/api/og/review/[id]` — T168 `next/og` `ImageResponse` routes (server-only; runtime=nodejs; 1200×630; details in §7.7).
 <!-- sync-fix L3-019 (Run #8): canonical route is `/profile/[handle]` because Next.js cannot use `@` as a folder-name prefix (reserved for parallel routes). Public `/@handle` URLs are served via a Next.js middleware rewrite — see §7.1.1 Handle URL aliasing. -->
 
 #### 7.1.1 Handle URL aliasing (deferred middleware rewrite)
@@ -618,6 +641,24 @@ The public share URL is `/@handle` (plan §11.3, e.g. `auxd.app/@casey`), but th
 ### 7.6 Web push subscribe flow
 
 Push permission prompt is **non-modal** — banner on `/notifications` page. Criteria: `follows_count >= 3 OR (now - first_visit_at) >= 7d`. `markFollow()` increments `follows_count` from FollowButton mutation onSuccess + onboarding step-2 follow loop. `push-bootstrap.tsx` silently registers the service worker + stamps `first_visit_at` in localStorage at app boot. "Not now" sets `dismissed_at` (re-show after 14d). VAPID public key via `NEXT_PUBLIC_VAPID_PUBLIC_KEY`. `public/sw.js` minimal: `push` event → `self.registration.showNotification(title, {body, tag, data:{click_url, type}, icon, badge})`; `notificationclick` handler focuses an existing matching tab or opens a new window.
+
+<!-- sync-fix L3-046 (Run #12): new §7.7 — S25 T168 OG share-card flow. -->
+### 7.7 OG share-card image routes (T168)
+
+Vercel `next/og` `ImageResponse` routes power the social-share preview cards:
+
+- `apps/web/src/app/api/og/album/[id]/route.tsx` — 1200×630 share card for `/album/[id]`.
+- `apps/web/src/app/api/og/review/[id]/route.tsx` — 1200×630 share card for `/review/[id]`.
+
+**Runtime + behaviour:**
+- `runtime = "nodejs"` (NOT edge — `next/og` ImageResponse with custom fonts works most reliably on the Node runtime).
+- Server-side backend fetch via `API_BACKEND_URL` env var (falls back to `http://localhost:8000` for local dev).
+- Generic `auxd` fallback image rendered on backend 404 (so dead-link share previews still render a brand card).
+- `Cache-Control: public, max-age=31536000, immutable` (Vercel CDN edge cache — share-card content is immutable per `id`).
+
+**`generateMetadata()` integration:**
+- `/album/{id}` + `/review/{id}` `generateMetadata()` sets `openGraph.images = [{url: "/api/og/album/{id}", width: 1200, height: 630}]` + `twitter.card = "summary_large_image"`.
+- The `<meta>` tags emitted by Next.js point at the absolute URL once `NEXT_PUBLIC_APP_URL` is set; otherwise relative URLs work for crawler fetches that respect the page's base URL.
 
 ---
 
@@ -972,72 +1013,175 @@ Every Follow created during onboarding carries `source: onboarding_preselected |
 
 ### 13.1 Report queue
 
-User-submitted reports persist to `reports` collection in `state=open`. Each report carries `reporter_id`, `target_type` (`user` / `diary_entry` / `review` / `missing_album` — last value added by sync-fix L3-006 for catalog gap reporting), `target_id`, `reason` (enum), `detail` (free text ≤2000 chars). For `target_type=missing_album`, `target_id` is the raw search query string; `reason` is implicitly `catalog_gap` and `reporter_id` is the submitting user.
+User-submitted reports persist to `reports` collection in `state=open`. Each report carries `reporter_id`, `target_type`, `target_id`, `reason` (enum), `detail` (free text ≤2000 chars).
+
+<!-- sync-fix L3-044 (Run #12): target_type + reason enums updated to shipped S15/S25 contract; `missing_album` was a Run #5 L3-006 sync-fix value, now superseded by the `album` target_type (T167) which carries dedicated `wrong_metadata` + `duplicate` reasons for catalog-gap UX. -->
+
+**`target_type` enum (5 values):** `user | diary_entry | review | album | missing_album`. The `album` target_type was added in S25 T167 for catalog-quality reports (wrong metadata / duplicate releases); the legacy `missing_album` target_type (Run #5 L3-006 sync-fix) is retained for search-empty-state reports — `target_id` is the raw query string and `reason` is implicitly `catalog_gap`.
+
+**`reason` enum (9 values — S15 baseline + S25 expansion):** `harassment, spam, nsfw, impersonation, hate_speech, catalog_gap, wrong_metadata, duplicate, other`. The S15 baseline was `harassment / spam / impersonation / hate_speech / other`; S25 T167 added `wrong_metadata + duplicate` for the `album` target_type; `nsfw` and `catalog_gap` are reserved for content-flag + missing-album surfaces.
+
+**Submission contract (T155 / T163a / T167 endpoints):** `POST /api/v1/reports/{user,review,diary-entry,album}` is idempotent within 24h on `(reporter_id, target_type, target_id)` — duplicate submissions return the existing row (200, not 409). Self-report rejected with 422. Per-reporter 10/day rate-limit shared across all `/reports/*` endpoints. FK-validated: 422 if `target_id` doesn't exist.
 
 ### 13.2 Daily log-scan
 
-arq scheduled job at 03:00 UTC daily:
+<!-- sync-fix L3-044 (Run #12): S24 T156 cron pseudocode + author-resolution + Discord webhook + idempotent re-run. -->
+
+arq scheduled job at 03:00 UTC daily, in `workers/moderation_scan.py`:
+
 ```python
 async def daily_moderation_scan():
-    # Find users with ≥3 reports in trailing 7 days
-    flagged = await Report.aggregate([...]).to_list()
-    for user_id, count in flagged:
-        await flag_user_for_review(user_id, count)
-        await notify_admin(f"User {user_id} flagged: {count} reports in 7d")
+    """
+    T156 — flag users with ≥3 reports in trailing 7d.
+
+    Author-resolution: content reports (target_type ∈ {review, diary_entry}) resolve
+    to the row's `user_id` (author). User reports retain `target_id` directly.
+    Reports against soft- or hard-deleted rows are silently dropped (no flag fired).
+
+    Idempotent re-run: User.flagged_for_review_at is checked — if set within trailing 7d,
+    skip the flag emission (Discord webhook is not re-fired).
+    """
+    candidates = await Report.find({"created_at": {"$gte": now() - timedelta(days=7)}}).to_list()
+    by_user: dict[str, list[Report]] = group_by_effective_target_user_id(candidates)  # resolves authors
+    for user_id, reports in by_user.items():
+        if len(reports) < 3:
+            continue
+        user = await User.get(user_id)
+        if user is None or user.deleted_at is not None:
+            continue
+        if user.flagged_for_review_at and (now() - user.flagged_for_review_at) < timedelta(days=7):
+            continue  # idempotent — already flagged within trailing 7d
+        user.flagged_for_review = True
+        user.flagged_for_review_at = now()
+        await user.save()
+        reason_breakdown = Counter(r.reason for r in reports)
+        await discord_webhook_post(
+            settings.DISCORD_WEBHOOK_URL,
+            f"User @{user.handle} flagged: {len(reports)} reports in 7d "
+            f"(reasons: {dict(reason_breakdown)})",
+        )
 ```
+
+`DISCORD_WEBHOOK_URL` is the same setting reused from T010 synthetic monitoring (see §17.1).
 
 ### 13.3 Admin review UI
 
-Out of scope at MVP — flagged users surface in a single founder-only admin dashboard (read from Atlas directly in MongoDB Compass). Web UI is v1.x.
+Out of scope at MVP — flagged users surface in a single founder-only admin dashboard (read from Atlas directly in MongoDB Compass). Web UI is v1.x. Acknowledgement happens via the CLI flow in §13.3a.
+
+### 13.3a Acknowledge report — CLI flow (T157)
+
+<!-- sync-fix L3-044 (Run #12): new §13.3a — S24 T157 acknowledge_report helper + CLI; no admin UI at MVP. -->
+
+Founder runs `apps/api/scripts/acknowledge_report.py {report_id} --note "..."` from a deploy shell. The CLI invokes the `acknowledge_report` service helper which:
+1. Marks `Report.acknowledged_at = now()` (no-op if already set — idempotent).
+2. Fires an N-012 dispatch to the original reporter ("Thanks — we've reviewed your report.") via the standard notifications dispatcher (§8).
+
+The CLI carries `--dry-run` and `--note` flags; the `--note` value is stored on `Report.resolution_note` for audit. No web UI is shipped at MVP.
 
 ### 13.4 No auto-suspension
 
 Per US-G4 acceptance criteria: no realtime auto-suspension at MVP. All actions require manual founder review. This is a deliberate trade-off — minimizes false-positives during launch when moderation patterns are unknown.
 
+### 13.5 SUSPENDED account middleware (T159)
+
+<!-- sync-fix L3-044 (Run #12): new §13.5 — S24 T159 SuspendedAccountMiddleware; SUSPENDED users get 403 on every authenticated route except an allow-list. -->
+
+`SuspendedAccountMiddleware` extends `SessionMiddleware`. When the resolved `User.status == "suspended"`, the middleware returns **HTTP 403** with body `{error: "account_suspended", appeal_url: "mailto:..."}` on **every authenticated route** EXCEPT the following allow-list:
+
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/auth/logout-all-devices`
+- `POST /api/v1/users/me/delete` (the user can still self-delete while suspended)
+
+There is no admin-action endpoint to suspend users at MVP — founder runs `db.users.updateOne({_id: X}, {$set: {status: "suspended"}})` directly via MongoDB Compass. The frontend `api-client.ts` catches the 403 + `error: "account_suspended"` body and redirects to the standalone `/suspended` page (no app/auth chrome).
+
+### 13.6 Album merge — admin CLI (T167)
+
+<!-- sync-fix L3-044 (Run #12): new §13.6 — S25 T167 admin path for album consolidation on wrong-metadata / duplicate reports. -->
+
+`apps/api/scripts/merge_albums.py` is the admin tooling that consolidates a losing album row into a winning row when a `wrong_metadata` or `duplicate` report is resolved:
+
+- Dry-run is the default (the CLI prints the operations it would perform; pass `--yes` for non-interactive execution).
+- FK-rewrite: updates `DiaryEntry.album_id`, `Review.album_id`, `BacklogItem.album_id` losing → winning.
+- Hard-deletes the losing `Album` row.
+- **No `AlbumRedirect` Document at MVP** — losing-album URLs simply 404. This is acceptable for admin tooling (acknowledged trade-off: future bookmark-holders lose link integrity, but cost of `AlbumRedirect` infrastructure is not justified at MVP scale).
+
 ---
 
 ## 14. GDPR Pipeline
 
+<!-- sync-fix L3-043 (Run #12): §14 rewritten to match shipped S24 T153/T154/T160 contract — path corrected to /api/v1/users/me/data-export, dual-artifact (JSON + ZIP-of-CSVs), R2_EXPORT_BUCKET + 24h presigned URLs, Resend not Postmark, audit-log threading, cascade list extended to 4 newer collections + Report anonymisation. -->
+
 ### 14.1 Data export
 
-`POST /api/users/me/export` → enqueues an arq job:
+`POST /api/v1/users/me/data-export` → enqueues an arq job. Per-user 1/day rate-limit (§4.5); the endpoint returns **202 Accepted** with body `{job_id, audit_log_id, eta_seconds}`. Audit-log threading: `lib/audit.record_gdpr_event(user_id, EXPORT_REQUESTED, ...)` is called at the endpoint before enqueue; the worker calls `record_gdpr_event(user_id, EXPORT_COMPLETED, notes=..., completed=True)` on success.
+
+The worker (`apps/api/src/auxd_api/workers/gdpr_export.py`) aggregates **13 owned collections** for the user — `User` itself is included but stripped of `password_hash`, `admin_notes`, and `session_version`:
+
+- `DiaryEntry`, `Review`, `ReviewLike`, `ReviewEditHistory`, `Backlog`, `BacklogItem`, `Follow` (both directions), `FollowRequest` (both directions), `Block`, `Notification`, `PushSubscription`, `HandleRedirect`
 
 ```python
-async def process_export(user_id: str, export_id: str):
-    user = await User.get(user_id)
+async def process_export(user_id: str, job_id: str, audit_log_id: str):
+    user = strip_internal_fields(await User.get(user_id))
     diary = await DiaryEntry.find({"user_id": user_id}).to_list()
     reviews = await Review.find({"user_id": user_id}).to_list()
-    auxes = [d for d in diary if d.auxed]
-    likes_given = await ReviewLike.find({"user_id": user_id}).to_list()
+    review_likes = await ReviewLike.find({"user_id": user_id}).to_list()
+    review_edit_history = await ReviewEditHistory.find({"user_id": user_id}).to_list()
     backlog = await Backlog.get_with_items(user_id)
+    backlog_items = await BacklogItem.find({"backlog.user_id": user_id}).to_list()
     follows = await Follow.find_pair_for_user(user_id)
+    follow_requests = await FollowRequest.find_pair_for_user(user_id)
+    blocks = await Block.find({"blocker_id": user_id}).to_list()
     notifications = await Notification.find({"user_id": user_id}).to_list()
+    push_subscriptions = await PushSubscription.find({"user_id": user_id}).to_list()
+    handle_redirects = await HandleRedirect.find({"user_id": user_id}).to_list()
 
-    # Generate JSON + CSV
-    json_blob = serialize_user_data(user, diary, reviews, auxes, likes_given, backlog, follows, notifications)
-    csv_files = generate_csv_per_collection(...)
+    # Dual-artifact: JSON (programmatic re-import) + ZIP-of-CSVs (spreadsheet inspection)
+    json_blob = serialize_user_data(user, diary, reviews, ...)  # single-object JSON
+    zip_blob = zip_of_csvs(
+        # csv.writer + zipfile.ZipFile — one CSV per collection
+        diary=diary, reviews=reviews, review_likes=review_likes, ...,
+    )
 
-    # Email via Resend with attachment-or-link
-    await postmark.send_export(user.email, export_id, json_blob, csv_files)
+    # Upload to R2 with 24h presigned URLs
+    json_url = await r2.put_with_presigned(
+        bucket=settings.R2_EXPORT_BUCKET,  # default `auxd-exports`
+        key=f"exports/{user_id}/{job_id}/export.json",
+        body=json_blob,
+        presigned_ttl_seconds=86400,
+    )
+    zip_url = await r2.put_with_presigned(
+        bucket=settings.R2_EXPORT_BUCKET,
+        key=f"exports/{user_id}/{job_id}/export.zip",
+        body=zip_blob,
+        presigned_ttl_seconds=86400,
+    )
 
-    # Record in `gdpr_audit_log` collection
-    await log_export(user_id, export_id, completed_at=now())
+    # Email via Resend DIRECTLY (NOT through the dispatcher chain — transactional shape
+    # outside the notification taxonomy; one-off non-rate-limited delivery).
+    await resend.send_export_email(user.email, json_url, zip_url)
+
+    # Audit log on completion
+    await record_gdpr_event(user_id, EXPORT_COMPLETED, notes=f"job_id={job_id}", completed=True)
 ```
 
-SLA: complete within 24h (typically <5 minutes).
+SLA: complete within 24h (typically <5 minutes). Email provider is **Resend** (NOT Postmark — sync-fix L4-003 from Run #2 switched the project to Resend on cost grounds; see §17.6).
 
 ### 14.2 Account deletion
 
-`POST /api/users/me/delete` →
+`POST /api/v1/users/me/delete` →
 1. Set `user.status = "deleted"`, `user.deletion_scheduled_for = now() + 30d`.
-2. Show user a banner on subsequent logins: "your account is scheduled for deletion in N days — cancel?".
-3. arq cron daily: find users where `deletion_scheduled_for < now()` and process cascade hard-delete:
-   - `DiaryEntry`, `Review`, `ReviewLike` (both given and received), `BacklogItem`, `Backlog`, `Follow` (both directions), `Block` (both directions), `Notification`, `SuggestedFollow`, `JustFinishedPrompt`, `MusicProvider` tokens, then User.
-   - `Report` records retained (audit trail) but `reporter_id` nulled.
+2. Call `record_gdpr_event(user_id, DELETION_SCHEDULED, notes=f"scheduled_for={deletion_scheduled_for}")` for audit.
+3. Show user a banner on subsequent logins: "your account is scheduled for deletion in N days — cancel?".
+4. `DELETE /api/v1/users/me/delete` cancels the scheduled deletion (sets `status = "active"`, clears `deletion_scheduled_for`); calls `record_gdpr_event(user_id, DELETION_CANCELED, ...)`.
+5. arq cron daily: finds users where `deletion_scheduled_for < now()` and processes cascade hard-delete (T058 extended by T160 — covers **13 owned collections** + 1 anonymisation, then User):
+
+   - **Hard-delete (13 collections):** `DiaryEntry`, `Review`, `ReviewLike` (both given and received), `ReviewEditHistory`, `BacklogItem`, `Backlog`, `Follow` (both directions), `FollowRequest` (both directions), `Block` (both directions), `Notification`, `PushSubscription`, `Suggestion`, `SuggestionDismissal`, `FailedEmail`, `HandleRedirect`, then `User`.
+   - **Anonymise (audit-retained):** `Report.reporter_id → None` on rows authored by the deleting user (T160 — preserves target rows for audit retention without leaking the deleted user's identity). `MusicProvider` tokens — empty at MVP per CR-001, so no-op.
+   - Closes with `record_gdpr_event(user_id, DELETION_COMPLETED, completed=True)`.
 
 ### 14.3 GDPR audit log
 
-Every export + deletion request persisted to `gdpr_audit_log` collection with `user_id`, `action`, `requested_at`, `completed_at`, `notes`. Retained 7 years for compliance.
+Every export + deletion lifecycle event is persisted to the `gdpr_audit_logs` collection (S24 T154 — `GdprAuditLog` Document + `record_gdpr_event` helper). Fields: `user_id`, `action` ∈ `{export_requested, export_completed, deletion_scheduled, deletion_completed, deletion_canceled}`, `requested_at`, `completed_at?`, `notes?`. Indexed `(user_id, requested_at DESC)`. 7-year retention is deferred to operator config (no TTL at MVP — founder runs archival manually if needed).
 
 ---
 
@@ -1083,6 +1227,15 @@ Key product events:
 | `social.suggestion_dismissed` | `suggested_user_id` | Discover |
 | `search.executed` | `query_length`, `result_count`, `via_musicbrainz_fallback`, `via_discogs_fallback` | Search |
 | `search.album_reported_missing` | `query`, `submitter_id` | Search (CR-001 elevated — track catalog-gap rate) |
+<!-- sync-fix L3-048 (Run #12): 4 new events from S23-25 + 3 existing-but-undocumented events from S20-21. -->
+| `profile.updated` | `fields_changed` (list), `viewer_id` | T145 — Settings → Profile save |
+| `email.changed` | `viewer_id`, `session_version_after` | T150 — stub event (verify-email click-link pipeline deferred; this is the only signal at MVP) |
+| `album.report_wrong` | `album_id`, `reason` ∈ `{wrong_metadata, duplicate}`, `viewer_id` | T167 — `/album/[id]` ReportWrong dialog submission |
+| `og.image_requested` | `surface` ∈ `{album, review}`, `target_id`, `cache_status` ∈ `{hit, miss}` | T168 — one-off bot-driven; flagged as "may not fire reliably under bot traffic" (most crawlers don't execute server-side JS, but the Vercel edge already logs) |
+| `settings.notifications_updated` | `fields_changed` (list), `viewer_id` | T139 (S21) — Settings → Notifications save |
+| `notifications.opened` | `count_unread`, `viewer_id` | T140 (S21) — Bell open / `/notifications` page view |
+| `notifications.mark_all_read` | `count_marked`, `viewer_id` | T140 (S21) — POST `/api/v1/notifications/mark-all-read` |
+| `push.prompt_shown` / `push.permission_granted` / `push.permission_denied` / `push.dismissed` / `push.subscribe_failed` | `viewer_id`, `criteria` ∈ `{follows_count_3, activity_7d}` | T141 (S21) — non-modal push-prompt lifecycle |
 
 **DEFERRED-TO-V2 (CR-001) events** (kept here for v2 reactivation): `onboarding.listening_history_connected` (imported_count, top5_rated_count), `onboarding.listening_history_skipped`, `album.listen_on_external_provider_clicked` (source), `prompt.shown` (album_id, delay_minutes), `prompt.acted` (action, delay_minutes).
 
@@ -1221,7 +1374,7 @@ jobs:
 - Region: `iad` (US-East, Ashburn VA) at MVP to colocate with Atlas + Upstash (both `us-east-1`); add a second region post-M3 if cross-region latency demands.
 - Plan: Hobby ($5/mo minimum; first $5 of compute included). Two-process layout (api + arq worker) on a single shared-cpu-1x VM stays inside the included allowance.
 <!-- CR-001: Fly secrets list — SPOTIFY_CLIENT_ID / SPOTIFY_CLIENT_SECRET / SPOTIFY_INTEGRATION_ENABLED removed; DISCOGS_API_TOKEN added; TOKEN_ENCRYPTION_KEY retained for v2 but unused at MVP -->
-- Secrets via `fly secrets set`: `MONGODB_URI`, `REDIS_URL`, `DISCOGS_API_TOKEN` (optional, server-side only), `SESSION_HMAC_KEY`, `TOKEN_ENCRYPTION_KEY` (provisioned for v2 listening-history token encryption; unused at MVP), `RESEND_API_KEY`, `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `SENTRY_DSN`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT_URL`, `R2_BUCKET_NAME`. See `docs/infra.md` for the full source-of-truth table. **DEFERRED-TO-V2 (CR-001):** `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_INTEGRATION_ENABLED` (removed from this list — re-add when v2 selects a listening-history provider; the env-var names should be re-derived per the v2 provider).
+- Secrets via `fly secrets set`: `MONGODB_URI`, `REDIS_URL`, `DISCOGS_API_TOKEN` (optional, server-side only), `SESSION_HMAC_KEY`, `TOKEN_ENCRYPTION_KEY` (provisioned for v2 listening-history token encryption; unused at MVP), `RESEND_API_KEY`, `RESEND_FROM_ADDRESS` (S20 T135 — transactional From), `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` (S20 T136 — mailto: identifier for VAPID), `PUBLIC_APP_URL` (S20 T136 — origin for push payload click URLs), `SENTRY_DSN`, `POSTHOG_API_KEY`, `POSTHOG_HOST`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_ENDPOINT_URL`, `R2_BUCKET_NAME` (backups; default `auxd-backups`), `R2_AVATAR_BUCKET` (S23 T146 — default `auxd-avatars`; separate from backups because access-pattern is public-read + retention is durable not age-out), `R2_EXPORT_BUCKET` (S24 T153 — default `auxd-exports`; export bundles uploaded with 24h presigned URLs), `DISCORD_WEBHOOK_URL` (S24 T156 admin alert payload for `flagged_for_review` users; reused from T010 synthetic monitoring), `API_BACKEND_URL` (S25 T168 — server-side env var for `next/og` `ImageResponse` backend fetch; falls back to `http://localhost:8000` for local dev). See `docs/infra.md` for the full source-of-truth table. **DEFERRED-TO-V2 (CR-001):** `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_INTEGRATION_ENABLED` (removed from this list — re-add when v2 selects a listening-history provider; the env-var names should be re-derived per the v2 provider).
 - Health check: `GET /healthz` → returns `{ "status": "ok", "db": "ok", "redis": "ok" }`.
 - Worker process: arq runs in same fly app (separate process group); `fly.toml` defines `[processes]` for api + worker.
 

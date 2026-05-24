@@ -28,6 +28,8 @@ This is the **conceptual** data model — entities, relationships, and key field
 | **NotificationPreferences** | Per-user, per-type notification settings | User |
 <!-- sync-fix L2-030 (Run #11): PushSubscription added — shipped Session 20 (T136 WebPush adapter). -->
 | **PushSubscription** | Per-device VAPID push registration; 410-Gone deletes dead sub on send | User |
+<!-- sync-fix L2-032 (Run #12): GdprAuditLog added — shipped Session 24 (T154 helper + Document). -->
+| **GdprAuditLog** | Per-action audit row for GDPR data-export + deletion lifecycle (export_requested / export_completed / deletion_scheduled / deletion_completed / deletion_canceled); 7-year retention deferred to operator config | system |
 <!-- CR-001: JustFinishedPrompt marked DEFERRED-TO-V2 — entity preserved in schema; nothing wires it at MVP. -->
 | **JustFinishedPrompt** | *(DEFERRED-TO-V2)* Pending or dismissed "just-finished" auto-prompt for the user — preserved as deferred surface area for v2 streaming integration | User |
 | **SuggestedFollow** | A precomputed follow suggestion (refreshed offline) | system |
@@ -62,6 +64,10 @@ User {
   handle_created_at        # datetime, set on account creation
   handle_changed_at        # datetime, None until first handle change (FR-029)  (sync-fix Run #3 L5-004: was last_handle_change; symmetric with created_at)
   session_version          # int, default 1 — incremented on password change / forced logout to invalidate prior cookies
+  # sync-fix L2-032 (Run #12): S24 T158 admin_notes + T156 flagged_for_review fields. All three are INTERNAL-ONLY — never echoed in public serializers.
+  admin_notes              # str, default "" — internal admin notes, never serialized publicly (T158)
+  flagged_for_review       # bool, default false — set by T156 daily moderation scan when ≥3 reports in trailing 7d
+  flagged_for_review_at    # datetime | None — timestamp at which T156 scan flagged this user; used for idempotent re-run within 7d
   # CR-001: auto_prompt_* fields deferred to v2 with the just-finished prompt cluster. Fields preserved in schema; writers default them but no MVP reader consumes them.
   auto_prompt_enabled      # bool, default true — *(DEFERRED-TO-V2: show in-app prompt when streaming provider detects a finished album)*
   auto_prompt_push_enabled # bool, default false — *(DEFERRED-TO-V2: also send push for auto-prompts)*
@@ -253,20 +259,25 @@ Block {
 }
 ```
 
+<!-- sync-fix L2-032 (Run #12): Report block updated — S23-25 T155/T163a/T167 expanded enum + target_type "album" + acknowledged_at + reporter_id nullability post-T160 anonymisation. -->
 ### Report
 ```
 Report {
   id
-  reporter_id              # FK → User
-  target_type              # enum: user | diary_entry | review
-  target_id                # KSUID of target
-  reason                   # enum: harassment | spam | impersonation | self_harm | other
+  reporter_id              # FK → User | None — nullable post-T160 cascade anonymisation (preserves audit row when reporter requests deletion)
+  target_type              # enum: user | diary_entry | review | album   (S25 T167 added "album")
+  target_id                # KSUID of target — FK validated (422 if target_id missing)
+  reason                   # enum: harassment | spam | impersonation | hate_speech | wrong_metadata | duplicate | other
+                           #   (S15 baseline: harassment, spam, impersonation, hate_speech, other.
+                           #    S25 T167 added wrong_metadata + duplicate for the "album" target_type.)
   detail                   # text, ≤2000 chars
   status                   # enum: open | reviewing | actioned | dismissed
   resolved_at              # datetime, nullable
   resolution_note          # text, nullable (admin-only)
+  acknowledged_at          # datetime | None — set by T157 acknowledge_report helper / CLI (fires N-012 dispatch to reporter)
 }
 ```
+Idempotency: same `(reporter_id, target_type, target_id)` within 24h returns the existing row (200, not 409). Self-report rejected with 422. Per-reporter 10/day rate limit (shared bucket across all `/reports/*` endpoints).
 
 ### Notification
 A single notification record; surfaces (in-app / email / push) are derived from prefs.
@@ -318,6 +329,21 @@ PushSubscription {
 }
 ```
 Indexes: `(user_id)` indexed for fan-out; `(endpoint)` UNIQUE for dedup.
+
+<!-- sync-fix L2-032 (Run #12): GdprAuditLog entity added — shipped Session 24 (T154 record_gdpr_event helper + Document + GdprAuditAction enum). Indexed by (user_id, requested_at desc) for audit-trail reads. -->
+### GdprAuditLog
+Per-action audit row covering the GDPR data-export and deletion lifecycle. Written by `lib/audit.record_gdpr_event(user_id, action, notes=..., completed=...)` (T154) from both the T058 cascade path and the T153 data-export endpoint/worker.
+```
+GdprAuditLog {
+  id                       # KSUID
+  user_id                  # FK → User; indexed
+  action                   # enum: export_requested | export_completed | deletion_scheduled | deletion_completed | deletion_canceled
+  requested_at             # datetime — when the action was initiated (endpoint or scheduler call)
+  completed_at             # datetime | None — set when the worker / cascade finishes (export_completed / deletion_completed)
+  notes                    # str | None — diagnostic context (e.g., job_id, presigned URL, scheduled_for, cancellation reason)
+}
+```
+Indexes: `(user_id, requested_at DESC)` for audit-trail reads. Retention: 7-year retention is deferred to operator config (no TTL at MVP — collection grows monotonically; founder operator runs an archival job manually if needed).
 
 <!-- sync-fix L2-026 (Run #10): SuggestedFollow → Suggestion + separate SuggestionDismissal. Session 17 T104 shipped two collections (suggestions + suggestion_dismissals) with TTL indexes 7d / 30d. The original single-entity sketch is preserved below as historical note. -->
 ### Suggestion

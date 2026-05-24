@@ -197,6 +197,10 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 
 - [ ] **US-G1** As Maya, I want to edit my profile (display name, bio, avatar, handle). **AC:** Optimistic save; **handle policy** (per Q16/FR-029): immutable first 30d; thereafter ≤1 change per 30d; 200–500 obvious-squat reservations at launch; verification flow for reserved-squat claims post-launch.
 - [ ] **US-G2** As Casey, I want privacy defaults (per-entry visibility, private profile). **AC:** Default visibility setting; private-profile toggle creates pending follow-requests queue (creation side ships at MVP via T101); existing followers stay on visibility downgrade. **Approver side (approve / decline / list pending) tracked under S-H3 (Could-have) — MVP ships request creation only** (sync-fix L2-025, Run #10).
+  <!-- sync-fix L2-033 (Run #12): S23 T148 shipped the approver UI in full (3 endpoints + FollowRequestsInbox component). Run #10 L2-025 "Could-have" deferral is now stale. -->
+  - (updated S23) Approver UI shipped at MVP — pending follow-requests inbox on `/settings/privacy` with approve/decline; N-003 dispatched on approve.
+  <!-- sync-fix L6-007 (Run #12): T151 private-profile gate has 4 branches keyed on backend-supplied `relation` field. -->
+  - Private-profile view has 4 branches keyed on the backend-supplied `relation` field: (1) `blocked` → "This account is unavailable" (no block-direction leak); (2) `pending` → "Follow request sent" + public header (avatar/display_name/counts) without diary; (3) `target.private_profile && relation NOT IN {self, following}` → "This account is private" + Follow Request button; (4) default → existing Diary/Reviews tabs.
 <!-- sync-fix L2-017 (Run #5): notification count corrected — was "18 active types". Canonical post-CR-001 is 14 active + 6 reserved-gap (N-009/010/011/018 deferred per CR-001 + N-019/020 reserved post-R3 Lists removal). See product-spec/notification-taxonomy.md + product-spec/README.md. -->
 <!-- sync-fix L2-028 (Run #11): count bumped 14 → 16; N-009/N-010 are registered with all defaults OFF per CR-001 deferral rather than removed from the enum. -->
 <!-- sync-fix L2-029 (Run #11): US-G3 AC expanded with 5 shipped facets (N-008 push hardcoded-off, N-016/N-017 email lock, coalesced rollup copy, curated tz select, push-prompt criteria). -->
@@ -207,9 +211,18 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
   - Quiet-hours timezone select is a curated IANA shortlist with browser-resolved fallback (NOT the full `Intl.supportedValuesOf("timeZone")` dropdown).
   - Push permission prompt criteria: shown only after `follows_count >= 3 OR 7d activity`; banner is non-modal; "Not now" sets a 14d re-show timer.
 - [ ] **US-G4** As Maya, I want to block and report. **AC:** Block dissolves existing follow + hides content; report queued with reason; ≥3 reports/7d → daily-log-scan flagging (manual review at MVP, no auto-suspension).
+  <!-- sync-fix L6-006 (Run #12): S24 shipped SUSPENDED middleware (T159), Discord webhook admin notify (T156), acknowledge_report CLI (T157), 9-value reason enum (T155/T163a/T167), self-report 422 rejection, idempotent 24h. -->
+  - Suspended accounts: SUSPENDED users get a 403 with body `{error: account_suspended, appeal_url}` on every authenticated route EXCEPT the allow-list (POST /api/v1/auth/logout, POST /api/v1/auth/logout-all-devices, POST /api/v1/users/me/delete). Frontend redirects to `/suspended` (standalone page, no app/auth chrome).
+  - Reports: 9-value ReportReason enum `{harassment / spam / impersonation / hate_speech / wrong_metadata / duplicate / other}`. Idempotency: same `(reporter, target_type, target_id)` within 24h returns existing row not 409. Self-report rejected with 422. Per-reporter 10/day rate limit. FK validation: 422 if `target_id` doesn't exist.
+  - Daily moderation log-scan (03:00 UTC arq cron): flags users with ≥3 reports in trailing 7d (content reports resolve to author user_id; reports against deleted rows silently dropped); fires Discord webhook with handle + count + reason breakdown; idempotent re-run within 7d skips already-flagged.
+  - Acknowledge report via `apps/api/scripts/acknowledge_report.py {report_id} --note '...'` CLI (no admin UI at MVP). Sets `Report.acknowledged_at` + fires N-012 dispatch to reporter.
 - [ ] **US-G5** As Casey, I want to export my data and delete my account. **AC:** Email JSON+CSV within 24h; 30-day deletion grace period with banner + cancel option.
 
 > Should-Have: US-H1 (Last.fm history import), US-H2 (Album merge / report wrong album), US-H3 (Friend-request flow for private profile), US-H4 (Weekly digest UI improvements), US-H5 (Share-card refinements). Could-Have list in [user-stories.md §Cluster H](./product-spec/user-stories.md).
+
+<!-- sync-fix L6-007 (Run #12): US-H2 + US-H5 ACs anchored here — both shipped in Session 25 (T167 album-report + merge CLI; T168 OG ImageResponse). -->
+- [ ] **US-H2** (Should-have, shipped S25) Album merge / report wrong album. **AC:** Backend `POST /api/v1/reports/album` with new `ReportReason` values `WRONG_METADATA` + `DUPLICATE`; idempotent within 24h; FK validation. Frontend `ReportWrong` dialog on `/album/[id]` mounted via `AlbumActions`. Admin merge CLI at `apps/api/scripts/merge_albums.py` (dry-run default; `--yes` for non-interactive; updates `DiaryEntry.album_id` + `Review.album_id` + `BacklogItem.album_id` losing→winning; hard-deletes losing Album — no `AlbumRedirect` at MVP).
+- [ ] **US-H5** (Should-have, shipped S25) Share-card OG preview. **AC:** Vercel `next/og` `ImageResponse` routes at `/api/og/album/{id}` + `/api/og/review/{id}`: 1200×630 image with server-side backend fetch; generic auxd fallback on backend 404; `Cache-Control public max-age=31536000 immutable` (Vercel CDN edge cache); `runtime=nodejs`. `generateMetadata()` on `/album/{id}` + `/review/{id}` sets `openGraph.images` + `twitter.card=summary_large_image`.
 
 ### Wireframe references
 
@@ -286,7 +299,8 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 | Privacy | Public-by-default with per-entry opt-out; private-profile toggle; no third-party tracking beyond PostHog Cloud + Sentry (errors); no ad SDKs |
 | Security | OAuth tokens encrypted at rest; no refresh tokens client-side; rate limiting on log/follow/review/like endpoints; CSRF; bcrypt cost ≥12 |
 <!-- CR-001: Compliance — streaming-ToS row removed -->
-| Compliance | GDPR (export + erasure) |
+<!-- sync-fix L6-007 (Run #12): /legal/{privacy,terms} placeholder pages anchored — shipped Session 24 (T161). -->
+| Compliance | GDPR (export + erasure). Legal placeholder pages at `/legal/privacy` + `/legal/terms` (standalone routes, no app/auth chrome) with prominent `<aside>` banner: "🚧 This is a placeholder. Final policy lawyer-reviewed before public launch." Footer links from `(auth)/layout`. PostHog page-view events. |
 <!-- CR-001: rate-limit row reframed for MusicBrainz primary + Discogs fallback -->
 | Catalog rate limits | MusicBrainz rate limit 1 req/sec per IP (server-side enforced); use Atlas Search cache for read-heavy paths; Discogs fallback governed by its own quota (server-side circuit breaker + retry-with-jitter) |
 | i18n / l10n | English-only at MVP; copy strings extracted to keys |
@@ -354,7 +368,10 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 | Backend | `moderation` | Report queue; daily-log-scan for ≥3-report threshold |
 <!-- CR-001: search module reframed — Atlas + MusicBrainz live + Discogs fallback (no streaming-platform search) -->
 | Backend | `search` | Atlas Search index over a cached MusicBrainz subset; live MusicBrainz lookup on cache-miss; Discogs fallback for obscure pressings |
-| Backend | `data-export` | GDPR JSON/CSV export job; deletion grace + cascade |
+<!-- sync-fix L3-041 (Run #12): `data-export` row removed (folded into `users` + `gdpr` + `workers/gdpr_export.py` since Session 24); 3 new module rows added below. -->
+| Backend | `users` | Profile + privacy + account self-service. `change_handle`, `schedule_deletion`, `cancel_deletion`, `request_data_export` (T153 — returns 202), `get_user_profile`, `patch_me` (T145), `post_avatar` (T146 — R2 upload + Pillow LANCZOS resize 256/128/64), `put_privacy` (T147), `get_my_follow_requests` + `post_approve_follow_request` + `post_decline_follow_request` (T148), `post_change_email` (T150 — current_password + session_version bump), `post_change_password` (T150 — `validate_password_policy` reuse + N-017 dispatch) |
+| Backend | `gdpr` | Internal-only. `record_gdpr_event(user_id, action, notes, *, completed)` helper (T154) called from T058 cascade + T153 enqueue/complete paths; no public HTTP routes (audit log is internal). |
+| Backend | `reports` | Public `POST /reports/{user,review,diary-entry,album}` (T155 / T163a / T167). Idempotent within 24h on `(reporter_id, target_type, target_id)`; self-report rejected with 422; FK-validated; per-reporter 10/day rate-limit. Internal `acknowledge_report` helper (T157) invoked by `apps/api/scripts/acknowledge_report.py` CLI. |
 <!-- CR-001: app/(auth) module — OAuth-redirect path deferred -->
 | Frontend | `app/(auth)` | Sign-up + login (email/password); OAuth redirect deferred to v2 with FR-002 |
 <!-- CR-001: onboarding flow reframed signup → handle → follow ≥3 critics → critic-seed feed -->
@@ -391,6 +408,8 @@ None — greenfield. Phase 5 plan must establish a project structure from scratc
 | Notification, NotificationPreferences | 16 active notification types (N-009 / N-010 registered with all defaults OFF per CR-001 deferral) + 4 reserved-gap IDs (N-011, N-018, N-019, N-020); per-channel + quiet-hours |
 <!-- sync-fix L2-030 (Run #11): PushSubscription entity added — shipped in Session 20 (T136 WebPush adapter). -->
 | PushSubscription | Per-device VAPID push registration. 410-Gone deletes dead sub on send. Indexed (user_id, endpoint UNIQUE). |
+<!-- sync-fix L2-032 (Run #12): GdprAuditLog entity added — shipped in Session 24 (T154 record_gdpr_event helper). -->
+| GdprAuditLog | Per-action audit row for GDPR export + deletion lifecycle. Indexed (user_id, requested_at DESC); 7-year retention deferred to operator config. |
 <!-- CR-001: JustFinishedPrompt entity deferred — cluster moves to v2 with streaming integration -->
 | JustFinishedPrompt *(new in R1)* | **DEFERRED-TO-V2 (CR-001)** — Pending / dismissed / logged / expired lifecycle; entity schema kept in spec for v2 planning, not implemented at MVP. |
 | SuggestedFollow | Precomputed offline; dismissed exclusion 30d |

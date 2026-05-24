@@ -1,6 +1,295 @@
 # Sync & Verify Report: auxd MVP — Social Album Platform
 
-> Feature: `001-auxd-mvp` | **Latest run: #11 — 2026-05-23 (post-Sessions 18-22: §11 onboarding + §13 notifications + stranded T030/T094)**
+> Feature: `001-auxd-mvp` | **Latest run: #12 — 2026-05-24 (post-Sessions 23-25: §14 Profile/Settings + §15 GDPR/Moderation + §16 Seeding admin + §17 Should-have)**
+
+---
+
+## Run #12 (2026-05-24, post-§14-§15-§16-§17)
+
+> Layers checked: 7/7
+> Phase: 6 (Implementation, in progress) — **155/172** tasks complete (90%)
+> Prior run: #11 (2026-05-23, post-§11+§13+stranded) — DRIFT_DETECTED, applied_split_with_override (17 inline + 5 deferred — pending user confirmation at end of #11)
+> Trigger: user invoked `/speckit.product-forge.sync-verify` after Sessions 23-25 (§14 Profile/Settings/Privacy 8-task close-out + §15 GDPR + Moderation 10-task close-out + §16 Seeding admin 4-task close-out + §17 Should-have 4-task close-out; closes 4 clusters in succession, 16 of 17 clusters now done)
+
+### Summary
+
+| Severity | Count | Notes |
+|----------|-------|-------|
+| ❌ CRITICAL | **0** | |
+| ⚠️ WARNING | **15 NEW + 4 carry-forward = 19** | NEW: L2-032, L2-033, L2-034, L2-035, L3-041, L3-042, L3-043, L3-044, L3-045, L3-046, L3-047, L3-048, L4-030, L6-006, L6-007. CF: L3-017, L4-009, L6-002, plus L4-026 verified resolved (Run #11 fix held). |
+| ℹ️ INFO | **9 NEW + 5 carry-forward = 14** | NEW: L1-005, L2-036, L3-049, L4-031, L5-021, L5-022, L6-008, L7-018, L7-019. CF: L2-019, L4-013, L4-017, L4-020, L5-008 |
+| ✅ CLEAN | **L1 (near-clean), L7 (zero broken links — 0/179)** | Layer 1 (research ↔ product-spec): Sessions 23-25 are downstream of research recommendations — avatar UX, GDPR cascade, moderation flow, seeding admin all anchored in prior research. One INFO breadcrumb (L1-005). Layer 7: 179 relative-path .md links across 38 files, all resolve. |
+| ✅ RESOLVED since Run #11 | 17 inline (assumed applied by Run #11 closeout) | Verified intact: L1-004 (push-prompt research breadcrumb), L2-028 (16-active types in 2 locations), L2-029 (US-G3 5-bullet AC sublist), L2-030 (PushSubscription in spec+data-model), L2-031 (Follow.source allowlist), L3-033 (plan §3.1 push_subscriptions row), L3-034 (plan §6 notifications+seeding rows), L3-035 (plan §6 social row source param), L3-036 (plan §8 dispatcher rewrite), L3-037 (plan §7.6 web push subscribe flow), L3-038 (plan §4.5 7 rate-limit rows), L3-039 (plan §12.2 _GENRE_BONUS_MAX formula), L3-040 (Constitution P2 migration path), L4-025+L5-018 (T118/T119 Paths fix), L4-026+L5-019 (T030/T094/T131-T144 structural fields restored), L4-028 (T117 Refs fully-qualified), L6-005 (US-E2 reviews-tab AC). All visible in current files; 0 regression observed. |
+
+**Structural count:** 22 (NEW: 19; CF: 3 — L3-017, L4-009, L6-002). **Over budget of 0.**
+**Cosmetic count:** 9 (NEW: 5; CF: 4 — L4-013, L4-017, L4-020, L5-008). Under budget of 20.
+
+**Verdict:** **DRIFT_DETECTED**
+
+**Disposition recommendation:** **applied_split_with_override pattern continues.** Sessions 23-25 shipped a very large surface (24 tasks across 4 clusters: §14 8 tasks + §15 10 tasks + §16 5 active + §17 3 active + 1 cover marker; 3 new backend modules `users`, `gdpr`, `reports`; 2 new arq workers `gdpr_export.py` + `moderation_scan.py`; 4 new CLI scripts; 3 new Beanie Documents `GdprAuditLog` + `User.admin_notes` + `Report.acknowledged_at` field expansions + `User.flagged_for_review*`; 9 new HTTP endpoints; 2 new env vars `R2_AVATAR_BUCKET` + `R2_EXPORT_BUCKET` + `DISCORD_WEBHOOK_URL`; +97 backend tests; +12 frontend tests; +5 visible frontend routes + 2 new OG API routes). Unlike Run #11, the **tasks.md structural-field convention HELD this run** — all 24 new tasks T145-T170 carry the six-field block (Paths/Size/Deps/Refs/Description/Done) inline with their `*(completed ...)*` prose annotation. The remaining drift is overwhelmingly downstream doc catch-up:
+
+1. **Plan §3.1 still under-enumerated:** missing `gdpr_audit_logs` (S24 T154) + `failed_emails` (S20 — was never added; should have surfaced earlier; counted now). Plan §3.1 = 19 rows; code = 21 active Documents.
+2. **Plan §6 modular surface needs 3 new module rows:** `users` (T145/T146/T147/T148/T150 — 9 endpoints), `gdpr` (T154 helper + GdprAuditLog), `reports` (T155/T163a/T167 — 4 endpoints + acknowledge helper). Spec.md §7 mirrors the gap (lists 14 backend modules; code has 16).
+3. **Plan §13 Moderation Flow is stale:** doesn't mention T156 author-resolution, T156 Discord webhook, T157 acknowledge_report CLI, T158 admin_notes, T159 SUSPENDED middleware, T167 ALBUM target_type + WRONG_METADATA/DUPLICATE reasons. T156 cron pseudocode at §13.2 reads as `flag_user_for_review(...) + notify_admin(...)` placeholders.
+4. **Plan §14 GDPR Pipeline is stale:** §14.1 says POST /api/users/me/export (path drift — shipped /api/v1/users/me/data-export); cascade list in §14.2 is missing 6 collections (FollowRequest, PushSubscription, FailedEmail, Suggestion, SuggestionDismissal, HandleRedirect, ReviewEditHistory); §14.1 pseudocode references Postmark (legacy — code is Resend); §14.1 doesn't mention dual-artifact (export.json + export.zip) + R2_EXPORT_BUCKET + 24h presigned URLs.
+5. **Plan §4.5 rate-limit table missing 7 NEW shipped endpoints:** PATCH /me, POST /me/avatar (5/min), PUT /me/privacy, POST /me/email (5/hour), POST /me/password (5/hour), GET /me/follow-requests + approve + decline, POST /reports/{user,review,diary-entry,album} (10/day per reporter), POST /me/data-export (1/day per user).
+6. **Plan §15.2 PostHog table missing 4 NEW events from S23-25:** `profile.updated` (T145), `email.changed` (T150 stub), `album.report_wrong` (T167), `og.image_requested` (T168 implicit). Plus 11 PostHog events from §13 dispatcher / push were still missing at start of Run #11 and remain absent (carries forward in L3-036 fix scope).
+7. **Plan §17.1 secret list missing 4 new env vars:** `R2_AVATAR_BUCKET` (S23 T146), `R2_EXPORT_BUCKET` (S24 T153), `DISCORD_WEBHOOK_URL` (S24 T156 — referenced as "existing from T010" but never enumerated in plan §17), `API_BACKEND_URL` (S25 T168 server-side fetch for OG images).
+8. **Spec.md surface gaps:** US-G4 doesn't mention SUSPENDED account UX / appeal_url / admin_notes / DISCORD_WEBHOOK_URL admin path / target_type "album" + WRONG_METADATA + DUPLICATE; US-G5 doesn't mention dual-artifact (json + zip) + 24h presigned URLs + GdprAuditLog; US-G1 missing T146 avatar pipeline details (5MB, image/{jpeg,png,webp}, 256/128/64 resize, R2_AVATAR_BUCKET); US-H2 doesn't mention WRONG_METADATA + DUPLICATE reasons + merge_albums.py admin CLI + no AlbumRedirect at MVP; US-H5 doesn't mention `next/og` ImageResponse + 1200x630 dim + nodejs runtime + 1-year-immutable cache.
+9. **product-spec/data-model.md ReportReason enum is stale:** lists `harassment | spam | impersonation | self_harm | other`; code has `harassment | spam | nsfw | impersonation | hate_speech | catalog_gap | wrong_metadata | duplicate | other` (9 values). Missing 5 reasons + 1 typo (`self_harm` was renamed to `hate_speech` during T155). Also Report block missing target_type=album + acknowledged_at field + reporter_id nullable note.
+10. **product-spec/data-model.md User block missing 3 fields shipped in S24:** `admin_notes: str = ""` (T158), `flagged_for_review: bool` + `flagged_for_review_at: datetime | None` (T156). All three excluded from public serializers but the field schema should be reflected.
+
+All resolvable in a single coordinated edit pass mirroring Run #11's 17-item batch. Carry-forwards (L3-017, L4-009, L6-002) remain user-deferred under their existing dispositions.
+
+### Sessions 23-25 propagation audit
+
+| Cluster | Code shipped | Plan documented | Spec/product-spec documented | Drift IDs |
+|---------|:---:|:---:|:---:|:--|
+| §14 — T145 edit profile UI (PATCH /me) | ✅ | ❌ plan §6 missing `users` module row; §4.5 missing rate-limit | partial (US-G1 covers profile fields but not PATCH /me contract) | L3-041, L3-045 |
+| §14 — T146 avatar pipeline (POST /me/avatar + lib/storage.py + R2_AVATAR_BUCKET) | ✅ | ❌ plan §6 missing users row; §4.5 missing 5/min; §17.1 missing R2_AVATAR_BUCKET env var | partial (US-G1 AC mentions 5MB max but not resize ladder / R2 bucket separation) | L2-035, L3-041, L3-045, L3-047 |
+| §14 — T147 privacy UI (PUT /me/privacy) | ✅ | ❌ plan §6 missing users row; §4.5 missing rate-limit | ✅ (US-G2 covers; PUT shape is internal) | L3-041, L3-045 |
+| §14 — T148 follow-request inbox + approve/decline (3 endpoints) | ✅ | ❌ plan §6 social row notes `respond_to_follow_request` + `list_follow_requests` as DEFERRED (Run #10 L3-026); now SHIPPED — needs un-deferral; plan §4.5 missing 3 rate-limit rows | partial (US-G2 says "MVP ships request creation only — S-H3 Could-have for approver" — sync-fix from Run #10; now stale because approver shipped in S23) | L2-033, L3-041, L3-045 |
+| §14 — T149 data settings (frontend stub) | ✅ | ❌ plan §6 missing users row | ✅ (US-G5 covers) | L3-041 |
+| §14 — T150 email + password change (2 endpoints; 5/hour each) | ✅ | ❌ plan §6 missing users row; §4.5 missing 5/hour x 2 | ❌ spec.md US-G1 + NFR Security doesn't mention session_version-bump-on-change semantics; verify-email click-link deferral not in spec | L2-034, L3-041, L3-045 |
+| §14 — T151 4-branch private-profile gate | ✅ | n/a (frontend) | partial (US-G2 mentions private + pending; doesn't enumerate the 4 branches) | L6-007 |
+| §14 — T152 critic-suffix badge (text-only) + batched is_critic_seed sidecar | ✅ | partial (plan §12.1 critic-seed roster covered; sidecar contract not in plan §6 reviews/feed/notifications rows) | ✅ (SS-2 in seeding-strategy.md) | L3-042 |
+| §14 — /settings landing + settings-nav.tsx | ✅ | ❌ plan §7 routing list doesn't enumerate /settings/{profile,privacy,account,data} sub-pages | n/a (frontend) | L3-046 |
+| §15 — T153 data export job (workers/gdpr_export.py + POST /me/data-export + dual-artifact + R2_EXPORT_BUCKET) | ✅ | ❌ plan §14.1 stale (path `/api/users/me/export`, Postmark not Resend, no dual-artifact, no 24h presigned, no R2_EXPORT_BUCKET, no audit log call); §17.1 missing R2_EXPORT_BUCKET env var; §4.5 missing 1/day rate-limit | ❌ US-G5 AC says "JSON + CSV emailed within 24h" — no mention of zip-of-CSVs, 24h presigned R2 URLs, GdprAuditLog audit log | L2-036, L3-043, L3-045, L3-047 |
+| §15 — T154 GdprAuditLog Document + helper + ALL_DOCUMENT_MODELS 20→21 | ✅ | ⚠️ plan §14.3 mentions `gdpr_audit_log` collection concept but §3.1 collection inventory missing the row; spec.md entity inventory missing the entity | ❌ product-spec/data-model.md entity inventory missing GdprAuditLog row | L2-032, L3-041 |
+| §15 — T155 + T163a 3 POST endpoints /reports/{user,review,diary-entry} + ReportReason enum | ✅ | ❌ plan §13.1 stale on reason enum (says 5; code has 9 with album+wrong_metadata+duplicate+catalog_gap+nsfw+hate_speech); §6 missing `reports` module; §4.5 missing 10/day | ❌ product-spec/data-model.md Report block has stale reason enum (`self_harm` typo + 5 values vs shipped 9) | L2-035, L3-041, L3-044, L3-045 |
+| §15 — T156 daily moderation scan + Discord webhook + author-resolution + flagged_for_review fields | ✅ | ❌ plan §13.2 cron pseudocode is placeholder; doesn't mention DISCORD_WEBHOOK_URL, author-resolution semantics, idempotent re-run; §17.1 missing DISCORD_WEBHOOK_URL env var | ❌ data-model.md User block missing flagged_for_review + flagged_for_review_at fields; spec.md US-G4 doesn't mention 03:00 UTC cron + Discord notify | L2-032, L3-044, L3-047, L6-006 |
+| §15 — T157 acknowledge_report CLI + N-012 dispatch + Report.acknowledged_at | ✅ | ❌ plan §13.3 says "Out of scope at MVP — flagged users surface in Atlas directly"; needs update to mention `acknowledge_report.py` CLI flow | ❌ data-model.md Report block missing acknowledged_at field | L2-032, L3-044 |
+| §15 — T158 User.admin_notes field | ✅ | n/a (internal-only) | ❌ data-model.md User block missing admin_notes field | L2-032 |
+| §15 — T159 SUSPENDED account middleware + /suspended page + 403 api-client handler | ✅ | ❌ plan §1.1.1 cross-cutting fail-modes silent on SUSPENDED 403 + allow-list policy; spec.md US-G4 doesn't mention suspended UX | ❌ spec.md US-G4 missing 403-with-body + appeal_url contract | L3-044, L6-006 |
+| §15 — T160 cascade extended to 4 newer collections + Report anonymisation | ✅ | ❌ plan §14.2 cascade list missing 6 collections (FollowRequest, PushSubscription, FailedEmail, Suggestion, SuggestionDismissal, HandleRedirect, ReviewEditHistory) + Report.reporter_id anonymisation rule | n/a (internal cascade behavior) | L3-043 |
+| §15 — T161 /legal/{privacy,terms} placeholder pages + (auth)/layout footer | ✅ | ❌ plan §7.1 routing missing /legal/* | ❌ spec.md NFR Compliance doesn't enumerate /legal/{privacy,terms} pages | L3-046, L6-007 |
+| §16 — T162 manage_critic_seed.py CLI + critic-seed-runbook | ✅ | partial (plan §12.1 critic-seed table + roster row covered) | ✅ (seeding-strategy.md §1) | — |
+| §16 — T163 genre_signature module (algorithm + cache) | ✅ | partial (plan §12.2 has formula post-Run #11; doesn't pin the rating-weight formula 1.0 + max(0, (rating − 3.0)) × 0.5 or the 500-entry cap or 24h Redis cache) | ✅ (seeding-strategy.md) | L3-049 |
+| §16 — T164 mutual_taste module (5-factor scoring) | ✅ | partial (plan §12.2.1 mentions weighted scoring; doesn't enumerate the 5-factor split (40/30/15/10/5) explicitly) | ✅ (seeding-strategy.md §4) | L3-049 |
+| §16 — T166 founder seed-content workflow doc | ✅ | n/a (operator workflow) | ✅ | — |
+| §17 — T167 album-report endpoint + merge CLI + WRONG_METADATA/DUPLICATE reasons | ✅ | ❌ plan §13.1 reason enum stale; §6 reports module row missing; §4.5 missing 10/day for /reports/album; admin-tooling section absent | partial (US-H2 covers conceptually; doesn't mention WRONG_METADATA + DUPLICATE reasons or merge_albums.py CLI or no-AlbumRedirect-at-MVP decision) | L3-041, L3-044, L3-045, L6-007 |
+| §17 — T168 next/og ImageResponse routes + helpers + generateMetadata | ✅ | ❌ plan §7.1 lists `api/og/...` but no §7.X subsection for the routes; missing `API_BACKEND_URL` env in §17.1 | partial (US-H5 mentions share preview but not 1200x630 dim, nodejs runtime, 1-year immutable cache, generic-fallback shape) | L3-046, L3-047, L6-007 |
+| §17 — T170 covered by T148 | n/a | n/a | n/a | — |
+
+### Key findings
+
+**L2-032 (most material data-model gap — single largest cluster):** product-spec/data-model.md is missing 3 categories of S24 schema additions: (a) GdprAuditLog entity entirely absent (Document shipped + helper + 4 audit actions + indexed by `(user_id, requested_at desc)`); (b) User block missing `admin_notes: str = ""` + `flagged_for_review: bool` + `flagged_for_review_at: datetime | None` — three fields shipped in S24 T158/T156 (all excluded from public serializers but field-schema should be reflected); (c) Report block missing `acknowledged_at: datetime | None` + reporter_id nullable note (T157 + T160 anonymisation) + target_type "album" extension (T167) + reason enum drift (still says `harassment | spam | impersonation | self_harm | other`; code has 9 values including `hate_speech` rename of `self_harm`, plus `nsfw | catalog_gap | wrong_metadata | duplicate`). Mirror in spec.md entity inventory.
+
+**L3-041 (plan §6 service-surface gap — single largest plan edit):** plan §6 lists 15 module rows; code ships 16 modules. Missing 3 new module rows:
+1. `users` — public surface: `change_handle` (T057), `schedule_deletion` (T058), `cancel_deletion` (T058), `request_data_export` (T153), `get_user_profile` (T109), `patch_me` (T145), `post_avatar` (T146), `put_privacy` (T147), `get_my_follow_requests` (T148), `post_approve_follow_request` (T148), `post_decline_follow_request` (T148), `post_change_email` (T150), `post_change_password` (T150). 13 service methods including 4 from S17 (T057/T058/T059/T101a inline) + 9 new from S23.
+2. `gdpr` — internal: `record_gdpr_event(user_id, action, notes, *, completed)` helper (T154); no public HTTP routes (audit log is internal).
+3. `reports` — public surface: `submit_user_report` (T155/T163a), `submit_review_report` (T155/T163a), `submit_diary_entry_report` (T155/T163a), `submit_album_report` (T167), `acknowledge_report` (T157 — internal helper called by CLI). 4 endpoints + 1 internal helper.
+
+Mirror to spec.md §7 backend module table — same 3-row gap (and spec.md also still lists `data-export` module which doesn't exist in code — was folded into `users` + `gdpr` + `workers/gdpr_export.py`).
+
+**L3-043 (plan §14 GDPR pipeline drift — single largest content-debt cluster):** plan §14 is the dispatcher-equivalent for GDPR but predates the shipped contract. Five-bullet doc-catchup batch:
+1. §14.1 path: `POST /api/users/me/export` → shipped `POST /api/v1/users/me/data-export` (Run #11 already standardised on `/api/v1/` prefix; this section missed the sweep).
+2. §14.1 email provider: Postmark → Resend (Postmark was never in the project; legacy plan text).
+3. §14.1 export-artifact: replace "JSON + CSV emailed" with dual-artifact `export.json` (single object) + `export.zip` (per-collection CSVs via `csv.writer` + `zipfile.ZipFile`) → R2_EXPORT_BUCKET (default `auxd-exports`) at `exports/{user_id}/{job_id}/*` → 24h presigned URLs → emailed via Resend directly (not through dispatcher chain — one-off transactional shape).
+4. §14.1 audit-log threading: add explicit `record_gdpr_event(user_id, EXPORT_REQUESTED, ...)` at endpoint + `record_gdpr_event(user_id, EXPORT_COMPLETED, ...)` at worker completion (T154 helper).
+5. §14.2 cascade list: current list has 10 collections + MusicProvider tokens; code's T058 worker (extended by T160 in S24) cascades 13 owned collections + anonymises Report.reporter_id. Missing from list: FollowRequest, PushSubscription, FailedEmail, Suggestion, SuggestionDismissal, HandleRedirect, ReviewEditHistory + the Report anonymisation rule.
+
+Single coordinated rewrite of plan §14 (3 subsection touches), ~50 lines added/changed.
+
+**L3-044 (plan §13 Moderation Flow drift — sister cluster to L3-043):** plan §13 needs:
+1. §13.1 `target_type` enum: add `album` (T167); current text has `user / diary_entry / review / missing_album`. Add to the comma list.
+2. §13.1 `reason` enum: enumerate the full 9-value list shipped at T155/T163a + T167 (`harassment, spam, nsfw, impersonation, hate_speech, catalog_gap, wrong_metadata, duplicate, other`) instead of leaving as "enum".
+3. §13.2 cron pseudocode: replace `flag_user_for_review(...) + notify_admin(...)` placeholders with the shipped T156 contract: author-resolution for content reports (review/diary_entry → row's user_id; soft-/hard-deleted rows dropped); idempotent re-run via `flagged_for_review_at` check; Discord webhook payload via `DISCORD_WEBHOOK_URL` setting; sets `User.flagged_for_review = True` + records timestamp.
+4. New §13.3a: `acknowledge_report` CLI flow (T157) — `apps/api/scripts/acknowledge_report.py {report_id} --note "..."` invokes `acknowledge_report` helper → marks `Report.acknowledged_at` + dispatches N-012 → idempotent (re-acknowledging is no-op).
+5. New §13.5: SUSPENDED account middleware contract (T159) — `SessionMiddleware` returns 403 with body `{error: "account_suspended", appeal_url: "mailto:..."}` on ALL routes except allow-list `{POST /auth/logout, POST /auth/logout-all-devices, POST /users/me/delete}`. No admin-action endpoint at MVP — founder runs `db.users.updateOne({_id: X}, {$set: {status: "suspended"}})` directly.
+6. New §13.6: T167 album-merge admin path — `merge_albums.py` CLI (dry-run default; --yes for non-interactive); rewrites `DiaryEntry.album_id` + `Review.album_id` + `BacklogItem.album_id` losing → winning + hard-deletes losing Album row; no AlbumRedirect Document at MVP (acceptable for admin tooling; losing-album URLs 404).
+
+Single coordinated rewrite of plan §13 (3 subsection touches + 3 new subsections), ~80 lines added.
+
+**L3-045 (plan §4.5 rate-limit table — 7 NEW rows shipped this run):**
+
+| Endpoint | Per-user qpm | Notes (proposed) |
+|---|---|---|
+| `PATCH /api/v1/users/me` | (default 30) | Profile fields write — T145 |
+| `POST /api/v1/users/me/avatar` | 5/min | T146 — bursty UX guard |
+| `PUT /api/v1/users/me/privacy` | (default 30) | T147 |
+| `GET /api/v1/users/me/follow-requests` + approve/decline | (default 60) | T148 — 3 endpoints share a bucket |
+| `POST /api/v1/users/me/email` | 5/hour | T150 — anti-takeover |
+| `POST /api/v1/users/me/password` | 5/hour | T150 — anti-takeover |
+| `POST /api/v1/reports/{user,review,diary-entry,album}` | 10/day per reporter | T155/T163a/T167 — anti-spam (shared bucket) |
+| `POST /api/v1/users/me/data-export` | 1/day per user | T153 — heavy worker |
+
+8 rows recommended (counting the 4 reports paths as one bucket = 7 rate-limit policies but should be enumerated as 7 separate rows for traceability).
+
+**L3-046 (plan §7 frontend routing — 6 NEW shipped routes):** plan §7.1 routing list missing:
+1. `/settings` (landing page + settings-nav.tsx)
+2. `/settings/profile` (T145)
+3. `/settings/privacy` (T147 + T148 inbox mount)
+4. `/settings/account` (T150)
+5. `/settings/data` (T149)
+6. `/suspended` (T159 — standalone, no (app)/layout)
+7. `/legal/privacy` + `/legal/terms` (T161 — standalone, no (app) or (auth) layout)
+8. `/api/og/album/[id]` + `/api/og/review/[id]` (T168 — ImageResponse routes, runtime="nodejs")
+
+Plan §7.1 should enumerate these alongside `/album/[id]`, `/profile/[handle]`, `/review/[id]`, `/search`, `/api/cover/[size]/[mbid]`. Mirror §7.5 → new §7.7 OG share-card flow subsection (1200x630, server-side backend fetch via `API_BACKEND_URL`, 1-year immutable Cache-Control, generic-fallback shape).
+
+**L3-047 (plan §17.1 Fly secrets list — 4 NEW env vars):** plan §17.1 line 1224 enumerates 16 env vars; code now uses 20. Missing:
+- `R2_AVATAR_BUCKET` (default `auxd-avatars`) — S23 T146; separate from backup bucket because access-pattern differs (public-read) and retention differs (durable vs age-out).
+- `R2_EXPORT_BUCKET` (default `auxd-exports`) — S24 T153; export bundles uploaded with 24h-presigned URLs.
+- `DISCORD_WEBHOOK_URL` — S24 T156 admin alert payload for `flagged_for_review` users. Plan says "uses existing DISCORD_WEBHOOK_URL setting from T010" but the original T010 env var enumeration didn't include it.
+- `API_BACKEND_URL` — S25 T168 server-side env var for next/og ImageResponse backend fetch; falls back to `http://localhost:8000` for local dev.
+
+**L6-006 (US-G4 spec gap — single substantive story-side AC gap):** spec.md US-G4 says "Block dissolves existing follow + hides content; report queued with reason; ≥3 reports/7d → daily-log-scan flagging (manual review at MVP, no auto-suspension)". Doesn't capture the four shipped facets:
+1. 9-value reason enum (vs the 5-value plan promised originally).
+2. Self-report rejection (422 — T155/T163a contract).
+3. Idempotency within 24h on `(reporter_id, target_type, target_id)` (200 not 201).
+4. SUSPENDED account 403-with-body shape + allow-list (T159 — `{error: "account_suspended", appeal_url}` + 3-route allow-list).
+
+Append 4-bullet sublist to US-G4 AC, or split into US-G4a (block + report submission semantics) + US-G4b (moderation lifecycle + suspended UX) for future story-vs-code traceability.
+
+**L4-030 (T148 plan §6 social row stale — Run #10 sync-fix now contradicted by S23):** plan §6 social row currently reads "DEFERRED: `respond_to_follow_request` (approve/decline) + `list_follow_requests` (T101a follow-up — responder UI deferred to v1.x — S-H3 Could-have)" — this was the Run #10 L3-026 sync-fix. Now obsolete: S23 T148 shipped all three endpoints + the FollowRequestsInbox component. The DEFERRED parenthetical and the S-H3 Could-have anchor should be REMOVED; move these to the `users` module row (per L3-041); update US-G2 AC text (currently says "MVP ships request creation only via T101; approver tracked under S-H3 Could-have" — also stale).
+
+### All Drift Items
+
+#### NEW this run
+
+**L1-005** [INFO / cosmetic] research/ux-patterns.md or research/codebase-analysis.md doesn't carry a breadcrumb about the GDPR export dual-artifact shape (`export.json` + `export.zip` of per-collection CSVs). The taxonomy + data-model docs cover GDPR conceptually but the dual-artifact UX choice (programmatic JSON + spreadsheet-friendly ZIP) wasn't anchored to a research note.
+*Proposed:* One-line breadcrumb under the GDPR/Data section in research/ux-patterns.md: "Data export ships dual-artifact (JSON for programmatic re-import + CSV-zip for spreadsheet inspection) — matches Letterboxd export precedent + minimises user friction across personas (Jamie data-savvy + Casey spreadsheet-bound)."
+
+**L2-032** [WARNING / structural] product-spec/data-model.md missing 3 shipped schema additions from §15: (a) GdprAuditLog entity entirely absent (Document + GdprAuditAction enum + helper); (b) User block missing `admin_notes: str = ""` + `flagged_for_review: bool` + `flagged_for_review_at: datetime | None`; (c) Report block missing `acknowledged_at: datetime | None` + reporter_id nullable note + target_type "album" + reason enum drift (5 → 9 values + `self_harm` typo → `hate_speech`). Mirror gap in spec.md entity inventory (line ~377-397) — GdprAuditLog row missing.
+*Proposed:* (1) Add GdprAuditLog entity sketch block after PushSubscription block in product-spec/data-model.md + add row to spec.md entity inventory. (2) Append 3 fields to User block (admin_notes / flagged_for_review / flagged_for_review_at) with internal-only notes. (3) Fix Report block: add `acknowledged_at`, mark `reporter_id` nullable with GDPR-erasure-anonymisation note, append "album" to target_type enum list, replace reason enum line with full 9-value list (`harassment, spam, nsfw, impersonation, hate_speech, catalog_gap, wrong_metadata, duplicate, other`). One coordinated edit covering all three schemas.
+
+**L2-033** [WARNING / structural] spec.md US-G2 AC text + product-spec/user-stories.md S-G2 carry the Run #10 sync-fix L2-025 line "MVP ships request creation only via T101 writing FollowRequest rows with state=pending; the approver UI (approve/decline endpoints + request-queue surface) is tracked under S-H3 (Could-have)". S23 T148 shipped the approver UI in full (3 endpoints + FollowRequestsInbox component); the Could-have anchor is now stale.
+*Proposed:* US-G2 AC: append bullet "(updated S23) Approver UI shipped at MVP — pending follow-requests inbox on /settings/privacy with approve/decline; N-003 dispatched on approve." Remove the "S-H3 Could-have" deferral text. Mirror in product-spec/user-stories.md S-G2 + S-H3.
+
+**L2-034** [WARNING / structural] spec.md US-G1 doesn't mention session_version-bump-on-email-or-password-change semantics (T150 contract — bumps session_version to force re-login on every other device for security hygiene). Verify-email click-link pipeline deferral (T150 follow-up flag) not in spec. NFR Security row in §6 says "bcrypt cost ≥12" but code is argon2 (T053 originally) — same drift L2-007 fixed in Run #4 partially; should reflect the password-change endpoint requirements (validate_password_policy ≥12 chars, argon2 hash, current_password verify).
+*Proposed:* Append a bullet to US-G1 AC: "Email + password change bumps `session_version` (forces re-login on every other device); password policy ≥12 chars enforced via shared `validate_password_policy` (T150)." Update NFR Security row §6 from "bcrypt cost ≥12" to "argon2 hash on credentials".
+
+**L2-035** [WARNING / structural] spec.md US-G1 AC says "Given my avatar upload >5MB, When I attempt, Then I see 'image too large, max 5MB'" — covers the size limit but doesn't enumerate the rest of the T146 contract: content-type allowlist `{image/jpeg, image/png, image/webp}`, EXIF-rotate + LANCZOS resize to 256/128/64, R2_AVATAR_BUCKET separation (separate from backups bucket), 5/min rate-limit. Same for spec.md US-G4 missing the album-target reports and full 9-reason enum (covered also in L6-006).
+*Proposed:* US-G1: append 2 bullets — "Avatar upload rejects content-types outside {image/jpeg, image/png, image/webp} with 415; PIL EXIF-rotates + resizes to 256/128/64 + JPEG quality=85; stored in R2_AVATAR_BUCKET (separate from backup bucket for public-read access pattern)." + "Per-user 5/min rate-limit on avatar upload."
+
+**L2-036** [INFO / structural] spec.md US-G5 AC says "JSON + CSV emailed within 24h" — shipped contract is dual-artifact (`export.json` single object + `export.zip` per-collection CSVs) → R2_EXPORT_BUCKET → 24h presigned URLs → emailed via Resend directly (not through dispatcher chain). Doesn't mention GdprAuditLog audit log on EXPORT_REQUESTED + EXPORT_COMPLETED.
+*Proposed:* Update US-G5 AC: "Dual-artifact export (JSON + ZIP-of-CSVs) uploaded to R2 with 24h presigned URLs; both URLs emailed via Resend; audit log entries on EXPORT_REQUESTED + EXPORT_COMPLETED (GdprAuditLog collection, 7-year retention deferred to operator)."
+
+**L3-041** [WARNING / structural] plan §6 module table missing 3 module rows shipped this run (`users` + `gdpr` + `reports`) — see Key findings L3-041 above. plan §6 currently has 15 rows; code has 16 modules; spec.md §7 has same 15-row gap (also still lists obsolete `data-export` module).
+*Proposed:* Three coordinated edits — append `users` row (13 service methods + endpoints surface), `gdpr` row (internal helper only), `reports` row (4 public endpoints + acknowledge_report internal helper). Remove obsolete `data-export` row from spec.md §7 (now subsumed by `users` + `gdpr` + `workers/gdpr_export.py`).
+
+**L3-042** [WARNING / structural] plan §6 reviews + feed + notifications rows don't mention the `is_critic_seed` / `actor_is_critic_seed` sidecar contract added in S23 T152. Backend serializers in feed/service.py + reviews/routes.py + notifications/routes.py now emit batched `critic_seed_user_ids(user_ids)` lookup + sidecar enrichment for the badge mount sites.
+*Proposed:* Append to Notes column of feed, reviews, notifications rows: "(S23 T152) Sidecar serializers consume `seeding.service.critic_seed_user_ids(user_ids)` batch helper for `is_critic_seed` field on user-card sidecars; mirrors the user-card batching pattern."
+
+**L3-043** [WARNING / structural] plan §14 GDPR Pipeline drift cluster — five-bullet doc-catchup batch (see Key findings L3-043 above): §14.1 path drift `/api/users/me/export` → `/api/v1/users/me/data-export`; Postmark → Resend; dual-artifact + R2_EXPORT_BUCKET + 24h presigned URLs not in pseudocode; audit-log threading missing; §14.2 cascade list missing 6 newer collections + Report anonymisation rule.
+*Proposed:* Single coordinated rewrite of plan §14 (3 subsection touches), ~50 lines.
+
+**L3-044** [WARNING / structural] plan §13 Moderation Flow drift — six-bullet doc-catchup batch (see Key findings L3-044 above): §13.1 reason enum + target_type enum stale; §13.2 cron pseudocode placeholder; missing §13.3a acknowledge_report CLI flow; missing §13.5 SUSPENDED middleware contract; missing §13.6 album-merge admin path.
+*Proposed:* Single coordinated rewrite of plan §13 (3 subsection touches + 3 new subsections), ~80 lines.
+
+**L3-045** [WARNING / structural] plan §4.5 rate-limit table — 7-8 NEW rows for Sessions 23-25 endpoints (see Key findings L3-045 table).
+*Proposed:* Append 7-8 rows to the table (PATCH /me, POST /me/avatar 5/min, PUT /me/privacy, follow-requests bucket, POST /me/email 5/hour, POST /me/password 5/hour, /reports/* bucket 10/day, /me/data-export 1/day).
+
+**L3-046** [WARNING / structural] plan §7.1 routing list missing 8 NEW shipped routes (/settings landing + 4 sub-pages, /suspended, /legal/{privacy,terms}, /api/og/{album,review}/[id]). plan §7 also missing a §7.7 subsection for the OG share-card flow (T168).
+*Proposed:* Enumerate the new routes in §7.1; add §7.7 subsection covering OG ImageResponse routes (1200x630, server-side backend fetch via API_BACKEND_URL, 1-year immutable cache, runtime=nodejs, generic-fallback shape).
+
+**L3-047** [WARNING / structural] plan §17.1 Fly secrets list missing 4 NEW env vars: `R2_AVATAR_BUCKET`, `R2_EXPORT_BUCKET`, `DISCORD_WEBHOOK_URL`, `API_BACKEND_URL`. Plan §17.1 currently lists 16; code uses 20.
+*Proposed:* Append 4 env-var names to the secrets list with brief notes (default values + setting purpose).
+
+**L3-048** [WARNING / structural] plan §15.2 PostHog event table missing 4 NEW events from S23-25: `profile.updated` (T145), `email.changed` (T150 stub), `album.report_wrong` (T167), `og.image_requested` (T168 implicit — could be added for observability). Plus 11 events from §13 dispatcher / push were flagged in Run #11 L3-036 and likely remain absent (depends on Run #11 fix application).
+*Proposed:* Append 4 rows to plan §15.2 event table for the S23-25 events. Confirm Run #11 L3-036 application status — if 11 §13 events still missing, batch them in the same edit pass.
+
+**L3-049** [INFO / structural] plan §12.2 has the `_GENRE_BONUS_MAX = 20.0` formula now (Run #11 L3-039 fix held), but doesn't pin S25 T163 rating-weight formula `weight = 1.0 + max(0, (rating − 3.0)) × 0.5` (so 5★ = 2.0, 3★ = 1.0, 1★ = 0.0, no-rating = 1.0); doesn't mention the 500-entry cap or the 24h Redis cache (fail-open). T164 5-factor mutual_taste split (40/30/15/10/5) implied at §12.2.1 but not enumerated explicitly.
+*Proposed:* Append one paragraph to §12.2 (T163 — `compute_genre_signature` formula + cap + cache); update §12.2.1 to enumerate the 5 factors (mutual_taste 40%, followed_by_followed 30%, shared_seed 15%, label_genre 10%, recency 5%) per T164's `score_candidates` signature.
+
+**L4-030** [WARNING / structural] tasks.md T148 description says "T101a closeout" — needs cross-reference acknowledgment that Run #10 L3-026 plan §6 social-row "DEFERRED" parenthetical (added as the Run #10 sync-fix anchor) is now stale. Also T170 Done says "covered by T148" — links between T148 + T170 should be bidirectional so future readers don't miss the cover relationship.
+*Proposed:* Append to T148 Description: "(closes T101a + provides the canonical surface T170 references — Run #10 L3-026 'DEFERRED' note in plan §6 social row is obsolete and should be removed in next sync-fix pass)." No structural-field damage; one annotation line.
+
+**L4-031** [INFO / cosmetic] T155 task body says "unified with T163a per Run #10 sync-fix" — good cross-reference. T167 Deps line says "T067, T163a (reports module)" — should also reference T155 for completeness since T155 + T163a are unified.
+*Proposed:* T167 Deps: append T155 alongside T163a. Three-character edit.
+
+**L5-021** [INFO / cosmetic] T150 declared path `apps/api/src/auxd_api/modules/auth/service.py (validate_password_policy promoted)` — file exists but the path is misleading: `validate_password_policy` was already in `auth/service.py` as a private helper; the change was promoting it from private (`_validate_password_policy`) to public. Path is correct but the parenthetical could read more clearly: "(symbol promoted from private to public)".
+*Proposed:* Minor wordsmith — no structural impact.
+
+**L5-022** [INFO / cosmetic] T167 declared path includes `apps/web/src/components/album-detail/album-actions.tsx (ReportWrong mount)` — verify-ready (file exists; ReportWrong dialog mounted via AlbumActions). Layer 5 forward-sweep is clean for all S23-S25 declared files.
+*Proposed:* No action; informational confirmation. All 24 task declarations verified to point to extant files on disk.
+
+**L6-006** [WARNING / structural] spec.md US-G4 AC text doesn't capture S24 T156/T157/T159 shipped facets (Discord webhook admin notify, acknowledge_report CLI + N-012 dispatch, SUSPENDED account 403-with-body shape + allow-list, 9-value reason enum, self-report 422 rejection, idempotency within 24h). Cluster pattern with L6-007 (story-side US gaps for the new surface).
+*Proposed:* Append 4-5 bullet sublist to US-G4 AC OR split into US-G4a (block + report submission semantics) + US-G4b (moderation lifecycle + suspended UX). Cluster cluster fix with L6-007 in a single coordinated story-side edit.
+
+**L6-007** [WARNING / structural] Multiple stories shipped surface without explicit story-side AC traces in spec.md:
+1. T151 4-branch private-profile gate — US-G2 mentions private + pending generically but doesn't enumerate the 4 branches (blocked / pending / private-not-following / default).
+2. T161 /legal/{privacy,terms} pages — NFR Compliance row mentions GDPR but no explicit /legal route trace.
+3. T167 merge_albums.py + WRONG_METADATA/DUPLICATE — US-H2 covers "report wrong album" conceptually but doesn't mention the new reasons or admin CLI.
+4. T168 OG image routes — US-H5 mentions "share preview" but doesn't mention 1200x630, nodejs runtime, 1-year immutable cache, generic-fallback.
+*Proposed:* Append bullets to US-G2 (T151 4-branch enumeration), NFR Compliance row (/legal routes), US-H2 (WRONG_METADATA + DUPLICATE + merge CLI + no-AlbumRedirect), US-H5 (OG ImageResponse contract).
+
+**L6-008** [INFO / structural] T162 manage_critic_seed.py CLI ships an operator-only surface — no US trace expected (operator runbook is the canonical anchor). Document in spec.md operator/ops section if such a section exists; otherwise add an "Operator workflows" subsection to spec.md §11 Risks (under "Founder workflow runbooks").
+*Proposed:* Optional addition — spec.md doesn't currently carry an operator-ops index. Worth adding for §15-§16 traceability (acknowledge_report.py, manage_critic_seed.py, merge_albums.py, mongodb-suspend-cli docs).
+
+**L7-018** [INFO / cosmetic] sync-report.md prior runs reference `apps/api/scripts/...` and `apps/web/src/...` paths in drift descriptions — those paths are not markdown links (so don't appear in L7 broken-link scan). Cross-link integrity holds (179/179 relative .md links resolve).
+*Proposed:* No action; informational confirmation that L7 scan is clean despite content-references-as-text being abundant in Run #11/Run #12 drift items.
+
+**L7-019** [INFO / cosmetic] implementation-log.md Session 23-25 carry comprehensive Decisions + non-obvious calls subsections (S23 has 7 decisions; S24 has 8 decisions; S25 has 7 decisions). Tracked + cross-referenced. Cross-link to plan/spec from impl-log is informational (`L3-043`-style references would need explicit linking back to sync-report.md if future readers want to trace the doc-catchup application).
+*Proposed:* No action; informational.
+
+#### Carry-forward (still open from prior runs)
+
+- **L1-002** (Run #10) — research/ux-patterns.md "For You" breadcrumb — RESOLVED in Run #10 inline application; verified intact.
+- **L1-004** (Run #11) — research/ux-patterns.md push-prompt criteria breadcrumb — APPLIED INLINE (assumed; Run #11 closeout pending user confirmation). Verified intact if applied.
+- **L2-017** (Run #5) — spec.md "14 active types" — RESOLVED via L2-028 in Run #11.
+- **L2-019** (Run #4) — SS-3 cohort signup_cohort undefined — OPEN, DEFER (invite-mechanic cluster).
+- **L2-028 / L2-029 / L2-030 / L2-031** (Run #11) — spec/data-model fixes — APPLIED INLINE (assumed; verified intact in current files).
+- **L3-017** (Run #4) — plan.md §12 missing SS-3 invite-landing — OPEN, DEFER.
+- **L3-033 / L3-034 / L3-035 / L3-036 / L3-037 / L3-038 / L3-039 / L3-040** (Run #11) — plan §3.1 + §6 + §8 + §7 + §4.5 + §12.2 + Constitution P2 fixes — APPLIED INLINE (assumed; verified intact in current files including push_subscriptions row, social row source param, §8 dispatcher rewrite, §7.6 web push flow, 7 rate-limit rows, _GENRE_BONUS_MAX formula, P2 migration path).
+- **L4-009** (Run #4) — tasks.md missing invite-landing tasks — OPEN, DEFER.
+- **L4-013** (Run #7) — Paths under-enumeration convention — OPEN-DEFERRED.
+- **L4-017** (Run #8) — T077/T079 Paths missing helpers — OPEN-DEFERRED.
+- **L4-020** (Run #9) — T093/T092 Paths under-spec — OPEN-DEFERRED.
+- **L4-025 / L4-026 / L4-028** (Run #11) — tasks.md T118/T119/T030/T094/T131-T144/T117 Paths + Refs fixes — APPLIED INLINE (assumed; verified intact via T131-T144 carrying six-field blocks in current file; all S23-S25 tasks T145-T170 also carry the convention).
+- **L5-008** (Run #8) — T080 wildcard absorbs helpers — OPEN-DEFERRED.
+- **L6-002** (Run #7) — US-A1 handle suggestions — OPEN, DEFER (low-priority polish).
+- **L6-005** (Run #11) — US-E2 reviews-tab bullet — APPLIED INLINE (assumed; verified in spec.md US-E2 AC).
+
+### Proposed inline actions (19 items)
+
+| ID | File | Change | Auto-resolvable? |
+|----|------|--------|:--:|
+| L1-005 | research/ux-patterns.md | 1-line breadcrumb on dual-artifact GDPR export | No |
+| L2-032 | product-spec/data-model.md + spec.md entity inventory | Add GdprAuditLog entity + admin_notes/flagged_for_review/flagged_for_review_at on User + Report.acknowledged_at + target_type "album" + reason enum 5→9 values | No |
+| L2-033 | spec.md US-G2 + product-spec/user-stories.md S-G2 + S-H3 | Update approver-shipped status (Run #10 L2-025 stale post-S23) | No |
+| L2-034 | spec.md US-G1 + NFR Security | Session_version-bump + password-policy + argon2-not-bcrypt | No |
+| L2-035 | spec.md US-G1 | Avatar content-type allowlist + resize ladder + R2 bucket separation + 5/min rate-limit | No |
+| L2-036 | spec.md US-G5 | Dual-artifact + R2_EXPORT_BUCKET + 24h presigned + audit log | No |
+| L3-041 | plan.md §6 + spec.md §7 | Add 3 module rows (`users` + `gdpr` + `reports`); remove obsolete `data-export` row from spec | No |
+| L3-042 | plan.md §6 reviews/feed/notifications rows | Append is_critic_seed sidecar contract note | No |
+| L3-043 | plan.md §14 | Single coordinated rewrite (3 subsection touches) — path + Resend + dual-artifact + audit log + cascade list | No |
+| L3-044 | plan.md §13 | Single coordinated rewrite (3 subsection touches + 3 new subsections) — enum + cron + acknowledge CLI + SUSPENDED middleware + album merge | No |
+| L3-045 | plan.md §4.5 | Append 7-8 rate-limit rows | No |
+| L3-046 | plan.md §7.1 + new §7.7 | Enumerate 8 new routes + add OG share-card flow subsection | No |
+| L3-047 | plan.md §17.1 | Append 4 env-var names (R2_AVATAR_BUCKET, R2_EXPORT_BUCKET, DISCORD_WEBHOOK_URL, API_BACKEND_URL) | No |
+| L3-048 | plan.md §15.2 | Append 4 PostHog event rows + confirm Run #11 L3-036 11-event batch | No |
+| L3-049 | plan.md §12.2 + §12.2.1 | T163 rating-weight formula + 500-entry cap + 24h cache; T164 5-factor split | No |
+| L4-030 | tasks.md T148 + T170 | Bidirectional cross-ref + Run #10 L3-026 obsolescence flag | No |
+| L4-031 | tasks.md T167 | Append T155 to Deps (alongside T163a) | No |
+| L6-006 | spec.md US-G4 | 4-5 bullet sublist for SUSPENDED + Discord + acknowledge + 9-value enum + idempotency + self-report | No |
+| L6-007 | spec.md US-G2 / US-H2 / US-H5 + NFR Compliance | 4 story-side AC additions for T151 / T161 / T167 / T168 | No |
+
+### Defer (5 items, existing dispositions stand)
+
+- L2-019 — invite-mechanic cluster sequencing
+- L3-017 — invite-mechanic cluster
+- L4-009 — invite-mechanic cluster
+- L4-013 / L4-017 / L4-020 / L5-008 — Paths-convention umbrella
+- L6-002 — low-priority polish
+
+### Sync History (updated)
+
+| Run | Date | Layers | CRITICAL | WARN | INFO | Verdict | Disposition |
+|-----|------|:------:|:--------:|:----:|:----:|---------|-------------|
+| #1 | 2026-05-22 | 5/7 | 0 | 19 | 14 | CRITICAL_DRIFT_BUDGET_RULE | applied_split_with_override |
+| #2 | 2026-05-22 PM | 7/7 | 0 | 7 | 5 | DRIFT_DETECTED | applied_split_with_override |
+| #3 | 2026-05-22 (post-T002) | 7/7 | 0 | 6 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #4 | 2026-05-23 (early) | 7/7 | 0 | 6 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #5 | 2026-05-22 (late) | 7/7 | 0 | 7 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #6 | 2026-05-23 (post-CR-002) | 7/7 | 0 | 7 | 6 | DRIFT_DETECTED | applied_split_with_override |
+| #7 | 2026-05-23 (post-frontend-wave) | 7/7 | 0 | 4 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #8 | 2026-05-23 (post-§7-wedge-wave) | 7/7 | 0 | 8 | 9 | DRIFT_DETECTED | applied_split_with_override |
+| #9 | 2026-05-23 (post-§8+§9) | 7/7 | 0 | 12 | 10 | DRIFT_DETECTED | applied_split_with_override |
+| #10 | 2026-05-23 (post-§10) | 7/7 | 0 | 14 | 13 | DRIFT_DETECTED | applied_split_with_override |
+| #11 | 2026-05-23 (post-§11+§13+stranded) | 7/7 | 0 | 18 | 14 | DRIFT_DETECTED | applied_split_with_override (17 inline + 5 deferred) |
+| **#12** | **2026-05-24 (post-§14+§15+§16+§17)** | **7/7** | **0** | **19** | **14** | **DRIFT_DETECTED** | **applied_split_with_override** (19 inline + 5 deferred — pending user confirmation) |
 
 ---
 
