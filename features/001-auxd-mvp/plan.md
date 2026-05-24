@@ -472,6 +472,18 @@ Per CR-001 (2026-05-22), no third-party listening-history provider integration s
 
 Sync-fix Run #1 (DRIFT-L3-007 → spec.md FR-027) and Run #2 (placement lock) are preserved in the project decision log for v2 context. When v2 lands the listening-history integration, this section will be re-derived from the v2 spec and these sync-fixes re-applied.
 
+<!-- sync-fix L3-051 (Run #13): pin the T173 CSRF header-lift contract (closed an A07 wiring gap in the OWASP review pre-launch). -->
+### 4.7 CSRF wiring contract (T173)
+
+The double-submit cookie pattern referenced at §4.2 ("CSRF protection via double-submit cookie pattern") expands to the following concrete contract — pinned by T173 (OWASP Top 10 review) when an A07 wiring gap was caught and closed pre-launch (would have 403'd every authenticated mutation in prod):
+
+1. **Cookie set semantics (backend):** On first authenticated response the backend sets `auxd_csrf` as a cookie with `SameSite=Lax` and **non-HttpOnly** so the frontend JS can read it via `document.cookie`. Value is opaque high-entropy random.
+2. **Frontend header lift (`apps/web/src/lib/api-client.ts`):** A small cookie-reader helper reads the `auxd_csrf` cookie on every state-changing method (`POST` / `PATCH` / `PUT` / `DELETE`) and adds it as the `X-CSRF-Token` request header. Read-only methods (`GET` / `HEAD`) skip the lift.
+3. **Backend CORS (`apps/api/src/auxd_api/main.py`):** `X-CSRF-Token` is listed in the CORS `allow_headers` set alongside the standard `Content-Type` + `Authorization` entries. Without this, browsers strip the header on cross-origin preflights.
+4. **Backend enforcement (`SessionMiddleware`):** On every authenticated `POST` / `PATCH` / `PUT` / `DELETE` the middleware compares the `X-CSRF-Token` header against the `auxd_csrf` cookie value; mismatch or missing header returns `403` with `error: csrf_token_invalid`.
+
+Regression tests pinned in T173: `apps/api/tests/integration/test_csrf_*.py` (3 specs covering missing header, mismatched header, and matched-pair happy path). Without the header lift in api-client.ts every authenticated write would 403; this is why the wiring is documented inline rather than left to the generic "double-submit" reference at §4.2.
+
 ---
 
 ## 5. Provider-Interface Abstraction (Constitution Principle 6)
@@ -1358,6 +1370,13 @@ jobs:
 - **Per-release (manual):** Founder runs keyboard-only nav audit on the same screen set; result recorded in a release-readiness checklist.
 - **Failing the gate:** Any axe violation blocks merge; can be waived only via a documented `// a11y-waiver:` comment with rationale + Phase 9 follow-up issue.
 
+<!-- sync-fix L3-050 (Run #13): anchor §18 Pre-launch audit outputs (T171 a11y + T172 perf + T173 security). -->
+### 16.6 Pre-launch audit outputs (T171 / T172 / T173)
+
+- **T171 a11y audit results:** `docs/a11y-audit.md` — `@axe-core/playwright` scans across 23 routes (wcag2aa tag set); 0 CRITICAL after fixes landed in feed-list.tsx + diary-list.tsx (empty `<TabsContent>` panels for proper aria-controls→panel-id resolution); 4 SERIOUS/MODERATE flagged as Phase 9 follow-ups. Spec files under `apps/web/tests/a11y/` (helpers + auth + onboarding + app + settings).
+- **T172 perf audit:** `docs/perf-audit.md` — 4 k6 scripts at `apps/api/tests/perf/k6_*.js` (smoke / soak / spike / stress) plus Lighthouse Playwright spec at `apps/web/tests/perf/lighthouse.spec.ts`; budgets mirror spec.md §6.1 (p95 home feed <500ms; p95 album detail <400ms). Some staging-environment metrics N/A pending T175 staging provisioning.
+- **T173 OWASP Top 10 review:** `docs/security-review.md` — 1 HIGH (A07 CSRF wiring) closed pre-launch (api-client.ts cookie-reader + backend CORS `allow_headers` lift; see §4.7 for the contract); 0 CRITICAL/HIGH open; 2 LOW follow-ups documented for post-launch.
+
 ---
 
 ## 17. Hosting & Deployment
@@ -1404,6 +1423,21 @@ jobs:
 - Free tier: 3,000 emails/mo — covers M3 closed-beta with significant headroom. Upgrade to Pro ($20/mo for 50k emails) around 500 active users.
 - Server SDK: `resend` Python package (added in T135 implementation).
 
+<!-- sync-fix L3-050 (Run #13): operator runbook index — anchors the 7 Session 26 docs + 2 earlier founder workflows. -->
+### 17.7 Operator runbooks
+
+Operator-facing runbooks live under `docs/` and are the single source of truth for environment provisioning, launch ceremony, and the closed-beta workflow:
+
+- `docs/staging.md` (T175) — staging environment provisioning runbook (Fly secrets + Atlas + Upstash + DNS + smoke checks).
+- `docs/launch.md` (T180) — M0 launch ceremony, T-72h → T+72h timeline + acceptance gates.
+- `docs/launch-checklist.md` (T179) — 11-section consolidated readiness review (acts as the Phase 9 gate).
+- `docs/closed-beta-runbook.md` (T176) — invitee curation + early-signal dashboards for Phase M-2.
+- `docs/security-review.md` (T173) — OWASP Top 10 review; 1 HIGH (A07 CSRF wiring) closed; 0 CRITICAL/HIGH open.
+- `docs/a11y-audit.md` (T171) — axe-core wcag2aa results across 23 routes; 0 CRITICAL after fixes.
+- `docs/perf-audit.md` (T172) — k6 + Lighthouse thresholds vs spec.md §6.1.
+- `docs/critic-seed-runbook.md` (T162) — CriticSeed admin workflow.
+- `docs/founder-workflows/seed-content.md` (T166) — seed-content authoring workflow.
+
 ---
 
 ## 18. Phased Implementation Roadmap
@@ -1412,6 +1446,9 @@ jobs:
 
 <!-- CR-001: build order rewritten — no third-party OAuth, no auto-import, no just-finished detection at MVP -->
 Internal-only + critic-seed onboarding wave. No third-party listening-history provider quota gating. No public access.
+
+<!-- sync-fix L3-050 (Run #13): Phase M-2 cross-link to docs/closed-beta-runbook.md (T176). -->
+**Operator runbook:** `docs/closed-beta-runbook.md` (T176) covers invitee curation + early-signal dashboards + bug-bash protocol for this phase.
 
 **Build order:**
 1. Constitution + scaffolding (Task 0–4)
@@ -1441,6 +1478,9 @@ Internal-only + critic-seed onboarding wave. No third-party listening-history pr
 - Public signups open.
 - Critic-seed roster live in onboarding.
 - (CR-001: no listening-history-provider production-tier quota dependency at launch.)
+
+<!-- sync-fix L3-050 (Run #13): Phase M0 cross-link to docs/launch.md (T180) + docs/launch-checklist.md (T179). -->
+**Operator runbooks:** `docs/launch.md` (T180) defines the T-72h → T+72h M0 launch ceremony timeline + acceptance gates; `docs/launch-checklist.md` (T179) is the 11-section consolidated readiness review that acts as the Phase 9 gate.
 
 ### Phase M1–M3
 

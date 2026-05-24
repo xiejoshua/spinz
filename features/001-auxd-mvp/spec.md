@@ -297,7 +297,8 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 | Scalability | Sized for 10,000 concurrent users at peak (3× M6 WAL target) without architectural changes |
 | Accessibility | WCAG 2.1 AA — keyboard nav; screen-reader labels on rating widget + Aux + Like; contrast ≥4.5:1 on album-art-heavy surfaces; reduced-motion respect; touch targets ≥44pt on mobile |
 | Privacy | Public-by-default with per-entry opt-out; private-profile toggle; no third-party tracking beyond PostHog Cloud + Sentry (errors); no ad SDKs |
-| Security | OAuth tokens encrypted at rest; no refresh tokens client-side; rate limiting on log/follow/review/like endpoints; CSRF; bcrypt cost ≥12 |
+<!-- sync-fix L2-037 + L2-034 CF (Run #13): NFR Security refreshed on 3 counts — drop OAuth-tokens-at-rest (CR-001 dissolved Spotify), bcrypt→argon2 (T053 / T150 reuse), pin the T173 CSRF header-lift contract. -->
+| Security | Password hashing: argon2id via argon2-cffi (T053); validated via `validate_password_policy` helper (≥12 char min) promoted in S23 T150 for shared signup/change-password policy. Rate limiting on log/follow/review/like endpoints (plan §4.5). CSRF: double-submit cookie pattern — backend sets `auxd_csrf` cookie on login; frontend `apps/web/src/lib/api-client.ts` lifts the cookie into the `X-CSRF-Token` header on every `POST`/`PATCH`/`PUT`/`DELETE`; backend `SessionMiddleware` validates equality on writes. `X-CSRF-Token` is in the backend CORS `allow_headers` list. T173 OWASP Top 10 review closed an A07 wiring gap before launch (cookie-reader added to api-client.ts; `X-CSRF-Token` added to CORS `allow_headers`) — see [docs/security-review.md](../../docs/security-review.md). |
 <!-- CR-001: Compliance — streaming-ToS row removed -->
 <!-- sync-fix L6-007 (Run #12): /legal/{privacy,terms} placeholder pages anchored — shipped Session 24 (T161). -->
 | Compliance | GDPR (export + erasure). Legal placeholder pages at `/legal/privacy` + `/legal/terms` (standalone routes, no app/auth chrome) with prominent `<aside>` banner: "🚧 This is a placeholder. Final policy lawyer-reviewed before public launch." Footer links from `(auth)/layout`. PostHog page-view events. |
@@ -307,6 +308,16 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 | Mobile responsiveness | Mobile-first; PWA installable; breakpoint 768px |
 | SEO | Album detail + profile pages SSR with Open Graph meta; everything else CSR acceptable |
 | Observability | Every external API call logged with provider/latency/status; Sentry for errors; PostHog for product analytics; daily metrics ETL |
+
+<!-- sync-fix L6-009 (Run #13): anchor S26 §18 audit output doc files (a11y / perf / security / compliance) — load-bearing for NFR claim ↔ evidence pairing. -->
+### Verification evidence (S26 §18 audit outputs)
+
+Each measurable NFR pairs with an audit artifact produced during §18 Pre-launch hardening (Session 26):
+
+- **NFR Accessibility** → [docs/a11y-audit.md](../../docs/a11y-audit.md) — `@axe-core/playwright` scans (wcag2aa tag set) across 23 routes; 0 CRITICAL after fixes landed in feed-list.tsx + diary-list.tsx; 4 SERIOUS/MODERATE flagged as Phase 9 follow-ups (T171).
+- **NFR Performance** → [docs/perf-audit.md](../../docs/perf-audit.md) — 4 k6 scripts at `apps/api/tests/perf/k6_*.js` (smoke / soak / spike / stress) + Lighthouse Playwright spec at `apps/web/tests/perf/lighthouse.spec.ts`; budgets mirror §6.1 thresholds. Some staging metrics N/A pending T175 staging provisioning (T172).
+- **NFR Security** → [docs/security-review.md](../../docs/security-review.md) — OWASP Top 10 review; 1 HIGH (A07 CSRF wiring) closed pre-launch; 0 CRITICAL/HIGH open; 2 LOW follow-ups documented for post-launch (T173).
+- **NFR Compliance** → [docs/launch-checklist.md](../../docs/launch-checklist.md) §10 (known-issues consolidation) + [docs/launch.md](../../docs/launch.md) (M0 launch ceremony, T-72h → T+72h timeline + acceptance gates) (T179 + T180).
 
 ## 6.1 NFR Measurement Contract
 

@@ -32,8 +32,10 @@ test.describe("TC-E2E-013: schedule + cancel deletion shows grace banner", () =>
     ]);
     await page.goto("/settings/data");
     // Heading present; button visible (gating by backend would be
-    // a `disabled` state we don't enforce here).
-    await expect(page.getByRole("heading", { name: /data|account/i })).toBeVisible();
+    // a `disabled` state we don't enforce here). Use exact names to
+    // avoid Playwright strict-mode violations on the multi-section page.
+    await expect(page.getByRole("heading", { name: "Data", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Delete account" })).toBeVisible();
   });
 
   test("backend-reachable: schedule deletion → grace banner shows → cancel restores", async ({

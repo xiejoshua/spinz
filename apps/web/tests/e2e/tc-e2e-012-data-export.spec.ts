@@ -31,7 +31,10 @@ test.describe("TC-E2E-012: data export → 202 + audit log + email", () => {
       },
     ]);
     await page.goto("/settings/data");
-    await expect(page.getByRole("heading", { name: /data|export/i })).toBeVisible();
+    // Narrow heading match — /settings/data has Data + "Export your data" + "Delete account"
+    // headings; using a regex that matches multiple raises Playwright's strict-mode error.
+    await expect(page.getByRole("heading", { name: "Data", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Export your data" })).toBeVisible();
   });
 
   test("backend-reachable: click export → 202 + email arrives", async ({ page, context }) => {

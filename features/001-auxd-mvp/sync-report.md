@@ -1,6 +1,220 @@
 # Sync & Verify Report: auxd MVP — Social Album Platform
 
-> Feature: `001-auxd-mvp` | **Latest run: #12 — 2026-05-24 (post-Sessions 23-25: §14 Profile/Settings + §15 GDPR/Moderation + §16 Seeding admin + §17 Should-have)**
+> Feature: `001-auxd-mvp` | **Latest run: #13 — 2026-05-24 (post-Session 26: §18 Pre-launch hardening — FEATURE COMPLETE 172/172)**
+
+---
+
+## Run #13 (2026-05-24, post-§18 — FEATURE COMPLETE)
+
+> Layers checked: 7/7
+> Phase: 6 (Implementation, **COMPLETE**) — **172/172** tasks (100%); feature ready for M0 launch
+> Prior run: #12 (2026-05-24, post-§14-§15-§16-§17) — DRIFT_DETECTED, applied_split_with_override (19 inline + 5 deferred; 15 of 19 NEW Run #12 fixes landed pre-Run #13; 4 deferred-into-Run-#13 alongside the 5 long-standing deferrals)
+> Trigger: user invoked `/speckit.product-forge.sync-verify` after Session 26 (§18 Pre-launch hardening 9-task close-out: T171 a11y audit + T172 perf audit + T173 OWASP security review + T174 13 TC-E2E specs + T175 staging runbook + T176 closed-beta runbook + T178 design polish + T179 launch checklist + T180 M0 launch runbook — T177 CR-001-removed). **17 of 17 clusters complete** (§2 dissolved post-CR-001 into §1 + §6; §12 DEFERRED-TO-V2 per CR-001). **THIS IS THE FINAL FEATURE-COMPLETE SYNC-VERIFY BEFORE LAUNCH.**
+
+### Summary
+
+| Severity | Count | Notes |
+|----------|-------|-------|
+| ❌ CRITICAL | **0** | |
+| ⚠️ WARNING | **5 NEW + 4 carry-forward = 9** | NEW: L2-037, L3-050, L3-051, L6-009, L7-020. CF (Run #12 not-yet-applied): L2-034, L3-042, L4-030, L6-007 (partially — L6-007 split applied for /legal + US-H2 + US-H5 but US-G2 4-branch private-gate enumeration still owed). Plus 3 long-standing CFs: L3-017, L4-009, L6-002 (invite-mechanic + polish, user-deferred). |
+| ℹ️ INFO | **4 NEW + 3 carry-forward = 7** | NEW: L1-006, L4-032, L5-023, L7-021. CF: L4-031 (Run #12 not-yet-applied — T167 Deps); L2-019, L4-013/L4-017/L4-020/L5-008 (umbrella-deferred). |
+| ✅ CLEAN | **L1 (research stable — §18 was audit/runbook work; no new research breadcrumbs material), L4 (T171-T180 carry six-field convention)** | Tasks structural-field convention HELD this run — all 9 new T171-T180 tasks carry Paths/Size/Deps/Refs/Description/Done inline with `*(completed ...)*` annotation; same intact pattern as Runs #11 + #12. |
+| ✅ RESOLVED since Run #12 | **15 inline** | Verified intact in current artifacts: L1-005 (research dual-artifact breadcrumb — see below for "near"), L2-032 (GdprAuditLog + admin_notes + flagged_for_review + Report.acknowledged_at + 9-value reason enum landed in product-spec/data-model.md lines 31-32, 67-70, 262-277, 333-337 + spec.md line 411-412), L2-033 (US-G2 S23 T148 approver-shipped status — spec.md line 200, user-stories.md mirror), L2-035 (US-G1 avatar contract — spec.md US-G1 AC), L2-036 (US-G5 dual-artifact — spec.md US-G5 AC), L3-041 (plan §6 + spec §7 — 3 new module rows users/gdpr/reports landed plan.md lines 569-571 + spec.md line 371-372), L3-043 (plan §14 GDPR Pipeline rewrite — landed at plan.md line 1112 marker), L3-044 (plan §13 Moderation Flow — 5 subsection touches landed at plan.md lines 1018, 1028, 1073, 1087, 1099), L3-045 (plan §4.5 rate-limits — 8 new rows at plan.md line 452 marker), L3-046 (plan §7.1 + §7.7 OG flow — 8 new routes + OG subsection at plan.md lines 588-660), L3-047 (plan §17.1 env vars — R2_AVATAR_BUCKET + R2_EXPORT_BUCKET + DISCORD_WEBHOOK_URL + API_BACKEND_URL at line 1377), L3-048 (plan §15.2 PostHog events at line 1230 marker), L3-049 (plan §12.2 T163 rating-weight + 5-factor T164 split — landed), L6-006 (US-G4 SUSPENDED + Discord + acknowledge + 9-value enum + idempotency + self-report at spec.md line 214-218), L6-007 PARTIAL (legal pages + US-H2 + US-H5 at spec.md lines 223-225, 302-303 — but US-G2 4-branch private-gate enumeration NOT YET visible; see L6-009 below for re-cast). |
+
+**Structural count:** 7 (NEW: 4 — L2-037, L3-050, L3-051, L6-009; CF: 3 — L2-034, L3-042, L4-030). **Over budget of 0.**
+**Cosmetic count:** 4 (NEW: 2 — L5-023, L7-021; CF: 2 — L4-031, plus advisory-only L7-020). Under budget of 20.
+
+**Verdict:** **DRIFT_DETECTED** (feature-complete sync-verify; all drift is structural docs catch-up — zero code-level issues, every Must-Have user story has implementation evidence)
+
+**Disposition recommendation:** **applied_split_with_override pattern, FINAL pass.** Session 26 was deliberately audit + runbook work (not feature code) — 9 tasks shipped 9 new doc files in `docs/` (a11y-audit + perf-audit + security-review + staging + closed-beta-runbook + design-polish-notes + launch-checklist + launch + plus 13 TC-E2E spec files in `apps/web/tests/e2e/`). The code surface this session was 4 minimal touches: 2 a11y fixes (feed-list.tsx + diary-list.tsx adding empty `<TabsContent>` panels for proper aria-controls→panel-id resolution), 1 CSRF wiring fix (api-client.ts cookie-reading helper + main.py CORS allow_headers update), and 1 design-polish line (rating-widget.tsx transition class). The drift this run is therefore minimal and almost entirely about whether spec.md / plan.md cross-reference the new audit-output doc files — not about feature gaps. Headlines:
+
+1. **Plan §17 / §18 should reference the 7 operator runbooks shipped at S26.** plan.md §17 (Hosting & Deployment) currently has no cross-links to `docs/staging.md`, `docs/closed-beta-runbook.md`, `docs/launch.md`, `docs/launch-checklist.md`. plan §18 (Phased Implementation Roadmap) doesn't mention that T179 launch-checklist + T180 M0 ceremony runbooks exist. plan §16 (Testing Strategy) has the axe-core CI threshold but no cross-link to `docs/a11y-audit.md` (T171 output) or `docs/perf-audit.md` (T172 output) or `docs/security-review.md` (T173 output). [L3-050]
+
+2. **spec.md NFR Security row (line 300) is stale on 2 counts** (Run #12 L2-034 carry-forward NOT applied AND not refreshed for T173 wiring): (a) "bcrypt cost ≥12" — code is argon2 since T053 (long-standing; was noted in Run #12 L2-034); (b) "OAuth tokens encrypted at rest" — CR-001 dissolved Spotify; no OAuth tokens at MVP. Also doesn't pin the T173 CSRF wiring (X-CSRF-Token header lifted from auxd_csrf double-submit cookie on every state-changing method via api-client.ts; backend SessionMiddleware enforces). [L2-037 + L2-034 carry-forward]
+
+3. **spec.md NFR Accessibility row (line 298) + NFR Measurement Contract §6.1 line 326** mention "axe-core automated audit + manual keyboard nav test" but don't anchor to docs/a11y-audit.md (T171 output: 23 routes scanned, 0 CRITICAL). Same for performance — spec.md §6.1 mentions p95/p99 thresholds but doesn't anchor to docs/perf-audit.md (T172 output: 4 k6 scripts + Lighthouse Playwright spec). [L6-009]
+
+4. **plan §13 / §15 sidecar contracts**: Run #12 L3-042 (is_critic_seed sidecar contract anchored in plan §6 reviews + feed + notifications rows) NOT applied — plan §6 rows for these modules still don't note `seeding.service.critic_seed_user_ids(user_ids)` batched serializer enrichment. Should ship inline this pass given S26 closed §18 — no more clusters where it could be naturally folded in. [L3-042 carry-forward]
+
+5. **tasks.md T148 / T170 / T167 housekeeping** (Run #12 L4-030 + L4-031 carry-forwards): T148 doesn't carry the closure annotation about T101a + T170 cover relationship; T167 Deps line still missing T155 alongside T163a (unified per Run #10 sync-fix). Three-character-edit kind of work — should ship inline this pass. [L4-030, L4-031 carry-forwards]
+
+Carry-forwards (L2-019, L3-017, L4-009 — invite-mechanic; L4-013, L4-017, L4-020, L5-008 — Paths-convention umbrella; L6-002 — US-A1 polish) remain user-deferred under their existing dispositions. **No new Layer 5 (tasks ↔ code) gaps found this run** — every T171-T180 declared file path verified to exist on disk including all 13 TC-E2E specs + 5 a11y specs + 4 k6 scripts + Lighthouse spec + 9 new docs files. **No new Layer 1 (research ↔ product-spec) drift** — §18 was downstream verify-and-ship work; research recommendations covered the audit categories generically (security/a11y/perf are NFR-shaped, already anchored in research/tech-stack.md + research/codebase-analysis.md).
+
+### Session 26 propagation audit
+
+| Task | Code/docs shipped | Plan documented | Spec/product-spec documented | Drift IDs |
+|---|:---:|:---:|:---:|:--|
+| T171 a11y audit (@axe-core/playwright + 5 spec files + 23 routes + 2 CRITICAL fixes in feed-list.tsx + diary-list.tsx) | ✅ | ⚠️ plan §16 has axe-core CI threshold (line 1348/1357) but no anchor to docs/a11y-audit.md (T171 output) | ⚠️ NFR Accessibility line 298 + §6.1 line 326 don't anchor to docs/a11y-audit.md | L3-050, L6-009 |
+| T172 perf audit (4 k6 scripts + Lighthouse spec + playwright-lighthouse dev-dep) | ✅ | ⚠️ plan §16 doesn't mention k6 scripts or Lighthouse; no anchor to docs/perf-audit.md | ⚠️ spec.md §6.1 thresholds mirrored T172 implementation but no anchor to docs/perf-audit.md | L3-050, L6-009 |
+| T173 security review (OWASP Top 10 — 1 HIGH CSRF wiring fix in api-client.ts + main.py + 3 regression tests) | ✅ | ⚠️ plan §1.1.1 / §4 / §17 don't document the X-CSRF-Token header pipeline (api-client.ts lifts auxd_csrf cookie → header; SessionMiddleware enforces on writes); plan only has generic "CSRF protection via double-submit cookie pattern" at line 382 | ⚠️ NFR Security line 300 says generic "CSRF" + stale "bcrypt cost ≥12" (code argon2 since T053) + stale "OAuth tokens encrypted at rest" (CR-001 dissolved Spotify) | L2-037, L3-051, **L2-034 CF** |
+| T174 13 TC-E2E spec files (9 MVP-active + 4 CR-001-deferred-as-explicit-skip; Playwright discovery 22 → 110) | ✅ | ✅ plan §16 + tasks.md §18 anchor TC-E2E IDs; no plan changes needed | ✅ spec.md §10 TC-E2E table lists all 13 IDs with CR-001-deferred markers (lines 567-583); shipped specs match | — |
+| T175 staging runbook (docs/staging.md) | ✅ | ⚠️ plan §17 doesn't cross-link to docs/staging.md (operator-driven; spec just mentions Fly secrets + flytoml [processes]) | n/a (operator workflow) | L3-050 |
+| T176 closed-beta runbook (docs/closed-beta-runbook.md) | ✅ | ⚠️ plan §18 Phase M-2 doesn't cross-link to docs/closed-beta-runbook.md | n/a (operator workflow) | L3-050 |
+| T178 design polish (1-line transition fix in rating-widget.tsx + docs/design-polish-notes.md) | ✅ | n/a (1-line frontend) | n/a (operator workflow + 4 LOW follow-ups) | — |
+| T179 launch checklist (docs/launch-checklist.md — 11-section readiness review) | ✅ | ⚠️ plan §18 doesn't cross-link to docs/launch-checklist.md (acts as the Phase 9 gate) | n/a (operator workflow) | L3-050 |
+| T180 M0 launch runbook (docs/launch.md — T-72h → T+72h timeline) | ✅ | ⚠️ plan §18 Phase M0 doesn't cross-link to docs/launch.md | n/a (operator workflow) | L3-050 |
+| T173 CSRF code-fix (api-client.ts X-CSRF-Token wiring + main.py CORS allow_headers + 3 regression tests) | ✅ | ⚠️ plan doesn't document the frontend CSRF lifting contract; "CSRF protection via double-submit cookie pattern" at §4 line 382 is generic; should pin the header-lift contract + CORS allow_headers list | ⚠️ NFR Security row 300 doesn't anchor the CSRF wiring; should append breadcrumb pointing at api-client.ts CSRF helper + backend allow_headers | L3-051, **L2-037** |
+
+### Key findings
+
+**L3-050 (plan should reference 7 new operator runbooks — single largest plan-edit candidate this run):** §18 is the final cluster; it shipped 7 doc files in `docs/` that are referenced exclusively from tasks.md T171-T180 declared `Paths:`. plan.md never names them. Proposed inline edits:
+- plan §16 Testing Strategy: append breadcrumb "T171 a11y audit results: docs/a11y-audit.md (23 routes scanned 0 CRITICAL; 4 SERIOUS/MODERATE flagged as follow-ups)." + "T172 perf audit: docs/perf-audit.md (4 k6 scripts at apps/api/tests/perf/ + Lighthouse Playwright spec at apps/web/tests/perf/lighthouse.spec.ts; budgets per spec.md §6.1; N/A pending T175 staging)." + "T173 OWASP Top 10 review: docs/security-review.md (1 HIGH A07 CSRF wiring fix shipped; 0 CRITICAL/HIGH open; 2 LOW follow-ups documented)."
+- plan §17 Hosting & Deployment: append new subsection §17.7 "Operator runbooks" listing docs/staging.md (T175), docs/launch.md (T180), docs/launch-checklist.md (T179), docs/closed-beta-runbook.md (T176), docs/security-review.md (T173), docs/founder-workflows/ (existing).
+- plan §18 Phased Implementation Roadmap: append Phase M0 cross-link to docs/launch.md (T-72h→T+72h timeline + acceptance gates); append Phase M-2 cross-link to docs/closed-beta-runbook.md; append T179 launch-checklist as the consolidated readiness gate.
+
+~30 lines added, no structural rewrites.
+
+**L3-051 (plan should document the T173 CSRF header-lift contract):** plan §4 line 382 says only "CSRF protection via double-submit cookie pattern." Doesn't describe (a) `auxd_csrf` cookie is set by the backend on first authenticated response with `SameSite=Lax` + non-HttpOnly so JS can read it; (b) frontend `api-client.ts` reads cookie via document.cookie helper + adds `X-CSRF-Token` header on every state-changing method (POST/PATCH/PUT/DELETE); (c) backend `main.py` CORS `allow_headers` must include `X-CSRF-Token`; (d) `SessionMiddleware` enforces match — missing/mismatched header returns 403. Without this contract documented in plan, the T173 fix has no plan-side anchor — future readers won't know why api-client.ts reads cookies. ~10 lines added under §4 or new §4.7 "CSRF wiring contract."
+
+**L2-037 (spec.md NFR Security row stale on three counts):** spec.md line 300 reads "OAuth tokens encrypted at rest; no refresh tokens client-side; rate limiting on log/follow/review/like endpoints; CSRF; bcrypt cost ≥12". Three updates needed: (a) drop "OAuth tokens encrypted at rest" (CR-001 dissolved Spotify; no OAuth tokens at MVP — `TOKEN_ENCRYPTION_KEY` retained for v2 per plan §17.1); (b) replace "bcrypt cost ≥12" with "argon2 password hash via `validate_password_policy` ≥12 chars" (T053 originally; T150 reused on password change endpoint); (c) make "CSRF" specific to the T173 contract: "CSRF protection via double-submit cookie (`auxd_csrf` cookie + `X-CSRF-Token` header) enforced by SessionMiddleware on writes; frontend `api-client.ts` lifts cookie → header on POST/PATCH/PUT/DELETE." Note: this absorbs Run #12 L2-034 carry-forward + adds the T173 anchor.
+
+**L6-009 (spec.md NFR rows should anchor S26 audit outputs):** spec.md §6 + §6.1 currently describe NFR Performance + Accessibility thresholds generically; T171/T172/T173 produced actual audit doc files but spec doesn't anchor. Append cross-links:
+- NFR Accessibility row (line 298): append " — see [docs/a11y-audit.md](../../docs/a11y-audit.md) for T171 audit results (23 routes scanned, 0 CRITICAL)."
+- NFR §6.1 row 326 (axe-core entry): same anchor.
+- NFR Performance row (line 294) or §6.1 p95 entries: append " — see [docs/perf-audit.md](../../docs/perf-audit.md) for T172 budgets + k6 scripts."
+- NFR Security row (line 300, after L2-037 rewrite): append " — see [docs/security-review.md](../../docs/security-review.md) for T173 OWASP Top 10 review."
+
+These anchors make the NFR rows verify-traceable (NFR claim ↔ audit evidence) — load-bearing for the launch-readiness checklist (T179) and for any post-launch retrospective.
+
+**L4-030 / L4-031 (Run #12 carry-forwards — tasks.md housekeeping):** Both still owed:
+- **L4-030**: T148 Description should append annotation about closing T101a + providing canonical surface T170 references. Currently T148 description (line 1334) reads "When private_profile=true, new follows create state=pending; followee sees inbox of pending requests; can approve/reject. T101a closeout." — has the T101a closure mention but no T170 cross-ref + no flag that Run #10 L3-026 plan §6 social-row DEFERRED parenthetical is obsolete (T101a still marked "DEFERRED" at line 940 — should be RESOLVED-IN-S23).
+- **L4-031**: T167 Deps line 1503 reads "T067, T163a (reports module)" — should also reference T155 since they were unified per Run #10 sync-fix. Three-character edit.
+
+**L3-042 (Run #12 carry-forward — plan §6 sidecar contract):** plan §6 rows for `feed`, `reviews`, `notifications` modules don't mention the S23 T152 `is_critic_seed` sidecar enrichment pattern. Backend serializers in feed/service.py + reviews/routes.py + notifications/routes.py emit batched `critic_seed_user_ids(user_ids)` lookup + `actor_is_critic_seed` / `is_critic_seed` sidecar enrichment for the critic badge mount sites. The Run #12 proposed fix (one-line append to Notes column of each row) didn't land; it should this pass.
+
+### All Drift Items
+
+#### NEW this run
+
+**L1-006** [INFO / cosmetic] research/codebase-analysis.md doesn't carry a breadcrumb about CSRF wiring (`auxd_csrf` cookie + `X-CSRF-Token` header double-submit pattern). The "Auth & sessions" subsection covers HMAC-signed cookies + handle policy generically but the T173-shipped CSRF lift pattern isn't anchored in research. (Same omission existed pre-S26; T173 the HIGH-risk catch is the prompt to anchor it now.)
+*Proposed:* One-line breadcrumb under research/codebase-analysis.md Auth section: "CSRF wiring: backend `SessionMiddleware` enforces double-submit on writes; frontend `api-client.ts` lifts `auxd_csrf` cookie into `X-CSRF-Token` header for every state-changing method. Header registered in backend CORS `allow_headers`."
+
+**L2-037** [WARNING / structural] spec.md NFR Security row (line 300) is stale on three counts (see Key findings L2-037 above). Run #12 L2-034 carry-forward + T173 CSRF wiring anchor.
+*Proposed:* Single rewrite of NFR Security row: drop "OAuth tokens encrypted at rest" (CR-001 superseded); replace "bcrypt cost ≥12" with "argon2 password hash via `validate_password_policy` ≥12 chars"; expand "CSRF" to "CSRF protection via double-submit (`auxd_csrf` + `X-CSRF-Token`) enforced by SessionMiddleware on writes." ~1 row, ~3 line-lengths.
+
+**L3-050** [WARNING / structural] plan.md doesn't cross-reference the 7 operator runbooks shipped at S26 (docs/staging.md, docs/closed-beta-runbook.md, docs/launch.md, docs/launch-checklist.md, docs/security-review.md, docs/a11y-audit.md, docs/perf-audit.md). See Key findings L3-050 above for the proposed §16 + §17 + §18 edit set.
+*Proposed:* (1) plan §16: append breadcrumbs for T171 a11y, T172 perf, T173 security audit results. (2) plan §17: new §17.7 "Operator runbooks" subsection. (3) plan §18: cross-link Phase M-2 → docs/closed-beta-runbook.md; Phase M0 → docs/launch.md + docs/launch-checklist.md. ~30 lines total.
+
+**L3-051** [WARNING / structural] plan §4 doesn't document the T173 CSRF header-lift contract. Currently a single generic line ("CSRF protection via double-submit cookie pattern"). See Key findings L3-051 above.
+*Proposed:* Append ~10 lines under §4 or a new §4.7 "CSRF wiring contract" subsection covering cookie set semantics, frontend api-client.ts header-lift, backend CORS allow_headers, SessionMiddleware enforce-on-writes.
+
+**L4-032** [INFO / structural] tasks.md §18 cluster (T171-T180) all carry `Refs: NFR Accessibility` / `Refs: spec.md §6.1` / `Refs: NFR Security` / `Refs: plan §17, §18` style anchors — these are correct. However NONE of them cross-reference the actual `docs/*.md` output file they produce. Future readers tracing "what did T171 produce" must read the parenthetical prose rather than scan a structured field. Cosmetic; could be addressed by adding `Produces:` field alongside `Paths:` for §18 tasks.
+*Proposed:* Optional convention extension — append `Produces:` field to T171-T180 (e.g., T171 "Produces: docs/a11y-audit.md"). Not required for traceability (Paths covers it) but improves discoverability.
+
+**L5-023** [INFO / cosmetic] All 9 Session 26 task-declared file paths verified to point to extant files on disk: 5 a11y specs (helpers + auth + onboarding + app + settings + standalone) + 4 k6 scripts + 1 Lighthouse spec + 13 TC-E2E specs + 7 new docs + 4 code-fix touches (feed-list.tsx + diary-list.tsx + api-client.ts + main.py + rating-widget.tsx + api-client.test.ts +3 tests). **Layer 5 forward-sweep is CLEAN** for §18.
+*Proposed:* No action; informational confirmation. This is the final feature-complete Layer 5 sweep before launch.
+
+**L6-009** [WARNING / structural] spec.md NFR rows should anchor S26 audit output doc files (a11y / perf / security). See Key findings L6-009 above.
+*Proposed:* Append cross-link anchors to NFR Accessibility row 298, §6.1 row 326 (axe-core), NFR Performance row 294 or §6.1 p95 entries (317/318), and NFR Security row 300 (after L2-037 rewrite). 4 anchor additions, ~4 line touches.
+
+**L7-020** [INFO / cosmetic] sync-report.md prior runs reference `docs/*.md` file paths (now visibly resolvable post-S26 — every operator runbook shipped); these are not markdown links (so don't count in L7 broken-link scan). Cross-link integrity holds (165/165 relative .md links in features/001-auxd-mvp/ resolve — up from 179 in Run #12; difference is sync-report.md churn during inline application of Run #12 fixes).
+*Proposed:* No action; informational confirmation L7 is clean.
+
+**L7-021** [INFO / cosmetic] implementation-log.md Session 26 entry's prose mentions `docs/a11y-audit.md`, `docs/perf-audit.md`, `docs/security-review.md`, `docs/staging.md`, `docs/closed-beta-runbook.md`, `docs/launch-checklist.md`, `docs/launch.md`, `docs/design-polish-notes.md` — all referenced as path-strings, not markdown links. All resolvable; cross-link integrity holds. (Consistent with the project's prose-references-as-paths convention from prior sessions.)
+*Proposed:* No action; informational.
+
+#### Carry-forward (still open from prior runs)
+
+- **L1-002** (Run #10) — RESOLVED in Run #10 inline application; verified intact.
+- **L1-004** (Run #11) — push-prompt breadcrumb — APPLIED INLINE per Run #11 closeout (visible in research/ux-patterns.md push section).
+- **L1-005** (Run #12) — research/ux-patterns.md GDPR dual-artifact breadcrumb — APPLIED INLINE per Run #12 batch (visible in research GDPR section).
+- **L2-017** (Run #5) — RESOLVED via L2-028 in Run #11.
+- **L2-019** (Run #4) — invite-mechanic cluster — OPEN, DEFER.
+- **L2-028 / L2-029 / L2-030 / L2-031** (Run #11) — all APPLIED INLINE; verified intact.
+- **L2-032 / L2-033 / L2-035 / L2-036** (Run #12) — all APPLIED INLINE; verified intact in current spec.md + product-spec/data-model.md (markers visible at lines 411-412, 200, US-G1 AC, US-G5 AC).
+- **L2-034** (Run #12) — spec.md NFR Security `bcrypt cost ≥12` → argon2 — **NOT YET APPLIED**; absorbed into L2-037 this run alongside T173 CSRF anchor.
+- **L3-017** (Run #4) — invite-landing cluster — OPEN, DEFER.
+- **L3-033 / L3-034 / L3-035 / L3-036 / L3-037 / L3-038 / L3-039 / L3-040** (Run #11) — all APPLIED INLINE; verified intact.
+- **L3-041 / L3-043 / L3-044 / L3-045 / L3-046 / L3-047 / L3-048 / L3-049** (Run #12) — all APPLIED INLINE; verified intact in current plan.md (markers visible at lines 568, 1112, 1018/1028/1073/1087/1099, 452, 588/645, 1377, 1230, 1230, §12.2/§12.2.1).
+- **L3-042** (Run #12) — plan §6 reviews/feed/notifications is_critic_seed sidecar contract — **NOT YET APPLIED**; recommended inline this pass.
+- **L4-009** (Run #4) — invite-landing tasks — OPEN, DEFER.
+- **L4-013 / L4-017 / L4-020** (Runs #7-#9) — Paths-convention umbrella — OPEN-DEFERRED.
+- **L4-025 / L4-026 / L4-028** (Run #11) — all APPLIED INLINE; verified intact.
+- **L4-030** (Run #12) — T148 + T170 bidirectional cross-ref + Run #10 plan §6 social-row obsolescence flag — **NOT YET APPLIED**.
+- **L4-031** (Run #12) — T167 Deps append T155 — **NOT YET APPLIED**.
+- **L5-008** (Run #8) — T080 wildcard absorbs helpers — OPEN-DEFERRED.
+- **L5-018 / L5-019 / L5-020 / L5-021 / L5-022** (Runs #11-#12) — all APPLIED or no-action; verified intact.
+- **L6-002** (Run #7) — US-A1 handle suggestions — OPEN, DEFER (low-priority polish).
+- **L6-005 / L6-006 / L6-008** (Run #12) — APPLIED INLINE; verified intact (US-E2 reviews-tab bullet at line 184-185, US-G4 SUSPENDED + 9-value enum + acknowledge at line 214-218, operator workflows index applied).
+- **L6-007** (Run #12) — PARTIALLY APPLIED: T161 /legal pages (line 302-303), US-H2 (T167 album merge), US-H5 (T168 OG) all anchored. **STILL OWED**: US-G2 T151 4-branch private-profile gate enumeration (Run #12 proposed "append bullet enumerating blocked / pending / private-not-following / default branches"). Re-cast as L6-007-resid; carried forward.
+
+### Proposed inline actions (8 items)
+
+| ID | File | Change | Auto-resolvable? |
+|----|------|--------|:--:|
+| L1-006 | research/codebase-analysis.md | 1-line CSRF wiring breadcrumb under Auth section | No |
+| L2-037 (+L2-034 CF) | spec.md NFR Security row 300 | Rewrite: drop OAuth, bcrypt→argon2, expand CSRF to T173 contract | No |
+| L3-042 CF | plan.md §6 (reviews/feed/notifications rows) | Append is_critic_seed sidecar contract notes per Run #12 proposal | No |
+| L3-050 | plan.md §16 + §17 + §18 | 3-section edit: T171/T172/T173 audit breadcrumbs in §16; new §17.7 Operator runbooks; §18 Phase M-2 + M0 cross-links | No |
+| L3-051 | plan.md §4 (or new §4.7) | Document T173 CSRF header-lift contract (cookie + header + CORS + middleware) | No |
+| L4-030 CF | tasks.md T148 (+ T101a marker at line 940) | Append T170 cover relationship annotation + flag T101a as RESOLVED-IN-S23 | No |
+| L4-031 CF | tasks.md T167 Deps line 1503 | Append T155 alongside T163a | No |
+| L6-007-resid CF | spec.md US-G2 AC | Enumerate T151 4-branch private-profile gate (blocked / pending / private-not-following / default) | No |
+| L6-009 | spec.md §6 + §6.1 | 4 anchor additions to NFR Accessibility / Performance / Security / §6.1 rows pointing at docs/a11y-audit.md + perf-audit.md + security-review.md | No |
+
+### Defer (8 items, existing dispositions stand)
+
+- L2-019 — invite-mechanic cluster sequencing
+- L3-017 — invite-mechanic cluster
+- L4-009 — invite-mechanic cluster
+- L4-013 / L4-017 / L4-020 / L5-008 — Paths-convention umbrella
+- L6-002 — low-priority polish (US-A1 handle suggestions on collision)
+
+### Feature-completion verification (Must-Have implementation evidence)
+
+Every Must-Have user story enumerated in spec.md §4 has at least one task with declared file paths verified to exist on disk:
+
+| Story | Tasks | Code surface (verified extant) |
+|---|---|---|
+| US-A1 handle policy + signup | T053 + T057 | modules/auth/{routes,service,handle_service}.py |
+| US-A2 login + session middleware | T053 + T053a | modules/auth/{routes,service,middleware}.py |
+| US-A4 onboarding signup→handle→follow-3 | T108 + T108b + T108c | apps/web/src/app/(onboarding)/onboarding/step-{1,2,3}/page.tsx |
+| US-A5 critic-seed feed | T117 + T108c | apps/api/scripts/manage_critic_seed.py + feed seeding integration |
+| US-B1-B5 diary log/rate/Aux/review | T071 + T077 | modules/diary/ + apps/web/src/components/log-sheet/ |
+| US-C1-C4 reviews + likes + sort | T085 + T086 + T093 | modules/reviews/ + modules/likes/ + sort param |
+| US-D1-D3 backlog Up Next | T091 + T092 + T094 | modules/backlog/ + apps/web/src/app/(app)/up-next/ |
+| US-E1-E5 social graph + feed | T101 + T106 + T108 | modules/social/ + modules/feed/ + apps/web/src/app/(app)/ |
+| US-F1-F2 album catalog | T067 + T070 | modules/albums/ + apps/web/src/app/(app)/album/[id]/ |
+| US-G1 profile edit + avatar | T145 + T146 | modules/users/{routes,service}.py + lib/storage.py + apps/web/src/app/(app)/settings/profile/ |
+| US-G2 privacy + follow-requests inbox | T147 + T148 + T151 | modules/users/ (privacy + follow-requests endpoints) + apps/web/src/components/social/follow-requests.tsx + apps/web/src/app/(app)/profile/[handle]/ (4-branch gate) |
+| US-G3 notifications + preferences | T118 + T135 + T136 + T137 + T144 | modules/notifications/ + apps/web/src/app/(app)/notifications/ + dispatcher + worker |
+| US-G4 block + report + moderation | T155 + T156 + T157 + T158 + T159 + T163a | modules/reports/ + modules/moderation/ + workers/moderation_scan.py + scripts/acknowledge_report.py |
+| US-G5 data export + delete | T058 + T149 + T153 + T154 + T160 | workers/gdpr_export.py + modules/gdpr/ + modules/users/ (data-export endpoint) |
+| US-H2 album-report + merge | T167 | modules/reports/ (album branch) + scripts/merge_albums.py |
+| US-H3 friend-request flow | T170 (covered by T148) | apps/web/src/components/social/follow-requests.tsx |
+| US-H5 share-card OG | T168 | apps/web/src/app/api/og/{album,review}/[id]/route.tsx + helpers |
+| NFR Accessibility | T171 | docs/a11y-audit.md + apps/web/tests/a11y/ (5 specs, 23 routes) |
+| NFR Performance | T172 | docs/perf-audit.md + apps/api/tests/perf/k6_*.js (4) + apps/web/tests/perf/lighthouse.spec.ts |
+| NFR Security | T173 | docs/security-review.md + api-client.ts CSRF helper + main.py allow_headers + 3 regression tests |
+| NFR Compliance (GDPR + legal) | T154 + T161 | modules/gdpr/ + apps/web/src/app/legal/ |
+| TC-E2E coverage | T174 | apps/web/tests/e2e/tc-e2e-{001..013}-*.spec.ts (13 files) |
+| Operator runbooks | T175 + T176 + T180 + T179 | docs/staging.md + docs/closed-beta-runbook.md + docs/launch.md + docs/launch-checklist.md |
+
+**Verdict: every Must-Have user story has implementation evidence + every NFR has measurable signal + every TC-E2E ID has a spec file + every operator workflow has a runbook.** Feature is functionally complete per spec.md §4 + §6 + §10.
+
+### Sync History (updated)
+
+| Run | Date | Layers | CRITICAL | WARN | INFO | Verdict | Disposition |
+|-----|------|:------:|:--------:|:----:|:----:|---------|-------------|
+| #1 | 2026-05-22 | 5/7 | 0 | 19 | 14 | CRITICAL_DRIFT_BUDGET_RULE | applied_split_with_override |
+| #2 | 2026-05-22 PM | 7/7 | 0 | 7 | 5 | DRIFT_DETECTED | applied_split_with_override |
+| #3 | 2026-05-22 (post-T002) | 7/7 | 0 | 6 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #4 | 2026-05-23 (early) | 7/7 | 0 | 6 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #5 | 2026-05-22 (late) | 7/7 | 0 | 7 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #6 | 2026-05-23 (post-CR-002) | 7/7 | 0 | 7 | 6 | DRIFT_DETECTED | applied_split_with_override |
+| #7 | 2026-05-23 (post-frontend-wave) | 7/7 | 0 | 4 | 4 | DRIFT_DETECTED | applied_split_with_override |
+| #8 | 2026-05-23 (post-§7-wedge-wave) | 7/7 | 0 | 8 | 9 | DRIFT_DETECTED | applied_split_with_override |
+| #9 | 2026-05-23 (post-§8+§9) | 7/7 | 0 | 12 | 10 | DRIFT_DETECTED | applied_split_with_override |
+| #10 | 2026-05-23 (post-§10) | 7/7 | 0 | 14 | 13 | DRIFT_DETECTED | applied_split_with_override |
+| #11 | 2026-05-23 (post-§11+§13+stranded) | 7/7 | 0 | 18 | 14 | DRIFT_DETECTED | applied_split_with_override (17 inline + 5 deferred) |
+| #12 | 2026-05-24 (post-§14+§15+§16+§17) | 7/7 | 0 | 19 | 14 | DRIFT_DETECTED | applied_split_with_override (19 inline + 5 deferred) |
+| **#13** | **2026-05-24 (post-§18 — FEATURE COMPLETE)** | **7/7** | **0** | **9** | **7** | **DRIFT_DETECTED** | **applied_split_with_override** (8 inline + 8 deferred — pending user confirmation) |
+
+### Feature complete (post-Run #13)
+
+**This is the final feature-complete sync-verify before M0 launch.** Sessions 1-26 spanned 172/172 tasks across 17 clusters (§2 dissolved post-CR-001; §12 DEFERRED-TO-V2). Every Must-Have user story (US-A1..G5 + US-H2/H3/H5) has implementation evidence; every NFR (Performance, Accessibility, Security, Availability, Privacy, Compliance, Catalog rate limits, Observability, i18n, Mobile, SEO) is either instrumented via the §6.1 Measurement Contract or anchored to a T17x audit doc. Every TC-E2E ID (001-013) has a spec file (9 MVP-active + 4 CR-001-deferred-as-explicit-skip). All four operator runbooks (staging + closed-beta + M0 launch + launch-checklist) plus three audit reports (a11y + perf + security) plus design-polish notes are shipped under `docs/`. Backend pytest 964 pass / 3 skip; frontend Biome 175 + tsc 0 + Vitest 81 + next build 26 routes + Playwright discovery 110. Two e2e specs failing on strict-mode locator selection (queued for post-sync-verify fix per user note) is the only known not-launch-blocker followup.
+
+Drift this run is overwhelmingly cosmetic-doc work: **plan §16 / §17 / §18 don't reference the 7 new operator-runbook + audit doc files; spec.md NFR Security row carries 3 stale clauses and no T173 CSRF anchor; spec.md NFR Performance + Accessibility rows don't anchor T171/T172 audit outputs.** Zero new code-level issues; the T173 CSRF wiring catch (HIGH risk, would have been a P0 in prod) is itself the strongest validation of the sync-verify-and-audit gate cycle. Carry-forwards (L2-034, L3-042, L4-030, L4-031, L6-007-resid) are housekeeping deltas from Run #12. 8 inline edits across plan.md (3 sections) + spec.md (NFR rows) + tasks.md (T148 + T167 + T101a marker) + 1 research breadcrumb close the gap; coordinated single-pass mirroring Runs #10-#12 batches. **Post-application, the feature meets the Phase 9 release-readiness gate and is ready for M0 launch per docs/launch.md + docs/launch-checklist.md.**
 
 ---
 

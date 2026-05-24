@@ -1057,14 +1057,14 @@ gates:
     skip_reason: null
 
 sync_runs:
-  last_run: "2026-05-24T06:30:00Z"
-  total_runs: 12
-  last_drift_count: 33
+  last_run: "2026-05-24T08:30:00Z"
+  total_runs: 13
+  last_drift_count: 16
   last_critical_count: 0
-  last_warning_count: 19
-  last_info_count: 14
-  last_structural_count: 22
-  last_cosmetic_count: 9
+  last_warning_count: 9
+  last_info_count: 7
+  last_structural_count: 7
+  last_cosmetic_count: 4
   last_verdict: "DRIFT_DETECTED"
   last_verdict_note: "Run #10 (post-Session 17 §10 Social graph + Feed): 0 CRITICAL; 11 NEW WARN (L1-002 For You label vs research, L2-023 mode names absent from spec, L2-024 profile endpoint untraced, L2-026 SuggestedFollow→Suggestion collection mismatch, L3-025/26/27/28/30/31 plan.md catch-up, L4-021 T109 missing inline endpoint Paths, L5-014 T106 wrong test filename) + 3 carry-forward WARN; 8 NEW INFO + 5 carry-forward INFO. Sessions 17 ship is healthy (107/171 tasks; 667 pytest pass / 3 skip; 13 frontend routes; 0 orphan files); every NEW WARN is doc catch-up to shipped reality. APPLIED INLINE: 16 items in coordinated pass — research/ux-patterns.md For-You breadcrumb; product-spec data-model.md SuggestedFollow→Suggestion + SuggestionDismissal + reasons-list; product-spec user-stories.md S-E3 mode names + S-G2 approve/decline scope; spec.md US-E3 + US-G2 + FR-036 (profile endpoint); plan.md §3.1 collections + §6 social row + §4.5 rate-limits + §10.1 mode param + §10.2 multiplicative formula + §12.2.1 suggestion algorithm placement + §15.2 PostHog events; tasks.md T106 test filename + T109 Paths; tasks.md T101a + T163a deferred-task placeholders added. Disposition: applied_split_with_override (pattern continuation from Runs #2-#9). Carry-forwards (L2-019, L3-017, L4-009, L4-013/17/20, L5-008, L6-002) remain under existing dispositions." 0 CRITICAL; 9 NEW WARN (L2-020 missing FR-034/FR-035 for US-D2/D3, L2-021 review-delete AC gap for US-C3, L3-020 reviews service surface, L3-021 backlog service surface, L3-022 reviews deleted_at index, L3-024 4 missing PostHog backlog events, L4-019 orphan T094 header, L5-013 T100 cites non-existent analytics.ts, L6-004 EditReviewDialog not mounted) + 3 carry-forward WARN (L3-017, L4-009, L6-002); 6 NEW INFO (L1-001 backlog sort alternatives, L2-022 Review schema fields, L3-023 critic_seed_active flag drift, L4-018 + L5-012 opengraph-image.tsx never shipped, L4-020 helper Paths) + 4 carry-forward INFO (L2-019, L4-013, L4-017, L5-008). 0 RESOLVED. Sessions 15-16 ship is healthy (95/171 tasks; 592 pytest pass / 3 skip; 11 routes; 0 orphan files) — every NEW WARN is doc catch-up to shipped reality. 5 of 9 NEW WARNs land in plan.md (§3.1 reviews row + §6 reviews/backlog rows + §12.1 critic-seed + §15.2 PostHog table). 2 land in spec.md (FR-034 + FR-035 + US-C3 delete AC). 1 lands in tasks.md (orphan T094 header). 1 is a small frontend mount (L6-004 — surface EditReviewDialog on review-reading-view owner footer). Disposition: applied_split_with_override (pattern continuation from Runs #2-#8)." 0 CRITICAL; 5 NEW WARN (L3-019 plan /@handle drift, L4-014 task Paths /@handle, L4-015 albums sidecar contract, L5-007 projection of L4-014, L7-016 spec.md broken anchor) + 3 carry-forward WARN (L3-017, L4-009, L6-002); 7 NEW INFO (L3-018 wrong §16 ref, L4-016 T082 scope, L4-017/L5-008/L5-009/L5-010/L5-011 helper-Paths gaps) + 2 carry-forward INFO (L2-019, L4-013). 3 items RESOLVED since Run #7: L4-010, L4-011, L6-003 (T081 my-history.tsx shipped). 4 of 5 NEW WARNs are projections of the same Session 14 routing decision (/profile/[handle] vs /@[handle]) — single coordinated edit pass resolves L3-019/L4-014/L5-007 across plan.md (4 locations) + tasks.md (3 tasks) + impl-log.md (3 occurrences). L4-015 (albums sidecar) is a fresh API contract worth documenting before §8 reviews land. Sessions 13-14 themselves landed cleanly: 0 orphan files, every Must Have story (US-B1/B2/B3/B4/B5, US-E2, US-F1) has route + component + test evidence. Disposition: applied_split_with_override (pattern continuation from Runs #2-#7)."
   last_report_path: "sync-report.md"
