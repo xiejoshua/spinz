@@ -274,6 +274,20 @@ async def _resolve_relations(
     return relations
 
 
+async def _load_private_owner_ids(owner_ids: set[str]) -> set[str]:
+    """Return the subset of ``owner_ids`` whose User has ``private_profile=True``.
+
+    REV-002: rollup endpoints (album-detail public-reviews, friends list,
+    etc.) batch many distinct authors. Loading each author's
+    ``private_profile`` flag in one query keeps the per-review visibility
+    check O(1) without N+1 lookups.
+    """
+    if not owner_ids:
+        return set()
+    rows = await User.find({"_id": {"$in": list(owner_ids)}, "private_profile": True}).to_list()
+    return {row.id for row in rows}
+
+
 def _serialize_review(review: Review) -> dict[str, Any]:
     """Return the wire shape for a review."""
     return {
@@ -734,6 +748,12 @@ async def get_album_reviews(
     owner_ids = {review.user_id for review in reviews}
     relations = await _resolve_relations(viewer_id, owner_ids)
 
+    # REV-002: batch-load each author's ``private_profile`` flag so the
+    # visibility matrix can demote PUBLIC content authored by a private-
+    # profile user to FOLLOWERS scope. The fan-out is bounded by the
+    # already-bounded ``fetch_limit``; deduped on ``owner_id``.
+    private_owner_ids = await _load_private_owner_ids(owner_ids)
+
     # Visibility filter.
     visible: list[Review] = []
     for review in reviews:
@@ -742,7 +762,12 @@ async def get_album_reviews(
             review.user_id,
             ViewerRelation.ANONYMOUS if viewer_id is None else ViewerRelation.NOT_FOLLOWER,
         )
-        if can_read_with_relation(viewer, content, relation):
+        if can_read_with_relation(
+            viewer,
+            content,
+            relation,
+            owner_is_private=review.user_id in private_owner_ids,
+        ):
             visible.append(review)
 
     # Tier classification: friends + critic-seed owner-id sets.
@@ -973,7 +998,18 @@ async def get_review_by_id(review_id: str, request: Request) -> dict[str, Any]:
         review.user_id,
         ViewerRelation.ANONYMOUS if viewer_id is None else ViewerRelation.NOT_FOLLOWER,
     )
-    if not can_read_with_relation(viewer, _ReviewContent(review), relation):
+    # REV-002: load the author's ``private_profile`` flag so the matrix
+    # can demote PUBLIC content to FOLLOWERS scope when the author has
+    # gone private. The User row is also needed for the user-card
+    # payload below, so the lookup is reused.
+    author = await User.get(review.user_id)
+    author_is_private = author.private_profile if author is not None else False
+    if not can_read_with_relation(
+        viewer,
+        _ReviewContent(review),
+        relation,
+        owner_is_private=author_is_private,
+    ):
         # 404, not 403, to avoid leaking existence to non-readers.
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="review_not_found")
 
@@ -981,7 +1017,8 @@ async def get_review_by_id(review_id: str, request: Request) -> dict[str, Any]:
     if album is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="album_not_found")
 
-    user = await User.get(review.user_id)
+    # Reuse the lookup performed above for the visibility check.
+    user = author
 
     viewer_entry_payload: dict[str, Any] | None = None
     if viewer_id is not None:
@@ -1128,9 +1165,19 @@ async def get_user_reviews(
         ViewerRelation.ANONYMOUS if viewer_id is None else ViewerRelation.NOT_FOLLOWER,
     )
 
+    # REV-002: a private-profile target demotes PUBLIC content to
+    # FOLLOWERS scope so anonymous / non-follower viewers cannot read
+    # reviews authored by a user who flipped their profile private.
+    owner_is_private = target.private_profile
+
     visible: list[Review] = []
     for review in reviews:
-        if can_read_with_relation(viewer, _ReviewContent(review), relation):
+        if can_read_with_relation(
+            viewer,
+            _ReviewContent(review),
+            relation,
+            owner_is_private=owner_is_private,
+        ):
             visible.append(review)
 
     page = visible[:limit]

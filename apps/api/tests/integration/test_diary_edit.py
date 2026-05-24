@@ -29,17 +29,15 @@ from typing import Any
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
 
 from auxd_api import settings as settings_module
-from auxd_api.lib.sessions import Session
 from auxd_api.modules.albums.models import Album, AlbumSource
 from auxd_api.modules.diary.models import DiaryEntry, Visibility
 from auxd_api.modules.diary.routes import router as diary_router
 from auxd_api.modules.reviews.models import Review
+from tests.integration._auth_helpers import FakeAuthMiddleware
 
 
 def _b64(num_bytes: int) -> str:
@@ -64,25 +62,9 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterator[None]
     settings_module.get_settings.cache_clear()
 
 
-class _FakeAuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        user_id = request.headers.get("X-User-Id")
-        if user_id:
-            request.state.session = Session(
-                user_id=user_id,
-                csrf_token="test-csrf",
-                issued_at=0,
-                expires_at=int((datetime.now(UTC) + timedelta(days=1)).timestamp()),
-                session_version=1,
-            )
-        else:
-            request.state.session = None
-        return await call_next(request)
-
-
 def _make_app() -> FastAPI:
     app = FastAPI()
-    app.add_middleware(_FakeAuthMiddleware)
+    app.add_middleware(FakeAuthMiddleware)
     app.include_router(diary_router, prefix="/api/v1")
     return app
 
@@ -327,6 +309,13 @@ async def test_delete_double_delete_returns_410(_clean_env: None, _clean_db: Non
 
 @pytest.mark.asyncio
 async def test_delete_cascades_to_attached_review(_clean_env: None, _clean_db: None) -> None:
+    """REV-003: the cascade soft-deletes the review (deleted_at set).
+
+    Hard-delete was the old behaviour; it bypassed the 30-day restore
+    window and made review bodies irrecoverable. The cascade now mirrors
+    the diary entry's own soft-delete so the same restore path can
+    bring both back.
+    """
     album = _make_album()
     await album.insert()
     entry = await _make_entry(review_body="Cascades to /dev/null")
@@ -338,7 +327,148 @@ async def test_delete_cascades_to_attached_review(_clean_env: None, _clean_db: N
         headers={"X-User-Id": "user-casey"},
     )
     assert response.status_code == 204
-    assert await Review.get(review_id) is None
+    persisted_review = await Review.get(review_id)
+    assert persisted_review is not None  # soft-delete: row still exists
+    assert persisted_review.deleted_at is not None  # but flagged deleted
+
+
+@pytest.mark.asyncio
+async def test_restore_within_window_undeletes_cascaded_review(
+    _clean_env: None, _clean_db: None
+) -> None:
+    """REV-003: restore brings back BOTH the diary entry AND its review."""
+    album = _make_album()
+    await album.insert()
+    entry = await _make_entry(review_body="Recoverable opinion")
+    review_id = entry.review_id
+    assert review_id is not None
+    client = TestClient(_make_app())
+
+    delete_response = client.delete(
+        f"/api/v1/diary/entries/{entry.id}",
+        headers={"X-User-Id": "user-casey"},
+    )
+    assert delete_response.status_code == 204
+
+    # Both rows now soft-deleted.
+    deleted_entry = await DiaryEntry.get(entry.id)
+    assert deleted_entry is not None
+    assert deleted_entry.deleted_at is not None
+    deleted_review = await Review.get(review_id)
+    assert deleted_review is not None
+    assert deleted_review.deleted_at is not None
+
+    restore_response = client.post(
+        f"/api/v1/diary/entries/{entry.id}/restore",
+        headers={"X-User-Id": "user-casey"},
+    )
+    assert restore_response.status_code == 200, restore_response.text
+
+    restored_entry = await DiaryEntry.get(entry.id)
+    assert restored_entry is not None
+    assert restored_entry.deleted_at is None
+    restored_review = await Review.get(review_id)
+    assert restored_review is not None
+    assert restored_review.deleted_at is None
+    # The original review body survives the round-trip.
+    assert restored_review.body == "Recoverable opinion"
+
+
+@pytest.mark.asyncio
+async def test_restore_after_window_keeps_review_soft_deleted(
+    _clean_env: None, _clean_db: None
+) -> None:
+    """REV-003: restore outside the grace window fails; the review stays soft-deleted.
+
+    The 30-day cron sweep will eventually hard-delete both rows; in the
+    meantime the public read surface continues to hide them because the
+    soft-delete flags are set.
+    """
+    album = _make_album()
+    await album.insert()
+    entry = await _make_entry(review_body="Too late to recover")
+    review_id = entry.review_id
+    assert review_id is not None
+
+    # Simulate the cascade having fired 31 days ago (just outside the
+    # restore window).
+    old_when = datetime.now(UTC) - timedelta(days=31)
+    entry.deleted_at = old_when
+    await entry.save()
+    review = await Review.get(review_id)
+    assert review is not None
+    review.deleted_at = old_when
+    await review.save()
+
+    client = TestClient(_make_app())
+    restore_response = client.post(
+        f"/api/v1/diary/entries/{entry.id}/restore",
+        headers={"X-User-Id": "user-casey"},
+    )
+    assert restore_response.status_code == 410
+    assert restore_response.json()["detail"] == "restore_expired"
+
+    # Both rows remain soft-deleted (the cron sweep handles eventual hard-delete).
+    stale_entry = await DiaryEntry.get(entry.id)
+    assert stale_entry is not None
+    assert stale_entry.deleted_at is not None
+    stale_review = await Review.get(review_id)
+    assert stale_review is not None
+    assert stale_review.deleted_at is not None
+
+
+@pytest.mark.asyncio
+async def test_restore_does_not_resurrect_independently_deleted_review(
+    _clean_env: None, _clean_db: None
+) -> None:
+    """REV-003 caveat: a review the user deleted BEFORE the diary delete stays deleted.
+
+    The restore cascade only un-soft-deletes the review when its
+    ``deleted_at`` matches the diary entry's (i.e. it was the cascade
+    that flagged it). A review the user explicitly removed via
+    ``DELETE /reviews/{id}`` earlier — with a different deleted_at —
+    must NOT be silently brought back by a diary restore.
+    """
+    album = _make_album()
+    await album.insert()
+    entry = await _make_entry(review_body="Already removed by user")
+    review_id = entry.review_id
+    assert review_id is not None
+
+    review = await Review.get(review_id)
+    assert review is not None
+    # User deleted the review on its own first (e.g. via the review
+    # delete endpoint). Use a clearly-earlier timestamp so the diary
+    # restore cascade's same-instant heuristic ignores it.
+    review.deleted_at = datetime.now(UTC) - timedelta(hours=1)
+    await review.save()
+
+    client = TestClient(_make_app())
+    # Now soft-delete the diary entry. The cascade in delete_entry
+    # observes that the review is already soft-deleted (review.deleted_at
+    # is not None) and leaves it alone.
+    delete_response = client.delete(
+        f"/api/v1/diary/entries/{entry.id}",
+        headers={"X-User-Id": "user-casey"},
+    )
+    assert delete_response.status_code == 204
+
+    # Restore the diary entry.
+    restore_response = client.post(
+        f"/api/v1/diary/entries/{entry.id}/restore",
+        headers={"X-User-Id": "user-casey"},
+    )
+    assert restore_response.status_code == 200
+
+    # The diary entry is restored…
+    restored_entry = await DiaryEntry.get(entry.id)
+    assert restored_entry is not None
+    assert restored_entry.deleted_at is None
+    # …but the review the user previously deleted stays deleted (the
+    # cascade-restore heuristic only matches the same-instant case).
+    surviving_review = await Review.get(review_id)
+    assert surviving_review is not None
+    assert surviving_review.deleted_at is not None
 
 
 # ---------------------------------------------------------------------------

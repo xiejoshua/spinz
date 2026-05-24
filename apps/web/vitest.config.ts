@@ -4,6 +4,14 @@ import { defineConfig } from "vitest/config";
 // Unit-test config (Node env — no JSDom). The helpers we currently test
 // are pure functions over plain objects; if we add component tests later,
 // switch `environment` to "jsdom" and install @testing-library/react.
+//
+// REV-200 (Phase 6B code review): the `include` pattern is intentionally
+// scoped to `tests/unit/**` so Playwright (`tests/e2e/**`),
+// accessibility, and perf folders don't get picked up by vitest. A
+// developer who accidentally drops a `*.test.ts`/`*.test.tsx` file
+// outside `tests/unit/` would silently never have it run — `pnpm
+// lint:test-location` (wired into CI) catches that case by failing the
+// build when stray test files exist outside the include root.
 export default defineConfig({
   resolve: {
     alias: {
@@ -12,7 +20,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: ["tests/unit/**/*.test.ts"],
-    exclude: ["tests/e2e/**", "node_modules/**", ".next/**"],
+    include: ["tests/unit/**/*.test.ts", "tests/unit/**/*.test.tsx"],
+    exclude: ["tests/e2e/**", "tests/a11y/**", "tests/perf/**", "node_modules/**", ".next/**"],
   },
 });

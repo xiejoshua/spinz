@@ -423,6 +423,14 @@ async def delete_entry(*, entry_id: str, user_id: str) -> DiaryEntry:
     Idempotency: a double-delete raises :class:`DiaryEntryAlreadyDeletedError`
     so the route can emit HTTP 410. The hard-delete sweeper runs out of
     band (cron, not implemented here).
+
+    Cascade semantics (REV-002 / REV-003): the attached review is
+    *soft-deleted* (``Review.deleted_at = now``) rather than hard-
+    deleted, so :func:`restore_entry` can round-trip the diary entry
+    AND the review within the 30-day grace window. The 30-day hard-
+    delete cron sweep on ``Review.deleted_at`` (already configured via
+    the sparse ``ix_reviews_soft_delete_sweep`` index) handles eventual
+    cleanup of orphaned review rows.
     """
     entry = await DiaryEntry.get(entry_id)
     if entry is None:
@@ -439,18 +447,29 @@ async def delete_entry(*, entry_id: str, user_id: str) -> DiaryEntry:
 
     if entry.review_id is not None:
         review = await Review.get(entry.review_id)
-        if review is not None:
-            # Reviews don't have a deleted_at column today; the strongest
-            # cascade we can express without a schema change is to drop
-            # the row entirely. Album-detail / profile queries already
-            # filter via ``diary_entry.deleted_at IS None``, so the
-            # observable behaviour is the same as a soft-delete.
-            await review.delete()
+        if review is not None and review.deleted_at is None:
+            # Soft-delete the review so the diary's 30-day restore window
+            # can also restore the review body. The shared
+            # ``Review.deleted_at`` filter on the read surface keeps the
+            # observable behaviour identical to a hard-delete during the
+            # grace window.
+            review.deleted_at = now
+            review.updated_at = now
+            await review.save()
     return entry
 
 
 async def restore_entry(*, entry_id: str, user_id: str) -> DiaryEntry:
-    """Un-delete an entry within the 30-day grace window."""
+    """Un-delete an entry within the 30-day grace window.
+
+    Cascade semantics (REV-003): a review that was soft-deleted by
+    :func:`delete_entry` is restored alongside the diary entry — its
+    ``deleted_at`` is cleared so the public surface shows the review
+    again. A review that the user soft-deleted independently before
+    the diary delete (i.e. ``deleted_at < entry.deleted_at`` by more
+    than a trivial margin) is left alone; that case is handled by the
+    standalone ``reviews.restore_review`` endpoint instead.
+    """
     entry = await DiaryEntry.get(entry_id)
     if entry is None:
         raise DiaryEntryNotFoundError("entry not found")
@@ -475,4 +494,24 @@ async def restore_entry(*, entry_id: str, user_id: str) -> DiaryEntry:
     entry.deleted_at = None
     entry.updated_at = now
     await entry.save()
+
+    # Cascade-restore the attached review when it was soft-deleted at
+    # (or near) the same instant as the diary entry — i.e. by the
+    # delete_entry cascade above. Reviews that the user soft-deleted
+    # independently before this diary delete are intentionally left
+    # alone; the user's reviews.restore_review endpoint handles those.
+    if entry.review_id is not None:
+        review = await Review.get(entry.review_id)
+        if review is not None and review.deleted_at is not None:
+            review_deleted_at = review.deleted_at
+            if review_deleted_at.tzinfo is None:
+                review_deleted_at = review_deleted_at.replace(tzinfo=UTC)
+            # The cascade in ``delete_entry`` writes the review's
+            # ``deleted_at`` from the same ``now`` we used for the
+            # entry. A one-second tolerance absorbs any clock drift if
+            # delete_entry's wall-clock advances mid-call.
+            if abs((review_deleted_at - deleted_at).total_seconds()) <= 1:
+                review.deleted_at = None
+                review.updated_at = now
+                await review.save()
     return entry

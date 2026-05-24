@@ -52,6 +52,12 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Biome lint
         run: pnpm --filter @auxd/web lint
+      - name: Test-location guard (REV-200)
+        # Vitest's include pattern is scoped to tests/unit/**; this
+        # guard fails the build if a *.test.ts(x) file lands anywhere
+        # else (e.g. tests/integration/, src/) where vitest would
+        # silently skip it.
+        run: pnpm --filter @auxd/web lint:test-location
       - name: Type-check
         run: pnpm --filter @auxd/web typecheck
       - name: Unit tests (vitest)

@@ -21,22 +21,19 @@ import base64
 import io
 import secrets
 from collections.abc import AsyncIterator, Iterator
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from PIL import Image
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
 
 from auxd_api import settings as settings_module
 from auxd_api.lib import storage as storage_module
-from auxd_api.lib.sessions import Session
 from auxd_api.modules.users.models import User
 from auxd_api.modules.users.routes import router as users_router
+from tests.integration._auth_helpers import FakeAuthMiddleware
 
 
 def _b64(num_bytes: int) -> str:
@@ -65,27 +62,9 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterator[None]
     settings_module.get_settings.cache_clear()
 
 
-class _FakeAuthMiddleware(BaseHTTPMiddleware):
-    """Attach a :class:`Session` based on the ``X-User-Id`` header."""
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        user_id = request.headers.get("X-User-Id")
-        if user_id:
-            request.state.session = Session(
-                user_id=user_id,
-                csrf_token="test-csrf",
-                issued_at=0,
-                expires_at=int((datetime.now(UTC) + timedelta(days=1)).timestamp()),
-                session_version=1,
-            )
-        else:
-            request.state.session = None
-        return await call_next(request)
-
-
 def _make_app() -> FastAPI:
     app = FastAPI()
-    app.add_middleware(_FakeAuthMiddleware)
+    app.add_middleware(FakeAuthMiddleware)
     app.include_router(users_router, prefix="/api/v1")
     return app
 
@@ -261,3 +240,58 @@ async def test_avatar_rejects_corrupt_image(
     )
     assert response.status_code == 415
     assert response.json()["detail"]["error"] == "invalid_image"
+
+
+# ---------------------------------------------------------------------------
+# Rate limit (per-user 5/min)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_avatar_upload_rate_limit_boundary(
+    _clean_env: None,
+    _clean_db: None,
+    _stub_r2: _StubS3Client,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Per-user 5/min rate limit: 5 uploads succeed; 6th returns 429.
+
+    Mirrors the deterministic counter pattern from
+    :mod:`tests.integration.test_reports_endpoints` — we monkeypatch
+    :func:`auxd_api.lib.rate_limit._check_and_record` to return ``True``
+    while under budget and ``False`` once we cross the per-user limit.
+    Avoids any dependence on a real Redis (or fakeredis) instance for
+    the boundary check, which is what we actually care about: that the
+    decorator denies the 6th request with a 429.
+    """
+    from auxd_api.lib import rate_limit as rate_limit_module
+
+    state = {"count": 0}
+
+    async def _counting(*, bucket_key: str, limit: rate_limit_module.RateLimit) -> bool:
+        _ = bucket_key
+        state["count"] += 1
+        return state["count"] <= limit.limit
+
+    monkeypatch.setattr(rate_limit_module, "_check_and_record", _counting)
+
+    user = _make_user("user-alice", "alice")
+    await user.insert()
+    client = TestClient(_make_app())
+
+    # 5 successful POSTs back-to-back.
+    for i in range(5):
+        response = client.post(
+            "/api/v1/users/me/avatar",
+            files={"file": ("avatar.png", _make_image_bytes(), "image/png")},
+            headers={"X-User-Id": user.id},
+        )
+        assert response.status_code == 200, f"call {i}: {response.text}"
+
+    # 6th hits the rate limit.
+    response = client.post(
+        "/api/v1/users/me/avatar",
+        files={"file": ("avatar.png", _make_image_bytes(), "image/png")},
+        headers={"X-User-Id": user.id},
+    )
+    assert response.status_code == 429, response.text

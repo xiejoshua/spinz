@@ -15,20 +15,17 @@ from __future__ import annotations
 import base64
 import secrets
 from collections.abc import AsyncIterator, Iterator
-from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
 
 from auxd_api import settings as settings_module
-from auxd_api.lib.sessions import Session
 from auxd_api.modules.notifications.push_models import PushSubscription
 from auxd_api.modules.notifications.routes import router as notifications_router
+from tests.integration._auth_helpers import FakeAuthMiddleware
 
 
 def _b64(num_bytes: int) -> str:
@@ -48,27 +45,9 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterator[None]
     settings_module.get_settings.cache_clear()
 
 
-class _FakeAuthMiddleware(BaseHTTPMiddleware):
-    """Test-only auth bridge — sets ``request.state.session`` from a header."""
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        user_id = request.headers.get("X-User-Id")
-        if user_id:
-            request.state.session = Session(
-                user_id=user_id,
-                csrf_token="test-csrf",
-                issued_at=0,
-                expires_at=int((datetime.now(UTC) + timedelta(days=1)).timestamp()),
-                session_version=1,
-            )
-        else:
-            request.state.session = None
-        return await call_next(request)
-
-
 def _make_app() -> FastAPI:
     app = FastAPI()
-    app.add_middleware(_FakeAuthMiddleware)
+    app.add_middleware(FakeAuthMiddleware)
     app.include_router(notifications_router, prefix="/api/v1")
     return app
 

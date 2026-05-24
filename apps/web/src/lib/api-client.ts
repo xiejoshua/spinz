@@ -122,6 +122,40 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
   return (await response.json()) as T;
 }
 
+/**
+ * REV-100 — multipart POST helper. The avatar upload sends `FormData`,
+ * not JSON, so it can't go through {@link apiFetch} (which always
+ * stringifies the body and sets `Content-Type: application/json`).
+ * This helper mirrors apiFetch's CSRF wiring (cookie → `X-CSRF-Token`
+ * header) so multipart writes are protected by the same double-submit
+ * defence T173 added for JSON writes. Importantly, we do **not** set
+ * `Content-Type` — the browser must set it itself so the multipart
+ * boundary parameter is included.
+ *
+ * Callers handle their own response parsing (avatar mutation needs the
+ * `Response` for both success JSON and error JSON shapes).
+ */
+export async function apiFetchMultipart(
+  path: string,
+  formData: FormData,
+  init?: RequestInit
+): Promise<Response> {
+  const headers = new Headers(init?.headers);
+  const csrfToken = readCsrfToken();
+  if (csrfToken) {
+    headers.set(CSRF_HEADER_NAME, csrfToken);
+  }
+  // Intentionally do NOT set Content-Type — the browser sets it to
+  // `multipart/form-data; boundary=...` when the body is a FormData.
+  return fetch(path, {
+    ...init,
+    method: "POST",
+    headers,
+    body: formData,
+    credentials: "include",
+  });
+}
+
 export const apiClient = {
   get: <T>(path: string, options?: Omit<FetchOptions, "method" | "body">) =>
     apiFetch<T>(path, { ...options, method: "GET" }),

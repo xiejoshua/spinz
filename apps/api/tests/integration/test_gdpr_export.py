@@ -28,13 +28,10 @@ from typing import Any
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
 
 from auxd_api import settings as settings_module
-from auxd_api.lib.sessions import Session
 from auxd_api.modules.albums.models import Album, AlbumSource
 from auxd_api.modules.diary.models import DiaryEntry
 from auxd_api.modules.gdpr.models import GdprAuditAction, GdprAuditLog
@@ -42,6 +39,7 @@ from auxd_api.modules.users.models import User
 from auxd_api.modules.users.routes import router as users_router
 from auxd_api.workers import gdpr_export as export_module
 from auxd_api.workers.gdpr_export import generate_user_data_export
+from tests.integration._auth_helpers import FakeAuthMiddleware
 
 
 def _b64(num_bytes: int) -> str:
@@ -74,27 +72,9 @@ async def _clean_db() -> AsyncIterator[None]:
     await GdprAuditLog.delete_all()
 
 
-class _FakeAuthMiddleware(BaseHTTPMiddleware):
-    """Forge a Session from the ``X-User-Id`` header for endpoint tests."""
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        user_id = request.headers.get("X-User-Id")
-        if user_id:
-            request.state.session = Session(
-                user_id=user_id,
-                csrf_token="test-csrf",
-                issued_at=0,
-                expires_at=int(datetime.now(UTC).timestamp()) + 3600,
-                session_version=1,
-            )
-        else:
-            request.state.session = None
-        return await call_next(request)
-
-
 def _make_app() -> FastAPI:
     app = FastAPI()
-    app.add_middleware(_FakeAuthMiddleware)
+    app.add_middleware(FakeAuthMiddleware)
     app.include_router(users_router, prefix="/api/v1")
     return app
 

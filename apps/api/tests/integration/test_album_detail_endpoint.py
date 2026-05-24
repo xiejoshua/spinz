@@ -25,18 +25,16 @@ from typing import Any
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
 
 from auxd_api import settings as settings_module
-from auxd_api.lib.sessions import Session
 from auxd_api.modules.albums.models import Album, AlbumSource
 from auxd_api.modules.albums.routes import router as albums_router
 from auxd_api.modules.diary.models import DiaryEntry, Visibility
 from auxd_api.modules.reviews.models import Review, ReviewLike
 from auxd_api.modules.social.models import Follow, FollowState
+from tests.integration._auth_helpers import FakeAuthMiddleware
 
 MBID = "b1392450-e666-3926-a536-22c65f834433"
 
@@ -64,32 +62,9 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterator[None]
     settings_module.get_settings.cache_clear()
 
 
-class _FakeAuthMiddleware(BaseHTTPMiddleware):
-    """Attach a :class:`Session` to ``request.state.session`` based on an X-User-Id header.
-
-    Avoids cookie + HMAC plumbing for the visibility-matrix tests — the
-    visibility logic doesn't care HOW the session got there, only that
-    it's typed correctly.
-    """
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        user_id = request.headers.get("X-User-Id")
-        if user_id:
-            request.state.session = Session(
-                user_id=user_id,
-                csrf_token="test-csrf",
-                issued_at=0,
-                expires_at=int((datetime.now(UTC) + timedelta(days=1)).timestamp()),
-                session_version=1,
-            )
-        else:
-            request.state.session = None
-        return await call_next(request)
-
-
 def _make_app() -> FastAPI:
     app = FastAPI()
-    app.add_middleware(_FakeAuthMiddleware)
+    app.add_middleware(FakeAuthMiddleware)
     app.include_router(albums_router, prefix="/api/v1")
     return app
 

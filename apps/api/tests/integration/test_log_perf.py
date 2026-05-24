@@ -7,7 +7,7 @@ budgeted at <500 ms p95. This module guards the backend half — it drives
 across N trials and asserts the p95 server-side commit time is under
 budget.
 
-The test uses the same ``_FakeAuthMiddleware`` pattern as
+The test uses the same ``FakeAuthMiddleware`` pattern as
 ``test_diary_logging.py`` so it doesn't depend on the cookie / HMAC
 round-trip. Network / TLS / Vercel cold-start overhead are covered by
 the frontend Playwright spec in ``apps/web/tests/e2e/log-wedge.spec.ts``
@@ -30,18 +30,16 @@ from typing import Any
 
 import pytest
 import pytest_asyncio
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
-from starlette.responses import Response
 
 from auxd_api import settings as settings_module
-from auxd_api.lib.sessions import Session
 from auxd_api.modules.albums.models import Album, AlbumSource
 from auxd_api.modules.diary.models import DiaryEntry
 from auxd_api.modules.diary.routes import router as diary_router
 from auxd_api.modules.reviews.models import Review
 from auxd_api.modules.users.models import User
+from tests.integration._auth_helpers import FakeAuthMiddleware
 
 TRIALS = 10
 # Generous in-process budget — the real spec target is <500 ms p95 over
@@ -72,27 +70,9 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> Iterator[None]
     settings_module.get_settings.cache_clear()
 
 
-class _FakeAuthMiddleware(BaseHTTPMiddleware):
-    """Attach a :class:`Session` based on the ``X-User-Id`` header."""
-
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        user_id = request.headers.get("X-User-Id")
-        if user_id:
-            request.state.session = Session(
-                user_id=user_id,
-                csrf_token="test-csrf",
-                issued_at=0,
-                expires_at=int((datetime.now(UTC) + timedelta(days=1)).timestamp()),
-                session_version=1,
-            )
-        else:
-            request.state.session = None
-        return await call_next(request)
-
-
 def _make_app() -> FastAPI:
     app = FastAPI()
-    app.add_middleware(_FakeAuthMiddleware)
+    app.add_middleware(FakeAuthMiddleware)
     app.include_router(diary_router, prefix="/api/v1")
     return app
 

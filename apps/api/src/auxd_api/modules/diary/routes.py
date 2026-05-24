@@ -513,6 +513,12 @@ async def get_user_diary(
     # Visibility filter — for the owner this is a no-op (every row is
     # readable). For other viewers we resolve relations in a single
     # batch and use the matrix.
+    #
+    # ``owner_is_private`` (REV-002): when the profile owner has
+    # ``private_profile=True``, the matrix demotes PUBLIC entries to
+    # FOLLOWERS scope so non-followers and anonymous viewers cannot
+    # read content authored by a user who flipped their profile
+    # private.
     visible_entries: list[DiaryEntry] = []
     if viewer_id is not None and viewer_id == target.id:
         visible_entries = list(rows)
@@ -525,7 +531,12 @@ async def get_user_diary(
                 row.user_id,
                 ViewerRelation.ANONYMOUS if viewer_id is None else ViewerRelation.NOT_FOLLOWER,
             )
-            if can_read_with_relation(viewer, content, relation):
+            if can_read_with_relation(
+                viewer,
+                content,
+                relation,
+                owner_is_private=target.private_profile,
+            ):
                 visible_entries.append(row)
 
     next_cursor: str | None = None

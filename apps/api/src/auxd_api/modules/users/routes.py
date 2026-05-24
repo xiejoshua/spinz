@@ -429,8 +429,8 @@ async def get_user_profile(handle: str, request: Request) -> dict[str, Any]:
             else:
                 pending = await FollowRequest.find_one(
                     {
-                        "follower_id": viewer_id,
-                        "followee_id": target.id,
+                        "requester_id": viewer_id,
+                        "requestee_id": target.id,
                         "status": FollowRequestStatus.PENDING.value,
                     }
                 )

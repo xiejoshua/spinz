@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { apiFetch, isAccountSuspendedDetail } from "@/lib/api-client";
+import { apiFetch, apiFetchMultipart, isAccountSuspendedDetail } from "@/lib/api-client";
 
 describe("isAccountSuspendedDetail (T159)", () => {
   it("returns true when detail carries the canonical account_suspended marker", () => {
@@ -63,5 +63,60 @@ describe("apiFetch CSRF wiring (T173 security review)", () => {
     await apiFetch("/api/v1/diary", { method: "POST", body: { id: "x" } });
     const init = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1] as RequestInit;
     expect((init.headers as Record<string, string>)["X-CSRF-Token"]).toBeUndefined();
+  });
+});
+
+describe("apiFetchMultipart CSRF wiring (REV-100)", () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ avatar_url: "x", sizes: {} }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          })
+      )
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it("lifts auxd_csrf cookie into the X-CSRF-Token header", async () => {
+    vi.stubGlobal("document", { cookie: "auxd_csrf=multipart-token; auxd_session=opaque" });
+    const fd = new FormData();
+    fd.append("file", new Blob(["fake"], { type: "image/png" }), "avatar.png");
+    await apiFetchMultipart("/api/v1/users/me/avatar", fd);
+    const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const init = call[1] as RequestInit;
+    const headers = init.headers as Headers;
+    expect(headers.get("X-CSRF-Token")).toBe("multipart-token");
+  });
+
+  it("does NOT set Content-Type (browser sets it with the multipart boundary)", async () => {
+    vi.stubGlobal("document", { cookie: "auxd_csrf=multipart-token" });
+    const fd = new FormData();
+    fd.append("file", new Blob(["fake"], { type: "image/png" }), "avatar.png");
+    await apiFetchMultipart("/api/v1/users/me/avatar", fd);
+    const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const init = call[1] as RequestInit;
+    const headers = init.headers as Headers;
+    expect(headers.get("Content-Type")).toBeNull();
+  });
+
+  it("calls fetch with method=POST and credentials=include", async () => {
+    vi.stubGlobal("document", { cookie: "" });
+    const fd = new FormData();
+    fd.append("file", new Blob(["fake"], { type: "image/png" }), "avatar.png");
+    await apiFetchMultipart("/api/v1/users/me/avatar", fd);
+    const call = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(call[0]).toBe("/api/v1/users/me/avatar");
+    const init = call[1] as RequestInit;
+    expect(init.method).toBe("POST");
+    expect(init.credentials).toBe("include");
+    expect(init.body).toBe(fd);
   });
 });

@@ -43,6 +43,7 @@ from auxd_api.modules.diary.models import DiaryEntry
 from auxd_api.modules.diary.models import Visibility as DiaryVisibility
 from auxd_api.modules.reviews.models import Review
 from auxd_api.modules.social.models import Block, Follow, FollowState
+from auxd_api.modules.users.models import User
 
 router = APIRouter(prefix="/albums", tags=["albums"])
 
@@ -182,6 +183,8 @@ def _filter_visible(
     viewer: Viewer | None,
     items: Iterable[tuple[OwnedContent, Any]],
     relations: dict[str, ViewerRelation],
+    *,
+    private_owner_ids: frozenset[str] = frozenset(),
 ) -> list[Any]:
     """Apply :func:`can_read_with_relation` to ``(content, payload)`` pairs.
 
@@ -189,6 +192,10 @@ def _filter_visible(
     typically the diary/review document itself. We split the access-
     control bookkeeping from the payload shape so this helper stays
     payload-agnostic.
+
+    ``private_owner_ids`` (REV-002): the set of owner ids whose User has
+    ``private_profile=True``. When present, the matrix demotes PUBLIC
+    content from those owners to FOLLOWERS scope.
     """
     kept: list[Any] = []
     for content, payload in items:
@@ -196,9 +203,28 @@ def _filter_visible(
             content.owner_id,
             ViewerRelation.ANONYMOUS if viewer is None else ViewerRelation.NOT_FOLLOWER,
         )
-        if can_read_with_relation(viewer, content, relation):
+        if can_read_with_relation(
+            viewer,
+            content,
+            relation,
+            owner_is_private=content.owner_id in private_owner_ids,
+        ):
             kept.append(payload)
     return kept
+
+
+async def _load_private_owner_ids(owner_ids: set[str]) -> frozenset[str]:
+    """Return the subset of ``owner_ids`` whose User has ``private_profile=True``.
+
+    REV-002: rollup endpoints (album-detail friends + public_reviews)
+    batch many distinct authors. Loading each author's
+    ``private_profile`` flag in one indexed query keeps the per-row
+    visibility check O(1) without N+1 lookups.
+    """
+    if not owner_ids:
+        return frozenset()
+    rows = await User.find({"_id": {"$in": list(owner_ids)}, "private_profile": True}).to_list()
+    return frozenset(row.id for row in rows)
 
 
 def _serialize_album(album: Album) -> dict[str, Any]:
@@ -331,8 +357,13 @@ async def get_album_detail(album_id: str, request: Request) -> dict[str, Any]:
         )
         owner_ids = {entry.user_id for entry in friend_entries}
         relations = await _resolve_relations(viewer_id, owner_ids)
+        # REV-002: gate PUBLIC entries from private-profile authors so
+        # they only surface to followers / owner.
+        private_owner_ids = await _load_private_owner_ids(owner_ids)
         items = [(_DiaryContent(entry), _serialize_diary(entry)) for entry in friend_entries]
-        friends_payload = _filter_visible(viewer, items, relations)
+        friends_payload = _filter_visible(
+            viewer, items, relations, private_owner_ids=private_owner_ids
+        )
 
     # Public reviews — top by like count. Anonymous viewers see only
     # public-visibility reviews; logged-in viewers additionally see
@@ -349,10 +380,16 @@ async def get_album_detail(album_id: str, request: Request) -> dict[str, Any]:
         review_relations = await _resolve_relations(viewer_id, review_owner_ids)
     else:
         review_relations = {owner: ViewerRelation.ANONYMOUS for owner in review_owner_ids}
+    # REV-002: the same private-profile demotion applies here so a
+    # private-profile user's PUBLIC reviews don't leak via the album-
+    # detail public_reviews rollup.
+    review_private_owner_ids = await _load_private_owner_ids(review_owner_ids)
     review_items = [
         (_ReviewContent(review), _serialize_review(review)) for review in public_review_rows
     ]
-    public_reviews_payload = _filter_visible(viewer, review_items, review_relations)
+    public_reviews_payload = _filter_visible(
+        viewer, review_items, review_relations, private_owner_ids=review_private_owner_ids
+    )
 
     # Final response — every list is bounded by its limit constant above.
     return {

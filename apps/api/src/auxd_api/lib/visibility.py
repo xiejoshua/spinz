@@ -31,6 +31,14 @@ active         PRIVATE      FOLLOWER / NOT_FOLLOWER / ANONYMOUS           False
 Block symmetry is intentional: a viewer who has blocked the owner does not see
 the owner's content either. This matches the product spec's "mutual hide" rule
 and prevents stale impressions of someone the viewer has chosen to exclude.
+
+Private profile (US-G2 / sync-fix REV-002): when the content's owner has
+``private_profile=True``, the matrix demotes ``PUBLIC`` to ``FOLLOWERS`` —
+i.e. non-followers (including anonymous viewers) cannot read PUBLIC content
+authored by a private-profile user. This honours the spec's "non-followers
+cannot see my content even when an individual entry is marked public"
+contract. The owner and followers remain unaffected; ``FOLLOWERS`` and
+``PRIVATE`` content are already gated and need no demotion.
 """
 
 from __future__ import annotations
@@ -106,6 +114,8 @@ def can_read_with_relation(
     viewer: Viewer | None,
     content: OwnedContent,
     relation: ViewerRelation,
+    *,
+    owner_is_private: bool = False,
 ) -> bool:
     """Return whether ``viewer`` may read ``content`` given a pre-computed relation.
 
@@ -117,6 +127,13 @@ def can_read_with_relation(
         viewer: Authenticated viewer, or ``None`` for anonymous.
         content: The content being accessed.
         relation: Pre-computed viewer-to-owner relationship.
+        owner_is_private: When ``True``, the content owner has flipped
+            ``User.private_profile=True`` (US-G2 / sync-fix REV-002). This
+            demotes ``Visibility.PUBLIC`` content to ``FOLLOWERS`` scope so
+            non-followers (including anonymous viewers) cannot read it.
+            Defaults to ``False`` so non-User contexts (e.g., the catalog
+            ``Album`` document, which has no profile-privacy concept) keep
+            their pre-existing behaviour.
 
     Returns:
         ``True`` iff the viewer is permitted to read this content.
@@ -135,10 +152,20 @@ def can_read_with_relation(
     if relation in (ViewerRelation.BLOCKED, ViewerRelation.BLOCKER):
         return False
 
-    if content.visibility is Visibility.PUBLIC:
+    # Private-profile demotion (US-G2): treat PUBLIC as FOLLOWERS when the
+    # owner has marked their profile private. The owner short-circuits via
+    # the OWNER relation branch below; followers still see the content via
+    # the FOLLOWERS branch; non-followers and anonymous viewers are blocked.
+    effective_visibility = (
+        Visibility.FOLLOWERS
+        if (owner_is_private and content.visibility is Visibility.PUBLIC)
+        else content.visibility
+    )
+
+    if effective_visibility is Visibility.PUBLIC:
         return True
 
-    if content.visibility is Visibility.FOLLOWERS:
+    if effective_visibility is Visibility.FOLLOWERS:
         return relation in (ViewerRelation.OWNER, ViewerRelation.FOLLOWER)
 
     # PRIVATE: owner only.
@@ -150,6 +177,7 @@ async def can_read(
     content: OwnedContent,
     *,
     relation_resolver: RelationResolver | None = None,
+    owner_is_private: bool = False,
 ) -> bool:
     """Return whether ``viewer`` may read ``content``, resolving relation on demand.
 
@@ -171,23 +199,43 @@ async def can_read(
         content: The content being accessed.
         relation_resolver: Async callable ``(viewer, owner_id) -> ViewerRelation``.
             Optional for cases the policy can answer without it.
+        owner_is_private: See :func:`can_read_with_relation`. When ``True``,
+            public content is demoted to followers-only scope so a private-
+            profile user's old PUBLIC entries do not leak to non-followers.
+            The public-content fast-path skips resolver invocation only when
+            this flag is ``False``; otherwise the resolver IS consulted so
+            the matrix can distinguish FOLLOWER from NOT_FOLLOWER.
 
     Returns:
         ``True`` iff the viewer is permitted to read this content.
     """
     if viewer is None:
-        return can_read_with_relation(None, content, ViewerRelation.ANONYMOUS)
+        return can_read_with_relation(
+            None,
+            content,
+            ViewerRelation.ANONYMOUS,
+            owner_is_private=owner_is_private,
+        )
 
     # Owner short-circuit avoids any resolver call when the viewer simply
     # is the owner — common case for "my drafts" / "my deleted post" views.
     if viewer.id == content.owner_id:
-        return can_read_with_relation(viewer, content, ViewerRelation.OWNER)
+        return can_read_with_relation(
+            viewer,
+            content,
+            ViewerRelation.OWNER,
+            owner_is_private=owner_is_private,
+        )
 
-    # Active public content is readable by any non-blocked viewer. But we
-    # still must consult the resolver to honour mutual blocks. However, for
-    # anonymous viewers we already returned above, and for logged-in viewers
-    # the resolver tells us whether blocks apply.
-    if content.deleted_at is None and content.visibility is Visibility.PUBLIC:
+    # Active public content is readable by any non-blocked viewer when the
+    # owner is NOT private. When the owner IS private, we must consult the
+    # resolver to distinguish followers from non-followers (the demotion
+    # rule turns PUBLIC into FOLLOWERS).
+    if (
+        content.deleted_at is None
+        and content.visibility is Visibility.PUBLIC
+        and not owner_is_private
+    ):
         if relation_resolver is None:
             # No resolver means we cannot detect a block; in the absence of
             # the resolver, the safe assumption for *public* content is that
@@ -195,17 +243,17 @@ async def can_read(
             # asking the simple "is this publicly readable" question).
             return True
         relation = await relation_resolver(viewer, content.owner_id)
-        return can_read_with_relation(viewer, content, relation)
+        return can_read_with_relation(viewer, content, relation, owner_is_private=owner_is_private)
 
-    # Anything else (followers-only, private, or any deleted non-owner case)
-    # genuinely needs the relation to decide.
+    # Anything else (followers-only, private, owner-is-private public,
+    # or any deleted non-owner case) genuinely needs the relation to decide.
     if relation_resolver is None:
         # Conservative default: without a way to verify follow / block state,
         # do not grant access to non-public content.
         return False
 
     relation = await relation_resolver(viewer, content.owner_id)
-    return can_read_with_relation(viewer, content, relation)
+    return can_read_with_relation(viewer, content, relation, owner_is_private=owner_is_private)
 
 
 __all__ = [

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ApiError, apiClient } from "@/lib/api-client";
+import { ApiError, apiClient, apiFetchMultipart } from "@/lib/api-client";
 import { setApiFormErrors, zodResolver } from "@/lib/forms";
 import { capture } from "@/lib/posthog";
 import { useAuthStore } from "@/stores/auth";
@@ -89,11 +89,9 @@ export function EditProfileForm() {
     mutationFn: async (file: File) => {
       const body = new FormData();
       body.append("file", file);
-      const response = await fetch("/api/v1/users/me/avatar", {
-        method: "POST",
-        body,
-        credentials: "include",
-      });
+      // REV-100 — multipart writes need the same X-CSRF-Token double-submit
+      // header as JSON writes; apiFetchMultipart lifts the cookie for us.
+      const response = await apiFetchMultipart("/api/v1/users/me/avatar", body);
       if (!response.ok) {
         let detail: unknown;
         try {

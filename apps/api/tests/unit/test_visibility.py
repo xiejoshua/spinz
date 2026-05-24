@@ -407,6 +407,153 @@ async def test_can_read_deleted_hidden_from_non_owner_no_resolver() -> None:
 
 
 # --------------------------------------------------------------------------- #
+# REV-002: ``owner_is_private`` demotes PUBLIC content to FOLLOWERS scope
+# --------------------------------------------------------------------------- #
+
+
+def test_private_owner_demotes_public_to_followers_for_anonymous() -> None:
+    """Private-profile owner: PUBLIC content is hidden from anonymous viewers."""
+    content = FakeContent(owner_id="u_owner", visibility=Visibility.PUBLIC)
+    assert (
+        can_read_with_relation(
+            None,
+            content,
+            ViewerRelation.ANONYMOUS,
+            owner_is_private=True,
+        )
+        is False
+    )
+
+
+def test_private_owner_demotes_public_to_followers_for_not_follower() -> None:
+    """Private-profile owner: PUBLIC content is hidden from non-followers."""
+    viewer = FakeViewer(id="u_viewer")
+    content = FakeContent(owner_id="u_owner", visibility=Visibility.PUBLIC)
+    assert (
+        can_read_with_relation(
+            viewer,
+            content,
+            ViewerRelation.NOT_FOLLOWER,
+            owner_is_private=True,
+        )
+        is False
+    )
+
+
+def test_private_owner_allows_follower_to_see_public_content() -> None:
+    """Private-profile owner: followers still see PUBLIC content via the demotion."""
+    viewer = FakeViewer(id="u_viewer")
+    content = FakeContent(owner_id="u_owner", visibility=Visibility.PUBLIC)
+    assert (
+        can_read_with_relation(
+            viewer,
+            content,
+            ViewerRelation.FOLLOWER,
+            owner_is_private=True,
+        )
+        is True
+    )
+
+
+def test_private_owner_allows_owner_to_see_own_public_content() -> None:
+    """Private-profile owner: the owner always sees their own PUBLIC content."""
+    viewer = FakeViewer(id="u_owner")
+    content = FakeContent(owner_id="u_owner", visibility=Visibility.PUBLIC)
+    assert (
+        can_read_with_relation(
+            viewer,
+            content,
+            ViewerRelation.OWNER,
+            owner_is_private=True,
+        )
+        is True
+    )
+
+
+@pytest.mark.parametrize(
+    "relation",
+    [
+        ViewerRelation.OWNER,
+        ViewerRelation.FOLLOWER,
+        ViewerRelation.NOT_FOLLOWER,
+        ViewerRelation.ANONYMOUS,
+    ],
+)
+def test_private_owner_default_false_preserves_public_visibility(
+    relation: ViewerRelation,
+) -> None:
+    """Default ``owner_is_private=False`` keeps the non-User behaviour unchanged."""
+    viewer: Viewer | None = (
+        None if relation is ViewerRelation.ANONYMOUS else FakeViewer(id="u_viewer")
+    )
+    owner_id = "u_viewer" if relation is ViewerRelation.OWNER else "u_owner"
+    content = FakeContent(owner_id=owner_id, visibility=Visibility.PUBLIC)
+    # Without the flag set, PUBLIC remains PUBLIC for all relations.
+    assert can_read_with_relation(viewer, content, relation) is True
+
+
+@pytest.mark.parametrize(
+    "visibility,relation,expected",
+    [
+        # FOLLOWERS content with a non-follower stays hidden whether the
+        # owner is private or not — demotion is a no-op here.
+        (Visibility.FOLLOWERS, ViewerRelation.NOT_FOLLOWER, False),
+        # PRIVATE content with a follower stays hidden — demotion is also
+        # a no-op (PRIVATE is owner-only regardless).
+        (Visibility.PRIVATE, ViewerRelation.FOLLOWER, False),
+    ],
+)
+def test_private_owner_does_not_relax_non_public_visibility(
+    visibility: Visibility,
+    relation: ViewerRelation,
+    expected: bool,
+) -> None:
+    """Demotion only applies to PUBLIC; non-PUBLIC visibilities are unchanged."""
+    viewer = FakeViewer(id="u_viewer")
+    content = FakeContent(owner_id="u_owner", visibility=visibility)
+    assert can_read_with_relation(viewer, content, relation, owner_is_private=True) is expected
+
+
+def test_private_owner_blocked_relation_still_hidden() -> None:
+    """Block edges still take priority over the demotion rule."""
+    viewer = FakeViewer(id="u_viewer")
+    content = FakeContent(owner_id="u_owner", visibility=Visibility.PUBLIC)
+    assert (
+        can_read_with_relation(
+            viewer,
+            content,
+            ViewerRelation.BLOCKED,
+            owner_is_private=True,
+        )
+        is False
+    )
+
+
+async def test_can_read_private_owner_anonymous_returns_false_for_public() -> None:
+    """Async wrapper: anonymous viewer + private owner + PUBLIC content → False."""
+    content = FakeContent(owner_id="u_owner", visibility=Visibility.PUBLIC)
+    assert (
+        await can_read(
+            None,
+            content,
+            relation_resolver=None,
+            owner_is_private=True,
+        )
+        is False
+    )
+
+
+async def test_can_read_private_owner_consults_resolver_for_public() -> None:
+    """Async wrapper: private owner forces a resolver call even for PUBLIC content."""
+    resolver = CountingResolver(ViewerRelation.NOT_FOLLOWER)
+    viewer = FakeViewer(id="u_viewer")
+    content = FakeContent(owner_id="u_owner", visibility=Visibility.PUBLIC)
+    result = await can_read(viewer, content, relation_resolver=resolver, owner_is_private=True)
+    assert result is False
+    assert resolver.calls == [("u_viewer", "u_owner")]
+
+
+# --------------------------------------------------------------------------- #
 # Enum sanity
 # --------------------------------------------------------------------------- #
 

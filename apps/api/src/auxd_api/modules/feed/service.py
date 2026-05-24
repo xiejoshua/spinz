@@ -255,6 +255,20 @@ async def _resolve_relations(
     return relations
 
 
+async def _load_private_owner_ids(owner_ids: set[str]) -> frozenset[str]:
+    """Return the subset of ``owner_ids`` whose User has ``private_profile=True``.
+
+    REV-002: the feed surfaces PUBLIC content from many distinct authors
+    (followed users + critic-seed padding). Loading each author's
+    ``private_profile`` flag in one indexed query keeps the per-row
+    visibility check O(1) without N+1 lookups.
+    """
+    if not owner_ids:
+        return frozenset()
+    rows = await User.find({"_id": {"$in": list(owner_ids)}, "private_profile": True}).to_list()
+    return frozenset(row.id for row in rows)
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
@@ -305,12 +319,24 @@ async def list_friends_who_rated(
     viewer = _Viewer(viewer_id)
     owner_ids = {entry.user_id for entry in entries}
     relations = await _resolve_relations(viewer_id, owner_ids)
+    # REV-002: PUBLIC entries from private-profile authors are demoted
+    # to FOLLOWERS scope. The viewer is a follower of every author in
+    # this set by construction, so the demotion is rarely load-bearing
+    # here — but passing the flag keeps behaviour consistent with the
+    # rest of the visibility matrix and protects against future paths
+    # that don't pre-filter on Follow rows.
+    private_owner_ids = await _load_private_owner_ids(owner_ids)
 
     visible: list[DiaryEntry] = []
     for entry in entries:
         content: OwnedContent = _DiaryContent(entry)
         relation = relations.get(entry.user_id, ViewerRelation.NOT_FOLLOWER)
-        if can_read_with_relation(viewer, content, relation):
+        if can_read_with_relation(
+            viewer,
+            content,
+            relation,
+            owner_is_private=entry.user_id in private_owner_ids,
+        ):
             visible.append(entry)
 
     if not visible:
@@ -668,14 +694,25 @@ async def build_home_feed(
     # Visibility filter via the relation matrix (handles block + private +
     # follower-only edges; the DB filter above already pre-dropped the
     # private-visibility rows).
+    #
+    # REV-002: a private-profile critic seed surfaces public entries to
+    # all viewers via the padding path; we demote those to FOLLOWERS
+    # scope so the private-profile contract is honoured even in the
+    # critic-seed padding edge case.
     viewer = _Viewer(viewer_id)
     owner_ids = {entry.user_id for entry in raw_entries}
     relations = await _resolve_relations(viewer_id, owner_ids)
+    private_owner_ids = await _load_private_owner_ids(owner_ids)
     visible: list[DiaryEntry] = []
     for entry in raw_entries:
         content: OwnedContent = _DiaryContent(entry)
         relation = relations.get(entry.user_id, ViewerRelation.NOT_FOLLOWER)
-        if can_read_with_relation(viewer, content, relation):
+        if can_read_with_relation(
+            viewer,
+            content,
+            relation,
+            owner_is_private=entry.user_id in private_owner_ids,
+        ):
             visible.append(entry)
 
     # Critic-seed padding — if the visible set is thin, pull recent
@@ -698,7 +735,16 @@ async def build_home_feed(
                 .limit(fetch_limit)
                 .to_list()
             )
+            # REV-002: a private-profile critic seed authoring PUBLIC
+            # entries must NOT leak to non-follower viewers via the
+            # padding path. Drop padded rows from private-profile
+            # authors here so they never enter ``visible``.
+            padded_private_owner_ids = await _load_private_owner_ids(
+                {entry.user_id for entry in padded_rows}
+            )
             for entry in padded_rows:
+                if entry.user_id in padded_private_owner_ids:
+                    continue
                 # Mark for tagging in score_components below.
                 padding_entry_ids.add(entry.id)
                 visible.append(entry)
