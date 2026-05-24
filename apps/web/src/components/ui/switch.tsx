@@ -18,6 +18,14 @@ export type SwitchProps = {
 /**
  * Adapter — maps shadcn's `checked` / `onCheckedChange` to HeroUI's
  * React Aria `isSelected` / `onChange`.
+ *
+ * HeroUI Switch is compound: the parent <Switch> is just the
+ * accessible label wrapper; the visible track + thumb must be
+ * rendered as <Switch.Control><Switch.Thumb /></Switch.Control>
+ * children. Without those children the element renders as a 0×0
+ * focusable span — which is exactly what was happening to the
+ * notifications toggles ("don't have checkboxes" = no visible
+ * control at all).
  */
 export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
   ({ checked, onCheckedChange, disabled, className, ...rest }, ref) => {
@@ -30,7 +38,11 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
         isDisabled={disabled}
         className={cn(className)}
         {...rest}
-      />
+      >
+        <HeroSwitch.Control>
+          <HeroSwitch.Thumb />
+        </HeroSwitch.Control>
+      </HeroSwitch>
     );
   }
 );

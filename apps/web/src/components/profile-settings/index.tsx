@@ -2,6 +2,7 @@
 
 import { AccountSettings } from "@/components/settings/account-settings";
 import { EditProfileForm } from "@/components/settings/edit-profile-form";
+import { useAuthStore } from "@/stores/auth";
 import Link from "next/link";
 
 /**
@@ -15,6 +16,11 @@ import Link from "next/link";
  * "More" section below.
  */
 export function ProfileSettings() {
+  const viewerHandle = useAuthStore((s) => s.user?.handle);
+  // Base path for sub-route links. Falls back to /login if the auth
+  // store hasn't hydrated yet — but the page itself is gated on
+  // isOwner upstream, so this is mostly defensive.
+  const base = viewerHandle ? `/profile/${viewerHandle}/settings` : "/login";
   return (
     <div className="space-y-14">
       <Section
@@ -34,17 +40,17 @@ export function ProfileSettings() {
       <Section label="More" description="Other settings live on dedicated pages.">
         <ul className="space-y-3">
           <MoreLink
-            href="/settings/privacy"
+            href={`${base}/privacy`}
             title="Privacy"
             note="Per-entry visibility defaults, private-profile toggle, follow-requests inbox."
           />
           <MoreLink
-            href="/settings/notifications"
+            href={`${base}/notifications`}
             title="Notifications"
             note="Per-channel toggles and quiet-hours."
           />
           <MoreLink
-            href="/settings/data"
+            href={`${base}/data`}
             title="Data"
             note="Export everything we know about you, or close your account."
           />

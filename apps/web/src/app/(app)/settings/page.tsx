@@ -1,12 +1,6 @@
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { redirectToProfileSettings } from "@/lib/settings-redirect";
 
-export const metadata: Metadata = {
-  title: "Settings — auxd",
-};
-
-export default function SettingsIndexPage() {
-  // No standalone landing surface — bounce to the most-used sub-page so the
-  // top-level /settings URL is never a blank slate.
-  redirect("/settings/profile");
+/** Legacy /settings → /profile/{handle}/settings */
+export default async function SettingsIndexRedirect() {
+  await redirectToProfileSettings();
 }
