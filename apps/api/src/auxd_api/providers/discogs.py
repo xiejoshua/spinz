@@ -168,6 +168,64 @@ class DiscogsCatalogProvider(CatalogProvider):
         return self._map_release(response.json())
 
     # ------------------------------------------------------------------
+    # v3 search-quality extras (Fix B): popularity enrichment endpoint
+    # ------------------------------------------------------------------
+
+    async def get_community_data(self, release_id: str) -> int | None:
+        """Return Discogs ``community.have`` for a release id, or ``None``.
+
+        Powers the v3 search popularity enrichment (Fix B+C, see
+        :mod:`auxd_api.modules.search.service`). The
+        ``/database/search`` endpoint returns hits ordered by
+        *relevance*, not popularity (a v2 misassumption that the
+        position-based score corrected for) — but the
+        ``/releases/{id}`` detail payload includes a ``community``
+        object with ``have`` and ``want`` counts that *are* a real
+        popularity signal. ``have`` is the number of Discogs users who
+        marked the release as owned; canonical popular releases sit in
+        the 50 000-200 000 range, niche bootlegs in single digits.
+
+        Failure semantics are intentionally graceful — the search
+        service falls back to the position-based score on any None
+        return. Concretely:
+
+        * Provider disabled (``DISCOGS_API_TOKEN`` unset) → ``None``.
+        * Network error, transport-level retries exhausted → ``None``
+          (no exception; the search service won't tolerate per-fetch
+          raises inside its ``asyncio.gather``).
+        * 404 (release deleted) → ``None``.
+        * Any other 4xx/5xx → ``None``.
+        * Payload missing or mis-typed ``community.have`` → ``None``.
+
+        Callers must batch + cap concurrency (Discogs authenticated
+        tier: 60 req/min). The search service caps at 10 parallel
+        fetches per query and caches results for 24h.
+        """
+        if not self._enabled or self._client is None:
+            return None
+        try:
+            response = await self._client.get(f"/releases/{release_id}")
+        except Exception:
+            return None
+        if response.status_code == 404:
+            return None
+        if response.status_code >= 400:
+            return None
+        try:
+            payload = response.json()
+        except Exception:
+            return None
+        community = payload.get("community") if isinstance(payload, dict) else None
+        if not isinstance(community, dict):
+            return None
+        have = community.get("have")
+        if isinstance(have, int):
+            return have
+        if isinstance(have, str) and have.isdigit():
+            return int(have)
+        return None
+
+    # ------------------------------------------------------------------
     # Internals
     # ------------------------------------------------------------------
 

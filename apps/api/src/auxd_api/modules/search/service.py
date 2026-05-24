@@ -7,7 +7,7 @@ thin — every piece of business logic lives here so the same flow can be
 called from a future GraphQL surface, a CLI tool, or unit tests without
 spinning up the FastAPI app.
 
-Flow (post-2026-05-24 fix):
+Flow (post-2026-05-24 v3 fix):
 
 1. Atlas Search via :func:`Album.aggregate` with the ``albums_text_search``
    index (autocomplete on ``title`` + ``artist_credit``). Atlas returns
@@ -22,20 +22,31 @@ Flow (post-2026-05-24 fix):
 
 2. If Atlas returns fewer than :data:`_FALLBACK_THRESHOLD` hits, query
    MusicBrainz AND Discogs in PARALLEL (``asyncio.gather``). The two
-   results are merged via a combined score:
+   results are merged via a combined score with three components:
 
    * MB hits keep their MB relevance score (0..100).
-   * Discogs hits get a position-based score (``100 - i * 10``) that
-     approximates Discogs's popularity-rank ordering (Discogs sorts
-     structured-query results by ``community.have`` count, a real
-     popularity signal MB lacks).
+   * Discogs hits get an initial position-based score
+     (``100 - i * 10``) used as a fallback popularity proxy.
+   * **Lexical heuristic boost** (Fix A, v3): every candidate gets an
+     additive boost based on the query→hit relationship (artist exact
+     match +200, title prefix match +100, title substring +50).
+     Disambiguates "kanye west" (artist intent) from "Graduation"
+     (title intent) without needing a separate parser.
+   * **Discogs popularity enrichment** (Fix B+C, v3): the top N
+     Discogs candidates are enriched with REAL community-have counts
+     fetched from ``/releases/{id}``. The position-based score was an
+     incorrect assumption — Discogs's ``/database/search`` returns by
+     relevance, not by popularity. ``log10(community.have+1) * 25``
+     produces a 0..150 popularity score that replaces the
+     position-based proxy when available. Cached in Redis for 24h.
    * Hits that appear in BOTH providers get a ``+50`` cross-source
      bonus — provider agreement is a strong canonical-release signal.
 
-   The previous strictly-sequential MB-then-Discogs fallback surfaced
-   niche compilations titled ``"Kanye West"`` ahead of canonical Kanye
-   albums (MB returned ties at score 100, Discogs never ran). Putting
-   Discogs on the hot path with a popularity tiebreaker fixes that.
+   The previous v2 ladder surfaced compilations titled "Kanye West" by
+   non-Kanye artists ahead of Kanye's actual releases for the artist
+   query. The v3 artist-exact-match boost catapults Kanye's hits;
+   the title-prefix boost similarly solves "to pimp" →
+   "To Pimp a Butterfly" beating "Pimp To Eat".
 
    MB hits with an MBID materialise via
    :func:`auxd_api.modules.albums.identity.resolve_identity` so future
@@ -51,7 +62,9 @@ Atlas + MusicBrainz + Discogs with subtly different formatting.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
+import math
 from typing import Any, cast
 
 from auxd_api.modules.albums.errors import AlbumNotFoundError
@@ -59,6 +72,7 @@ from auxd_api.modules.albums.identity import resolve_identity
 from auxd_api.modules.albums.models import Album
 from auxd_api.providers.base import CatalogAlbum, CatalogProvider
 from auxd_api.providers.errors import ProviderError
+from auxd_api.redis_client import cache_get, cache_set
 
 _LOGGER = logging.getLogger("auxd.search")
 
@@ -71,6 +85,61 @@ _FALLBACK_THRESHOLD = 5
 # Atlas Search index name — must match the ``name`` field in
 # ``apps/api/migrations/atlas_search/albums_index.json``.
 _ATLAS_INDEX = "albums_text_search"
+
+# v3 enrichment tuning. ``_ENRICH_TOP_N`` caps the per-search blast
+# radius of Discogs detail-endpoint fetches (Discogs's authenticated
+# rate limit is 60 req/min). ``_COMMUNITY_CACHE_TTL_SECONDS`` is 24h:
+# community.have counts move slowly. ``_POPULARITY_SCORE_SCALE``
+# converts log10(have+1) into a 0..~150 score range that sits alongside
+# MB's 0..100 relevance band — ``25`` produces ~50 for 100-have albums,
+# ~75 for 1 000, ~100 for 10 000, ~125 for 100 000 (canonical popular
+# releases) without dwarfing MB relevance entirely.
+_ENRICH_TOP_N = 10
+_COMMUNITY_CACHE_TTL_SECONDS = 86400
+_COMMUNITY_CACHE_KEY = "discogs:community:{release_id}"
+_POPULARITY_SCORE_SCALE = 25.0
+
+
+def _heuristic_boost(*, hit_artist: str, hit_title: str, query: str) -> int:
+    """Lexical heuristic boost — Fix A of v3 search-quality patch.
+
+    Disambiguates artist-intent vs title-intent queries that MB and
+    Discogs both tie at ~100 on relevance:
+
+    * **Artist exact match (+200)** — the query equals the hit's
+      ``artist_name``. Strongest signal: queries like "kanye west"
+      almost certainly mean "albums by this artist", so Kanye's own
+      releases get +200 while a niche compilation titled "Kanye West"
+      by a different artist gets nothing.
+    * **Title prefix (+100)** — the title starts with the query.
+      Solves "to pimp" → "To Pimp a Butterfly" beating
+      "Pimp To Eat" (whose title only *contains* the query).
+    * **Title substring (+50)** — weaker tier when the prefix
+      condition isn't met. Prefix and substring are mutually exclusive
+      (``elif``) so a hit can't double-count.
+
+    Magnitudes are hand-tuned to sit comfortably above MB's 0..100
+    relevance band: +200 lifts a low-MB-score hit (score=10) above a
+    high-MB-score non-artist hit (score=100). The boosts compose
+    additively with the existing MB / Discogs / cross-source scoring.
+
+    Case-insensitive via :py:meth:`str.casefold` (Unicode-aware lower).
+    Whitespace stripped to handle trailing-space queries.
+    """
+    q = query.casefold().strip()
+    if not q:
+        return 0
+    artist = (hit_artist or "").casefold().strip()
+    title = (hit_title or "").casefold().strip()
+
+    boost = 0
+    if artist == q:
+        boost += 200
+    if title.startswith(q):
+        boost += 100
+    elif q in title:
+        boost += 50
+    return boost
 
 
 def _dedupe_key(*, mbid: str | None, title: str, artist: str) -> str:
@@ -237,9 +306,16 @@ async def search_albums(
 
     # Combined scoring:
     #   * MB hits keep raw MB score (0..100 from MB's Lucene relevance).
-    #   * Discogs hits get ``max(0, 100 - i * 10)`` — position 0 ~= 100,
-    #     position 9 ~= 10, position 10+ = 0. Matches MB's 0..100 scale
-    #     so the two are directly addable in the cross-source dedup.
+    #   * Discogs hits get ``max(0, 100 - i * 10)`` as a FALLBACK
+    #     popularity proxy. The real popularity score (Fix B+C, v3)
+    #     comes from ``_enrich_with_popularity`` below — when that
+    #     enrichment succeeds, the position-based component is
+    #     replaced with ``log10(have+1) * 25``.
+    #   * Every hit additionally receives a ``_heuristic_boost``
+    #     (Fix A, v3) for artist-exact-match (+200), title-prefix
+    #     (+100), or title-substring (+50). This disambiguates
+    #     artist-intent ("kanye west") vs title-intent ("Graduation")
+    #     queries that providers tie at ~100 on relevance.
     #   * A hit found in BOTH branches gets a +50 cross-source bonus.
     #     Hand-tuned: it must be smaller than two top scores summed
     #     (200) but large enough to lift a single-source ~50 hit
@@ -248,11 +324,27 @@ async def search_albums(
     #     single-source result, which is the design intent.
     candidates: list[tuple[int, CatalogAlbum, str]] = []
     for hit in mb_hits:
-        score = hit.score if hit.score is not None else 0
+        base = hit.score if hit.score is not None else 0
+        score = base + _heuristic_boost(
+            hit_artist=hit.artist_name,
+            hit_title=hit.title,
+            query=query,
+        )
         candidates.append((score, hit, "mb"))
     for i, hit in enumerate(discogs_hits):
         position_score = max(0, 100 - i * 10)
-        candidates.append((position_score, hit, "discogs"))
+        score = position_score + _heuristic_boost(
+            hit_artist=hit.artist_name,
+            hit_title=hit.title,
+            query=query,
+        )
+        candidates.append((score, hit, "discogs"))
+
+    # Fix B+C (v3): enrich Discogs candidates with real popularity
+    # (community.have) before the cross-source dedup. The enrichment
+    # replaces the position-based proxy with a log-scaled community
+    # score; failures fall back to the existing position score.
+    candidates = await _enrich_with_popularity(candidates, discogs_provider, query)
 
     # Cross-source dedup is trickier than within-source dedup because MB
     # hits carry an MBID and Discogs hits don't. A naive
@@ -379,6 +471,122 @@ async def _safe_provider_search(
             extra={"event": f"search.{name}_error", "error": str(exc)},
         )
         return []
+
+
+async def _get_discogs_community_score(
+    release_id: str, discogs_provider: CatalogProvider
+) -> int | None:
+    """Return a popularity score for a Discogs release (cache-first).
+
+    Caches the result for :data:`_COMMUNITY_CACHE_TTL_SECONDS` so the
+    second user to search for a hot album hits Redis instead of the
+    Discogs detail endpoint. Cache miss fetches via
+    :meth:`DiscogsCatalogProvider.get_community_data`; non-fatal
+    failure modes (provider disabled, 404, rate-limit, network error,
+    Redis down) return ``None`` so callers can keep the existing
+    position-based score.
+
+    The 0..150-ish score is ``log10(community.have + 1) *
+    _POPULARITY_SCORE_SCALE``. The log shape damps the gap between a
+    100-have niche release and a 100 000-have canonical (~50 vs ~125,
+    not 100x) so popularity composes cleanly with MB's 0..100
+    relevance band.
+    """
+    cache_key = _COMMUNITY_CACHE_KEY.format(release_id=release_id)
+    try:
+        cached = await cache_get(cache_key)
+    except Exception:  # pragma: no cover - cache_get is already fail-open
+        cached = None
+
+    if cached is not None:
+        try:
+            return int(cached)
+        except (ValueError, TypeError):
+            pass  # Stale shape — refetch.
+
+    # Cache miss — call provider. ``get_community_data`` is a v3
+    # addition to :class:`DiscogsCatalogProvider`; older providers
+    # without the method are treated as graceful-disabled (None).
+    getter = getattr(discogs_provider, "get_community_data", None)
+    if getter is None:
+        return None
+    try:
+        have = await getter(release_id)
+    except Exception:  # pragma: no cover - provider impls already swallow
+        return None
+    if have is None:
+        return None
+    score = int(math.log10(have + 1) * _POPULARITY_SCORE_SCALE)
+    # cache_set is already fail-open at the Redis layer; the suppress
+    # is a defensive belt for any unexpected raise the wrapper misses.
+    with contextlib.suppress(Exception):  # pragma: no cover - defensive
+        await cache_set(cache_key, str(score), ex_seconds=_COMMUNITY_CACHE_TTL_SECONDS)
+    return score
+
+
+async def _enrich_with_popularity(
+    candidates: list[tuple[int, CatalogAlbum, str]],
+    discogs_provider: CatalogProvider,
+    query: str,
+) -> list[tuple[int, CatalogAlbum, str]]:
+    """Replace position-based Discogs scores with real popularity data.
+
+    Picks the top :data:`_ENRICH_TOP_N` candidates by score (after
+    boosts have been applied), selects only those that came from
+    Discogs with a ``discogs_release_id``, and fetches
+    ``community.have`` for each in parallel via
+    :func:`asyncio.gather`. The new score is
+    ``log10(have+1) * _POPULARITY_SCORE_SCALE + heuristic_boost``;
+    the position-based component is dropped.
+
+    Failure modes are graceful: any single fetch returning ``None``
+    leaves that candidate's original (position-based) score in place.
+    MB candidates are not enriched (no MBID→Discogs lookup available
+    in the Discogs search API).
+
+    Top-N capping bounds Discogs API blast radius (authenticated tier
+    is 60 req/min) and per-search latency (worst case: 10 cache
+    misses in parallel, each capped by the provider's 10s timeout).
+    """
+    if not candidates:
+        return candidates
+
+    # Sort once so the top N are at the head — preserves the original
+    # ordering for everything beyond the enrichment window.
+    sorted_candidates = sorted(candidates, key=lambda c: c[0], reverse=True)
+    to_enrich_idx: list[int] = []
+    for idx, (_score, hit, source) in enumerate(sorted_candidates[:_ENRICH_TOP_N]):
+        if source == "discogs" and hit.discogs_release_id:
+            to_enrich_idx.append(idx)
+
+    if not to_enrich_idx:
+        return sorted_candidates
+
+    fetch_tasks = [
+        _get_discogs_community_score(
+            sorted_candidates[idx][1].discogs_release_id or "",
+            discogs_provider,
+        )
+        for idx in to_enrich_idx
+    ]
+    new_scores = await asyncio.gather(*fetch_tasks)
+
+    rebuilt = list(sorted_candidates)
+    for enriched_idx, community_score in zip(to_enrich_idx, new_scores, strict=True):
+        if community_score is None:
+            continue  # Fetch failed — keep position-based score.
+        _old_score, hit, source = rebuilt[enriched_idx]
+        # New score = community popularity + heuristic. The
+        # position-based component is replaced because real popularity
+        # is strictly better than a relevance-ordering proxy.
+        boost = _heuristic_boost(
+            hit_artist=hit.artist_name,
+            hit_title=hit.title,
+            query=query,
+        )
+        rebuilt[enriched_idx] = (community_score + boost, hit, source)
+
+    return rebuilt
 
 
 __all__ = ["search_albums"]

@@ -361,3 +361,62 @@ class TestDiscogsCatalogProvider:
         finally:
             await provider.aclose()
         assert len(results) == 4
+
+    # ------------------------------------------------------------------
+    # v3 (Fix B) — ``get_community_data`` popularity-enrichment endpoint
+    # ------------------------------------------------------------------
+
+    @respx.mock
+    async def test_get_community_data_extracts_have_count(self, _with_token: None) -> None:
+        """``community.have`` is extracted as the popularity signal."""
+        respx.get(f"{DISCOGS_BASE}/releases/249504").mock(
+            return_value=Response(
+                200,
+                json={"id": 249504, "community": {"have": 5000, "want": 2000}},
+            )
+        )
+        provider = DiscogsCatalogProvider()
+        try:
+            have = await provider.get_community_data("249504")
+        finally:
+            await provider.aclose()
+        assert have == 5000
+
+    @respx.mock
+    async def test_get_community_data_returns_none_on_404(self, _with_token: None) -> None:
+        """404 means the release was deleted; surface as ``None``, not raise."""
+        respx.get(f"{DISCOGS_BASE}/releases/missing").mock(
+            return_value=Response(404, json={"message": "not found"})
+        )
+        provider = DiscogsCatalogProvider()
+        try:
+            have = await provider.get_community_data("missing")
+        finally:
+            await provider.aclose()
+        assert have is None
+
+    @respx.mock
+    async def test_get_community_data_returns_none_on_missing_community(
+        self, _with_token: None
+    ) -> None:
+        """Payload without a ``community`` block surfaces ``None``."""
+        respx.get(f"{DISCOGS_BASE}/releases/249504").mock(
+            return_value=Response(200, json={"id": 249504})
+        )
+        provider = DiscogsCatalogProvider()
+        try:
+            have = await provider.get_community_data("249504")
+        finally:
+            await provider.aclose()
+        assert have is None
+
+    async def test_get_community_data_returns_none_when_disabled(
+        self, _without_token: None
+    ) -> None:
+        """Token unset → graceful disabled-mode return of ``None``."""
+        provider = DiscogsCatalogProvider()
+        try:
+            have = await provider.get_community_data("249504")
+        finally:
+            await provider.aclose()
+        assert have is None

@@ -728,3 +728,346 @@ async def test_both_providers_fail_returns_empty_with_report_url(
     body = response.json()
     assert body["results"] == []
     assert body["report_missing_album_url"] == "/api/v1/reports/missing-album"
+
+
+# ---------------------------------------------------------------------------
+# v3 search-quality regression tests (Fix A — lexical heuristic boosts).
+#
+# v2 (parallel merge + cross-source bonus) shipped in df4d071 but still
+# failed on the user's "kanye west" query: niche releases TITLED "Kanye
+# West" by non-Kanye artists still beat Kanye's real albums when both
+# tied at MB score 100. The v3 ``_heuristic_boost`` (+200 for artist
+# exact match, +100 for title prefix, +50 for title substring)
+# disambiguates artist-intent vs title-intent queries without parsing.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_kanye_west_query_artist_exact_boost(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """v3 regression: niche releases TITLED "Kanye West" by non-Kanye
+    artists must NOT outrank Kanye's actual albums when querying
+    "kanye west".
+
+    Production failure (df4d071, v2): MB scored "Kanye West" by Randy
+    Royale and "Kanye West" by Lil Barty at 100, same as Kanye's own
+    releases. Discogs's position-based score was symmetric. Result:
+    niche covers won the top of the list.
+
+    v3 fix: ``_heuristic_boost`` adds +200 when the query equals the
+    hit's artist credit. Kanye's hits get +200; niche tributes get 0.
+    """
+    grad_mb = CatalogAlbum(
+        mbid=MBID_GRADUATION,
+        title="Graduation",
+        artist_name="Kanye West",
+        release_year=2007,
+        external_ids={"mbid": MBID_GRADUATION},
+        score=100,
+    )
+    mbdtf_mb = CatalogAlbum(
+        mbid=MBID_MBDTF,
+        title="My Beautiful Dark Twisted Fantasy",
+        artist_name="Kanye West",
+        release_year=2010,
+        external_ids={"mbid": MBID_MBDTF},
+        score=100,
+    )
+    # Niche releases titled "Kanye West" by other artists. MB ties them
+    # with Kanye at score=100 — the failure mode v3 exists to fix.
+    randy_royale = CatalogAlbum(
+        mbid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        title="Kanye West",
+        artist_name="Randy Royale",
+        release_year=2019,
+        external_ids={"mbid": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"},
+        score=100,
+    )
+    lil_barty = CatalogAlbum(
+        mbid="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        title="Kanye West",
+        artist_name="Lil Barty",
+        release_year=2020,
+        external_ids={"mbid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"},
+        score=100,
+    )
+
+    by_mbid: dict[str, CatalogAlbum] = {}
+    for hit in (grad_mb, mbdtf_mb, randy_royale, lil_barty):
+        if hit.mbid is not None:
+            by_mbid[hit.mbid] = hit
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    # Niche covers come back FIRST in the raw MB response — same
+    # arbitrary tie-resolution as production. Without the artist-exact
+    # boost they'd still win.
+    mb_provider.search_albums.return_value = [randy_royale, lil_barty, grad_mb, mbdtf_mb]
+    mb_provider.get_album_by_mbid.side_effect = lambda mbid: by_mbid[mbid]
+
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = []  # Isolate the boost.
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "kanye west"})
+    assert response.status_code == 200
+    body = response.json()
+    titles_with_artists = [(hit["title"], hit["artist_name"]) for hit in body["results"]]
+    # Top two must be Kanye's actual releases, not the niche tributes.
+    # Kanye hits: MB score 100 + boost 200 = 300.
+    # Niche hits: MB score 100 + boost 0   = 100.
+    top_two = set(titles_with_artists[:2])
+    assert ("Graduation", "Kanye West") in top_two, (
+        f"Kanye's Graduation must rank in top 2, got {titles_with_artists}"
+    )
+    assert ("My Beautiful Dark Twisted Fantasy", "Kanye West") in top_two, (
+        f"Kanye's MBDTF must rank in top 2, got {titles_with_artists}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_to_pimp_query_title_prefix_boost(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """v3 regression: a query that PREFIXES a canonical album title must
+    rank that album above one whose title only contains the query as a
+    substring.
+
+    Concrete failure (production): "to pimp" → "Pimp To Eat" ranks
+    above "To Pimp a Butterfly" because both MB tied at score=100.
+
+    v3 fix: ``_heuristic_boost`` returns +100 for title prefix match
+    but only +50 for title substring (in fact "to pimp" is neither a
+    prefix nor a substring of "Pimp To Eat" — both Pimp/To get +0).
+    """
+    tpab = CatalogAlbum(
+        mbid="cccccccc-cccc-cccc-cccc-cccccccccccc",
+        title="To Pimp a Butterfly",
+        artist_name="Kendrick Lamar",
+        release_year=2015,
+        external_ids={"mbid": "cccccccc-cccc-cccc-cccc-cccccccccccc"},
+        score=100,
+    )
+    pimp_to_eat = CatalogAlbum(
+        mbid="dddddddd-dddd-dddd-dddd-dddddddddddd",
+        title="Pimp To Eat",
+        artist_name="Anybody Killa",
+        release_year=2001,
+        external_ids={"mbid": "dddddddd-dddd-dddd-dddd-dddddddddddd"},
+        score=100,
+    )
+    by_mbid = {hit.mbid: hit for hit in (tpab, pimp_to_eat) if hit.mbid is not None}
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    # ``Pimp To Eat`` deliberately returned first — the failure mode.
+    mb_provider.search_albums.return_value = [pimp_to_eat, tpab]
+    mb_provider.get_album_by_mbid.side_effect = lambda mbid: by_mbid[mbid]
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = []
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "to pimp"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    # TPAB: MB score 100 + title-prefix boost 100 = 200.
+    # Pimp To Eat: MB score 100 + 0 (query is neither prefix nor substring) = 100.
+    assert titles[0] == "To Pimp a Butterfly", (
+        f"'To Pimp a Butterfly' must rank first for query 'to pimp', got {titles}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_heuristic_boost_unicode_casefold(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """v3 boost uses :py:meth:`str.casefold` so a lower-case query like
+    "kanye west" matches a title-cased artist credit "Kanye West".
+
+    Pins case-insensitive intent: users type queries however they like.
+    """
+    grad_mb = CatalogAlbum(
+        mbid=MBID_GRADUATION,
+        title="Graduation",
+        artist_name="Kanye West",  # Title-cased on the wire.
+        release_year=2007,
+        external_ids={"mbid": MBID_GRADUATION},
+        score=10,  # Deliberately LOW MB score — proves the boost lifts it.
+    )
+    other = CatalogAlbum(
+        mbid="eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee",
+        title="Some Other Album",
+        artist_name="Random Artist",
+        release_year=2018,
+        external_ids={"mbid": "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"},
+        score=100,  # HIGH MB score — would normally win.
+    )
+    by_mbid = {hit.mbid: hit for hit in (grad_mb, other) if hit.mbid is not None}
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = [other, grad_mb]
+    mb_provider.get_album_by_mbid.side_effect = lambda mbid: by_mbid[mbid]
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = []
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    # Lower-case query against title-cased "Kanye West" artist credit.
+    response = client.get("/api/v1/search", params={"q": "kanye west"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    # Boost: 10 (MB) + 200 (artist exact match) = 210 vs 100 (MB only).
+    assert titles[0] == "Graduation", (
+        f"Casefold artist match must catch 'Kanye West' for query 'kanye west', got {titles}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# v3 search-quality regression tests (Fix B+C — Discogs popularity enrichment).
+#
+# v2 used position-based score as a popularity proxy, but Discogs's
+# ``/database/search`` returns hits by relevance — NOT popularity. The
+# v3 enrichment fetches ``community.have`` from ``/releases/{id}`` for
+# the top N Discogs candidates, replacing the position score with
+# ``log10(have+1) * 25``. Caches at 24h to bound API blast radius.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_enrich_with_popularity_cache_hit(
+    _clean_env: None,
+    _clean_albums: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """On cache hit the service skips the Discogs detail-endpoint fetch.
+
+    Pins the lower bound of latency on a repeat query for a hot album:
+    no extra network hops once the popularity score has been cached.
+    """
+    from auxd_api.modules.search import service as search_service
+
+    # Fake cache: any release_id resolves to popularity 200.
+    async def _cache_get(_key: str) -> str | None:
+        return "200"
+
+    async def _cache_set(*_args: object, **_kwargs: object) -> None:
+        pass
+
+    monkeypatch.setattr(search_service, "cache_get", _cache_get)
+    monkeypatch.setattr(search_service, "cache_set", _cache_set)
+
+    discogs_hit = _kanye_graduation_discogs()
+    mb_hit = _kanye_graduation_mb()
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = [mb_hit]
+    mb_provider.get_album_by_mbid.return_value = mb_hit
+
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = [discogs_hit]
+    discogs_provider.get_album_by_external_id.return_value = discogs_hit
+    # ``get_community_data`` MUST NOT be called when the cache hits.
+    discogs_provider.get_community_data = AsyncMock(return_value=None)
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "graduation"})
+    assert response.status_code == 200
+    discogs_provider.get_community_data.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_enrich_with_popularity_cache_miss_fetches(
+    _clean_env: None,
+    _clean_albums: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cache miss → ``get_community_data`` is called and a popularity
+    score is written back to cache. The new score derives from
+    ``log10(have+1) * 25``.
+    """
+    from auxd_api.modules.search import service as search_service
+
+    written: dict[str, str] = {}
+
+    async def _cache_get(_key: str) -> str | None:
+        return None  # Miss.
+
+    async def _cache_set(key: str, value: str, *, ex_seconds: int | None = None) -> None:
+        written[key] = value
+
+    monkeypatch.setattr(search_service, "cache_get", _cache_get)
+    monkeypatch.setattr(search_service, "cache_set", _cache_set)
+
+    discogs_hit = _kanye_graduation_discogs()
+    mb_hit = _kanye_graduation_mb()
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = [mb_hit]
+    mb_provider.get_album_by_mbid.return_value = mb_hit
+
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = [discogs_hit]
+    discogs_provider.get_album_by_external_id.return_value = discogs_hit
+    # Canonical popular release: 5000 community.have. Score
+    # = int(log10(5001) * 25) ≈ 92.
+    discogs_provider.get_community_data = AsyncMock(return_value=5000)
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "graduation"})
+    assert response.status_code == 200
+    discogs_provider.get_community_data.assert_awaited_once_with("discogs-grad-1")
+    # Cache write must include the canonical key + log-scaled score.
+    assert any("discogs-grad-1" in k for k in written), (
+        f"expected discogs:community:discogs-grad-1 key, got {list(written)}"
+    )
+    cached_score = next(int(v) for k, v in written.items() if "discogs-grad-1" in k)
+    # log10(5001) ≈ 3.699 → * 25 ≈ 92. Allow ±2 for int truncation.
+    assert 88 <= cached_score <= 96, f"expected ~92 for have=5000, got {cached_score}"
+
+
+@pytest.mark.asyncio
+async def test_enrich_with_popularity_fetch_failure_falls_back(
+    _clean_env: None,
+    _clean_albums: None,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When ``get_community_data`` returns ``None`` (graceful failure),
+    the original position-based score is preserved — the search still
+    returns results, just without the popularity refinement.
+    """
+    from auxd_api.modules.search import service as search_service
+
+    async def _cache_get(_key: str) -> str | None:
+        return None  # Cache miss forces the fetch path.
+
+    async def _cache_set(*_args: object, **_kwargs: object) -> None:
+        pass
+
+    monkeypatch.setattr(search_service, "cache_get", _cache_get)
+    monkeypatch.setattr(search_service, "cache_set", _cache_set)
+
+    discogs_hit = _kanye_graduation_discogs()
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = []  # Discogs-only path.
+
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = [discogs_hit]
+    discogs_provider.get_album_by_external_id.return_value = discogs_hit
+    # Fetch fails — disabled token, network error, etc.
+    discogs_provider.get_community_data = AsyncMock(return_value=None)
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "graduation"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    # Position-based score (100 + 100 boost) keeps the hit in the
+    # result — no crash, no missing data.
+    assert titles == ["Graduation"]
