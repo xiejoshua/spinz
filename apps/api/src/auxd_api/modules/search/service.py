@@ -1,13 +1,13 @@
 """Search service layer (T069).
 
 Wraps the Atlas Search aggregation pipeline + the multi-provider
-fallback merge into a single :func:`search_albums` entry point. The
+parallel merge into a single :func:`search_albums` entry point. The
 route layer (:mod:`auxd_api.modules.search.routes`) is intentionally
 thin — every piece of business logic lives here so the same flow can be
 called from a future GraphQL surface, a CLI tool, or unit tests without
 spinning up the FastAPI app.
 
-Fallback flow:
+Flow (post-2026-05-24 fix):
 
 1. Atlas Search via :func:`Album.aggregate` with the ``albums_text_search``
    index (autocomplete on ``title`` + ``artist_credit``). Atlas returns
@@ -20,15 +20,27 @@ Fallback flow:
    dwarf text relevance; the ``boost.value`` of 2 keeps popularity in
    the same order-of-magnitude as the autocomplete score.
 
-2. If fewer than :data:`_FALLBACK_THRESHOLD` hits, also query
-   MusicBrainz via :meth:`CatalogProvider.search_albums`. New MBIDs are
-   materialised into the local catalog via
-   :func:`auxd_api.modules.albums.identity.resolve_identity` so the next
-   query for the same album is fully local.
+2. If Atlas returns fewer than :data:`_FALLBACK_THRESHOLD` hits, query
+   MusicBrainz AND Discogs in PARALLEL (``asyncio.gather``). The two
+   results are merged via a combined score:
 
-3. If still fewer than :data:`_FALLBACK_THRESHOLD` hits, also query
-   Discogs (graceful-disabled when ``DISCOGS_API_TOKEN`` is unset).
-   Discogs hits are materialised as candidate albums for the T065
+   * MB hits keep their MB relevance score (0..100).
+   * Discogs hits get a position-based score (``100 - i * 10``) that
+     approximates Discogs's popularity-rank ordering (Discogs sorts
+     structured-query results by ``community.have`` count, a real
+     popularity signal MB lacks).
+   * Hits that appear in BOTH providers get a ``+50`` cross-source
+     bonus — provider agreement is a strong canonical-release signal.
+
+   The previous strictly-sequential MB-then-Discogs fallback surfaced
+   niche compilations titled ``"Kanye West"`` ahead of canonical Kanye
+   albums (MB returned ties at score 100, Discogs never ran). Putting
+   Discogs on the hot path with a popularity tiebreaker fixes that.
+
+   MB hits with an MBID materialise via
+   :func:`auxd_api.modules.albums.identity.resolve_identity` so future
+   queries for the same album are fully local. Discogs hits without an
+   MBID materialise as ``candidate=True`` albums for the T065
    reconciliation worker.
 
 Dedupe key is ``(title.lower(), artist_credit.lower())`` plus MBID where
@@ -38,8 +50,9 @@ Atlas + MusicBrainz + Discogs with subtly different formatting.
 
 from __future__ import annotations
 
+import asyncio
 import logging
-from typing import Any
+from typing import Any, cast
 
 from auxd_api.modules.albums.errors import AlbumNotFoundError
 from auxd_api.modules.albums.identity import resolve_identity
@@ -49,9 +62,10 @@ from auxd_api.providers.errors import ProviderError
 
 _LOGGER = logging.getLogger("auxd.search")
 
-# Threshold for tier-2/3 fallback activation: below this many Atlas hits
-# we also query MusicBrainz, and below this *combined* hit count we
-# additionally query Discogs.
+# Threshold for tier-2/3 activation: below this many Atlas hits we run
+# the parallel MB + Discogs merge (post-2026-05-24 fix replaces the old
+# strictly-sequential MB-then-Discogs ladder with a single parallel
+# query and combined-score merge — see module docstring).
 _FALLBACK_THRESHOLD = 5
 
 # Atlas Search index name — must match the ``name`` field in
@@ -171,11 +185,22 @@ async def search_albums(
 ) -> list[dict[str, Any]]:
     """Run the three-tier search pipeline and return merged + deduped hits.
 
+    Tier 1 (Atlas): if Atlas returns ``>= _FALLBACK_THRESHOLD`` hits, return
+    them directly — Atlas is the cleanest source once the catalog populates
+    with user activity and gets a query-time popularity boost from
+    ``log1p(rating_count)`` (see :func:`_atlas_search`).
+
+    Tier 2 + 3 (parallel MB + Discogs): for cold-catalog queries we always
+    query MusicBrainz AND Discogs in parallel — not as ordered fallbacks.
+    The post-2026-05-24 fix moves Discogs onto the hot path because Discogs
+    sorts its structured-query results by ``community.have`` count (a real
+    popularity signal MB lacks). MB hits bring relevance precision via
+    ``score``; Discogs hits bring popularity ranking via position. The two
+    are merged via a combined score that lets a hit confirmed by BOTH
+    providers (cross-source bonus) bubble past hits seen in only one.
+
     Atlas-hits keep their natural sort order (relevance + popularity);
-    provider-fallback hits are appended in arrival order. Within each
-    tier we secondary-sort by ``release_year`` descending so newer
-    releases break relevance ties — matches the Letterboxd convention
-    of surfacing more recent items first when relevance is equal.
+    provider-merge hits append in combined-score order.
     """
     seen: set[str] = set()
     merged: list[dict[str, Any]] = []
@@ -196,82 +221,116 @@ async def search_albums(
     if len(merged) >= _FALLBACK_THRESHOLD:
         return merged
 
-    # ---- Tier 2: MusicBrainz -------------------------------------------
-    try:
-        mb_hits = await mb_provider.search_albums(query, limit=limit)
-    except ProviderError as exc:
-        _LOGGER.warning(
-            "search.musicbrainz_error",
-            extra={"event": "search.musicbrainz_error", "error": str(exc)},
-        )
-        mb_hits = []
-    # Sort MB hits by relevance score desc; ``None`` scores sink to the
-    # bottom so post-MVP feedback about "Graduation doesn't appear unless
-    # typed exactly" is addressed by surfacing the canonical 90-100 score
-    # release-groups above the long tail of unofficial / scrap releases.
-    # ``-1`` sentinel < every valid 0-100 score, so None-scored hits sort
-    # last while staying mypy-clean (no Optional comparison).
+    # ---- Tier 2 + 3: MB + Discogs in PARALLEL --------------------------
+    # asyncio.gather lets both upstream calls overlap on the wire (each
+    # provider has its own connection pool + circuit breaker). A single
+    # provider failure does not poison the other — see
+    # ``_safe_provider_search`` for the per-provider error funnel.
+    mb_task = _safe_provider_search(mb_provider, query, limit, "musicbrainz")
+    discogs_task = _safe_provider_search(discogs_provider, query, limit, "discogs")
+    mb_hits, discogs_hits = await asyncio.gather(mb_task, discogs_task)
+
+    # Sort MB by relevance score desc; ``None`` scores sink via -1 sentinel.
+    # Keeps mypy clean (no Optional comparison) and pins None below 0.
     mb_hits.sort(key=lambda h: h.score if h.score is not None else -1, reverse=True)
-    merged += await _materialize_fallback(
-        hits=mb_hits,
-        seen=seen,
-        mb_provider=mb_provider,
-        discogs_provider=discogs_provider,
-        prefer="mbid",
-    )
+    # Discogs hits arrive in popularity-rank order — preserve as-is.
 
-    if len(merged) >= _FALLBACK_THRESHOLD:
-        return merged
+    # Combined scoring:
+    #   * MB hits keep raw MB score (0..100 from MB's Lucene relevance).
+    #   * Discogs hits get ``max(0, 100 - i * 10)`` — position 0 ~= 100,
+    #     position 9 ~= 10, position 10+ = 0. Matches MB's 0..100 scale
+    #     so the two are directly addable in the cross-source dedup.
+    #   * A hit found in BOTH branches gets a +50 cross-source bonus.
+    #     Hand-tuned: it must be smaller than two top scores summed
+    #     (200) but large enough to lift a single-source ~50 hit
+    #     above a single-source 90-100 hit. ``+50`` keeps a cross-
+    #     confirmed canonical release ahead of a higher-relevance
+    #     single-source result, which is the design intent.
+    candidates: list[tuple[int, CatalogAlbum, str]] = []
+    for hit in mb_hits:
+        score = hit.score if hit.score is not None else 0
+        candidates.append((score, hit, "mb"))
+    for i, hit in enumerate(discogs_hits):
+        position_score = max(0, 100 - i * 10)
+        candidates.append((position_score, hit, "discogs"))
 
-    # ---- Tier 3: Discogs ----------------------------------------------
-    try:
-        discogs_hits = await discogs_provider.search_albums(query, limit=limit)
-    except ProviderError as exc:
-        _LOGGER.warning(
-            "search.discogs_error",
-            extra={"event": "search.discogs_error", "error": str(exc)},
-        )
-        discogs_hits = []
-    merged += await _materialize_fallback(
-        hits=discogs_hits,
-        seen=seen,
-        mb_provider=mb_provider,
-        discogs_provider=discogs_provider,
-        prefer="discogs",
-    )
+    # Cross-source dedup is trickier than within-source dedup because MB
+    # hits carry an MBID and Discogs hits don't. A naive
+    # ``_dedupe_key(mbid=..., title=..., artist=...)`` would produce
+    # ``mbid:<x>`` for MB and ``meta:<title>|<artist>`` for Discogs even
+    # when both surface the same canonical album — the cross-source
+    # bonus would never apply. Resolve by maintaining TWO indexes:
+    #
+    #   ``by_key`` keyed on the strong (MBID-when-available) form for
+    #   final result ordering.
+    #
+    #   ``meta_alias`` keyed on the weak (title, artist) form so a
+    #   Discogs hit can find an MB hit's existing entry by metadata
+    #   alone. When the alias matches, we merge into the MB entry's
+    #   slot rather than creating a duplicate.
+    by_key: dict[str, dict[str, Any]] = {}
+    meta_alias: dict[str, str] = {}
 
-    return merged
+    def _meta_key(hit: CatalogAlbum) -> str:
+        return f"meta:{hit.title.casefold()}|{hit.artist_name.casefold()}"
 
+    for score, hit, source in candidates:
+        strong_key = _dedupe_key(mbid=hit.mbid, title=hit.title, artist=hit.artist_name)
+        meta_key = _meta_key(hit)
 
-async def _materialize_fallback(
-    *,
-    hits: list[CatalogAlbum],
-    seen: set[str],
-    mb_provider: CatalogProvider,
-    discogs_provider: CatalogProvider,
-    prefer: str,
-) -> list[dict[str, Any]]:
-    """Materialise provider hits into local Albums + return serialised payloads.
+        # Find an existing entry by either the strong key (MBID match)
+        # or the metadata alias (title/artist match across sources).
+        existing_strong = by_key.get(strong_key)
+        aliased_strong_key = meta_alias.get(meta_key)
+        existing_aliased = by_key.get(aliased_strong_key) if aliased_strong_key else None
 
-    Each hit is run through :func:`resolve_identity` so the row lands in
-    the local catalog and a future query for the same album is fully
-    local (Atlas-tier hit). Hits whose dedupe key matches a row we've
-    already added are skipped — preserves the natural Atlas-first
-    ordering when MusicBrainz returns the same record we just saw
-    locally.
-    """
-    materialised: list[dict[str, Any]] = []
-    for hit in hits:
-        key = _dedupe_key(
-            mbid=hit.mbid,
-            title=hit.title,
-            artist=hit.artist_name,
-        )
+        if existing_strong is not None:
+            entry = existing_strong
+        elif existing_aliased is not None:
+            entry = existing_aliased
+        else:
+            entry = None
+
+        if entry is not None:
+            entry["score"] = int(entry["score"]) + score
+            sources_set: set[str] = entry["sources"]
+            sources_set.add(source)
+            # Prefer the hit that carries an MBID (richer identity) when
+            # both branches surface the same album with different ids.
+            existing_hit: CatalogAlbum = entry["hit"]
+            if existing_hit.mbid is None and hit.mbid is not None:
+                entry["hit"] = hit
+        else:
+            by_key[strong_key] = {"score": score, "hit": hit, "sources": {source}}
+            # Index the metadata alias so the OTHER source can find this
+            # entry. ``setdefault`` means the first-seen entry wins the
+            # alias slot when multiple distinct hits share a (title,
+            # artist) tuple — which is desirable: cross-source dedup
+            # should be a one-to-one bond, not a one-to-many fan-out.
+            meta_alias.setdefault(meta_key, strong_key)
+
+    # Cross-source confirmation: a hit found in both MB and Discogs is
+    # almost always the canonical release. Bump it.
+    for entry in by_key.values():
+        if len(entry["sources"]) > 1:
+            entry["score"] = int(entry["score"]) + 50
+
+    # Sort by combined score desc, then materialise in that order until
+    # we hit the caller's ``limit``.
+    sorted_entries = sorted(by_key.values(), key=lambda e: int(e["score"]), reverse=True)
+
+    for entry in sorted_entries:
+        # mypy: the redefinition annotation would clash with the earlier
+        # ``for hit in mb_hits:`` loop binding above. Use ``cast`` to
+        # narrow back from ``Any`` (the values in the ``dict[str, Any]``
+        # entry) without re-shadowing the name.
+        hit = cast(CatalogAlbum, entry["hit"])
+        key = _dedupe_key(mbid=hit.mbid, title=hit.title, artist=hit.artist_name)
         if key in seen:
             continue
         seen.add(key)
         try:
-            if prefer == "mbid" and hit.mbid:
+            if hit.mbid:
                 album = await resolve_identity(
                     mbid=hit.mbid,
                     mb_provider=mb_provider,
@@ -293,8 +352,33 @@ async def _materialize_fallback(
                 extra={"event": "search.materialize_skipped", "error": str(exc)},
             )
             continue
-        materialised.append(_serialize_album(album))
-    return materialised
+        merged.append(_serialize_album(album))
+        if len(merged) >= limit:
+            return merged
+
+    return merged
+
+
+async def _safe_provider_search(
+    provider: CatalogProvider, query: str, limit: int, name: str
+) -> list[CatalogAlbum]:
+    """Provider search that returns ``[]`` on :class:`ProviderError`.
+
+    The parallel merge needs both upstreams to either return a list or
+    silently degrade — a raised :class:`ProviderError` from one provider
+    would propagate through ``asyncio.gather`` and abort the other call,
+    even if the second was about to succeed. Catching here keeps the
+    other branch's results usable when MB is rate-limited or Discogs
+    times out.
+    """
+    try:
+        return await provider.search_albums(query, limit=limit)
+    except ProviderError as exc:
+        _LOGGER.warning(
+            f"search.{name}_error",
+            extra={"event": f"search.{name}_error", "error": str(exc)},
+        )
+        return []
 
 
 __all__ = ["search_albums"]

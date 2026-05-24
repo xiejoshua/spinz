@@ -135,6 +135,9 @@ class TestDiscogsCatalogProvider:
             results = await provider.search_albums("Radiohead OK Computer")
         finally:
             await provider.aclose()
+        # Post-2026-05-24 fix: ``search_albums`` runs two parallel calls
+        # (title + artist). The mock payload here covers both, so we get
+        # one unique release id back across both branches.
         assert len(results) == 1
         first = results[0]
         assert first.discogs_release_id == "249504"
@@ -224,3 +227,137 @@ class TestDiscogsCatalogProvider:
         finally:
             await provider.aclose()
         assert result is None
+
+    @respx.mock
+    async def test_search_issues_parallel_title_and_artist_calls(self, _with_token: None) -> None:
+        """Post-2026-05-24 fix: ``search_albums`` MUST issue two requests
+        — one with ``release_title=<q>`` and one with ``artist=<q>``.
+
+        Discogs's bare ``q=<q>`` form returns ties in arbitrary order;
+        the structured params return ties ordered by ``community.have``
+        count, which is the popularity tiebreaker MB lacks.
+        """
+        route = respx.get(f"{DISCOGS_BASE}/database/search").mock(
+            return_value=Response(200, json={"results": []})
+        )
+        provider = DiscogsCatalogProvider()
+        try:
+            await provider.search_albums("Graduation")
+        finally:
+            await provider.aclose()
+        # Both calls should have hit the same endpoint with different params.
+        assert route.call_count == 2
+        sent_params: list[dict[str, str]] = [dict(call.request.url.params) for call in route.calls]
+        # The two params dicts collectively cover ``release_title`` and ``artist``.
+        param_keys: set[str] = set()
+        for params in sent_params:
+            # Each call must have exactly one of the structured keys, plus
+            # ``type`` and ``per_page`` — the bare ``q`` key must NOT appear.
+            assert "q" not in params
+            assert params["type"] == "release"
+            assert "per_page" in params
+            for key in ("release_title", "artist"):
+                if key in params:
+                    param_keys.add(key)
+        assert param_keys == {"release_title", "artist"}, (
+            f"expected both release_title and artist branches, got {param_keys}"
+        )
+
+    @respx.mock
+    async def test_search_dedupes_release_present_in_both_branches(self, _with_token: None) -> None:
+        """A release whose id appears in BOTH the title and artist
+        branches must surface exactly once in the merged result. Without
+        the dedup the same album would appear twice (and waste a slot
+        of the caller's ``limit``).
+        """
+        shared_release = {
+            "id": 249504,
+            "title": "Radiohead - OK Computer",
+            "year": 1997,
+            "type": "release",
+        }
+        respx.get(f"{DISCOGS_BASE}/database/search").mock(
+            return_value=Response(200, json={"results": [shared_release]})
+        )
+        provider = DiscogsCatalogProvider()
+        try:
+            results = await provider.search_albums("Radiohead")
+        finally:
+            await provider.aclose()
+        assert len(results) == 1
+        assert results[0].discogs_release_id == "249504"
+
+    @respx.mock
+    async def test_search_preserves_branch_relative_order_for_popularity(
+        self, _with_token: None
+    ) -> None:
+        """Each Discogs branch returns results in popularity-rank order
+        (Discogs sorts structured queries by ``community.have`` count).
+        The merge must preserve that order within each branch.
+        """
+        # Title branch hands back A (most popular), B (less popular).
+        title_branch = {
+            "results": [
+                {"id": 1, "title": "Artist - Title A", "year": 2010, "type": "release"},
+                {"id": 2, "title": "Artist - Title B", "year": 2011, "type": "release"},
+            ]
+        }
+        # Artist branch hands back C, D in popularity order.
+        artist_branch = {
+            "results": [
+                {"id": 3, "title": "Artist - Title C", "year": 2012, "type": "release"},
+                {"id": 4, "title": "Artist - Title D", "year": 2013, "type": "release"},
+            ]
+        }
+
+        # Return different payloads per call by using a side-effect on
+        # respx — alternates between the two branches in call order.
+        responses_iter = iter([title_branch, artist_branch])
+
+        def _handler(request: object) -> Response:
+            return Response(200, json=next(responses_iter))
+
+        respx.get(f"{DISCOGS_BASE}/database/search").mock(side_effect=_handler)
+        provider = DiscogsCatalogProvider()
+        try:
+            results = await provider.search_albums("Artist")
+        finally:
+            await provider.aclose()
+        # Title branch comes first (most users mean a title when they
+        # type a string); within each branch the popularity order is
+        # preserved.
+        titles = [r.title for r in results]
+        assert titles == ["Title A", "Title B", "Title C", "Title D"]
+
+    @respx.mock
+    async def test_search_truncates_to_caller_limit(self, _with_token: None) -> None:
+        """The merged list must not exceed the caller's ``limit`` even
+        when both branches return a full page each.
+        """
+        # Both branches return 3 unique results — 6 total candidates.
+        branch_payload = {
+            "results": [
+                {"id": 1, "title": "Artist - T1", "year": 2010, "type": "release"},
+                {"id": 2, "title": "Artist - T2", "year": 2011, "type": "release"},
+                {"id": 3, "title": "Artist - T3", "year": 2012, "type": "release"},
+            ]
+        }
+        artist_branch = {
+            "results": [
+                {"id": 4, "title": "Artist - T4", "year": 2013, "type": "release"},
+                {"id": 5, "title": "Artist - T5", "year": 2014, "type": "release"},
+                {"id": 6, "title": "Artist - T6", "year": 2015, "type": "release"},
+            ]
+        }
+        responses_iter = iter([branch_payload, artist_branch])
+
+        def _handler(request: object) -> Response:
+            return Response(200, json=next(responses_iter))
+
+        respx.get(f"{DISCOGS_BASE}/database/search").mock(side_effect=_handler)
+        provider = DiscogsCatalogProvider()
+        try:
+            results = await provider.search_albums("Artist", limit=4)
+        finally:
+            await provider.aclose()
+        assert len(results) == 4

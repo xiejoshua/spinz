@@ -426,3 +426,305 @@ async def test_query_required(_clean_env: None) -> None:
     client = TestClient(app)
     response = client.get("/api/v1/search")
     assert response.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Post-2026-05-24 search-quality regression tests (Fix 3).
+#
+# The parallel MB + Discogs merge with cross-source bonus is the central
+# behavioural change. These tests pin the exact ordering for the user's
+# two failing cases ("Graduation", "kanye west") plus the cross-source
+# bonus arithmetic that makes that ordering happen.
+# ---------------------------------------------------------------------------
+
+
+MBID_GRADUATION = "44444444-aaaa-bbbb-cccc-555555555555"
+MBID_MBDTF = "66666666-aaaa-bbbb-cccc-777777777777"
+
+
+def _kanye_graduation_mb() -> CatalogAlbum:
+    return CatalogAlbum(
+        mbid=MBID_GRADUATION,
+        title="Graduation",
+        artist_name="Kanye West",
+        release_year=2007,
+        external_ids={"mbid": MBID_GRADUATION},
+        score=100,
+    )
+
+
+def _kanye_graduation_discogs() -> CatalogAlbum:
+    # Same album as ``_kanye_graduation_mb`` but surfaced by Discogs
+    # (no MBID — the cross-source dedup must hit on (title, artist)).
+    return CatalogAlbum(
+        mbid=None,
+        discogs_release_id="discogs-grad-1",
+        title="Graduation",
+        artist_name="Kanye West",
+        release_year=2007,
+        external_ids={"discogs": "discogs-grad-1"},
+    )
+
+
+@pytest.mark.asyncio
+async def test_cross_source_bonus_lifts_confirmed_canonical_release(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """A hit confirmed by BOTH MB and Discogs must outrank a hit only
+    seen by one provider.
+
+    Concretely: Kanye's *Graduation* hits MB with score=80 AND lands at
+    Discogs position 0 (popularity rank 100). Combined score 80 + 100 + 50
+    cross-source bonus = 230. A noise hit only in MB at score=100 cannot
+    catch up to that 230 — so Kanye's *Graduation* lands first.
+    """
+    grad_mb = CatalogAlbum(
+        mbid=MBID_GRADUATION,
+        title="Graduation",
+        artist_name="Kanye West",
+        release_year=2007,
+        external_ids={"mbid": MBID_GRADUATION},
+        score=80,
+    )
+    noise_mb = CatalogAlbum(
+        mbid="99999999-ffff-ffff-ffff-999999999999",
+        title="Graduation (Tribute)",
+        artist_name="Random Artist",
+        release_year=2020,
+        external_ids={"mbid": "99999999-ffff-ffff-ffff-999999999999"},
+        score=100,
+    )
+
+    by_mbid = {
+        MBID_GRADUATION: grad_mb,
+        "99999999-ffff-ffff-ffff-999999999999": noise_mb,
+    }
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = [grad_mb, noise_mb]
+    mb_provider.get_album_by_mbid.side_effect = lambda mbid: by_mbid[mbid]
+
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = [_kanye_graduation_discogs()]
+    discogs_provider.get_album_by_external_id.return_value = _kanye_graduation_discogs()
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "graduation"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    # Kanye's Graduation must be FIRST — combined score 230 beats the
+    # tribute's MB-only 100.
+    assert titles[0] == "Graduation"
+    # The first hit should carry an MBID (we preferred the MB hit over
+    # the Discogs hit during dedup because MBID identity is richer).
+    assert response.json()["results"][0]["mbid"] == MBID_GRADUATION
+
+
+@pytest.mark.asyncio
+async def test_graduation_query_surfaces_kanye_in_top_two(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """User's failing case: searching "Graduation" must surface Kanye's
+    canonical album in the top results, not Chinese-language compilations.
+
+    Setup mirrors the production failure: MB returns 5 hits all tied at
+    score 100 (Kanye + 4 niche releases — MB has no popularity
+    tiebreaker). Discogs returns Kanye's Graduation at popularity-rank
+    position 0. The combined-score merge with cross-source bonus pulls
+    Kanye to the top.
+    """
+    # 4 niche MB hits all at score=100 — same relevance, no MB way to
+    # break the tie.
+    niche_titles = [
+        ("11111111-1111-1111-1111-aaaaaaaaaaaa", "毕业 (Chinese)"),
+        ("22222222-2222-2222-2222-bbbbbbbbbbbb", "Graduation Mixtape"),
+        ("33333333-3333-3333-3333-cccccccccccc", "Graduation Vol. 2"),
+        ("44444444-4444-4444-4444-dddddddddddd", "School Graduation"),
+    ]
+    niche_hits = [
+        CatalogAlbum(
+            mbid=mbid,
+            title=title,
+            artist_name="Unknown Artist",
+            release_year=2015,
+            external_ids={"mbid": mbid},
+            score=100,
+        )
+        for mbid, title in niche_titles
+    ]
+    grad_mb = _kanye_graduation_mb()
+
+    by_mbid: dict[str, CatalogAlbum] = {
+        grad_mb.mbid: grad_mb for grad_mb in [grad_mb] if grad_mb.mbid is not None
+    }
+    for hit in niche_hits:
+        if hit.mbid is not None:
+            by_mbid[hit.mbid] = hit
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    # All 5 hits tied at score 100; Kanye is intentionally NOT first in
+    # the raw MB response — the niche releases come back ahead of him.
+    mb_provider.search_albums.return_value = [*niche_hits, grad_mb]
+    mb_provider.get_album_by_mbid.side_effect = lambda mbid: by_mbid[mbid]
+
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    # Discogs's popularity rank: Kanye at position 0 (highest community.have).
+    discogs_provider.search_albums.return_value = [_kanye_graduation_discogs()]
+    discogs_provider.get_album_by_external_id.return_value = _kanye_graduation_discogs()
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "Graduation"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    # Kanye's Graduation must rank in the top 2 — combined score
+    # 100 (MB) + 100 (Discogs pos 0) + 50 (cross-source) = 250, vs each
+    # niche release at 100 (MB only).
+    assert "Graduation" in titles[:2], f"Kanye's Graduation must be in top 2, got {titles}"
+    # Specifically: should be FIRST given the score arithmetic.
+    assert titles[0] == "Graduation"
+
+
+@pytest.mark.asyncio
+async def test_kanye_west_query_surfaces_canonical_releases_at_top(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """User's failing case: searching "kanye west" must surface Kanye's
+    canonical albums, not niche releases whose TITLE happens to be
+    "Kanye West".
+
+    Setup mirrors the production failure: MB returns 3 niche-title hits
+    plus Kanye's Graduation + MBDTF (the artist-typed query matches both
+    title and artist branches). Discogs returns Kanye's canonical albums
+    at popularity-rank positions 0-1. The cross-source bonus elevates
+    the canonical albums above the niche-titled ones.
+    """
+    mbdtf_mb = CatalogAlbum(
+        mbid=MBID_MBDTF,
+        title="My Beautiful Dark Twisted Fantasy",
+        artist_name="Kanye West",
+        release_year=2010,
+        external_ids={"mbid": MBID_MBDTF},
+        score=90,
+    )
+    grad_mb = _kanye_graduation_mb()
+
+    niche_hits = [
+        CatalogAlbum(
+            mbid=f"aaaaaaaa-bbbb-cccc-dddd-{i:012d}",
+            title="Kanye West",  # Album literally titled "Kanye West"
+            artist_name=f"Tribute Artist {i}",
+            release_year=2018 + i,
+            external_ids={"mbid": f"aaaaaaaa-bbbb-cccc-dddd-{i:012d}"},
+            score=100,  # MB scores tributes-titled-"Kanye West" identically
+        )
+        for i in range(3)
+    ]
+    by_mbid: dict[str, CatalogAlbum] = {}
+    for hit in (mbdtf_mb, grad_mb, *niche_hits):
+        if hit.mbid is not None:
+            by_mbid[hit.mbid] = hit
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    # Niche tributes come back ahead of Kanye in the raw MB response
+    # (this is exactly what reproduced the bug — score=100 ties resolved
+    # in arbitrary order).
+    mb_provider.search_albums.return_value = [*niche_hits, grad_mb, mbdtf_mb]
+    mb_provider.get_album_by_mbid.side_effect = lambda mbid: by_mbid[mbid]
+
+    # Discogs sorts the artist=kanye+west call by popularity — Kanye's
+    # canonical albums sit at positions 0 and 1.
+    grad_discogs = _kanye_graduation_discogs()
+    mbdtf_discogs = CatalogAlbum(
+        mbid=None,
+        discogs_release_id="discogs-mbdtf-1",
+        title="My Beautiful Dark Twisted Fantasy",
+        artist_name="Kanye West",
+        release_year=2010,
+        external_ids={"discogs": "discogs-mbdtf-1"},
+    )
+    by_discogs = {
+        "discogs-grad-1": grad_discogs,
+        "discogs-mbdtf-1": mbdtf_discogs,
+    }
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = [grad_discogs, mbdtf_discogs]
+    discogs_provider.get_album_by_external_id.side_effect = lambda provider, rid: by_discogs.get(
+        rid
+    )
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "kanye west"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    # Both canonical albums must bubble to the top — combined scores:
+    # Graduation: 100 (MB) + 100 (Discogs pos 0) + 50 = 250
+    # MBDTF:       90 (MB) +  90 (Discogs pos 1) + 50 = 230
+    # Niche tributes: 100 (MB only). Each lower than both canonicals.
+    canonical_titles = {
+        "Graduation",
+        "My Beautiful Dark Twisted Fantasy",
+    }
+    assert set(titles[:2]) == canonical_titles, (
+        f"Kanye's canonical albums must dominate top 2, got top 5 = {titles[:5]}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_partial_provider_failure_does_not_abort_other_branch(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """When MB raises a :class:`ProviderError`, the Discogs branch must
+    still return its hits (and vice versa). This pins the per-provider
+    error funnel inside ``_safe_provider_search`` — a single upstream
+    failure cannot poison the parallel ``asyncio.gather``.
+    """
+    from auxd_api.providers.errors import ProviderUnavailable
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.side_effect = ProviderUnavailable(
+        "musicbrainz timeout", provider="musicbrainz"
+    )
+
+    discogs_hit = _kanye_graduation_discogs()
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = [discogs_hit]
+    discogs_provider.get_album_by_external_id.return_value = discogs_hit
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "Graduation"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    assert titles == ["Graduation"]
+
+
+@pytest.mark.asyncio
+async def test_both_providers_fail_returns_empty_with_report_url(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """When BOTH MB and Discogs raise, the response is empty + carries
+    the report-missing-album CTA (no crash, no exception leak)."""
+    from auxd_api.providers.errors import ProviderUnavailable
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.side_effect = ProviderUnavailable("mb down", provider="musicbrainz")
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.side_effect = ProviderUnavailable(
+        "discogs down", provider="discogs"
+    )
+
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "anything"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results"] == []
+    assert body["report_missing_album_url"] == "/api/v1/reports/missing-album"

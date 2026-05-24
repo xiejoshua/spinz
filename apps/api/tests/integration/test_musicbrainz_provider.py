@@ -30,7 +30,11 @@ from auxd_api.providers.errors import (
     ProviderRateLimited,
     ProviderUnavailable,
 )
-from auxd_api.providers.musicbrainz import MusicBrainzCatalogProvider
+from auxd_api.providers.musicbrainz import (
+    MusicBrainzCatalogProvider,
+    _build_mb_lucene_query,
+    _escape_lucene,
+)
 
 MB_BASE = "https://musicbrainz.org/ws/2"
 
@@ -269,7 +273,75 @@ class TestMusicBrainzCatalogProvider:
         ua = route.calls.last.request.headers.get("user-agent", "")
         assert "auxd" in ua
 
+    @respx.mock
+    async def test_search_sends_structured_lucene_query(self) -> None:
+        """Post-2026-05-24 fix: MB search MUST send a structured Lucene
+        query of the form ``release:"<q>" OR artist:"<q>"`` instead of
+        the bare ``query=<q>`` form. Without this disambiguation the bare
+        form returned niche tributes titled "Kanye West" ahead of
+        canonical Kanye albums for the input ``"kanye west"``.
+        """
+        route = respx.get(f"{MB_BASE}/release-group").mock(
+            return_value=Response(200, json={"release-groups": []})
+        )
+        provider = MusicBrainzCatalogProvider()
+        try:
+            await provider.search_albums("kanye west")
+        finally:
+            await provider.aclose()
+        assert route.called
+        sent_query = route.calls.last.request.url.params["query"]
+        # Expected exact shape: release:"kanye west" OR artist:"kanye west"
+        assert sent_query == 'release:"kanye west" OR artist:"kanye west"', (
+            f"expected structured Lucene query, got {sent_query!r}"
+        )
+
     # Avoid an unused-import warning when asyncio is only referenced in
     # imports above for type checking.
     def test_smoketest_asyncio_imported(self) -> None:
         assert asyncio is not None
+
+
+class TestMusicBrainzLuceneQueryBuilder:
+    """Unit-style coverage for the structured-query helpers (Fix 1)."""
+
+    def test_build_query_for_artist_typical_input(self) -> None:
+        assert _build_mb_lucene_query("kanye west") == 'release:"kanye west" OR artist:"kanye west"'
+
+    def test_build_query_for_title_typical_input(self) -> None:
+        assert _build_mb_lucene_query("Graduation") == 'release:"Graduation" OR artist:"Graduation"'
+
+    def test_build_query_trims_whitespace(self) -> None:
+        # User-typed leading/trailing whitespace must be normalised before
+        # interpolation so we don't ship `release:"  q  "` to MB.
+        assert (
+            _build_mb_lucene_query("  Radiohead  ") == 'release:"Radiohead" OR artist:"Radiohead"'
+        )
+
+    def test_escape_lucene_passes_through_safe_text(self) -> None:
+        assert _escape_lucene("Radiohead") == "Radiohead"
+
+    def test_escape_lucene_escapes_plus(self) -> None:
+        # ``+`` is Lucene-special; if interpolated raw it forces the next
+        # token to be present, which would break the OR clause.
+        assert _escape_lucene("Daft Punk + Justice") == r"Daft Punk \+ Justice"
+
+    def test_escape_lucene_escapes_quotes_and_meta(self) -> None:
+        # Embedded double-quotes would break out of the quoted phrase
+        # clause; the backslash escape keeps the user's input contained.
+        assert _escape_lucene('Say "Hi" (Mix)') == r"Say \"Hi\" \(Mix\)"
+
+    def test_escape_lucene_escapes_field_separator(self) -> None:
+        # The ``:`` character is the Lucene field separator. Without
+        # escaping, a user input like ``artist:foo`` would let the
+        # caller inject an alternate field clause and bypass our
+        # structured-query design.
+        assert _escape_lucene("artist:foo") == r"artist\:foo"
+
+    def test_build_query_escapes_special_chars_inside_phrase(self) -> None:
+        # Smoke test the integration: the builder must propagate escapes
+        # into the final ``release:"..." OR artist:"..."`` shape.
+        built = _build_mb_lucene_query("Daft Punk + Justice")
+        assert "release:" in built
+        assert "artist:" in built
+        assert r"\+" in built

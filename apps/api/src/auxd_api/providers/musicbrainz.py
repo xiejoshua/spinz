@@ -39,6 +39,46 @@ _CAA_BASE = "https://coverartarchive.org"
 _MIN_INTERVAL_SECONDS = 1.0
 """MusicBrainz etiquette: 1 request per second per IP."""
 
+# Lucene reserved characters (per Lucene's
+# https://lucene.apache.org/core/2_9_4/queryparsersyntax.html#Escaping%20Special%20Characters).
+# A bare ``query=<text>`` parameter to MB hits Lucene under the hood; if
+# we interpolate user input directly into a structured ``release:"<q>"
+# OR artist:"<q>"`` query (post-2026-05-24 fix for the "kanye west returns
+# niche releases titled 'Kanye West'" bug) any of these characters in the
+# user's input would break parsing or — worse — let the user inject
+# alternate field clauses. The leading backslash is escaped by Python's
+# str literal already; the rest are the raw Lucene meta-characters.
+_LUCENE_SPECIAL_CHARS = r'+-&|!(){}[]^"~*?:\/'
+
+
+def _escape_lucene(value: str) -> str:
+    """Escape Lucene-special characters in a user query for safe interpolation.
+
+    Returns a string where every reserved Lucene character is prefixed
+    with a backslash. Safe to embed inside a quoted Lucene phrase clause.
+    """
+    return "".join(f"\\{c}" if c in _LUCENE_SPECIAL_CHARS else c for c in value)
+
+
+def _build_mb_lucene_query(query: str) -> str:
+    """Build a structured release-group query: ``release:"q" OR artist:"q"``.
+
+    The ``release:`` branch matches release-groups by title; the
+    ``artist:`` branch matches release-groups attributed to artists with
+    matching name. The ``OR`` combines both so the same input surfaces
+    title-typical queries ("Graduation") and artist-typical queries
+    ("Kanye West") without forcing the caller to pick a field.
+
+    Prior to 2026-05-24 the provider sent the bare user input as
+    ``query=<input>``, which MB interprets as a multi-field search. For
+    common album titles that returned a glut of niche releases whose
+    *title* happened to contain the artist's name (e.g. tribute albums
+    literally titled "Kanye West"); the structured form pins the
+    semantics so the relevance score actually reflects user intent.
+    """
+    escaped = _escape_lucene(query.strip())
+    return f'release:"{escaped}" OR artist:"{escaped}"'
+
 
 class MusicBrainzCatalogProvider(CatalogProvider):
     """Catalog provider backed by the MusicBrainz JSON web service."""
@@ -76,12 +116,22 @@ class MusicBrainzCatalogProvider(CatalogProvider):
     async def search_albums(self, query: str, limit: int = 10) -> list[CatalogAlbum]:
         """Search MusicBrainz release-groups by free-text ``query``.
 
+        Uses a structured Lucene query of the form
+        ``release:"<q>" OR artist:"<q>"`` so the same input surfaces
+        title-typical hits ("Graduation") and artist-typical hits
+        ("Kanye West"). The previous bare ``query=<input>`` form let MB
+        run a multi-field search that conflated artist-name occurrences
+        in release titles with intent, surfacing niche tributes ahead of
+        the canonical work — see :func:`_build_mb_lucene_query` for the
+        full design note.
+
         Returns up to ``limit`` matches. Empty list on no results.
         """
         await self._wait_for_rate_limit_slot()
+        mb_query = _build_mb_lucene_query(query)
         response = await self._client.get(
             "/release-group",
-            params={"query": query, "limit": str(limit), "fmt": "json"},
+            params={"query": mb_query, "limit": str(limit), "fmt": "json"},
         )
         # Surface 4xx (non-429, non-404) as ProviderUnavailable — search
         # doesn't have a sensible "not-found" semantic distinct from empty.

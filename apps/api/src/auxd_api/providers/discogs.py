@@ -28,6 +28,8 @@ The PAT is supplied via ``DISCOGS_API_TOKEN`` (see plan §17.2).
 
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 
 from auxd_api.providers.base import CatalogAlbum, CatalogProvider
@@ -87,17 +89,61 @@ class DiscogsCatalogProvider(CatalogProvider):
     # ------------------------------------------------------------------
 
     async def search_albums(self, query: str, limit: int = 10) -> list[CatalogAlbum]:
+        """Search Discogs releases via parallel title + artist queries.
+
+        Two calls in parallel: ``release_title=<q>`` (Discogs's
+        popularity-ranked title match) plus ``artist=<q>`` (artist-attributed
+        releases). Results are merged with dedup on Discogs release id.
+
+        Discogs's default ordering for both structured params is by
+        ``community.have`` count (a real popularity signal). The previous
+        bare ``q=<input>`` form ran a broad multi-field search that
+        returned ties in arbitrary order — the structured form gives us
+        a popularity tiebreaker MB does not provide and is the key reason
+        the post-2026-05-24 search-quality fix puts Discogs on the hot
+        path instead of the deepest fallback tier.
+        """
         if not self._enabled or self._client is None:
             return []
-        response = await self._client.get(
+
+        # Bound each branch to ``limit`` (not ``limit/2``) so a query that
+        # hits only one branch still returns a full page. The merge below
+        # truncates the combined list to ``limit`` so we never exceed the
+        # caller's contract.
+        title_task = self._client.get(
             "/database/search",
-            params={"q": query, "type": "release", "per_page": str(limit)},
+            params={"release_title": query, "type": "release", "per_page": str(limit)},
         )
-        if response.status_code >= 400:
-            self._raise_for_status(response)
-        payload = response.json()
-        items: list[dict[str, object]] = payload.get("results", []) or []
-        return [self._map_search_result(item) for item in items]
+        artist_task = self._client.get(
+            "/database/search",
+            params={"artist": query, "type": "release", "per_page": str(limit)},
+        )
+        title_resp, artist_resp = await asyncio.gather(title_task, artist_task)
+
+        if title_resp.status_code >= 400:
+            self._raise_for_status(title_resp)
+        if artist_resp.status_code >= 400:
+            self._raise_for_status(artist_resp)
+
+        items_title: list[dict[str, object]] = title_resp.json().get("results", []) or []
+        items_artist: list[dict[str, object]] = artist_resp.json().get("results", []) or []
+
+        # Dedup by Discogs release id; preserve relative order
+        # (Discogs's natural popularity ranking) within each branch.
+        # Title branch comes first because the user's intent for queries
+        # like "Graduation" is almost always title-based.
+        seen: set[str] = set()
+        merged: list[CatalogAlbum] = []
+        for items in (items_title, items_artist):
+            for item in items:
+                release_id = str(item.get("id", ""))
+                if not release_id or release_id in seen:
+                    continue
+                seen.add(release_id)
+                merged.append(self._map_search_result(item))
+                if len(merged) >= limit:
+                    return merged
+        return merged
 
     async def get_album_by_mbid(self, mbid: str) -> CatalogAlbum | None:
         """Discogs has no MBID lookup; always returns ``None``.
