@@ -384,8 +384,24 @@ async def get_album_detail(album_id: str, request: Request) -> dict[str, Any]:
     # private-profile user's PUBLIC reviews don't leak via the album-
     # detail public_reviews rollup.
     review_private_owner_ids = await _load_private_owner_ids(review_owner_ids)
+    # Batch-fetch the author rating for each review so the payload
+    # includes it on the card. Rating lives on DiaryEntry, not Review.
+    review_diary_ids = [r.diary_entry_id for r in public_review_rows if r.diary_entry_id]
+    review_rating_map: dict[str, float | None] = {}
+    if review_diary_ids:
+        from auxd_api.modules.diary.models import DiaryEntry as _DiaryEntry  # noqa: PLC0415
+
+        diary_rows = await _DiaryEntry.find({"_id": {"$in": review_diary_ids}}).to_list()
+        review_rating_map = {row.id: row.rating for row in diary_rows}
+
     review_items = [
-        (_ReviewContent(review), _serialize_review(review)) for review in public_review_rows
+        (
+            _ReviewContent(review),
+            _serialize_review(
+                review, rating=review_rating_map.get(review.diary_entry_id)
+            ),
+        )
+        for review in public_review_rows
     ]
     public_reviews_payload = _filter_visible(
         viewer, review_items, review_relations, private_owner_ids=review_private_owner_ids

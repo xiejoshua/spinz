@@ -46,6 +46,7 @@ from auxd_api.modules.albums.models import (
     Album,
     AlbumSource,
     ArtistRefSubDoc,
+    TrackSubDoc,
 )
 from auxd_api.providers.base import CatalogAlbum, CatalogProvider
 
@@ -69,13 +70,30 @@ def _materialize_album(
 ) -> Album:
     """Translate a provider-returned :class:`CatalogAlbum` into an :class:`Album`.
 
-    The mapping is intentionally narrow — only the fields a provider
-    actually populates are copied. Tracklist + label + genres land later
-    via the enrichment workers (T064 refresh path).
+    Copies the catalog fields the provider populated. Discogs master
+    detail surfaces genres+styles and a track list with mm:ss durations;
+    MusicBrainz release-group lookup currently leaves both empty (the
+    enrichment workers — T064 refresh path — fill MB albums later).
     """
     artists: list[ArtistRefSubDoc] = []
     if catalog.artist_name:
         artists.append(ArtistRefSubDoc(name=catalog.artist_name))
+    tracklist = [
+        TrackSubDoc(
+            position=t.position,
+            title=t.title,
+            duration_ms=t.duration_ms,
+        )
+        for t in catalog.tracklist
+    ]
+    # Album.duration_ms is denormalised as the sum of track durations
+    # when every track has one; otherwise leave None so the UI shows "—".
+    durations = [t.duration_ms for t in catalog.tracklist if t.duration_ms]
+    duration_ms: int | None = (
+        sum(durations)
+        if durations and len(durations) == len(catalog.tracklist)
+        else None
+    )
     return Album(
         mbid=catalog.mbid,
         discogs_release_id=catalog.discogs_release_id,
@@ -85,6 +103,9 @@ def _materialize_album(
         artists=artists,
         release_year=catalog.release_year,
         cover_art_url=catalog.cover_art_url,
+        genres=catalog.genres,
+        tracklist=tracklist,
+        duration_ms=duration_ms,
         source=source,
         cache_expires_at=_cache_expiry(),
         candidate=candidate,

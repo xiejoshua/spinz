@@ -1,6 +1,7 @@
 "use client";
 
 import { CriticBadge } from "@/components/critic-badge";
+import { StarRow } from "@/components/icons/star-row";
 import { LikeButton } from "@/components/review-card/like-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type {
@@ -116,6 +117,23 @@ export function ReviewCard({
                 </span>
               )}
             </header>
+
+            {/* Rating row — author's rating from the joined DiaryEntry.
+                Mirrors the landing example feed's star line. */}
+            {review.rating != null && review.rating > 0 && (
+              <div
+                className="mt-2 inline-flex items-center gap-1.5"
+                style={{ color: "var(--accent)" }}
+              >
+                <StarRow value={review.rating} size={14} />
+                <span
+                  className="font-mono tabular-nums"
+                  style={{ fontSize: "11px", color: "var(--muted)" }}
+                >
+                  {review.rating.toFixed(1)}
+                </span>
+              </div>
+            )}
 
             {/* Album row (only on profile reviews; omitted on album-detail) */}
             {album && (

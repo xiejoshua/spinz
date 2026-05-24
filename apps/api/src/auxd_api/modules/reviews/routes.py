@@ -288,14 +288,23 @@ async def _load_private_owner_ids(owner_ids: set[str]) -> set[str]:
     return {row.id for row in rows}
 
 
-def _serialize_review(review: Review) -> dict[str, Any]:
-    """Return the wire shape for a review."""
+def _serialize_review(
+    review: Review, *, rating: float | None = None
+) -> dict[str, Any]:
+    """Return the wire shape for a review.
+
+    Includes the author's rating from the joined DiaryEntry when the
+    caller supplies it. The Review document itself doesn't carry the
+    rating — rating lives on DiaryEntry — so list endpoints batch-fetch
+    diary rows by id and pass the rating per review.
+    """
     return {
         "id": review.id,
         "user_id": review.user_id,
         "diary_entry_id": review.diary_entry_id,
         "album_id": review.album_id,
         "body": review.body,
+        "rating": rating,
         "visibility": review.visibility,
         "likes_count": review.reactions.likes_count,
         "recent_likers": list(review.reactions.recent_likers),
@@ -303,6 +312,23 @@ def _serialize_review(review: Review) -> dict[str, Any]:
         "deleted_at": review.deleted_at.isoformat() if review.deleted_at is not None else None,
         "created_at": review.created_at.isoformat(),
     }
+
+
+async def _build_rating_map(
+    reviews: list[Review],
+) -> dict[str, float | None]:
+    """Batch-fetch diary-entry ratings for a list of reviews.
+
+    Returns ``{diary_entry_id: rating}``. Reviews whose diary entry is
+    missing (race / orphan) get a None rating.
+    """
+    from auxd_api.modules.diary.models import DiaryEntry  # noqa: PLC0415
+
+    ids = [r.diary_entry_id for r in reviews if r.diary_entry_id]
+    if not ids:
+        return {}
+    rows = await DiaryEntry.find({"_id": {"$in": ids}}).to_list()
+    return {row.id: row.rating for row in rows}
 
 
 def _serialize_user_card(user: User, *, critic_seed_ids: set[str] | None = None) -> dict[str, Any]:
@@ -820,8 +846,13 @@ async def get_album_reviews(
             for user in user_rows
         }
 
+    rating_map = await _build_rating_map(page)
+
     return {
-        "reviews": [_serialize_review(review) for review in page],
+        "reviews": [
+            _serialize_review(review, rating=rating_map.get(review.diary_entry_id))
+            for review in page
+        ],
         "next_cursor": next_cursor,
         "users": users_payload,
     }
@@ -1202,8 +1233,13 @@ async def get_user_reviews(
         album_rows = await Album.find({"_id": {"$in": list(album_ids)}}).to_list()
         albums_payload = {album.id: _serialize_album_card(album) for album in album_rows}
 
+    rating_map = await _build_rating_map(page)
+
     return {
-        "reviews": [_serialize_review(review) for review in page],
+        "reviews": [
+            _serialize_review(review, rating=rating_map.get(review.diary_entry_id))
+            for review in page
+        ],
         "next_cursor": next_cursor,
         "users": users_payload,
         "albums": albums_payload,
