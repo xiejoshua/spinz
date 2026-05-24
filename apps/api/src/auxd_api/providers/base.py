@@ -43,6 +43,24 @@ class CatalogAlbum(BaseModel):
         default=None,
         description="Discogs release id. Used as candidate identity prior to MBID reconciliation.",
     )
+    discogs_master_id: str | None = Field(
+        default=None,
+        description=(
+            "Discogs master_id — canonical Discogs identifier for an album across all "
+            "pressings. Searches via Discogs `type=master` populate this; lookup via "
+            "`get_album_by_external_id(provider='discogs_master', ...)` resolves this "
+            "back to the master."
+        ),
+    )
+    community_have: int | None = Field(
+        default=None,
+        description=(
+            "Discogs community.have count — number of users who own a copy in their "
+            "Discogs collection. Real popularity signal exposed by Discogs's master "
+            "and release endpoints. Search results from Discogs include this; MB "
+            "hits leave it None."
+        ),
+    )
     title: str = Field(description="Album / release-group title.")
     artist_name: str = Field(
         description="Primary artist credit. Multi-artist credits use the first joined credit."

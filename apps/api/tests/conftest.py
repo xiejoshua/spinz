@@ -55,7 +55,7 @@ async def _initialize_beanie_for_tests() -> AsyncIterator[None]:
     await init_beanie(database=database, document_models=list(ALL_DOCUMENT_MODELS))
 
     albums = database["albums"]
-    for idx_name in ("mbid_1", "discogs_release_id_1"):
+    for idx_name in ("mbid_1", "discogs_release_id_1", "discogs_master_id_1"):
         # Index may not exist on some Beanie versions / mongomock builds.
         with contextlib.suppress(Exception):
             await albums.drop_index(idx_name)

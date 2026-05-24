@@ -2,9 +2,17 @@
 
 :class:`DiscogsCatalogProvider` implements the
 :class:`~auxd_api.providers.base.CatalogProvider` Protocol against the
-Discogs API v2 (``api.discogs.com``). It is the OPTIONAL fallback in the
-catalog stack: when MusicBrainz returns thin results, search service
-(T069) falls through to this provider.
+Discogs API v2 (``api.discogs.com``).
+
+Search-fix v4 (2026-05-24) — Discogs masters as the primary external
+source. We dropped the v3 parallel ``release_title=`` + ``artist=`` calls
+because the merge layer above still failed on the user's "Graduation" /
+"kanye west" queries even with heuristic boosts + community.have
+enrichment. The v4 design delegates ranking ENTIRELY to Discogs by
+searching ``type=master`` and passing the result order through unchanged.
+Discogs's master search already factors in popularity + relevance — this
+IS the algorithm the user has explicitly endorsed (results return in the
+same order as discogs.com).
 
 Disabled-mode contract
 ======================
@@ -27,8 +35,6 @@ The PAT is supplied via ``DISCOGS_API_TOKEN`` (see plan §17.2).
 """
 
 from __future__ import annotations
-
-import asyncio
 
 import httpx
 
@@ -89,61 +95,33 @@ class DiscogsCatalogProvider(CatalogProvider):
     # ------------------------------------------------------------------
 
     async def search_albums(self, query: str, limit: int = 10) -> list[CatalogAlbum]:
-        """Search Discogs releases via parallel title + artist queries.
+        """Search Discogs masters by free-text query.
 
-        Two calls in parallel: ``release_title=<q>`` (Discogs's
-        popularity-ranked title match) plus ``artist=<q>`` (artist-attributed
-        releases). Results are merged with dedup on Discogs release id.
+        Uses ``/database/search?q=<q>&type=master&per_page=<limit>`` —
+        Discogs masters are canonical album entries (one per album, not
+        per pressing). Discogs's default ranking factors in popularity +
+        relevance and is the algorithm the user has explicitly endorsed:
+        results return in the same order as discogs.com search.
 
-        Discogs's default ordering for both structured params is by
-        ``community.have`` count (a real popularity signal). The previous
-        bare ``q=<input>`` form ran a broad multi-field search that
-        returned ties in arbitrary order — the structured form gives us
-        a popularity tiebreaker MB does not provide and is the key reason
-        the post-2026-05-24 search-quality fix puts Discogs on the hot
-        path instead of the deepest fallback tier.
+        Returns :class:`CatalogAlbum` rows with ``discogs_master_id``
+        populated; ``discogs_release_id`` is ``None`` for master hits
+        (look up via ``master_id`` if a specific pressing is needed
+        later). ``community_have`` is included when Discogs returns it
+        on the search response.
+
+        Graceful empty list when token unset or provider disabled.
         """
         if not self._enabled or self._client is None:
             return []
-
-        # Bound each branch to ``limit`` (not ``limit/2``) so a query that
-        # hits only one branch still returns a full page. The merge below
-        # truncates the combined list to ``limit`` so we never exceed the
-        # caller's contract.
-        title_task = self._client.get(
+        response = await self._client.get(
             "/database/search",
-            params={"release_title": query, "type": "release", "per_page": str(limit)},
+            params={"q": query, "type": "master", "per_page": str(limit)},
         )
-        artist_task = self._client.get(
-            "/database/search",
-            params={"artist": query, "type": "release", "per_page": str(limit)},
-        )
-        title_resp, artist_resp = await asyncio.gather(title_task, artist_task)
-
-        if title_resp.status_code >= 400:
-            self._raise_for_status(title_resp)
-        if artist_resp.status_code >= 400:
-            self._raise_for_status(artist_resp)
-
-        items_title: list[dict[str, object]] = title_resp.json().get("results", []) or []
-        items_artist: list[dict[str, object]] = artist_resp.json().get("results", []) or []
-
-        # Dedup by Discogs release id; preserve relative order
-        # (Discogs's natural popularity ranking) within each branch.
-        # Title branch comes first because the user's intent for queries
-        # like "Graduation" is almost always title-based.
-        seen: set[str] = set()
-        merged: list[CatalogAlbum] = []
-        for items in (items_title, items_artist):
-            for item in items:
-                release_id = str(item.get("id", ""))
-                if not release_id or release_id in seen:
-                    continue
-                seen.add(release_id)
-                merged.append(self._map_search_result(item))
-                if len(merged) >= limit:
-                    return merged
-        return merged
+        if response.status_code >= 400:
+            self._raise_for_status(response)
+        payload = response.json()
+        items: list[dict[str, object]] = payload.get("results", []) or []
+        return [self._map_master_search_result(item) for item in items]
 
     async def get_album_by_mbid(self, mbid: str) -> CatalogAlbum | None:
         """Discogs has no MBID lookup; always returns ``None``.
@@ -156,50 +134,58 @@ class DiscogsCatalogProvider(CatalogProvider):
     async def get_album_by_external_id(
         self, provider: str, external_id: str
     ) -> CatalogAlbum | None:
+        """Resolve a Discogs identifier to a :class:`CatalogAlbum`.
+
+        Two ``provider`` values are accepted at MVP:
+
+        * ``"discogs"`` — release-id lookup via ``/releases/{id}``. Kept
+          for backward compatibility and for release-detail enrichment
+          paths that may still carry a release-id.
+        * ``"discogs_master"`` — master-id lookup via ``/masters/{id}``,
+          the primary identifier path post-search-fix-v4 (2026-05-24).
+
+        Returns ``None`` (not raises) for 404 — a missing record is a
+        normal lookup outcome.
+        """
         if not self._enabled or self._client is None:
             return None
-        if provider != "discogs":
-            return None
-        response = await self._client.get(f"/releases/{external_id}")
-        if response.status_code == 404:
-            return None
-        if response.status_code >= 400:
-            self._raise_for_status(response)
-        return self._map_release(response.json())
+        if provider == "discogs":
+            response = await self._client.get(f"/releases/{external_id}")
+            if response.status_code == 404:
+                return None
+            if response.status_code >= 400:
+                self._raise_for_status(response)
+            return self._map_release(response.json())
+        if provider == "discogs_master":
+            response = await self._client.get(f"/masters/{external_id}")
+            if response.status_code == 404:
+                return None
+            if response.status_code >= 400:
+                self._raise_for_status(response)
+            return self._map_master_detail(response.json())
+        return None
 
     # ------------------------------------------------------------------
-    # v3 search-quality extras (Fix B): popularity enrichment endpoint
+    # Popularity enrichment endpoint
     # ------------------------------------------------------------------
 
     async def get_community_data(self, release_id: str) -> int | None:
         """Return Discogs ``community.have`` for a release id, or ``None``.
 
-        Powers the v3 search popularity enrichment (Fix B+C, see
-        :mod:`auxd_api.modules.search.service`). The
-        ``/database/search`` endpoint returns hits ordered by
-        *relevance*, not popularity (a v2 misassumption that the
-        position-based score corrected for) — but the
-        ``/releases/{id}`` detail payload includes a ``community``
-        object with ``have`` and ``want`` counts that *are* a real
-        popularity signal. ``have`` is the number of Discogs users who
-        marked the release as owned; canonical popular releases sit in
-        the 50 000-200 000 range, niche bootlegs in single digits.
+        Retained from v3 for future enrichment paths even though the v4
+        search flow no longer calls it. The ``/releases/{id}`` detail
+        payload includes a ``community`` object with ``have`` and
+        ``want`` counts; ``have`` is the number of Discogs users who
+        marked the release as owned (canonical popular releases sit in
+        the 50 000-200 000 range, niche bootlegs in single digits).
 
-        Failure semantics are intentionally graceful — the search
-        service falls back to the position-based score on any None
-        return. Concretely:
+        Failure semantics are intentionally graceful:
 
         * Provider disabled (``DISCOGS_API_TOKEN`` unset) → ``None``.
-        * Network error, transport-level retries exhausted → ``None``
-          (no exception; the search service won't tolerate per-fetch
-          raises inside its ``asyncio.gather``).
+        * Network error, transport-level retries exhausted → ``None``.
         * 404 (release deleted) → ``None``.
         * Any other 4xx/5xx → ``None``.
         * Payload missing or mis-typed ``community.have`` → ``None``.
-
-        Callers must batch + cap concurrency (Discogs authenticated
-        tier: 60 req/min). The search service caps at 10 parallel
-        fetches per query and caches results for 24h.
         """
         if not self._enabled or self._client is None:
             return None
@@ -245,17 +231,16 @@ class DiscogsCatalogProvider(CatalogProvider):
         )
 
     @staticmethod
-    def _map_search_result(item: dict[str, object]) -> CatalogAlbum:
-        """Map a Discogs ``/database/search`` result to :class:`CatalogAlbum`.
+    def _map_master_search_result(item: dict[str, object]) -> CatalogAlbum:
+        """Map a Discogs ``/database/search?type=master`` result to :class:`CatalogAlbum`.
 
-        Discogs search results have a different shape from release detail
-        lookups: ``title`` is ``"Artist - Title"`` (joined), and there is
-        no ``artists`` array. We split on the first " - " to recover the
-        artist/title pair; if no separator is present, the whole string
-        becomes the title.
+        Master search results have the title formatted as
+        ``"Artist - Title"`` (joined string); the ``master_id`` is in
+        ``id``. Some responses include ``community: {have, want}``
+        directly in the search result; extract ``have`` when present.
         """
-        release_id = item.get("id")
-        release_id_str = str(release_id) if release_id is not None else ""
+        master_id = item.get("id")
+        master_id_str = str(master_id) if master_id is not None else ""
         raw_title = str(item.get("title", ""))
         artist_name = ""
         title = raw_title
@@ -263,29 +248,108 @@ class DiscogsCatalogProvider(CatalogProvider):
             artist_part, _, title_part = raw_title.partition(" - ")
             artist_name = artist_part.strip()
             title = title_part.strip()
+
+        year_raw = item.get("year")
+        release_year: int | None = None
+        if isinstance(year_raw, int):
+            release_year = year_raw
+        elif isinstance(year_raw, str) and year_raw.isdigit():
+            release_year = int(year_raw)
+
+        community = item.get("community", {})
+        community_have: int | None = None
+        if isinstance(community, dict):
+            have = community.get("have")
+            if isinstance(have, int):
+                community_have = have
+            elif isinstance(have, str) and have.isdigit():
+                community_have = int(have)
+
+        cover_uri_raw = item.get("cover_image")
+        cover_art_url: str | None = (
+            cover_uri_raw if isinstance(cover_uri_raw, str) and cover_uri_raw else None
+        )
+
+        return CatalogAlbum(
+            mbid=None,  # Discogs masters don't carry MBIDs in search; reconciliation later.
+            discogs_release_id=None,
+            discogs_master_id=master_id_str if master_id_str else None,
+            title=title,
+            artist_name=artist_name,
+            release_year=release_year,
+            cover_art_url=cover_art_url,
+            community_have=community_have,
+            external_ids=({"discogs_master": master_id_str} if master_id_str else {}),
+            score=None,  # Discogs doesn't expose a per-result relevance score.
+        )
+
+    @staticmethod
+    def _map_master_detail(item: dict[str, object]) -> CatalogAlbum:
+        """Map a Discogs ``/masters/{id}`` detail payload to :class:`CatalogAlbum`.
+
+        Master detail has a richer schema than the search response —
+        ``artists`` is an array of objects (not a joined string),
+        ``images`` carries multiple cover URIs, and ``community`` is
+        always present on real masters.
+        """
+        master_id = item.get("id")
+        master_id_str = str(master_id) if master_id is not None else ""
+        title = str(item.get("title", ""))
+
+        artists_raw = item.get("artists")
+        artist_name = ""
+        if isinstance(artists_raw, list) and artists_raw:
+            first = artists_raw[0]
+            if isinstance(first, dict):
+                name = first.get("name")
+                if isinstance(name, str):
+                    artist_name = name
+
         year = item.get("year")
         release_year: int | None = None
         if isinstance(year, int):
             release_year = year
         elif isinstance(year, str) and year.isdigit():
             release_year = int(year)
-        cover_uri_raw = item.get("cover_image")
-        cover_art_url: str | None = (
-            cover_uri_raw if isinstance(cover_uri_raw, str) and cover_uri_raw else None
-        )
+
+        cover_art_url: str | None = None
+        images_raw = item.get("images")
+        if isinstance(images_raw, list) and images_raw:
+            first_image = images_raw[0]
+            if isinstance(first_image, dict):
+                uri = first_image.get("uri")
+                if isinstance(uri, str) and uri:
+                    cover_art_url = uri
+
+        community = item.get("community", {})
+        community_have: int | None = None
+        if isinstance(community, dict):
+            have = community.get("have")
+            if isinstance(have, int):
+                community_have = have
+            elif isinstance(have, str) and have.isdigit():
+                community_have = int(have)
+
         return CatalogAlbum(
             mbid=None,
-            discogs_release_id=release_id_str or None,
+            discogs_release_id=None,
+            discogs_master_id=master_id_str or None,
             title=title,
             artist_name=artist_name,
             release_year=release_year,
             cover_art_url=cover_art_url,
-            external_ids={"discogs": release_id_str} if release_id_str else {},
+            community_have=community_have,
+            external_ids=({"discogs_master": master_id_str} if master_id_str else {}),
         )
 
     @staticmethod
     def _map_release(item: dict[str, object]) -> CatalogAlbum:
-        """Map a Discogs ``/releases/{id}`` detail payload to :class:`CatalogAlbum`."""
+        """Map a Discogs ``/releases/{id}`` detail payload to :class:`CatalogAlbum`.
+
+        Kept for the ``provider="discogs"`` release-id branch of
+        :meth:`get_album_by_external_id`. The v4 search flow uses
+        :meth:`_map_master_detail` for the primary path.
+        """
         release_id = item.get("id")
         release_id_str = str(release_id) if release_id is not None else ""
         title = str(item.get("title", ""))

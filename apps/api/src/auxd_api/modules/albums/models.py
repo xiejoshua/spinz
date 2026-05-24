@@ -154,6 +154,11 @@ class Album(Document):
     discogs_release_id: str | None = None
     """Discogs release ID — secondary fallback when MBID is unavailable (CR-001)."""
 
+    discogs_master_id: str | None = None
+    """Discogs master identifier. Sparse-unique index; not all Albums have a master_id
+    (older MB-sourced rows don't). Populated when an Album is materialised from a
+    Discogs ``type=master`` search hit (search-fix v4, 2026-05-24)."""
+
     title: Indexed(str)  # type: ignore[valid-type]
     """Album title; indexed (single-field) to support prefix lookups."""
 
@@ -240,6 +245,16 @@ class Album(Document):
                 [("discogs_release_id", ASCENDING)],
                 unique=True,
                 partialFilterExpression={"discogs_release_id": {"$type": "string"}},
+            ),
+            # Search-fix v4 (2026-05-24): Discogs masters are now the primary
+            # external source. ``discogs_master_id`` is the canonical Discogs
+            # identifier across pressings; sparse-unique mirrors the
+            # ``$type: "string"`` partial-filter pattern used by the other
+            # nullable identifiers.
+            IndexModel(
+                [("discogs_master_id", ASCENDING)],
+                unique=True,
+                partialFilterExpression={"discogs_master_id": {"$type": "string"}},
             ),
             IndexModel([("cache_expires_at", ASCENDING)], sparse=True),
             IndexModel([("popularity_score", DESCENDING)]),

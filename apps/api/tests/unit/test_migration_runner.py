@@ -89,6 +89,23 @@ def test_discover_migrations_finds_initial() -> None:
     assert initial.order == 1
 
 
+def test_discover_migrations_finds_album_discogs_master_id() -> None:
+    """The 002 ``album_discogs_master_id`` migration (search-fix v4) is
+    discoverable and runs immediately after ``001_initial``.
+    """
+    discovered = discover_migrations()
+    names = [m.name for m in discovered]
+    assert "002_album_discogs_master_id" in names
+    # Must sort after 001_initial.
+    initial_idx = names.index("001_initial")
+    v4_idx = names.index("002_album_discogs_master_id")
+    assert v4_idx > initial_idx
+    migration = next(m for m in discovered if m.name == "002_album_discogs_master_id")
+    assert migration.from_version == 1
+    assert migration.to_version == 2
+    assert migration.order == 2
+
+
 @pytest.fixture
 def _virtual_002_migration() -> Iterator[None]:
     """Inject a stub ``002_stub`` module under :mod:`auxd_api.migrations`.
@@ -199,6 +216,37 @@ async def test_run_migrations_noop_initial_logs_applied(
     assert record["provider"] == "migrations"
     assert record["extra"]["from_version"] == 0
     assert record["extra"]["to_version"] == 1
+    assert record["extra"]["modified_count"] == 0
+
+
+@pytest.mark.asyncio
+async def test_run_migrations_002_album_discogs_master_id_noop(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The 002 ``album_discogs_master_id`` migration runs as a no-op
+    (``modified_count=0``) and emits the expected structured log
+    event.
+
+    Search-fix v4 added the ``discogs_master_id`` field with a default
+    of ``None``; existing rows tolerate the missing field and the
+    sparse-unique index excludes nulls via ``$type: "string"``, so no
+    document writes are required.
+    """
+    events = _capture_log_calls(monkeypatch)
+    db = _fresh_db()
+    executed = await run_migrations(db)
+    assert any(m.name == "002_album_discogs_master_id" for m in executed)
+    applied = [
+        event
+        for event in events
+        if event["endpoint"] == "migration.applied"
+        and event["extra"].get("migration_name") == "002_album_discogs_master_id"
+    ]
+    assert len(applied) == 1
+    record = applied[0]
+    assert record["status"] == "ok"
+    assert record["extra"]["from_version"] == 1
+    assert record["extra"]["to_version"] == 2
     assert record["extra"]["modified_count"] == 0
 
 

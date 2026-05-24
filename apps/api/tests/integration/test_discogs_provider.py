@@ -6,9 +6,11 @@ P4 test-first sequence:
    at collection (``ImportError``).
 2. T049b fills in the impl. Re-running this file MUST yield all-green.
 
-Discogs is an OPTIONAL fallback: when ``DISCOGS_API_TOKEN`` is unset the
-provider must run in "disabled mode" and return ``[]`` / ``None`` rather
-than raising — search/lookups simply degrade gracefully.
+Discogs is the PRIMARY external source post-search-fix-v4 (2026-05-24).
+Searches use ``type=master`` and pass Discogs's native ranking through
+unchanged. When ``DISCOGS_API_TOKEN`` is unset the provider must run in
+"disabled mode" and return ``[]`` / ``None`` rather than raising —
+search/lookups simply degrade gracefully to the MusicBrainz fallback.
 """
 
 from __future__ import annotations
@@ -101,20 +103,38 @@ def _without_token(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     yield
 
 
-def _search_payload() -> dict[str, object]:
+def _master_search_payload() -> dict[str, object]:
+    """A canonical Discogs ``/database/search?type=master`` result."""
     return {
         "results": [
             {
                 "id": 249504,
                 "title": "Radiohead - OK Computer",
                 "year": 1997,
-                "type": "release",
+                "type": "master",
+                "cover_image": "https://img.discogs.com/abc/front.jpg",
+                "community": {"have": 50000, "want": 12000},
             },
         ]
     }
 
 
+def _master_detail_payload() -> dict[str, object]:
+    """A canonical Discogs ``/masters/{id}`` detail payload."""
+    return {
+        "id": 249504,
+        "title": "OK Computer",
+        "year": 1997,
+        "artists": [{"name": "Radiohead"}],
+        "images": [{"uri": "https://img.discogs.com/abc/front.jpg"}],
+        "community": {"have": 50000, "want": 12000},
+    }
+
+
 def _release_payload() -> dict[str, object]:
+    """A canonical Discogs ``/releases/{id}`` detail payload — kept for
+    the backward-compat ``provider='discogs'`` lookup branch.
+    """
     return {
         "id": 249504,
         "title": "OK Computer",
@@ -125,44 +145,158 @@ def _release_payload() -> dict[str, object]:
 
 
 class TestDiscogsCatalogProvider:
+    # ------------------------------------------------------------------
+    # search_albums — v4 master-based search
+    # ------------------------------------------------------------------
+
     @respx.mock
-    async def test_search_albums_returns_canonical_list(self, _with_token: None) -> None:
+    async def test_search_albums_returns_canonical_master_list(self, _with_token: None) -> None:
+        """Master search yields a CatalogAlbum with ``discogs_master_id`` set."""
         respx.get(f"{DISCOGS_BASE}/database/search").mock(
-            return_value=Response(200, json=_search_payload())
+            return_value=Response(200, json=_master_search_payload())
         )
         provider = DiscogsCatalogProvider()
         try:
             results = await provider.search_albums("Radiohead OK Computer")
         finally:
             await provider.aclose()
-        # Post-2026-05-24 fix: ``search_albums`` runs two parallel calls
-        # (title + artist). The mock payload here covers both, so we get
-        # one unique release id back across both branches.
         assert len(results) == 1
         first = results[0]
-        assert first.discogs_release_id == "249504"
+        assert first.discogs_master_id == "249504"
+        assert first.discogs_release_id is None
         assert first.title == "OK Computer"
         assert first.artist_name == "Radiohead"
         assert first.release_year == 1997
-        assert first.external_ids == {"discogs": "249504"}
+        assert first.community_have == 50000
+        assert first.external_ids == {"discogs_master": "249504"}
         assert first.mbid is None  # MBID reconciliation happens later in T065
+        # No relevance score — Discogs's master ranking is implicit.
+        assert first.score is None
 
     @respx.mock
-    async def test_get_album_by_external_id_returns_release(self, _with_token: None) -> None:
-        respx.get(f"{DISCOGS_BASE}/releases/249504").mock(
-            return_value=Response(200, json=_release_payload())
+    async def test_search_albums_uses_master_type_query(self, _with_token: None) -> None:
+        """Post-search-fix-v4: ``search_albums`` MUST issue a single
+        ``type=master`` query — no parallel title/artist calls, no
+        ``type=release`` request.
+
+        Discogs's master search ranks by popularity + relevance
+        natively; passing the result order through unchanged IS the
+        algorithm the user has endorsed.
+        """
+        route = respx.get(f"{DISCOGS_BASE}/database/search").mock(
+            return_value=Response(200, json={"results": []})
         )
         provider = DiscogsCatalogProvider()
         try:
-            album = await provider.get_album_by_external_id("discogs", "249504")
+            await provider.search_albums("Graduation")
         finally:
             await provider.aclose()
-        assert album is not None
-        assert album.discogs_release_id == "249504"
-        assert album.title == "OK Computer"
-        assert album.artist_name == "Radiohead"
-        assert album.release_year == 1997
-        assert album.cover_art_url == "https://img.discogs.com/abc/front.jpg"
+        assert route.call_count == 1
+        params = dict(route.calls.last.request.url.params)
+        assert params["q"] == "Graduation"
+        assert params["type"] == "master"
+        assert "per_page" in params
+        # No leftover release-based parameters from the v3 implementation.
+        assert "release_title" not in params
+        assert "artist" not in params
+
+    @respx.mock
+    async def test_map_master_search_result_extracts_master_id(self, _with_token: None) -> None:
+        """A master search response with ``id=123`` maps to
+        ``CatalogAlbum.discogs_master_id="123"`` and
+        ``discogs_release_id=None``.
+        """
+        respx.get(f"{DISCOGS_BASE}/database/search").mock(
+            return_value=Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "id": 123,
+                            "title": "Artist - Title",
+                            "year": 2020,
+                            "type": "master",
+                        }
+                    ]
+                },
+            )
+        )
+        provider = DiscogsCatalogProvider()
+        try:
+            results = await provider.search_albums("anything")
+        finally:
+            await provider.aclose()
+        assert len(results) == 1
+        assert results[0].discogs_master_id == "123"
+        assert results[0].discogs_release_id is None
+
+    @respx.mock
+    async def test_map_master_search_result_extracts_community_have(
+        self, _with_token: None
+    ) -> None:
+        """``community.have`` in a master search result populates
+        :class:`CatalogAlbum.community_have`. Missing community blocks
+        leave the field ``None``.
+        """
+        respx.get(f"{DISCOGS_BASE}/database/search").mock(
+            return_value=Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "id": 1,
+                            "title": "Artist - With Have",
+                            "year": 2020,
+                            "type": "master",
+                            "community": {"have": 5000, "want": 200},
+                        },
+                        {
+                            "id": 2,
+                            "title": "Artist - Without Community",
+                            "year": 2021,
+                            "type": "master",
+                        },
+                    ]
+                },
+            )
+        )
+        provider = DiscogsCatalogProvider()
+        try:
+            results = await provider.search_albums("anything")
+        finally:
+            await provider.aclose()
+        assert results[0].community_have == 5000
+        assert results[1].community_have is None
+
+    @respx.mock
+    async def test_map_master_search_result_parses_artist_title_split(
+        self, _with_token: None
+    ) -> None:
+        """Title formatted ``"Artist - Title"`` is split on the first
+        " - " into ``artist_name`` and ``title``.
+        """
+        respx.get(f"{DISCOGS_BASE}/database/search").mock(
+            return_value=Response(
+                200,
+                json={
+                    "results": [
+                        {
+                            "id": 1,
+                            "title": "Kanye West - Graduation",
+                            "year": 2007,
+                            "type": "master",
+                        }
+                    ]
+                },
+            )
+        )
+        provider = DiscogsCatalogProvider()
+        try:
+            results = await provider.search_albums("graduation")
+        finally:
+            await provider.aclose()
+        assert results[0].artist_name == "Kanye West"
+        assert results[0].title == "Graduation"
 
     @respx.mock
     async def test_search_requires_personal_access_token(self, _with_token: None) -> None:
@@ -211,11 +345,13 @@ class TestDiscogsCatalogProvider:
         try:
             results = await provider.search_albums("anything")
             lookup = await provider.get_album_by_external_id("discogs", "249504")
+            master_lookup = await provider.get_album_by_external_id("discogs_master", "249504")
             mbid_lookup = await provider.get_album_by_mbid("xxx")
         finally:
             await provider.aclose()
         assert results == []
         assert lookup is None
+        assert master_lookup is None
         assert mbid_lookup is None
 
     @respx.mock
@@ -228,142 +364,91 @@ class TestDiscogsCatalogProvider:
             await provider.aclose()
         assert result is None
 
-    @respx.mock
-    async def test_search_issues_parallel_title_and_artist_calls(self, _with_token: None) -> None:
-        """Post-2026-05-24 fix: ``search_albums`` MUST issue two requests
-        — one with ``release_title=<q>`` and one with ``artist=<q>``.
+    # ------------------------------------------------------------------
+    # get_album_by_external_id — master + release branches
+    # ------------------------------------------------------------------
 
-        Discogs's bare ``q=<q>`` form returns ties in arbitrary order;
-        the structured params return ties ordered by ``community.have``
-        count, which is the popularity tiebreaker MB lacks.
+    @respx.mock
+    async def test_get_album_by_external_id_master_branch(self, _with_token: None) -> None:
+        """``provider="discogs_master"`` calls ``/masters/{id}`` and returns
+        a mapped result. Master detail has the richer schema:
+        ``artists`` is an array of objects (not a joined string) and
+        ``community`` is always populated on real masters.
         """
-        route = respx.get(f"{DISCOGS_BASE}/database/search").mock(
-            return_value=Response(200, json={"results": []})
+        route = respx.get(f"{DISCOGS_BASE}/masters/249504").mock(
+            return_value=Response(200, json=_master_detail_payload())
         )
         provider = DiscogsCatalogProvider()
         try:
-            await provider.search_albums("Graduation")
+            album = await provider.get_album_by_external_id("discogs_master", "249504")
         finally:
             await provider.aclose()
-        # Both calls should have hit the same endpoint with different params.
-        assert route.call_count == 2
-        sent_params: list[dict[str, str]] = [dict(call.request.url.params) for call in route.calls]
-        # The two params dicts collectively cover ``release_title`` and ``artist``.
-        param_keys: set[str] = set()
-        for params in sent_params:
-            # Each call must have exactly one of the structured keys, plus
-            # ``type`` and ``per_page`` — the bare ``q`` key must NOT appear.
-            assert "q" not in params
-            assert params["type"] == "release"
-            assert "per_page" in params
-            for key in ("release_title", "artist"):
-                if key in params:
-                    param_keys.add(key)
-        assert param_keys == {"release_title", "artist"}, (
-            f"expected both release_title and artist branches, got {param_keys}"
-        )
+        assert route.called
+        assert album is not None
+        assert album.discogs_master_id == "249504"
+        assert album.discogs_release_id is None
+        assert album.title == "OK Computer"
+        assert album.artist_name == "Radiohead"
+        assert album.release_year == 1997
+        assert album.cover_art_url == "https://img.discogs.com/abc/front.jpg"
+        assert album.community_have == 50000
 
     @respx.mock
-    async def test_search_dedupes_release_present_in_both_branches(self, _with_token: None) -> None:
-        """A release whose id appears in BOTH the title and artist
-        branches must surface exactly once in the merged result. Without
-        the dedup the same album would appear twice (and waste a slot
-        of the caller's ``limit``).
-        """
-        shared_release = {
-            "id": 249504,
-            "title": "Radiohead - OK Computer",
-            "year": 1997,
-            "type": "release",
-        }
-        respx.get(f"{DISCOGS_BASE}/database/search").mock(
-            return_value=Response(200, json={"results": [shared_release]})
-        )
-        provider = DiscogsCatalogProvider()
-        try:
-            results = await provider.search_albums("Radiohead")
-        finally:
-            await provider.aclose()
-        assert len(results) == 1
-        assert results[0].discogs_release_id == "249504"
-
-    @respx.mock
-    async def test_search_preserves_branch_relative_order_for_popularity(
+    async def test_get_album_by_external_id_master_branch_404_returns_none(
         self, _with_token: None
     ) -> None:
-        """Each Discogs branch returns results in popularity-rank order
-        (Discogs sorts structured queries by ``community.have`` count).
-        The merge must preserve that order within each branch.
+        """A 404 from ``/masters/{id}`` surfaces as ``None`` — a missing
+        master is a normal lookup outcome, not an error.
         """
-        # Title branch hands back A (most popular), B (less popular).
-        title_branch = {
-            "results": [
-                {"id": 1, "title": "Artist - Title A", "year": 2010, "type": "release"},
-                {"id": 2, "title": "Artist - Title B", "year": 2011, "type": "release"},
-            ]
-        }
-        # Artist branch hands back C, D in popularity order.
-        artist_branch = {
-            "results": [
-                {"id": 3, "title": "Artist - Title C", "year": 2012, "type": "release"},
-                {"id": 4, "title": "Artist - Title D", "year": 2013, "type": "release"},
-            ]
-        }
-
-        # Return different payloads per call by using a side-effect on
-        # respx — alternates between the two branches in call order.
-        responses_iter = iter([title_branch, artist_branch])
-
-        def _handler(request: object) -> Response:
-            return Response(200, json=next(responses_iter))
-
-        respx.get(f"{DISCOGS_BASE}/database/search").mock(side_effect=_handler)
+        respx.get(f"{DISCOGS_BASE}/masters/missing").mock(
+            return_value=Response(404, json={"message": "not found"})
+        )
         provider = DiscogsCatalogProvider()
         try:
-            results = await provider.search_albums("Artist")
+            album = await provider.get_album_by_external_id("discogs_master", "missing")
         finally:
             await provider.aclose()
-        # Title branch comes first (most users mean a title when they
-        # type a string); within each branch the popularity order is
-        # preserved.
-        titles = [r.title for r in results]
-        assert titles == ["Title A", "Title B", "Title C", "Title D"]
+        assert album is None
 
     @respx.mock
-    async def test_search_truncates_to_caller_limit(self, _with_token: None) -> None:
-        """The merged list must not exceed the caller's ``limit`` even
-        when both branches return a full page each.
+    async def test_get_album_by_external_id_release_branch_still_works(
+        self, _with_token: None
+    ) -> None:
+        """The release-id branch (``provider="discogs"``) remains for
+        backward compatibility with code that still carries Discogs
+        release identifiers (e.g. older Album rows pre-v4).
         """
-        # Both branches return 3 unique results — 6 total candidates.
-        branch_payload = {
-            "results": [
-                {"id": 1, "title": "Artist - T1", "year": 2010, "type": "release"},
-                {"id": 2, "title": "Artist - T2", "year": 2011, "type": "release"},
-                {"id": 3, "title": "Artist - T3", "year": 2012, "type": "release"},
-            ]
-        }
-        artist_branch = {
-            "results": [
-                {"id": 4, "title": "Artist - T4", "year": 2013, "type": "release"},
-                {"id": 5, "title": "Artist - T5", "year": 2014, "type": "release"},
-                {"id": 6, "title": "Artist - T6", "year": 2015, "type": "release"},
-            ]
-        }
-        responses_iter = iter([branch_payload, artist_branch])
-
-        def _handler(request: object) -> Response:
-            return Response(200, json=next(responses_iter))
-
-        respx.get(f"{DISCOGS_BASE}/database/search").mock(side_effect=_handler)
+        respx.get(f"{DISCOGS_BASE}/releases/249504").mock(
+            return_value=Response(200, json=_release_payload())
+        )
         provider = DiscogsCatalogProvider()
         try:
-            results = await provider.search_albums("Artist", limit=4)
+            album = await provider.get_album_by_external_id("discogs", "249504")
         finally:
             await provider.aclose()
-        assert len(results) == 4
+        assert album is not None
+        assert album.discogs_release_id == "249504"
+        assert album.discogs_master_id is None
+        assert album.title == "OK Computer"
+        assert album.artist_name == "Radiohead"
+        assert album.release_year == 1997
+        assert album.cover_art_url == "https://img.discogs.com/abc/front.jpg"
+
+    async def test_get_album_by_external_id_unknown_provider_returns_none(
+        self, _with_token: None
+    ) -> None:
+        """An unknown ``provider`` value returns ``None`` rather than
+        falling through to an unintended endpoint.
+        """
+        provider = DiscogsCatalogProvider()
+        try:
+            album = await provider.get_album_by_external_id("spotify", "anything")
+        finally:
+            await provider.aclose()
+        assert album is None
 
     # ------------------------------------------------------------------
-    # v3 (Fix B) — ``get_community_data`` popularity-enrichment endpoint
+    # get_community_data — retained for future enrichment paths
     # ------------------------------------------------------------------
 
     @respx.mock
