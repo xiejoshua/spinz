@@ -52,7 +52,7 @@ export function StarRating({
               width: size,
               height: size,
               lineHeight: 0,
-              color: isFull || isHalf ? "var(--foreground)" : "var(--accent)",
+              color: "var(--accent)",
             }}
           >
             {/* visual layer */}

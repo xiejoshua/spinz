@@ -92,7 +92,7 @@ export function ExampleFeed() {
 
                   <div
                     className="mt-1 inline-flex items-center gap-2"
-                    style={{ color: "var(--foreground)" }}
+                    style={{ color: "var(--accent)" }}
                   >
                     <StarRow value={e.rating} size={16} />
                     {e.auxed && (

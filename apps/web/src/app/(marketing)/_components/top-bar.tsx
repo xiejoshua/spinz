@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@heroui/react";
+import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 
 export function TopBar() {
@@ -13,13 +14,13 @@ export function TopBar() {
       }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <a
+        <Link
           href="/"
           className="font-serif text-[24px] font-semibold leading-none tracking-[-0.015em]"
           style={{ color: "var(--foreground)", fontFamily: "var(--font-serif)" }}
         >
           auxd
-        </a>
+        </Link>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <Button
