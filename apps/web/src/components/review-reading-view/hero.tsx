@@ -1,3 +1,4 @@
+import { AuxIcon } from "@/components/icons/aux";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import type { AlbumPayload, DiaryRow } from "@/lib/album-types";
@@ -60,7 +61,14 @@ export function ReadingHero({ review, user, album, viewerEntry }: Props) {
               {viewerEntry.auxed && (
                 <>
                   {" · "}
-                  <span aria-hidden="true">🏅</span> Aux’d
+                  <span
+                    aria-hidden="true"
+                    className="inline-flex items-center align-text-bottom"
+                    style={{ color: "var(--gold)" }}
+                  >
+                    <AuxIcon filled size={14} />
+                  </span>{" "}
+                  Aux’d
                 </>
               )}
             </p>

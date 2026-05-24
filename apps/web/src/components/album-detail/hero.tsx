@@ -1,3 +1,4 @@
+import { AuxIcon } from "@/components/icons/aux";
 import { Badge } from "@/components/ui/badge";
 import type { AlbumAggregate, AlbumPayload } from "@/lib/album-types";
 import { EditionSelector } from "./edition-selector";
@@ -84,7 +85,14 @@ function AggregateRow({ aggregate }: { aggregate: AlbumAggregate }) {
         <div>
           <dt className="sr-only">Aux’d count</dt>
           <dd>
-            <span aria-hidden="true">🏅</span> {aggregate.aux_count}
+            <span
+              aria-hidden="true"
+              className="inline-flex items-center align-text-bottom"
+              style={{ color: "var(--gold)" }}
+            >
+              <AuxIcon filled size={14} />
+            </span>{" "}
+            {aggregate.aux_count}
           </dd>
         </div>
       )}

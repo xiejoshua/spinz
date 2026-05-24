@@ -2,6 +2,7 @@
 
 import { ReportWrongAlbum } from "@/components/album-detail/report-wrong";
 import { UpNextButton } from "@/components/album-detail/up-next-button";
+import { AuxIcon } from "@/components/icons/aux";
 import { Button } from "@/components/ui/button";
 import type { AlbumPayload, DiaryRow } from "@/lib/album-types";
 import { useUiStore } from "@/stores/ui";
@@ -38,7 +39,15 @@ export function AlbumActions({ album, myEntry }: Props) {
           {myEntry.auxed && (
             <>
               {" "}
-              · <span aria-hidden="true">🏅</span> Aux’d
+              ·{" "}
+              <span
+                aria-hidden="true"
+                className="inline-flex items-center align-text-bottom"
+                style={{ color: "var(--gold)" }}
+              >
+                <AuxIcon filled size={14} />
+              </span>{" "}
+              Aux’d
             </>
           )}
         </span>

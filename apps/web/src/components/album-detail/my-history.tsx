@@ -1,3 +1,4 @@
+import { AuxIcon } from "@/components/icons/aux";
 import { Badge } from "@/components/ui/badge";
 import type { DiaryRow } from "@/lib/album-types";
 
@@ -33,8 +34,12 @@ export function MyHistory({ history }: Props) {
             )}
             {entry.auxed && (
               <Badge variant="secondary" className="h-5 px-1.5 py-0">
-                <span aria-hidden="true" className="mr-1">
-                  🏅
+                <span
+                  aria-hidden="true"
+                  className="mr-1 inline-flex items-center"
+                  style={{ color: "var(--gold)" }}
+                >
+                  <AuxIcon filled size={12} />
                 </span>
                 Aux’d
               </Badge>

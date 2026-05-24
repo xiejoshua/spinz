@@ -2,6 +2,7 @@
 
 import { DeleteConfirmation } from "@/components/diary/delete-confirmation";
 import { DiaryEntryCard } from "@/components/diary/diary-entry-card";
+import { AuxIcon } from "@/components/icons/aux";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToastAction } from "@/components/ui/toast";
@@ -204,17 +205,31 @@ export function DiaryList({ handle, isOwner }: Props) {
 }
 
 function EmptyState({ filter, isOwner }: { filter: Filter; isOwner: boolean }) {
-  const message =
-    filter === "auxed"
-      ? isOwner
-        ? "Nothing aux’d yet — flip the 🏅 toggle when you log a standout."
-        : "No aux’d albums yet."
-      : isOwner
-        ? "Your diary is empty — log your first album to get started."
-        : "No public diary entries yet.";
+  let body: React.ReactNode;
+  if (filter === "auxed") {
+    body = isOwner ? (
+      <>
+        Nothing aux’d yet — flip the{" "}
+        <span
+          aria-hidden="true"
+          className="inline-flex items-center align-text-bottom"
+          style={{ color: "var(--gold)" }}
+        >
+          <AuxIcon filled size={14} />
+        </span>{" "}
+        toggle when you log a standout.
+      </>
+    ) : (
+      "No aux’d albums yet."
+    );
+  } else {
+    body = isOwner
+      ? "Your diary is empty — log your first album to get started."
+      : "No public diary entries yet.";
+  }
   return (
     <p className="rounded-md border border-dashed bg-muted/30 px-4 py-8 text-center text-sm text-muted-foreground">
-      {message}
+      {body}
     </p>
   );
 }
