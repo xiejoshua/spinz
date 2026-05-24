@@ -2,6 +2,7 @@ import { AlbumActions } from "@/components/album-detail/album-actions";
 import { FriendsSection } from "@/components/album-detail/friends-section";
 import { AlbumHero } from "@/components/album-detail/hero";
 import { MyHistory } from "@/components/album-detail/my-history";
+import { RatingHistogram } from "@/components/album-detail/rating-histogram";
 import { ReviewsList } from "@/components/album-detail/reviews-list";
 import { Tracklist } from "@/components/album-detail/tracklist";
 import type { AlbumDetailResponse } from "@/lib/album-types";
@@ -60,6 +61,10 @@ export default async function AlbumDetailPage({ params }: { params: Params }) {
     <article className="container max-w-3xl space-y-6 py-6">
       <AlbumHero album={album} aggregate={aggregate} editions={editions} />
       <AlbumActions album={album} myEntry={myEntry} />
+      <RatingHistogram
+        avgRating={aggregate.avg_rating}
+        ratingCount={aggregate.rating_count}
+      />
       <MyHistory history={my_history} />
       {album.tracklist.length > 0 && <Tracklist tracks={album.tracklist} />}
       <FriendsSection friends={friends} />
