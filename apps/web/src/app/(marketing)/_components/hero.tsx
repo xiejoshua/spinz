@@ -30,7 +30,7 @@ export function Hero() {
             <Button
               variant="primary"
               size="lg"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              // biome-ignore lint/suspicious/noExplicitAny: HeroUI render-prop injected param types diverge from <a> attribute types
               render={(props) => <a {...(props as any)} href="/signup" />}
             >
               Sign up — it's free

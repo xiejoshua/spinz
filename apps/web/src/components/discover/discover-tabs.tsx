@@ -1,7 +1,7 @@
 "use client";
 
-import { SearchClient } from "@/components/search/search-client";
 import { SuggestionsList } from "@/components/discover/suggestions-list";
+import { SearchClient } from "@/components/search/search-client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 
@@ -85,9 +85,7 @@ function TabBar({
             className="inline-block cursor-pointer px-1 py-3 font-sans text-[15px] font-medium"
             style={{
               color: active ? "var(--foreground)" : "var(--muted)",
-              borderBottom: active
-                ? "2px solid var(--foreground)"
-                : "2px solid transparent",
+              borderBottom: active ? "2px solid var(--foreground)" : "2px solid transparent",
               marginBottom: "-1px",
               background: "transparent",
             }}

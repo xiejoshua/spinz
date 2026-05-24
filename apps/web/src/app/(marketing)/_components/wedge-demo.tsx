@@ -1,9 +1,9 @@
 "use client";
 
-import { Button, Card } from "@heroui/react";
-import { useState } from "react";
 import { AuxIcon } from "@/components/icons/aux";
 import { StarRating } from "@/components/icons/star-rating";
+import { Button, Card } from "@heroui/react";
+import { useState } from "react";
 
 const ALBUM_OPTIONS = [
   { key: "gnx", title: "GNX", artist: "Kendrick Lamar", year: "2024", tracks: 12 },
@@ -34,13 +34,11 @@ export function WedgeDemo() {
             style={{ color: "var(--foreground)", maxWidth: "44ch" }}
           >
             <p>
-              Search the catalog. Pick the album. Rate it on half-stars.
-              Optionally Aux it as one of your standouts. Optionally write a
-              review.
+              Search the catalog. Pick the album. Rate it on half-stars. Optionally Aux it as one of
+              your standouts. Optionally write a review.
             </p>
             <p style={{ color: "var(--muted)" }}>
-              The whole commit happens in a single sheet. No metadata walls,
-              no required fields.
+              The whole commit happens in a single sheet. No metadata walls, no required fields.
             </p>
           </div>
         </div>
@@ -80,7 +78,16 @@ export function WedgeDemo() {
                   border: "1px solid var(--field-border)",
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color: "var(--muted)" }}>
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{ color: "var(--muted)" }}
+                  aria-hidden="true"
+                >
                   <circle cx="11" cy="11" r="7" />
                   <path d="M21 21l-4.35-4.35" />
                 </svg>
@@ -92,10 +99,7 @@ export function WedgeDemo() {
                   aria-label="Search albums"
                 />
               </div>
-              <p
-                className="mt-2 font-sans text-[11px]"
-                style={{ color: "var(--muted)" }}
-              >
+              <p className="mt-2 font-sans text-[11px]" style={{ color: "var(--muted)" }}>
                 3 results · MusicBrainz catalog
               </p>
 
@@ -115,7 +119,8 @@ export function WedgeDemo() {
                         <div
                           className="h-9 w-9 shrink-0 rounded"
                           style={{
-                            background: "linear-gradient(135deg, var(--surface-secondary), var(--surface-tertiary))",
+                            background:
+                              "linear-gradient(135deg, var(--surface-secondary), var(--surface-tertiary))",
                           }}
                           aria-hidden
                         />
@@ -133,9 +138,7 @@ export function WedgeDemo() {
                             {a.artist} · {a.year} · {a.tracks} tracks
                           </div>
                         </div>
-                        {isSelected && (
-                          <span style={{ color: "var(--accent)" }}>✓</span>
-                        )}
+                        {isSelected && <span style={{ color: "var(--accent)" }}>✓</span>}
                       </button>
                     </li>
                   );
@@ -174,7 +177,15 @@ export function WedgeDemo() {
                 }}
               >
                 Public
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
                   <polyline points="6 9 12 15 18 9" />
                 </svg>
               </div>

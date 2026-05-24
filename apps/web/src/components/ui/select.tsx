@@ -1,6 +1,6 @@
 "use client";
 
-import { ListBox, Select as HeroSelect } from "@heroui/react";
+import { Select as HeroSelect, ListBox } from "@heroui/react";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
@@ -33,14 +33,7 @@ const SelectRootCtx = React.createContext<{
   setPlaceholder: (p: string) => void;
 }>({ placeholder: undefined, setPlaceholder: () => {} });
 
-const Select = ({
-  value,
-  defaultValue,
-  onValueChange,
-  disabled,
-  children,
-  name,
-}: SelectProps) => {
+const Select = ({ value, defaultValue, onValueChange, disabled, children, name }: SelectProps) => {
   const [placeholder, setPlaceholder] = React.useState<string | undefined>();
   return (
     <SelectRootCtx.Provider value={{ placeholder, setPlaceholder }}>
@@ -58,20 +51,19 @@ const Select = ({
   );
 };
 
-const SelectTrigger = React.forwardRef<
-  HTMLButtonElement,
-  React.HTMLAttributes<HTMLButtonElement>
->(({ className, children, ...props }, ref) => (
-  <HeroSelect.Trigger
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ref={ref as any}
-    className={cn(className)}
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    {...(props as any)}
-  >
-    {children}
-  </HeroSelect.Trigger>
-));
+const SelectTrigger = React.forwardRef<HTMLButtonElement, React.HTMLAttributes<HTMLButtonElement>>(
+  ({ className, children, ...props }, ref) => (
+    <HeroSelect.Trigger
+      // biome-ignore lint/suspicious/noExplicitAny: HeroUI ref type diverges from native HTMLButtonElement ref
+      ref={ref as any}
+      className={cn(className)}
+      // biome-ignore lint/suspicious/noExplicitAny: HeroUI spread accepts HTML attributes but types diverge
+      {...(props as any)}
+    >
+      {children}
+    </HeroSelect.Trigger>
+  )
+);
 SelectTrigger.displayName = "SelectTrigger";
 
 const SelectValue = ({ placeholder }: { placeholder?: string }) => {
@@ -104,7 +96,12 @@ type SelectItemProps = {
 };
 
 const SelectItem = ({ value, children, className, disabled }: SelectItemProps) => (
-  <ListBox.Item id={value} isDisabled={disabled} className={cn(className)} textValue={typeof children === "string" ? children : undefined}>
+  <ListBox.Item
+    id={value}
+    isDisabled={disabled}
+    className={cn(className)}
+    textValue={typeof children === "string" ? children : undefined}
+  >
     {children}
     <ListBox.ItemIndicator />
   </ListBox.Item>
@@ -118,16 +115,11 @@ const SelectLabel = ({
   children,
   className,
 }: { children?: React.ReactNode; className?: string }) => (
-  <div className={cn("px-2 py-1.5 text-sm font-semibold", className)}>
-    {children}
-  </div>
+  <div className={cn("px-2 py-1.5 text-sm font-semibold", className)}>{children}</div>
 );
 
 const SelectSeparator = ({ className }: { className?: string }) => (
-  <div
-    className={cn("-mx-1 my-1 h-px", className)}
-    style={{ background: "var(--separator)" }}
-  />
+  <div className={cn("-mx-1 my-1 h-px", className)} style={{ background: "var(--separator)" }} />
 );
 
 export {

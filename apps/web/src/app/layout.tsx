@@ -56,6 +56,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`${newsreader.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
     >
       <head>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: static CSS constant inlined to prevent FOUC before HeroUI's stylesheet loads */}
         <style dangerouslySetInnerHTML={{ __html: CRITICAL_TOKENS }} />
       </head>
       <body>

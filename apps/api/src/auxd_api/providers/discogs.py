@@ -411,7 +411,7 @@ class DiscogsCatalogProvider(CatalogProvider):
         return out
 
     @staticmethod
-    def _extract_tracklist(item: dict[str, object]) -> list["CatalogTrack"]:
+    def _extract_tracklist(item: dict[str, object]) -> list[CatalogTrack]:
         """Pull Discogs master tracklist into CatalogTrack rows.
 
         Discogs encodes durations as "mm:ss" strings (sometimes "h:mm:ss"

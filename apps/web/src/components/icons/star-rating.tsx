@@ -20,13 +20,7 @@ type StarRatingProps = {
  * Each star has two half-width click zones so users can land on .5 or .0.
  * Click value V toggles back to 0 if you click the exact same V again.
  */
-export function StarRating({
-  value,
-  onChange,
-  max = 5,
-  size = 28,
-  className,
-}: StarRatingProps) {
+export function StarRating({ value, onChange, max = 5, size = 28, className }: StarRatingProps) {
   const [hover, setHover] = useState<number | null>(null);
   const display = hover ?? value;
 
@@ -46,7 +40,7 @@ export function StarRating({
         const valueRight = position;
         return (
           <div
-            key={i}
+            key={`star-${position}`}
             style={{
               position: "relative",
               width: size,
@@ -69,9 +63,7 @@ export function StarRating({
               type="button"
               aria-label={`${valueLeft} stars`}
               onMouseEnter={() => setHover(valueLeft)}
-              onClick={() =>
-                onChange(value === valueLeft ? 0 : valueLeft)
-              }
+              onClick={() => onChange(value === valueLeft ? 0 : valueLeft)}
               style={{
                 position: "absolute",
                 inset: 0,
@@ -86,9 +78,7 @@ export function StarRating({
               type="button"
               aria-label={`${valueRight} stars`}
               onMouseEnter={() => setHover(valueRight)}
-              onClick={() =>
-                onChange(value === valueRight ? 0 : valueRight)
-              }
+              onClick={() => onChange(value === valueRight ? 0 : valueRight)}
               style={{
                 position: "absolute",
                 top: 0,

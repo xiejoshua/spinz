@@ -4,11 +4,7 @@ import { CriticBadge } from "@/components/critic-badge";
 import { StarRow } from "@/components/icons/star-row";
 import { LikeButton } from "@/components/review-card/like-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type {
-  Review,
-  ReviewAlbumCard,
-  ReviewUserCard,
-} from "@/lib/review-types";
+import type { Review, ReviewAlbumCard, ReviewUserCard } from "@/lib/review-types";
 import { useAuthStore } from "@/stores/auth";
 import Link from "next/link";
 
@@ -32,14 +28,7 @@ type Props = {
  * border or background — sits on the page's --background with a
  * hairline separator between siblings (rendered by the parent list).
  */
-export function ReviewCard({
-  review,
-  user,
-  album,
-  showOwnerControls,
-  onEdit,
-  onDelete,
-}: Props) {
+export function ReviewCard({ review, user, album, showOwnerControls, onEdit, onDelete }: Props) {
   const viewer = useAuthStore((s) => s.user);
   const initialLiked = viewer != null && review.recent_likers.includes(viewer.id);
   const isOwn = viewer != null && viewer.id === review.user_id;
@@ -48,13 +37,12 @@ export function ReviewCard({
       ? `${review.body.slice(0, PREVIEW_CHARS).trimEnd()}…`
       : review.body;
 
-  const displayName =
-    user?.display_name ?? user?.handle ?? `User ${review.user_id.slice(0, 8)}`;
+  const displayName = user?.display_name ?? user?.handle ?? `User ${review.user_id.slice(0, 8)}`;
   const handle = user?.handle ?? "unknown";
 
   const coverUrl = album?.mbid
     ? `/api/cover/250/${album.mbid}${album.cover_art_url ? `?fallback=${encodeURIComponent(album.cover_art_url)}` : ""}`
-    : album?.cover_art_url ?? null;
+    : (album?.cover_art_url ?? null);
 
   return (
     <li className="py-6" style={{ borderBottom: "1px solid var(--separator)" }}>
@@ -86,10 +74,7 @@ export function ReviewCard({
             >
               <span className="font-semibold">{displayName}</span>
               <CriticBadge isCritic={user?.is_critic_seed} />
-              <span
-                className="font-mono text-[12px]"
-                style={{ color: "var(--muted)" }}
-              >
+              <span className="font-mono text-[12px]" style={{ color: "var(--muted)" }}>
                 @{handle}
               </span>
               {review.edited_at && (

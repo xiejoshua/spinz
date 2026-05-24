@@ -37,12 +37,8 @@ export function OnboardingStep1Intro() {
           </em>
           .
         </h1>
-        <p
-          className="font-sans text-[16px] leading-[1.55]"
-          style={{ color: "var(--muted)" }}
-        >
-          Log albums in under eight seconds. See what the people you follow
-          played last night.
+        <p className="font-sans text-[16px] leading-[1.55]" style={{ color: "var(--muted)" }}>
+          Log albums in under eight seconds. See what the people you follow played last night.
         </p>
       </div>
 
@@ -57,7 +53,10 @@ export function OnboardingStep1Intro() {
         >
           Three steps
         </div>
-        <ul className="space-y-1.5 pt-1 font-sans text-[15px]" style={{ color: "var(--foreground)" }}>
+        <ul
+          className="space-y-1.5 pt-1 font-sans text-[15px]"
+          style={{ color: "var(--foreground)" }}
+        >
           <li>— Follow at least three critics to fill your feed.</li>
           <li>— Log your first album.</li>
           <li>— Start exploring.</li>

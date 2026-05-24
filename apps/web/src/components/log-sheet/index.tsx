@@ -112,10 +112,7 @@ export function LogSheet() {
       if (rating != null) body.rating = rating;
       if (reviewBody.trim().length > 0) body.review_body = reviewBody.trim();
 
-      const entry = await apiClient.post<LogEntryResponse>(
-        "/api/v1/diary/entries",
-        body
-      );
+      const entry = await apiClient.post<LogEntryResponse>("/api/v1/diary/entries", body);
 
       const totalMs = openedAt != null ? performance.now() - openedAt : null;
       const commitMs = performance.now() - startedCommitAt;
@@ -195,10 +192,7 @@ export function LogSheet() {
 
           {/* Body */}
           {seed ? (
-            <SeedHeader
-              seed={seed}
-              onClear={isEdit ? undefined : () => setSeed()}
-            />
+            <SeedHeader seed={seed} onClear={isEdit ? undefined : () => setSeed()} />
           ) : (
             <AlbumSearch onPick={(picked) => setSeed(picked)} />
           )}
@@ -214,14 +208,8 @@ export function LogSheet() {
               </Row>
 
               <Row label="Visibility">
-                <Select
-                  value={visibility}
-                  onValueChange={(v) => setVisibility(v as Visibility)}
-                >
-                  <SelectTrigger
-                    className="h-9 w-auto px-3 text-sm"
-                    aria-label="Visibility"
-                  >
+                <Select value={visibility} onValueChange={(v) => setVisibility(v as Visibility)}>
+                  <SelectTrigger className="h-9 w-auto px-3 text-sm" aria-label="Visibility">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -242,21 +230,11 @@ export function LogSheet() {
                 className="flex justify-end gap-3 pt-4"
                 style={{ borderTop: "1px solid var(--separator)" }}
               >
-                <Button
-                  variant="ghost"
-                  onClick={close}
-                  disabled={submitting}
-                >
+                <Button variant="ghost" onClick={close} disabled={submitting}>
                   Cancel
                 </Button>
                 <Button onClick={handleSubmit} disabled={submitting}>
-                  {submitting
-                    ? isEdit
-                      ? "Updating…"
-                      : "Logging…"
-                    : isEdit
-                      ? "Save"
-                      : "Log →"}
+                  {submitting ? (isEdit ? "Updating…" : "Logging…") : isEdit ? "Save" : "Log →"}
                 </Button>
               </div>
             </div>
@@ -353,10 +331,7 @@ function SeedHeader({
         >
           {seed.title}
         </p>
-        <p
-          className="mt-0.5 truncate font-sans text-[13px]"
-          style={{ color: "var(--muted)" }}
-        >
+        <p className="mt-0.5 truncate font-sans text-[13px]" style={{ color: "var(--muted)" }}>
           {seed.artist_credit}
         </p>
       </div>

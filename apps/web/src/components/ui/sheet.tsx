@@ -45,21 +45,15 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
   ({ className, children, side = "bottom", ...props }, ref) => {
     // map shadcn `side` → HeroUI Drawer `placement`
     const placement =
-      side === "top"
-        ? "top"
-        : side === "left"
-          ? "left"
-          : side === "right"
-            ? "right"
-            : "bottom";
+      side === "top" ? "top" : side === "left" ? "left" : side === "right" ? "right" : "bottom";
     return (
       <Drawer.Backdrop>
         <Drawer.Content placement={placement}>
           <Drawer.Dialog
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // biome-ignore lint/suspicious/noExplicitAny: HeroUI ref type diverges from native HTMLDivElement ref
             ref={ref as any}
             className={cn(className)}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // biome-ignore lint/suspicious/noExplicitAny: HeroUI spread accepts HTML attributes but types diverge
             {...(props as any)}
           >
             {children}
@@ -75,61 +69,43 @@ const SheetContent = React.forwardRef<HTMLDivElement, SheetContentProps>(
 );
 SheetContent.displayName = "SheetContent";
 
-const SheetHeader = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const SheetHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <Drawer.Header
     className={cn("flex flex-col space-y-2 text-left", className)}
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: HeroUI spread accepts HTML attributes but types diverge
     {...(props as any)}
   />
 );
 SheetHeader.displayName = "SheetHeader";
 
-const SheetFooter = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const SheetFooter = ({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <Drawer.Footer
-    className={cn(
-      "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
-      className
-    )}
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    className={cn("flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2", className)}
+    // biome-ignore lint/suspicious/noExplicitAny: HeroUI spread accepts HTML attributes but types diverge
     {...(props as any)}
   />
 );
 SheetFooter.displayName = "SheetFooter";
 
-const SheetTitle = React.forwardRef<
-  HTMLHeadingElement,
-  React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
-  <Drawer.Heading
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ref={ref as any}
-    className={cn(
-      "text-lg font-semibold leading-none tracking-tight",
-      className
-    )}
-    style={{ color: "var(--foreground)" }}
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    {...(props as any)}
-  />
-));
+const SheetTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => (
+    <Drawer.Heading
+      // biome-ignore lint/suspicious/noExplicitAny: HeroUI ref type diverges from native HTMLHeadingElement ref
+      ref={ref as any}
+      className={cn("text-lg font-semibold leading-none tracking-tight", className)}
+      style={{ color: "var(--foreground)" }}
+      // biome-ignore lint/suspicious/noExplicitAny: HeroUI spread accepts HTML attributes but types diverge
+      {...(props as any)}
+    />
+  )
+);
 SheetTitle.displayName = "SheetTitle";
 
 const SheetDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <p
-    ref={ref}
-    className={cn("text-sm", className)}
-    style={{ color: "var(--muted)" }}
-    {...props}
-  />
+  <p ref={ref} className={cn("text-sm", className)} style={{ color: "var(--muted)" }} {...props} />
 ));
 SheetDescription.displayName = "SheetDescription";
 

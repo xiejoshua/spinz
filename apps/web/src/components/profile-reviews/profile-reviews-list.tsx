@@ -159,17 +159,11 @@ export function ProfileReviewsList({ handle }: Props) {
       </div>
       <div className="h-px" style={{ background: "var(--separator)" }} />
       {query.isLoading ? (
-        <p
-          className="py-4 text-center font-sans text-sm"
-          style={{ color: "var(--muted)" }}
-        >
+        <p className="py-4 text-center font-sans text-sm" style={{ color: "var(--muted)" }}>
           Loading reviews…
         </p>
       ) : query.isError ? (
-        <p
-          className="py-4 text-center font-sans text-sm"
-          style={{ color: "var(--danger)" }}
-        >
+        <p className="py-4 text-center font-sans text-sm" style={{ color: "var(--danger)" }}>
           Could not load reviews.{" "}
           <button
             type="button"

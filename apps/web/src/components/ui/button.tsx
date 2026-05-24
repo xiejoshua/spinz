@@ -5,13 +5,7 @@ import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-type ShadcnVariant =
-  | "default"
-  | "destructive"
-  | "outline"
-  | "secondary"
-  | "ghost"
-  | "link";
+type ShadcnVariant = "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
 type ShadcnSize = "default" | "sm" | "lg" | "icon";
 
 const VARIANT_MAP: Record<ShadcnVariant, HeroButtonProps["variant"]> = {
@@ -31,10 +25,7 @@ const SIZE_MAP: Record<ShadcnSize, HeroButtonProps["size"]> = {
 };
 
 export interface ButtonProps
-  extends Omit<
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    "type" | "onClick"
-  > {
+  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "type" | "onClick"> {
   variant?: ShadcnVariant;
   size?: ShadcnSize;
   asChild?: boolean;
@@ -70,19 +61,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           size={heroSize}
           isIconOnly={isIconOnly}
           isDisabled={disabled}
-          className={cn(
-            variant === "link" && "underline-offset-4 hover:underline",
-            className
-          )}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          className={cn(variant === "link" && "underline-offset-4 hover:underline", className)}
+          // biome-ignore lint/suspicious/noExplicitAny: HeroUI render-prop injected param shape is internal
           render={(injected: any) =>
             React.cloneElement(child, {
               ...injected,
               ...(child.props as Record<string, unknown>),
-              className: cn(
-                injected?.className as string,
-                child.props.className as string
-              ),
+              className: cn(injected?.className as string, child.props.className as string),
             })
           }
         />
@@ -91,20 +76,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <HeroButton
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // biome-ignore lint/suspicious/noExplicitAny: HeroUI ref type diverges from native HTMLButtonElement ref
         ref={ref as any}
         variant={heroVariant}
         size={heroSize}
         isIconOnly={isIconOnly}
         isDisabled={disabled}
         type={type}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // biome-ignore lint/suspicious/noExplicitAny: HeroUI onClick types diverge from native MouseEventHandler
         onClick={onClick as any}
-        className={cn(
-          variant === "link" && "underline-offset-4 hover:underline",
-          className
-        )}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        className={cn(variant === "link" && "underline-offset-4 hover:underline", className)}
+        // biome-ignore lint/suspicious/noExplicitAny: HeroUI spread accepts HTML attributes but types diverge
         {...(props as any)}
       >
         {children}
@@ -126,13 +108,7 @@ export function buttonVariants({
   const v = VARIANT_MAP[variant];
   const s = SIZE_MAP[size];
   const iconOnly = size === "icon";
-  return cn(
-    "button",
-    `button--${s}`,
-    `button--${v}`,
-    iconOnly && "button--icon-only",
-    className
-  );
+  return cn("button", `button--${s}`, `button--${v}`, iconOnly && "button--icon-only", className);
 }
 
 export { Button };

@@ -49,26 +49,16 @@ export function ReviewsList({ albumId }: Props) {
     <section aria-labelledby="reviews-heading" className="space-y-4">
       <div className="flex items-end justify-between gap-4">
         <div className="flex-1">
-          <SectionHeader
-            id="reviews-heading"
-            label="Reviews"
-            count={reviews.length || undefined}
-          />
+          <SectionHeader id="reviews-heading" label="Reviews" count={reviews.length || undefined} />
         </div>
         <ReviewSortSelect />
       </div>
       {query.isLoading ? (
-        <p
-          className="py-4 text-center font-sans text-sm"
-          style={{ color: "var(--muted)" }}
-        >
+        <p className="py-4 text-center font-sans text-sm" style={{ color: "var(--muted)" }}>
           Loading reviews…
         </p>
       ) : query.isError ? (
-        <p
-          className="py-4 text-center font-sans text-sm"
-          style={{ color: "var(--danger)" }}
-        >
+        <p className="py-4 text-center font-sans text-sm" style={{ color: "var(--danger)" }}>
           Could not load reviews.{" "}
           <button
             type="button"

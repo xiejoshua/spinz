@@ -3,8 +3,8 @@
 import { CriticBadge } from "@/components/critic-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { type NotificationItem, clickUrlFor, copyPartsFor, timeAgo } from "@/lib/notifications";
-import { useAuthStore } from "@/stores/auth";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/stores/auth";
 import Link from "next/link";
 
 type Props = {

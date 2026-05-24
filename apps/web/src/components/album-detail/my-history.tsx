@@ -13,21 +13,14 @@ export function MyHistory({ history }: Props) {
   }
   return (
     <section aria-labelledby="my-history-heading" className="space-y-4">
-      <SectionHeader
-        id="my-history-heading"
-        label="Your history"
-        count={history.length}
-      />
+      <SectionHeader id="my-history-heading" label="Your history" count={history.length} />
       <ul>
         {history.map((entry, i) => (
           <li
             key={entry.id}
             className="flex flex-wrap items-center gap-x-3 gap-y-1 py-3"
             style={{
-              borderBottom:
-                i < history.length - 1
-                  ? "1px solid var(--separator)"
-                  : "none",
+              borderBottom: i < history.length - 1 ? "1px solid var(--separator)" : "none",
             }}
           >
             <span
@@ -45,10 +38,7 @@ export function MyHistory({ history }: Props) {
               })}
             </span>
             {entry.rating != null && (
-              <span
-                className="inline-flex items-center gap-1.5"
-                style={{ color: "var(--accent)" }}
-              >
+              <span className="inline-flex items-center gap-1.5" style={{ color: "var(--accent)" }}>
                 <StarRow value={entry.rating} size={14} />
                 <span
                   className="font-mono tabular-nums"

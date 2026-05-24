@@ -12,10 +12,7 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
     redirect("/login");
   }
   return (
-    <div
-      className="flex min-h-dvh flex-col"
-      style={{ background: "var(--surface)" }}
-    >
+    <div className="flex min-h-dvh flex-col" style={{ background: "var(--surface)" }}>
       <header className="px-6 pt-8 pb-6">
         <Link
           href="/"

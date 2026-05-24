@@ -1,7 +1,7 @@
 "use client";
 
 import { Tabs as HeroTabs } from "@heroui/react";
-import * as React from "react";
+import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -22,13 +22,7 @@ type TabsProps = {
   className?: string;
 };
 
-const Tabs = ({
-  value,
-  defaultValue,
-  onValueChange,
-  children,
-  className,
-}: TabsProps) => {
+const Tabs = ({ value, defaultValue, onValueChange, children, className }: TabsProps) => {
   return (
     <HeroTabs
       selectedKey={value}
@@ -41,13 +35,9 @@ const Tabs = ({
   );
 };
 
-const TabsList = ({
-  children,
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => (
+const TabsList = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
   <HeroTabs.ListContainer
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // biome-ignore lint/suspicious/noExplicitAny: HeroUI spread accepts HTML attributes but types diverge
     {...(props as any)}
   >
     <HeroTabs.List className={cn(className)} aria-label="Tabs">
@@ -63,17 +53,8 @@ type TabsTriggerProps = {
   disabled?: boolean;
 };
 
-const TabsTrigger = ({
-  value,
-  children,
-  className,
-  disabled,
-}: TabsTriggerProps) => (
-  <HeroTabs.Tab
-    id={value}
-    className={cn(className)}
-    isDisabled={disabled}
-  >
+const TabsTrigger = ({ value, children, className, disabled }: TabsTriggerProps) => (
+  <HeroTabs.Tab id={value} className={cn(className)} isDisabled={disabled}>
     {children}
     <HeroTabs.Indicator />
   </HeroTabs.Tab>

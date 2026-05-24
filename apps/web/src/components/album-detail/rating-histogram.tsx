@@ -32,11 +32,7 @@ function syntheticDistribution(avg: number, total: number): number[] {
   return out.map((w) => Math.round((w / sum) * total));
 }
 
-export function RatingHistogram({
-  distribution,
-  avgRating = 0,
-  ratingCount = 0,
-}: Props) {
+export function RatingHistogram({ distribution, avgRating = 0, ratingCount = 0 }: Props) {
   const data = useMemo(() => {
     return distribution ?? syntheticDistribution(avgRating, ratingCount);
   }, [distribution, avgRating, ratingCount]);

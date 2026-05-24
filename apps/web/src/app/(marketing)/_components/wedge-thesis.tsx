@@ -18,11 +18,7 @@ const columns = [
 
 export function WedgeThesis() {
   return (
-    <section
-      id="wedge"
-      className="w-full"
-      style={{ background: "var(--background)" }}
-    >
+    <section id="wedge" className="w-full" style={{ background: "var(--background)" }}>
       <div className="mx-auto max-w-6xl px-6 py-24 sm:py-28">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-3 md:gap-10">
           {columns.map((col) => (
@@ -37,10 +33,7 @@ export function WedgeThesis() {
               >
                 {col.num}
               </div>
-              <div
-                className="mt-4 mb-6 h-px"
-                style={{ background: "var(--separator)" }}
-              />
+              <div className="mt-4 mb-6 h-px" style={{ background: "var(--separator)" }} />
               <h2
                 className="font-serif font-semibold leading-[1.15] tracking-[-0.01em]"
                 style={{

@@ -20,7 +20,7 @@ export function FinalCta() {
             <Button
               variant="primary"
               size="lg"
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              // biome-ignore lint/suspicious/noExplicitAny: HeroUI render-prop injected param types diverge from <a> attribute types
               render={(props) => <a {...(props as any)} href="/signup" />}
             >
               Sign up — it's free
@@ -54,17 +54,11 @@ export function FinalCta() {
             >
               auxd
             </div>
-            <div
-              className="mt-1 font-sans text-[12px]"
-              style={{ color: "var(--muted)" }}
-            >
+            <div className="mt-1 font-sans text-[12px]" style={{ color: "var(--muted)" }}>
               © 2026 — built in public
             </div>
           </div>
-          <nav
-            className="flex gap-6 font-sans text-[13px]"
-            style={{ color: "var(--muted)" }}
-          >
+          <nav className="flex gap-6 font-sans text-[13px]" style={{ color: "var(--muted)" }}>
             <a href="https://github.com" className="hover:underline">
               GitHub
             </a>

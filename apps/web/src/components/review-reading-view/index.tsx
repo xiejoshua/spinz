@@ -52,12 +52,7 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
         ← Back to {album.title}
       </Link>
 
-      <ReadingHero
-        review={review}
-        user={user}
-        album={album}
-        viewerEntry={viewerEntry}
-      />
+      <ReadingHero review={review} user={user} album={album} viewerEntry={viewerEntry} />
 
       {/* Body — editorial article frame. */}
       {(() => {
@@ -66,8 +61,7 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
         // on body length (>= 240 chars) AND at least one paragraph
         // break, which together pick up actual essays without applying
         // to short reactions.
-        const eligibleForDropCap =
-          review.body.length >= 240 && review.body.includes("\n\n");
+        const eligibleForDropCap = review.body.length >= 240 && review.body.includes("\n\n");
         return (
           <>
             <div
@@ -111,12 +105,7 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
           disabled={isOwn}
         />
         {isOwn && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setEditing(true)}
-          >
+          <Button type="button" variant="outline" size="sm" onClick={() => setEditing(true)}>
             <Pencil className="mr-1 size-4" aria-hidden="true" />
             Edit
           </Button>
@@ -127,10 +116,7 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
         />
       </footer>
 
-      <EditReviewDialog
-        review={editing ? review : null}
-        onClose={() => setEditing(false)}
-      />
+      <EditReviewDialog review={editing ? review : null} onClose={() => setEditing(false)} />
     </article>
   );
 }

@@ -24,12 +24,9 @@ export default function OnboardingStep2Page() {
         >
           Follow at least three.
         </h1>
-        <p
-          className="font-sans text-[15px] leading-[1.55]"
-          style={{ color: "var(--muted)" }}
-        >
-          A handful of writers we picked to seed your feed. Untick anyone you
-          don&apos;t want, then continue.
+        <p className="font-sans text-[15px] leading-[1.55]" style={{ color: "var(--muted)" }}>
+          A handful of writers we picked to seed your feed. Untick anyone you don&apos;t want, then
+          continue.
         </p>
       </div>
       <FollowCriticsDeck />

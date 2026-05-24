@@ -33,10 +33,7 @@ export function ReadingHero({ review, user, album, viewerEntry }: Props) {
       </div>
 
       {/* Headline — Newsreader 40-48px, the album title is the punctum */}
-      <Link
-        href={`/album/${encodeURIComponent(album.id)}`}
-        className="block hover:opacity-90"
-      >
+      <Link href={`/album/${encodeURIComponent(album.id)}`} className="block hover:opacity-90">
         <h1
           className="font-serif font-semibold leading-[1.05] tracking-[-0.015em]"
           style={{
@@ -50,10 +47,7 @@ export function ReadingHero({ review, user, album, viewerEntry }: Props) {
       </Link>
 
       {/* Sub-subhead — artist + year */}
-      <p
-        className="font-sans text-[17px] leading-tight"
-        style={{ color: "var(--muted)" }}
-      >
+      <p className="font-sans text-[17px] leading-tight" style={{ color: "var(--muted)" }}>
         {album.artist_credit}
         {album.release_year ? ` · ${album.release_year}` : ""}
       </p>
@@ -74,18 +68,12 @@ export function ReadingHero({ review, user, album, viewerEntry }: Props) {
             >
               {displayName}
             </span>
-            <span
-              className="font-mono text-[12px]"
-              style={{ color: "var(--muted)" }}
-            >
+            <span className="font-mono text-[12px]" style={{ color: "var(--muted)" }}>
               @{handle}
             </span>
           </div>
           {viewerEntry?.rating != null && (
-            <div
-              className="mt-1 inline-flex items-center gap-2"
-              style={{ color: "var(--accent)" }}
-            >
+            <div className="mt-1 inline-flex items-center gap-2" style={{ color: "var(--accent)" }}>
               <StarRow value={viewerEntry.rating} size={14} />
               {viewerEntry.auxed && (
                 <span

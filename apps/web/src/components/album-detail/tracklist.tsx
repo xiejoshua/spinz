@@ -12,21 +12,14 @@ function formatDuration(ms: number | null): string {
 export function Tracklist({ tracks }: { tracks: Track[] }) {
   return (
     <section aria-labelledby="tracklist-heading" className="space-y-4">
-      <SectionHeader
-        id="tracklist-heading"
-        label="Tracklist"
-        count={tracks.length}
-      />
+      <SectionHeader id="tracklist-heading" label="Tracklist" count={tracks.length} />
       <ol>
         {tracks.map((track, i) => (
           <li
             key={`${track.position}-${track.title}`}
             className="flex items-center gap-4 py-2.5"
             style={{
-              borderBottom:
-                i < tracks.length - 1
-                  ? "1px solid var(--separator)"
-                  : "none",
+              borderBottom: i < tracks.length - 1 ? "1px solid var(--separator)" : "none",
             }}
           >
             <span

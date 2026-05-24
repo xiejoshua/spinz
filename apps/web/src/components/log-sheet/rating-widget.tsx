@@ -55,7 +55,7 @@ export function RatingWidget({ value, onChange }: Props) {
       onMouseLeave={() => setHover(null)}
       className="inline-flex items-center gap-3 rounded-md px-1 py-1 focus-visible:outline-none focus-visible:ring-2"
       style={{
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // biome-ignore lint/suspicious/noExplicitAny: CSS custom property key needs cast to satisfy React.CSSProperties index signature
         ["--tw-ring-color" as any]: "var(--focus)",
       }}
     >
@@ -106,16 +106,12 @@ function StarSlot({
 }: SlotProps) {
   const isFull = display >= slot;
   const isHalf = !isFull && display >= slot - 0.5;
-  const halfHandler =
-    (handler: () => void) => (e: MouseEvent<HTMLButtonElement>) => {
-      e.preventDefault();
-      handler();
-    };
+  const halfHandler = (handler: () => void) => (e: MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    handler();
+  };
   return (
-    <div
-      className="relative"
-      style={{ width: 32, height: 32, lineHeight: 0 }}
-    >
+    <div className="relative" style={{ width: 32, height: 32, lineHeight: 0 }}>
       {isFull ? (
         <StarIcon size={32} filled />
       ) : isHalf ? (

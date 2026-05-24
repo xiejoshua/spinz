@@ -124,13 +124,7 @@ export function AlbumHero({ album, aggregate, editions }: Props) {
           <Stat
             label="Avg rating"
             value={aggregate.avg_rating.toFixed(1)}
-            decoration={
-              <StarRow
-                value={aggregate.avg_rating}
-                size={12}
-                className="mt-1 block"
-              />
-            }
+            decoration={<StarRow value={aggregate.avg_rating} size={12} className="mt-1 block" />}
           />
           <Stat label="Logs" value={formatCompact(aggregate.rating_count)} />
           <Stat
@@ -229,17 +223,10 @@ function CoverArt({ album }: { album: AlbumPayload }) {
   const sharedClasses =
     "size-60 shrink-0 self-start rounded-md object-cover shadow-lg sm:size-[280px]";
   const sharedStyle = {
-    background:
-      "linear-gradient(135deg, var(--surface-secondary), var(--surface-tertiary))",
+    background: "linear-gradient(135deg, var(--surface-secondary), var(--surface-tertiary))",
   };
   if (!src) {
-    return (
-      <div
-        aria-hidden="true"
-        className={sharedClasses}
-        style={sharedStyle}
-      />
-    );
+    return <div aria-hidden="true" className={sharedClasses} style={sharedStyle} />;
   }
   return (
     <img

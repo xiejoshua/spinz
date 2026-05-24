@@ -47,8 +47,7 @@ export function SearchResults({
     return (
       <div className="space-y-2">
         <p className="font-sans text-sm" style={{ color: "var(--muted)" }}>
-          No matches for{" "}
-          <span style={{ color: "var(--foreground)" }}>"{query}"</span>.
+          No matches for <span style={{ color: "var(--foreground)" }}>"{query}"</span>.
         </p>
         {reportMissingUrl && (
           <Link
@@ -171,8 +170,7 @@ function CoverThumb({ album }: { album: SearchAlbum }) {
       aria-hidden="true"
       className="size-12 shrink-0 rounded"
       style={{
-        background:
-          "linear-gradient(135deg, var(--surface-secondary), var(--surface-tertiary))",
+        background: "linear-gradient(135deg, var(--surface-secondary), var(--surface-tertiary))",
       }}
     />
   );

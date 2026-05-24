@@ -2,10 +2,10 @@
 
 import { initPostHogBrowser } from "@/lib/posthog";
 import { getQueryClient } from "@/lib/query-client";
-import { CacheProvider } from "@emotion/react";
 import createCache from "@emotion/cache";
-import { ThemeProvider as MuiThemeProvider, createTheme } from "@mui/material/styles";
+import { CacheProvider } from "@emotion/react";
 import CssBaseline from "@mui/material/CssBaseline";
+import { ThemeProvider as MuiThemeProvider, createTheme } from "@mui/material/styles";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { ThemeProvider as NextThemeProvider, useTheme } from "next-themes";
@@ -32,8 +32,7 @@ function MuiBridge({ children }: { children: ReactNode }) {
           },
         },
         typography: {
-          fontFamily:
-            "var(--font-inter-tight), system-ui, -apple-system, sans-serif",
+          fontFamily: "var(--font-inter-tight), system-ui, -apple-system, sans-serif",
         },
         shape: { borderRadius: 8 },
         components: {
@@ -71,9 +70,7 @@ export function Providers({ children }: { children: ReactNode }) {
       <MuiBridge>
         <QueryClientProvider client={queryClient}>
           {children}
-          {process.env.NODE_ENV === "development" && (
-            <ReactQueryDevtools initialIsOpen={false} />
-          )}
+          {process.env.NODE_ENV === "development" && <ReactQueryDevtools initialIsOpen={false} />}
         </QueryClientProvider>
       </MuiBridge>
     </NextThemeProvider>

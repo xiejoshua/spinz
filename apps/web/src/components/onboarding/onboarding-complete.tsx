@@ -46,10 +46,7 @@ export function OnboardingComplete() {
         >
           You&apos;re in.
         </h1>
-        <p
-          className="font-sans text-[15px]"
-          style={{ color: "var(--muted)" }}
-        >
+        <p className="font-sans text-[15px]" style={{ color: "var(--muted)" }}>
           Building your feed…
         </p>
       </div>

@@ -97,7 +97,7 @@ class CatalogAlbum(BaseModel):
             "both `genres` and `styles` arrays; we concat genres-first and dedupe."
         ),
     )
-    tracklist: list["CatalogTrack"] = Field(
+    tracklist: list[CatalogTrack] = Field(
         default_factory=list,
         description=(
             "Track-level details. Discogs master responses include position, "

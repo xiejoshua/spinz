@@ -31,7 +31,7 @@ export const Switch = React.forwardRef<HTMLButtonElement, SwitchProps>(
   ({ checked, onCheckedChange, disabled, className, ...rest }, ref) => {
     return (
       <HeroSwitch
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        // biome-ignore lint/suspicious/noExplicitAny: HeroUI ref type diverges from native HTMLButtonElement ref
         ref={ref as any}
         isSelected={checked}
         onChange={onCheckedChange}

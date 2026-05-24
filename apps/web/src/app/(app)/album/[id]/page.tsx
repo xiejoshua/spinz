@@ -61,10 +61,7 @@ export default async function AlbumDetailPage({ params }: { params: Params }) {
     <article className="container max-w-3xl space-y-6 py-6">
       <AlbumHero album={album} aggregate={aggregate} editions={editions} />
       <AlbumActions album={album} myEntry={myEntry} />
-      <RatingHistogram
-        avgRating={aggregate.avg_rating}
-        ratingCount={aggregate.rating_count}
-      />
+      <RatingHistogram avgRating={aggregate.avg_rating} ratingCount={aggregate.rating_count} />
       <MyHistory history={my_history} />
       {album.tracklist.length > 0 && <Tracklist tracks={album.tracklist} />}
       <FriendsSection friends={friends} />

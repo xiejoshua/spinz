@@ -19,10 +19,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
     redirect("/feed");
   }
   return (
-    <div
-      className="flex min-h-dvh flex-col"
-      style={{ background: "var(--surface)" }}
-    >
+    <div className="flex min-h-dvh flex-col" style={{ background: "var(--surface)" }}>
       <header className="px-6 pt-8">
         <Link
           href="/"

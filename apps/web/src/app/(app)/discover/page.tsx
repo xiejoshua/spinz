@@ -4,8 +4,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Discover — auxd",
-  description:
-    "Find people whose taste you trust, and browse the catalog for albums to log.",
+  description: "Find people whose taste you trust, and browse the catalog for albums to log.",
 };
 
 export default function DiscoverPage() {

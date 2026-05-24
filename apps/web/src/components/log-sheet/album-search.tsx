@@ -7,7 +7,7 @@ import type { LogSheetSeed } from "@/stores/ui";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Search } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRecentLogSearches } from "./recent-searches";
 
 const DEBOUNCE_MS = 200;
@@ -31,6 +31,11 @@ export function AlbumSearch({ onPick }: Props) {
   const [input, setInput] = useState("");
   const [debounced, setDebounced] = useState("");
   const { recent, push } = useRecentLogSearches();
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebounced(input.trim()), DEBOUNCE_MS);
@@ -69,9 +74,9 @@ export function AlbumSearch({ onPick }: Props) {
           style={{ color: "var(--muted)" }}
         />
         <input
+          ref={inputRef}
           type="search"
           inputMode="search"
-          autoFocus
           autoComplete="off"
           spellCheck={false}
           placeholder="Album or artist…"
@@ -108,8 +113,7 @@ export function AlbumSearch({ onPick }: Props) {
           }}
         >
           <p>
-            No matches for{" "}
-            <span style={{ color: "var(--foreground)" }}>"{debounced}"</span>.
+            No matches for <span style={{ color: "var(--foreground)" }}>"{debounced}"</span>.
           </p>
           {data.report_missing_album_url && (
             <Link
@@ -158,8 +162,7 @@ function ResultsList({
           <li
             key={album.id}
             style={{
-              borderBottom:
-                i < results.length - 1 ? "1px solid var(--separator)" : "none",
+              borderBottom: i < results.length - 1 ? "1px solid var(--separator)" : "none",
             }}
           >
             <button
@@ -170,13 +173,13 @@ function ResultsList({
             >
               <CoverThumb album={album} />
               <div className="min-w-0 flex-1">
-                <p className="truncate font-serif text-[15px] font-semibold tracking-[-0.005em]" style={{ fontFamily: "var(--font-serif)" }}>
+                <p
+                  className="truncate font-serif text-[15px] font-semibold tracking-[-0.005em]"
+                  style={{ fontFamily: "var(--font-serif)" }}
+                >
                   {album.title}
                 </p>
-                <p
-                  className="truncate font-sans text-[12px]"
-                  style={{ color: "var(--muted)" }}
-                >
+                <p className="truncate font-sans text-[12px]" style={{ color: "var(--muted)" }}>
                   {album.artist_name}
                   {album.release_year ? ` · ${album.release_year}` : ""}
                 </p>
@@ -199,16 +202,12 @@ function RecentList({
   return (
     <div>
       <SectionEyebrow text="Recent" />
-      <ul
-        className="rounded-md"
-        style={{ border: "1px solid var(--border)" }}
-      >
+      <ul className="rounded-md" style={{ border: "1px solid var(--border)" }}>
         {recent.map((seed, i) => (
           <li
             key={seed.album_id}
             style={{
-              borderBottom:
-                i < recent.length - 1 ? "1px solid var(--separator)" : "none",
+              borderBottom: i < recent.length - 1 ? "1px solid var(--separator)" : "none",
             }}
           >
             <button
@@ -237,10 +236,7 @@ function RecentList({
                 >
                   {seed.title}
                 </p>
-                <p
-                  className="truncate font-sans text-[12px]"
-                  style={{ color: "var(--muted)" }}
-                >
+                <p className="truncate font-sans text-[12px]" style={{ color: "var(--muted)" }}>
                   {seed.artist_credit}
                 </p>
               </div>
@@ -291,8 +287,7 @@ function CoverThumb({ album }: { album: SearchAlbum }) {
       aria-hidden="true"
       className="size-11 shrink-0 rounded"
       style={{
-        background:
-          "linear-gradient(135deg, var(--surface-secondary), var(--surface-tertiary))",
+        background: "linear-gradient(135deg, var(--surface-secondary), var(--surface-tertiary))",
       }}
     />
   );

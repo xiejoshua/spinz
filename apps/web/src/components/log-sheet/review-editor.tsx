@@ -43,7 +43,7 @@ export function ReviewEditor({ value, onChange }: Props) {
           background: "var(--field-background)",
           color: "var(--field-foreground)",
           border: "1px solid var(--field-border)",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          // biome-ignore lint/suspicious/noExplicitAny: CSS custom property key needs cast to satisfy React.CSSProperties index signature
           ["--tw-ring-color" as any]: "var(--focus)",
         }}
       />

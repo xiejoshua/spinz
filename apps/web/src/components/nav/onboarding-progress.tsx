@@ -17,10 +17,7 @@ export function OnboardingProgress() {
   const currentIdx = STEPS.findIndex((s) => pathname.endsWith(s.slug));
   return (
     <div className="mt-6">
-      <ol
-        className="flex items-center gap-3"
-        aria-label="Onboarding progress"
-      >
+      <ol className="flex items-center gap-3" aria-label="Onboarding progress">
         {STEPS.map((step, i) => {
           const reached = i <= currentIdx;
           const isCurrent = i === currentIdx;
@@ -46,9 +43,7 @@ export function OnboardingProgress() {
                   aria-hidden="true"
                   className="h-px flex-1"
                   style={{
-                    background: reached
-                      ? "var(--foreground)"
-                      : "var(--separator)",
+                    background: reached ? "var(--foreground)" : "var(--separator)",
                   }}
                 />
               )}

@@ -258,13 +258,18 @@ def _serialize_diary(entry: DiaryEntry) -> dict[str, Any]:
     }
 
 
-def _serialize_review(review: Review) -> dict[str, Any]:
-    """Return the per-review payload for the album-detail UI."""
+def _serialize_review(review: Review, *, rating: float | None = None) -> dict[str, Any]:
+    """Return the per-review payload for the album-detail UI.
+
+    `rating` is the author's rating for this album from their DiaryEntry
+    — joined at the call-site since it doesn't live on Review.
+    """
     return {
         "id": review.id,
         "user_id": review.user_id,
         "diary_entry_id": review.diary_entry_id,
         "body": review.body,
+        "rating": rating,
         "likes_count": review.reactions.likes_count,
         "visibility": review.visibility,
         "created_at": review.created_at.isoformat(),

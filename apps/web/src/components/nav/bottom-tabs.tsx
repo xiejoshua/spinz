@@ -1,8 +1,8 @@
 "use client";
 
-import { useUiStore } from "@/stores/ui";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/stores/auth";
+import { useUiStore } from "@/stores/ui";
 import { Bookmark, Compass, Home, Plus, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -90,12 +90,7 @@ export function BottomTabs() {
   );
 }
 
-function TabButton({
-  href,
-  label,
-  Icon,
-  active,
-}: TabDef & { active: boolean }) {
+function TabButton({ href, label, Icon, active }: TabDef & { active: boolean }) {
   return (
     <Link
       href={href}

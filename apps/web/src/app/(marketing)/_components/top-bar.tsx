@@ -26,7 +26,7 @@ export function TopBar() {
           <Button
             variant="ghost"
             size="sm"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // biome-ignore lint/suspicious/noExplicitAny: HeroUI render-prop injected param types diverge from <a> attribute types
             render={(props) => <a {...(props as any)} href="/login" />}
           >
             Log in
@@ -34,7 +34,7 @@ export function TopBar() {
           <Button
             variant="primary"
             size="sm"
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            // biome-ignore lint/suspicious/noExplicitAny: HeroUI render-prop injected param types diverge from <a> attribute types
             render={(props) => <a {...(props as any)} href="/signup" />}
           >
             Sign up

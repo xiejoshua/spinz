@@ -27,10 +27,7 @@ export default function LoginPage() {
         </h1>
       </div>
       <LoginForm />
-      <p
-        className="text-center font-sans text-sm"
-        style={{ color: "var(--muted)" }}
-      >
+      <p className="text-center font-sans text-sm" style={{ color: "var(--muted)" }}>
         New here?{" "}
         <Link
           href="/signup"

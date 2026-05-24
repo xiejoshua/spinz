@@ -34,12 +34,8 @@ export function AlbumActions({ album, myEntry }: Props) {
       </Button>
       <UpNextButton albumId={album.id} />
       {myEntry?.rating != null && (
-        <span
-          className="self-center font-sans text-[13px]"
-          style={{ color: "var(--muted)" }}
-        >
-          You rated{" "}
-          <span style={{ color: "var(--foreground)" }}>{myEntry.rating}★</span>
+        <span className="self-center font-sans text-[13px]" style={{ color: "var(--muted)" }}>
+          You rated <span style={{ color: "var(--foreground)" }}>{myEntry.rating}★</span>
           {myEntry.auxed && (
             <>
               {" "}

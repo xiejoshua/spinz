@@ -1,7 +1,7 @@
 "use client";
 
 import { Chip } from "@heroui/react";
-import * as React from "react";
+import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -14,10 +14,7 @@ const COLOR_MAP: Record<ShadcnVariant, "default" | "accent" | "danger"> = {
   outline: "default",
 };
 
-const VARIANT_MAP: Record<
-  ShadcnVariant,
-  "primary" | "secondary" | "tertiary" | "soft"
-> = {
+const VARIANT_MAP: Record<ShadcnVariant, "primary" | "secondary" | "tertiary" | "soft"> = {
   default: "primary",
   secondary: "soft",
   destructive: "primary",
@@ -28,19 +25,14 @@ export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: ShadcnVariant;
 }
 
-function Badge({
-  className,
-  variant = "default",
-  children,
-  ...props
-}: BadgeProps) {
+function Badge({ className, variant = "default", children, ...props }: BadgeProps) {
   return (
     <Chip
       size="sm"
       color={COLOR_MAP[variant]}
       variant={VARIANT_MAP[variant]}
       className={cn("text-xs font-semibold", className)}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // biome-ignore lint/suspicious/noExplicitAny: HeroUI spread accepts HTML attributes but types diverge
       {...(props as any)}
     >
       {children}

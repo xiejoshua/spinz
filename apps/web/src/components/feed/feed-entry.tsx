@@ -103,10 +103,7 @@ export function FeedEntryCard({ entry, user, album, review }: Props) {
                 className="text-muted-foreground hover:underline"
               >
                 review ·{" "}
-                <span
-                  aria-hidden="true"
-                  className="inline-flex items-center align-text-bottom"
-                >
+                <span aria-hidden="true" className="inline-flex items-center align-text-bottom">
                   <LikeIcon filled size={12} />
                 </span>{" "}
                 {review?.likes_count ?? 0}

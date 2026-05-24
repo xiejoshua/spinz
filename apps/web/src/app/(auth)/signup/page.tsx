@@ -25,19 +25,12 @@ export default function SignupPage() {
         >
           Start your diary.
         </h1>
-        <p
-          className="font-sans text-[16px] leading-[1.55]"
-          style={{ color: "var(--muted)" }}
-        >
-          Log albums you've actually listened to. See what the people you
-          follow played last night.
+        <p className="font-sans text-[16px] leading-[1.55]" style={{ color: "var(--muted)" }}>
+          Log albums you've actually listened to. See what the people you follow played last night.
         </p>
       </div>
       <SignupForm />
-      <p
-        className="text-center font-sans text-sm"
-        style={{ color: "var(--muted)" }}
-      >
+      <p className="text-center font-sans text-sm" style={{ color: "var(--muted)" }}>
         Already have an account?{" "}
         <Link
           href="/login"

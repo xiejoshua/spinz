@@ -13,8 +13,7 @@ const STAR_PATH =
  *       → left tip → upper-left inner → close (back to top center).
  * The right side of this glyph is a clean vertical edge at x=12, NOT a clipped full star.
  */
-const STAR_LEFT_HALF_PATH =
-  "M12 2.5L12 18.2 5.8 21.65l1.4-7.05L2 9.75l7.05-0.85z";
+const STAR_LEFT_HALF_PATH = "M12 2.5L12 18.2 5.8 21.65l1.4-7.05L2 9.75l7.05-0.85z";
 
 export function StarIcon({
   filled = true,
@@ -42,10 +41,7 @@ export function StarIcon({
  * Half star — the literal left half of a star, solid filled.
  * No right-side outline. Letterboxd-exact.
  */
-export function StarHalfIcon({
-  size = 24,
-  ...props
-}: SVGProps<SVGSVGElement> & { size?: number }) {
+export function StarHalfIcon({ size = 24, ...props }: SVGProps<SVGSVGElement> & { size?: number }) {
   return (
     <svg
       width={size}

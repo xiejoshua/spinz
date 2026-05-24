@@ -35,12 +35,7 @@ export function AuxIcon({
       <path d="M19 11c-1.1 0.4-1.8 1.2-2.1 2.4" />
       <path d="M18.4 14.4c-1.2 0.3-2 1.1-2.4 2.3" />
       {/* Center medallion */}
-      <circle
-        cx="12"
-        cy="11"
-        r="2.25"
-        fill={filled ? "currentColor" : "none"}
-      />
+      <circle cx="12" cy="11" r="2.25" fill={filled ? "currentColor" : "none"} />
     </svg>
   );
 }

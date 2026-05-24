@@ -28,9 +28,7 @@ type FormFieldContextValue<
   name: TName;
 };
 
-const FormFieldContext = React.createContext<FormFieldContextValue>(
-  {} as FormFieldContextValue
-);
+const FormFieldContext = React.createContext<FormFieldContextValue>({} as FormFieldContextValue);
 
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
@@ -70,63 +68,56 @@ const useFormField = () => {
 
 type FormItemContextValue = { id: string };
 
-const FormItemContext = React.createContext<FormItemContextValue>(
-  {} as FormItemContextValue
-);
+const FormItemContext = React.createContext<FormItemContextValue>({} as FormItemContextValue);
 
-const FormItem = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => {
-  const id = React.useId();
-  return (
-    <FormItemContext.Provider value={{ id }}>
-      <div ref={ref} className={cn("space-y-2", className)} {...props} />
-    </FormItemContext.Provider>
-  );
-});
+const FormItem = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => {
+    const id = React.useId();
+    return (
+      <FormItemContext.Provider value={{ id }}>
+        <div ref={ref} className={cn("space-y-2", className)} {...props} />
+      </FormItemContext.Provider>
+    );
+  }
+);
 FormItem.displayName = "FormItem";
 
-const FormLabel = React.forwardRef<
-  HTMLLabelElement,
-  React.LabelHTMLAttributes<HTMLLabelElement>
->(({ className, ...props }, ref) => {
-  const { error, formItemId } = useFormField();
-  return (
-    <label
-      ref={ref}
-      htmlFor={formItemId}
-      className={cn(
-        "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
-        className
-      )}
-      style={{ color: error ? "var(--danger)" : "var(--foreground)" }}
-      {...props}
-    />
-  );
-});
+const FormLabel = React.forwardRef<HTMLLabelElement, React.LabelHTMLAttributes<HTMLLabelElement>>(
+  ({ className, ...props }, ref) => {
+    const { error, formItemId } = useFormField();
+    return (
+      // biome-ignore lint/a11y/noLabelWithoutControl: htmlFor is bound to the FormControl id via FormItemContext; Biome can't trace the binding
+      <label
+        ref={ref}
+        htmlFor={formItemId}
+        className={cn(
+          "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+          className
+        )}
+        style={{ color: error ? "var(--danger)" : "var(--foreground)" }}
+        {...props}
+      />
+    );
+  }
+);
 FormLabel.displayName = "FormLabel";
 
-const FormControl = React.forwardRef<
-  HTMLElement,
-  { children: React.ReactNode }
->(({ children }, ref) => {
-  const { error, formItemId, formDescriptionId, formMessageId } =
-    useFormField();
-  if (!React.isValidElement(children)) {
-    return <>{children}</>;
+const FormControl = React.forwardRef<HTMLElement, { children: React.ReactNode }>(
+  ({ children }, ref) => {
+    const { error, formItemId, formDescriptionId, formMessageId } = useFormField();
+    if (!React.isValidElement(children)) {
+      return <>{children}</>;
+    }
+    const child = children as React.ReactElement<Record<string, unknown>>;
+    return React.cloneElement(child, {
+      ref,
+      id: formItemId,
+      "aria-describedby": error ? `${formDescriptionId} ${formMessageId}` : formDescriptionId,
+      "aria-invalid": !!error,
+      ...(child.props as Record<string, unknown>),
+    });
   }
-  const child = children as React.ReactElement<Record<string, unknown>>;
-  return React.cloneElement(child, {
-    ref,
-    id: formItemId,
-    "aria-describedby": error
-      ? `${formDescriptionId} ${formMessageId}`
-      : formDescriptionId,
-    "aria-invalid": !!error,
-    ...(child.props as Record<string, unknown>),
-  });
-});
+);
 FormControl.displayName = "FormControl";
 
 const FormDescription = React.forwardRef<

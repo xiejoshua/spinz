@@ -27,23 +27,20 @@ const ToastContext = React.createContext<{
   onClose?: () => void;
 }>({ variant: "default" });
 
-const ToastProvider = ({ children }: { children: React.ReactNode }) => (
-  <>{children}</>
-);
+const ToastProvider = ({ children }: { children: React.ReactNode }) => <>{children}</>;
 
-const ToastViewport = React.forwardRef<
-  HTMLOListElement,
-  React.HTMLAttributes<HTMLOListElement>
->(({ className, ...props }, ref) => (
-  <ol
-    ref={ref}
-    className={cn(
-      "pointer-events-none fixed top-4 right-4 z-[100] flex max-h-screen w-full max-w-[420px] flex-col-reverse gap-2 sm:bottom-4 sm:right-4 sm:top-auto sm:flex-col",
-      className
-    )}
-    {...props}
-  />
-));
+const ToastViewport = React.forwardRef<HTMLOListElement, React.HTMLAttributes<HTMLOListElement>>(
+  ({ className, ...props }, ref) => (
+    <ol
+      ref={ref}
+      className={cn(
+        "pointer-events-none fixed top-4 right-4 z-[100] flex max-h-screen w-full max-w-[420px] flex-col-reverse gap-2 sm:bottom-4 sm:right-4 sm:top-auto sm:flex-col",
+        className
+      )}
+      {...props}
+    />
+  )
+);
 ToastViewport.displayName = "ToastViewport";
 
 const Toast = React.forwardRef<HTMLLIElement, ToastProps>(
@@ -58,19 +55,13 @@ const Toast = React.forwardRef<HTMLLIElement, ToastProps>(
             className
           )}
           style={{
-            background:
-              variant === "destructive" ? "var(--danger)" : "var(--surface)",
-            color:
-              variant === "destructive"
-                ? "var(--danger-foreground)"
-                : "var(--foreground)",
+            background: variant === "destructive" ? "var(--danger)" : "var(--surface)",
+            color: variant === "destructive" ? "var(--danger-foreground)" : "var(--foreground)",
             border:
-              variant === "destructive"
-                ? "1px solid var(--danger)"
-                : "1px solid var(--border)",
+              variant === "destructive" ? "1px solid var(--danger)" : "1px solid var(--border)",
             boxShadow: "var(--overlay-shadow)",
           }}
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          // biome-ignore lint/suspicious/noExplicitAny: rest props from custom ToastProps need any-cast to satisfy <li> attribute types
           {...(props as any)}
         >
           {children}
@@ -81,28 +72,18 @@ const Toast = React.forwardRef<HTMLLIElement, ToastProps>(
 );
 Toast.displayName = "Toast";
 
-const ToastTitle = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm font-semibold leading-tight", className)}
-    {...props}
-  />
-));
+const ToastTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("text-sm font-semibold leading-tight", className)} {...props} />
+  )
+);
 ToastTitle.displayName = "ToastTitle";
 
-const ToastDescription = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn("text-sm opacity-90 leading-snug", className)}
-    {...props}
-  />
-));
+const ToastDescription = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("text-sm opacity-90 leading-snug", className)} {...props} />
+  )
+);
 ToastDescription.displayName = "ToastDescription";
 
 type ToastActionProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {

@@ -1,8 +1,8 @@
 "use client";
 
-import { Avatar } from "@heroui/react";
 import { AuxIcon } from "@/components/icons/aux";
 import { StarRow } from "@/components/icons/star-row";
+import { Avatar } from "@heroui/react";
 
 type Entry = {
   user: { name: string; handle: string; initials: string };
@@ -76,16 +76,10 @@ export function ExampleFeed() {
                     style={{ color: "var(--foreground)" }}
                   >
                     <span className="font-semibold">{e.user.name}</span>
-                    <span
-                      className="font-mono text-[12px]"
-                      style={{ color: "var(--muted)" }}
-                    >
+                    <span className="font-mono text-[12px]" style={{ color: "var(--muted)" }}>
                       @{e.user.handle}
                     </span>
-                    <span
-                      className="text-[12px]"
-                      style={{ color: "var(--muted)" }}
-                    >
+                    <span className="text-[12px]" style={{ color: "var(--muted)" }}>
                       · {e.timeAgo}
                     </span>
                   </header>
@@ -140,13 +134,8 @@ export function ExampleFeed() {
                     </p>
                   )}
 
-                  <div
-                    className="mt-3 font-sans text-[13px]"
-                    style={{ color: "var(--link)" }}
-                  >
-                    <a href="#" className="hover:underline">
-                      ↗ View album
-                    </a>
+                  <div className="mt-3 font-sans text-[13px]" style={{ color: "var(--link)" }}>
+                    <span className="hover:underline">↗ View album</span>
                   </div>
                 </div>
               </article>
