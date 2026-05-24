@@ -448,7 +448,7 @@ Per-endpoint limits (defaults, tunable via `Settings`):
 | `POST /api/v1/users/me/push-subscriptions` | 10 | 20 | Idempotent re-POST updates `last_used_at` |
 | `GET /api/v1/onboarding/cards` | 30 | 60 | Inline critic-seed card ordering |
 | `GET /api/v1/notifications` | 60 | 120 | Inbox list pagination |
-| `GET /api/v1/users/{handle}/reviews` | 60 | 120 | T094 reviews-only profile sub-route |
+| `GET /api/v1/users/{handle}/reviews` | 60 | 120 | T094 reviews view (`/profile/{handle}?view=reviews`) |
 <!-- sync-fix L3-045 (Run #12): 8 new rows for Sessions 23-25 endpoints (PATCH /me + avatar + privacy + email + password + follow-requests + reports + data-export). -->
 | `PATCH /api/v1/users/me` | 30 | 60 | T145 — profile fields write |
 | `POST /api/v1/users/me/avatar` | 5/min | 10/min | T146 — 5MB max + JPEG/PNG/WebP only; bursty UX guard |

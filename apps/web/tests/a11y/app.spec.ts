@@ -48,7 +48,7 @@ test.describe
       await auditRoute(page, "/profile/test_handle");
     });
 
-    test("/profile/[handle]/reviews passes WCAG 2.1 AA (0 critical)", async ({ page }) => {
-      await auditRoute(page, "/profile/test_handle/reviews");
+    test("/profile/[handle]?view=reviews passes WCAG 2.1 AA (0 critical)", async ({ page }) => {
+      await auditRoute(page, "/profile/test_handle?view=reviews");
     });
   });

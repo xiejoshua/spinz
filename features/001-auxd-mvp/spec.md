@@ -182,7 +182,8 @@ Music journalist, label A&R, music podcaster, popular music-Twitter account. aux
 - [ ] **US-E1** As Casey, I want to follow another user. **AC:** Asymmetric follows; existing follow dissolved on block; optimistic count update.
 - [ ] **US-E2** As Casey, I want to browse a follower's diary. **AC:** Reverse-chrono, 25/page; followers-only entries hidden from non-followers; private entries always hidden.
   <!-- sync-fix L6-005 (Run #11): T094 reviews-only sub-route shipped Session 22 — anchored under US-E2 AC for story-side traceability. -->
-  - Profile diary view has a Reviews tab that filters to entries with attached reviews — backed by `GET /api/v1/users/{handle}/reviews` and the `/profile/{handle}/reviews` SSR route.
+  <!-- post-ship 2026-05-24: T094 consolidated from /profile/{handle}/reviews → /profile/{handle}?view=reviews per founder UX feedback. Backend contract unchanged. -->
+  - Profile diary view has a Reviews tab that filters to entries with attached reviews — backed by `GET /api/v1/users/{handle}/reviews` and the `/profile/{handle}?view=reviews` SSR view.
 - [ ] **US-E3** As Casey, my home feed surfaces signal from my follow graph. **AC:** Two modes via `GET /api/v1/feed?mode=for_you|latest` — **"For You"** (default, weighted reverse-chrono with review-attached +20%, ★★★★★/★ +15%, top-5-interacted users +10%, 3-day half-life decay) and **"Latest"** (strict chronological — weights disabled); toggle persists per-device. (sync-fix L2-023, Run #10)
 - [ ] **US-E4** As Casey, I want to see "Friends who rated & Aux'd" on album pages. **AC:** Avatars + ratings + Aux badges (🏅) from followed accounts, sorted by rating desc then date desc.
 - [ ] **US-E5** As Casey, the app suggests follows based on taste overlap. **AC:** Suggestion job runs after ≥5 ratings; "Discover" tab; dismissed suggestions excluded for 30d.

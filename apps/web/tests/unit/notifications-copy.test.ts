@@ -150,9 +150,14 @@ describe("clickUrlFor", () => {
     expect(url).toBe("/");
   });
 
-  it("routes account.deletion_scheduled to /settings", () => {
+  it("routes account.deletion_scheduled to /profile/{handle}/settings/data", () => {
+    const url = clickUrlFor(makeItem({ type: "account.deletion_scheduled" }), "bob");
+    expect(url).toBe("/profile/bob/settings/data");
+  });
+
+  it("falls back to / for account.deletion_scheduled when viewer handle is unknown", () => {
     const url = clickUrlFor(makeItem({ type: "account.deletion_scheduled" }));
-    expect(url).toBe("/settings");
+    expect(url).toBe("/");
   });
 });
 

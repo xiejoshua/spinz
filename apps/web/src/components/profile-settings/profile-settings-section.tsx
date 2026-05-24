@@ -1,6 +1,7 @@
 "use client";
 
 import { ProfileShell } from "@/components/diary/profile-shell";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -20,19 +21,28 @@ type Props = {
  *
  * Reuses ProfileShell so the profile chrome + Settings tab nav stay
  * consistent, then renders a section header (eyebrow + headline +
- * description + hairline) above the form children.
+ * description + hairline) above the form children. A small-caps
+ * "← Back to settings" link sits above the eyebrow so the up-traversal
+ * from this sub-page back to the settings landing is always visible
+ * (the Settings tab in ProfileShell stays highlighted but is implicit).
  */
-export function ProfileSettingsSection({
-  handle,
-  label,
-  title,
-  description,
-  children,
-}: Props) {
+export function ProfileSettingsSection({ handle, label, title, description, children }: Props) {
   return (
     <ProfileShell handle={handle} activeTab="settings">
       <section className="space-y-8">
         <header className="space-y-3">
+          <Link
+            href={`/profile/${encodeURIComponent(handle)}/settings`}
+            className="back-link inline-flex items-center gap-1.5 font-mono uppercase transition-colors"
+            style={{
+              fontSize: "11px",
+              letterSpacing: "0.18em",
+              color: "var(--muted)",
+            }}
+          >
+            <span aria-hidden="true">←</span>
+            Back to settings
+          </Link>
           <div
             className="font-mono uppercase"
             style={{
@@ -63,6 +73,11 @@ export function ProfileSettingsSection({
             </p>
           )}
         </header>
+        <style>{`
+          @media (hover: hover) {
+            .back-link:hover { color: var(--foreground); }
+          }
+        `}</style>
         {children}
       </section>
     </ProfileShell>

@@ -22,9 +22,9 @@ type Props = {
 
 /**
  * Shared editorial chrome for every profile route — header + tabs +
- * gates. Sub-routes (/profile/[handle], /profile/[handle]/reviews,
- * /profile/[handle]/settings) each render this with their respective
- * activeTab + body children.
+ * gates. /profile/[handle] (both diary + reviews views, switched via
+ * ?view=reviews) and /profile/[handle]/settings each render this with
+ * their respective activeTab + body children.
  *
  *   - Header: small-caps "PROFILE" eyebrow → Newsreader display name →
  *     mono @handle → bio → stat row above a hairline
@@ -104,17 +104,11 @@ export function ProfileShell({ handle, activeTab, children }: Props) {
               <CriticBadge isCritic={profile?.user.is_critic_seed} />
             </h1>
             <div className="flex flex-wrap items-baseline gap-2">
-              <span
-                className="font-mono"
-                style={{ fontSize: "13px", color: "var(--muted)" }}
-              >
+              <span className="font-mono" style={{ fontSize: "13px", color: "var(--muted)" }}>
                 @{handle}
               </span>
               {profile?.user.private_profile && (
-                <Badge
-                  variant="outline"
-                  className="h-5 px-1.5 py-0 text-[10px] uppercase"
-                >
+                <Badge variant="outline" className="h-5 px-1.5 py-0 text-[10px] uppercase">
                   Private
                 </Badge>
               )}
@@ -203,7 +197,7 @@ export function ProfileShell({ handle, activeTab, children }: Props) {
               label="Diary"
             />
             <TabLink
-              href={`/profile/${encodeURIComponent(handle)}/reviews`}
+              href={`/profile/${encodeURIComponent(handle)}?view=reviews`}
               active={activeTab === "reviews"}
               label="Reviews"
             />
@@ -264,9 +258,7 @@ function TabLink({
       className="inline-block px-1 py-3 font-sans text-[14px] font-medium"
       style={{
         color: active ? "var(--foreground)" : "var(--muted)",
-        borderBottom: active
-          ? "2px solid var(--foreground)"
-          : "2px solid transparent",
+        borderBottom: active ? "2px solid var(--foreground)" : "2px solid transparent",
         marginBottom: "-1px",
       }}
     >

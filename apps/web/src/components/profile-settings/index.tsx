@@ -11,9 +11,8 @@ import Link from "next/link";
  * with editorial section dividers so avatar / display name / bio /
  * handle / email / password all live on a single canonical surface.
  *
- * The deeper /settings/* deep-link routes (privacy, notifications,
- * data export) remain in the (app)/settings shell — linked from the
- * "More" section below.
+ * The deeper /profile/[handle]/settings/{privacy,notifications,data}
+ * routes are linked from the "More" section below.
  */
 export function ProfileSettings() {
   const viewerHandle = useAuthStore((s) => s.user?.handle);
@@ -37,7 +36,7 @@ export function ProfileSettings() {
         <AccountSettings />
       </Section>
 
-      <Section label="More" description="Other settings live on dedicated pages.">
+      <Section label="More">
         <ul className="space-y-3">
           <MoreLink
             href={`${base}/privacy`}
@@ -125,10 +124,7 @@ function MoreLink({
             >
               {title}
             </div>
-            <div
-              className="mt-0.5 font-sans text-[13px]"
-              style={{ color: "var(--muted)" }}
-            >
+            <div className="mt-0.5 font-sans text-[13px]" style={{ color: "var(--muted)" }}>
               {note}
             </div>
           </div>
