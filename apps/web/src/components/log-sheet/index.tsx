@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -8,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, apiClient } from "@/lib/api-client";
 import { capture } from "@/lib/posthog";
@@ -161,12 +161,12 @@ export function LogSheet() {
   }
 
   return (
-    <Sheet open={open} onOpenChange={(value) => (value ? null : close())}>
-      <SheetContent
-        side="bottom"
-        className="max-h-[92dvh] overflow-y-auto sm:mx-auto sm:max-w-xl"
+    <Dialog open={open} onOpenChange={(value) => (value ? null : close())}>
+      <DialogContent
+        className="max-h-[85vh] w-[calc(100vw-2rem)] max-w-[560px] overflow-y-auto"
+        style={{ background: "var(--surface)" }}
       >
-        <div className="px-6 pb-8 pt-2">
+        <div className="px-8 py-10 sm:px-10 sm:py-12">
           {/* Editorial title row */}
           <header className="mb-6 flex items-baseline justify-between gap-4">
             <div>
@@ -262,8 +262,8 @@ export function LogSheet() {
             </div>
           )}
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
