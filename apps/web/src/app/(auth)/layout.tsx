@@ -1,12 +1,23 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+
+const SESSION_COOKIE = "auxd_session";
 
 /**
  * Editorial auth shell — full-bleed --paper, centered narrow form,
  * Newsreader wordmark, hairline footer. Mirrors the landing's chrome
  * register so /login and /signup read as the same product.
+ *
+ * Already-logged-in users are bounced to /feed — there's no value in
+ * letting them re-authenticate while a valid session cookie is set.
  */
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default async function AuthLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  if (cookieStore.get(SESSION_COOKIE)) {
+    redirect("/feed");
+  }
   return (
     <div
       className="flex min-h-dvh flex-col"
