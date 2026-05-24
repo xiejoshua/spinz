@@ -9,15 +9,18 @@
  *
  * On mount we forward the error to Sentry via the shared
  * `lib/sentry.captureClientError` helper so production crashes show up
- * in the dashboards. The UI is a friendly fallback with a "Try again"
- * button (calls `reset()` — Next re-renders the segment) and a "Back to
- * home" link.
+ * in the dashboards. UI follows the editorial design language —
+ * mono-uppercase "ERROR" eyebrow, Newsreader display headline, hairline
+ * separator, side-by-side primary/secondary buttons centered under it.
  *
  * Notes:
  * - Must be a client component (`"use client"`) per Next.js docs.
  * - The `digest` is a hash Next produces for production errors; we
  *   include it in the Sentry context so logs and stack traces can be
  *   correlated.
+ * - "Back to home" links to `/`. For signed-in viewers the marketing
+ *   landing redirects them to `/feed` server-side, so a single link
+ *   works for both states.
  * - This boundary cannot catch errors thrown in the root layout itself
  *   — for that, see `global-error.tsx`.
  */
@@ -43,24 +46,51 @@ export default function GlobalRouteError({ error, reset }: ErrorProps) {
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center px-6">
-      <div className="w-full max-w-md space-y-6 text-center">
-        <h1 className="text-3xl font-bold tracking-tight">Something went wrong</h1>
-        <p className="text-sm text-muted-foreground">
-          We hit an unexpected error rendering this page. The team has been notified — please try
-          again, and head back to the home feed if it keeps happening.
+      <article className="w-full max-w-md space-y-7 text-center">
+        <div
+          className="font-mono uppercase"
+          style={{
+            fontSize: "11px",
+            letterSpacing: "0.18em",
+            color: "var(--muted)",
+          }}
+        >
+          Error
+        </div>
+        <h1
+          className="font-serif font-semibold leading-[1.05] tracking-[-0.02em]"
+          style={{
+            fontSize: "clamp(28px, 4.5vw, 40px)",
+            color: "var(--foreground)",
+            fontFamily: "var(--font-serif)",
+          }}
+        >
+          Something went wrong.
+        </h1>
+        <div className="mx-auto h-px w-12" style={{ background: "var(--separator)" }} />
+        <p className="font-sans text-[15px] leading-[1.55]" style={{ color: "var(--muted)" }}>
+          We hit an unexpected error rendering this page. The team has been notified — try again,
+          and head back to the home feed if it keeps happening.
         </p>
         {error.digest ? (
-          <p className="text-xs text-muted-foreground">
-            Reference: <code className="font-mono">{error.digest}</code>
+          <p
+            className="font-mono"
+            style={{
+              fontSize: "11px",
+              letterSpacing: "0.06em",
+              color: "var(--muted)",
+            }}
+          >
+            Reference: <code>{error.digest}</code>
           </p>
         ) : null}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <Button onClick={() => reset()}>Try again</Button>
           <Button asChild variant="outline">
             <Link href="/">Back to home</Link>
           </Button>
         </div>
-      </div>
+      </article>
     </main>
   );
 }
