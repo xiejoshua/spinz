@@ -74,6 +74,32 @@
     --overlay-shadow: 0 8px 24px rgba(24, 24, 27, 0.10), 0 16px 40px rgba(24, 24, 27, 0.08);
     --field-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     --skeleton-animation: shimmer;
+
+    /* Derived state tokens — HeroUI components reference these for
+       hover / pressed / focus / soft variants. Without them buttons
+       turn transparent on press. */
+    --surface-hover: color-mix(in oklab, var(--surface) 92%, var(--surface-foreground) 8%);
+    --default-hover: color-mix(in oklab, var(--default) 96%, var(--default-foreground) 4%);
+    --accent-hover: color-mix(in oklab, var(--accent) 90%, var(--accent-foreground) 10%);
+    --success-hover: color-mix(in oklab, var(--success) 90%, var(--success-foreground) 10%);
+    --warning-hover: color-mix(in oklab, var(--warning) 90%, var(--warning-foreground) 10%);
+    --danger-hover: color-mix(in oklab, var(--danger) 90%, var(--danger-foreground) 10%);
+    --field-hover: color-mix(in oklab, var(--field-background) 90%, var(--field-foreground) 2%);
+    --field-focus: var(--field-background);
+    --field-border-hover: color-mix(in oklab, var(--field-border) 88%, var(--field-foreground) 10%);
+    --field-border-focus: color-mix(in oklab, var(--field-border) 74%, var(--field-foreground) 22%);
+    --accent-soft: color-mix(in oklab, var(--accent) 15%, transparent);
+    --accent-soft-hover: color-mix(in oklab, var(--accent) 20%, transparent);
+    --accent-soft-foreground: var(--accent);
+    --danger-soft: color-mix(in oklab, var(--danger) 15%, transparent);
+    --danger-soft-hover: color-mix(in oklab, var(--danger) 20%, transparent);
+    --danger-soft-foreground: var(--danger);
+    --warning-soft: color-mix(in oklab, var(--warning) 15%, transparent);
+    --warning-soft-hover: color-mix(in oklab, var(--warning) 20%, transparent);
+    --warning-soft-foreground: var(--warning);
+    --success-soft: color-mix(in oklab, var(--success) 15%, transparent);
+    --success-soft-hover: color-mix(in oklab, var(--success) 20%, transparent);
+    --success-soft-foreground: var(--success);
   }
 
   [data-theme="auxd-dark"] {
@@ -140,6 +166,31 @@
     --overlay-shadow: 0 0 0 1px oklch(0.30 0 0) inset;
     --field-shadow: 0 0 0 0 transparent;
     --skeleton-animation: shimmer;
+
+    /* Derived state tokens — same formulas as light mode, recomputed
+       from the dark-mode base colors. */
+    --surface-hover: color-mix(in oklab, var(--surface) 92%, var(--surface-foreground) 8%);
+    --default-hover: color-mix(in oklab, var(--default) 96%, var(--default-foreground) 4%);
+    --accent-hover: color-mix(in oklab, var(--accent) 90%, var(--accent-foreground) 10%);
+    --success-hover: color-mix(in oklab, var(--success) 90%, var(--success-foreground) 10%);
+    --warning-hover: color-mix(in oklab, var(--warning) 90%, var(--warning-foreground) 10%);
+    --danger-hover: color-mix(in oklab, var(--danger) 90%, var(--danger-foreground) 10%);
+    --field-hover: color-mix(in oklab, var(--field-background) 90%, var(--field-foreground) 2%);
+    --field-focus: var(--field-background);
+    --field-border-hover: color-mix(in oklab, var(--field-border) 88%, var(--field-foreground) 10%);
+    --field-border-focus: color-mix(in oklab, var(--field-border) 74%, var(--field-foreground) 22%);
+    --accent-soft: color-mix(in oklab, var(--accent) 15%, transparent);
+    --accent-soft-hover: color-mix(in oklab, var(--accent) 20%, transparent);
+    --accent-soft-foreground: var(--accent);
+    --danger-soft: color-mix(in oklab, var(--danger) 15%, transparent);
+    --danger-soft-hover: color-mix(in oklab, var(--danger) 20%, transparent);
+    --danger-soft-foreground: var(--danger);
+    --warning-soft: color-mix(in oklab, var(--warning) 15%, transparent);
+    --warning-soft-hover: color-mix(in oklab, var(--warning) 20%, transparent);
+    --warning-soft-foreground: var(--warning);
+    --success-soft: color-mix(in oklab, var(--success) 15%, transparent);
+    --success-soft-hover: color-mix(in oklab, var(--success) 20%, transparent);
+    --success-soft-foreground: var(--success);
   }
 }
 
