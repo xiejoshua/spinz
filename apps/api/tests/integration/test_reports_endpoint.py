@@ -110,6 +110,15 @@ async def test_authenticated_submission_records_reporter(
     )
     assert signup.status_code == 201
     user_id = signup.json()["id"]
+    # Feature 002-auth-email-flows: the middleware now 403s writes for
+    # users with ``email_verified=False``. Flip the freshly-created
+    # user to verified via the test-only escape hatch (plan §14 risk
+    # mitigation) so this test exercises the report endpoint rather
+    # than the verification gate.
+    persisted_user = await User.find_one(User.id == user_id)
+    assert persisted_user is not None
+    persisted_user.email_verified = True
+    await persisted_user.save()
     # Signup issues a session — the missing-album endpoint is a safe path
     # by HTTP method (POST) but the SessionMiddleware only enforces CSRF
     # on authenticated requests, so we need to forward the CSRF header.

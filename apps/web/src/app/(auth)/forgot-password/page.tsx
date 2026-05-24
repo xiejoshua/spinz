@@ -1,18 +1,12 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { SignupForm } from "./signup-form";
+import { ForgotPasswordForm } from "./forgot-password-form";
 
-const SESSION_COOKIE = "auxd_session";
-
-export default async function SignupPage() {
-  // Already-logged-in users have no business on /signup. The (auth)
-  // layout used to do this redirect but the email-recovery pages
-  // share the same shell and need to stay reachable while a session
-  // cookie is set.
-  const cookieStore = await cookies();
-  if (cookieStore.get(SESSION_COOKIE)) {
-    redirect("/feed");
-  }
+/**
+ * Public password-reset request page.
+ *
+ * Stays reachable while a session cookie is set — a user who's
+ * logged in but forgot their old password might still land here.
+ */
+export default function ForgotPasswordPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
@@ -24,7 +18,7 @@ export default async function SignupPage() {
             color: "var(--muted)",
           }}
         >
-          Sign up
+          Forgot password
         </div>
         <h1
           className="font-serif font-semibold leading-[1.05] tracking-[-0.02em]"
@@ -34,13 +28,13 @@ export default async function SignupPage() {
             fontFamily: "var(--font-serif)",
           }}
         >
-          Start your diary.
+          Reset your password.
         </h1>
         <p className="font-sans text-[16px] leading-[1.55]" style={{ color: "var(--muted)" }}>
-          Log albums you've actually listened to. See what the people you follow played last night.
+          Enter the email on your account. We&rsquo;ll send a link to set a new password.
         </p>
       </div>
-      <SignupForm />
+      <ForgotPasswordForm />
     </div>
   );
 }

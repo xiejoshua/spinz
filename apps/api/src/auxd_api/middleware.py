@@ -109,6 +109,68 @@ def _account_suspended_response() -> JSONResponse:
     )
 
 
+# Feature 002-auth-email-flows — `email_unverified` write gate. Mirrors
+# the suspension check but applies only to state-changing methods
+# (POST / PATCH / PUT / DELETE) AND only when the user is authenticated
+# but ``User.email_verified is False``. Read methods always pass —
+# unverified users can browse freely (FR-114 / US-001 acceptance).
+#
+# Allow-list rationale:
+# * Verify / resend-verification endpoints — the user must be able to
+#   COMPLETE verification while unverified, otherwise the gate
+#   self-traps the legitimate flow.
+# * Logout — clear the cookie and walk away.
+# * GDPR data-export + delete — privacy/deletion rights aren't gated
+#   on verification (a typo'd-email user must still be able to clean
+#   up the orphaned account).
+# * Forgot / reset password — the password-reset surface is anonymous
+#   anyway, but listed here so a freshly-authenticated session from
+#   the reset flow can immediately hit it.
+_UNVERIFIED_ALLOWED_PATHS: Final[frozenset[str]] = frozenset(
+    {
+        "/api/v1/auth/verify-email",
+        "/api/v1/auth/resend-verification",
+        "/api/v1/auth/logout",
+        # ``logout-all-devices`` mirrors the suspended-allow-list precedent
+        # — security operations to revoke sessions are always available
+        # regardless of verification state.
+        "/api/v1/auth/logout-all-devices",
+        "/api/v1/users/me/data-export",
+        "/api/v1/users/me/delete",
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/reset-password",
+    }
+)
+
+# Methods that the unverified-gate checks. Mirrors RFC 9110 §9.2.1's
+# unsafe methods; reads always pass.
+_UNVERIFIED_GATED_METHODS: Final[frozenset[str]] = frozenset(
+    {"POST", "PATCH", "PUT", "DELETE"}
+)
+
+
+def _path_allowed_when_unverified(path: str) -> bool:
+    """Return ``True`` if an unverified user is allowed to hit ``path``."""
+    return path in _UNVERIFIED_ALLOWED_PATHS
+
+
+def _email_unverified_response() -> JSONResponse:
+    """Standard 403 body for unverified-email writes.
+
+    The shape (``error == "email_unverified"`` + ``resend_endpoint``)
+    is the contract the frontend ``api-client.ts`` 403 handler reads
+    to surface the toast + verification-banner CTA.
+    """
+    return JSONResponse(
+        status_code=403,
+        content={
+            "error": "email_unverified",
+            "message": "Verify your email to continue.",
+            "resend_endpoint": "/api/v1/auth/resend-verification",
+        },
+    )
+
+
 def _hmac_key_bytes() -> bytes:
     """Decode the configured base64 SESSION_HMAC_KEY into raw bytes.
 
@@ -248,9 +310,10 @@ class SessionMiddleware(BaseHTTPMiddleware):
         # state-changing requests without a CSRF header. The allow-list
         # preserves the user's ability to discover the status, log out,
         # and delete their data.
+        suspended_user: User | None = None
         if session is not None and not _path_allowed_when_suspended(request.url.path):
-            user = await User.find_one(User.id == session.user_id)
-            if user is not None and user.status is UserStatus.SUSPENDED:
+            suspended_user = await User.find_one(User.id == session.user_id)
+            if suspended_user is not None and suspended_user.status is UserStatus.SUSPENDED:
                 _LOGGER.info(
                     "session.account_suspended",
                     extra={
@@ -260,6 +323,36 @@ class SessionMiddleware(BaseHTTPMiddleware):
                     },
                 )
                 return _account_suspended_response()
+
+        # Feature 002-auth-email-flows — email-unverified write gate.
+        # Runs AFTER the suspension check (suspension is the harsher
+        # restriction; if both apply, the user sees the suspension 403
+        # first) and BEFORE the CSRF check (so an unverified write
+        # without a CSRF header returns the clearer
+        # ``email_unverified`` code rather than ``csrf_token_invalid``).
+        if (
+            session is not None
+            and request.method in _UNVERIFIED_GATED_METHODS
+            and not _path_allowed_when_unverified(request.url.path)
+        ):
+            # Reuse the user we already loaded for the suspension check
+            # when possible; only re-fetch if the suspension branch
+            # short-circuited the load (e.g. path was suspension-
+            # allowed but is NOT unverified-allowed).
+            gating_user = suspended_user
+            if gating_user is None:
+                gating_user = await User.find_one(User.id == session.user_id)
+            if gating_user is not None and gating_user.email_verified is False:
+                _LOGGER.info(
+                    "session.email_unverified",
+                    extra={
+                        "event": "session.email_unverified",
+                        "user_id": session.user_id,
+                        "path": request.url.path,
+                        "method": request.method,
+                    },
+                )
+                return _email_unverified_response()
 
         # CSRF check — only enforced for state-changing methods AND only
         # when an authenticated session is present. Anonymous POSTs

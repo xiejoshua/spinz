@@ -2,6 +2,8 @@
 // (see next.config.mjs) proxy /api/v1/* to the backend. This keeps the
 // browser on a single origin so session cookies stay first-party.
 
+import { toast } from "@/hooks/use-toast";
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -28,6 +30,23 @@ export function isAccountSuspendedDetail(detail: unknown): boolean {
   return obj.error === "account_suspended";
 }
 
+/**
+ * 002-auth-email-flows — backend ``SessionMiddleware`` returns 403
+ * ``{error: "email_unverified", message, resend_endpoint}`` for
+ * state-changing requests by users who haven't yet clicked the
+ * verification link. The permanent banner in (app)/layout.tsx is
+ * already telling them this; we surface a brief toast so the failing
+ * action isn't silent and we do NOT redirect (unlike suspension —
+ * the user can keep browsing).
+ *
+ * Exported for testing.
+ */
+export function isEmailUnverifiedDetail(detail: unknown): boolean {
+  if (!detail || typeof detail !== "object") return false;
+  const obj = detail as Record<string, unknown>;
+  return obj.error === "email_unverified";
+}
+
 function maybeRedirectOnSuspension(detail: unknown): void {
   if (typeof window === "undefined") return;
   if (!isAccountSuspendedDetail(detail)) return;
@@ -35,6 +54,15 @@ function maybeRedirectOnSuspension(detail: unknown): void {
   // if the suspended page itself happens to fire an API call.
   if (window.location.pathname.startsWith("/suspended")) return;
   window.location.assign("/suspended");
+}
+
+function maybeNotifyOnEmailUnverified(detail: unknown): void {
+  if (typeof window === "undefined") return;
+  if (!isEmailUnverifiedDetail(detail)) return;
+  toast({
+    title: "Verify your email to continue.",
+    variant: "destructive",
+  });
 }
 
 type FetchOptions = Omit<RequestInit, "body"> & {
@@ -112,6 +140,7 @@ export async function apiFetch<T>(path: string, options: FetchOptions = {}): Pro
     }
     if (response.status === 403) {
       maybeRedirectOnSuspension(detail);
+      maybeNotifyOnEmailUnverified(detail);
     }
     throw new ApiError(response.status, response.statusText, detail);
   }

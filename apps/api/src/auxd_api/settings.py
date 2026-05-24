@@ -56,6 +56,7 @@ class LogLevel(StrEnum):
 
 _SESSION_HMAC_MIN_BYTES = 32
 _TOKEN_ENCRYPTION_BYTES = 32
+_AUTH_TOKEN_PEPPER_MIN_BYTES = 32
 
 
 def _decode_b64_key(value: str, field_name: str) -> bytes:
@@ -113,6 +114,16 @@ class Settings(BaseSettings):
             description=(
                 "Base64-encoded AES-256 key for envelope-encrypting OAuth tokens. "
                 "Must decode to exactly 32 bytes."
+            ),
+        ),
+    ]
+    AUTH_TOKEN_PEPPER: Annotated[
+        str,
+        Field(
+            description=(
+                "Base64-encoded pepper for hashing email-verification + password-reset "
+                "tokens at rest. Must decode to >= 32 bytes. Rotate independently of "
+                "SESSION_HMAC_KEY."
             ),
         ),
     ]
@@ -298,6 +309,17 @@ class Settings(BaseSettings):
         if len(decoded) != _TOKEN_ENCRYPTION_BYTES:
             raise ValueError(
                 f"TOKEN_ENCRYPTION_KEY must decode to exactly {_TOKEN_ENCRYPTION_BYTES} bytes "
+                f"(got {len(decoded)} bytes after base64 decode)."
+            )
+        return v
+
+    @field_validator("AUTH_TOKEN_PEPPER")
+    @classmethod
+    def _validate_auth_token_pepper(cls, v: str, info: ValidationInfo) -> str:
+        decoded = _decode_b64_key(v, info.field_name or "AUTH_TOKEN_PEPPER")
+        if len(decoded) < _AUTH_TOKEN_PEPPER_MIN_BYTES:
+            raise ValueError(
+                f"AUTH_TOKEN_PEPPER must decode to at least {_AUTH_TOKEN_PEPPER_MIN_BYTES} bytes "
                 f"(got {len(decoded)} bytes after base64 decode)."
             )
         return v

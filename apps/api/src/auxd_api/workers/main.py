@@ -48,6 +48,7 @@ from auxd_api.modules.albums.workers import (
 from auxd_api.modules.users.workers import process_scheduled_deletions
 from auxd_api.providers.musicbrainz import MusicBrainzCatalogProvider
 from auxd_api.settings import get_settings
+from auxd_api.workers.auth_tokens_cleanup import cleanup_auth_tokens
 from auxd_api.workers.digest_dispatch import dispatch_weekly_digests
 from auxd_api.workers.gdpr_export import generate_user_data_export
 from auxd_api.workers.moderation_scan import scan_reports_for_flags
@@ -135,6 +136,7 @@ class WorkerSettings:
         dispatch_weekly_digests,
         scan_reports_for_flags,
         generate_user_data_export,
+        cleanup_auth_tokens,
     ]
     cron_jobs = [
         # T064 — daily 04:00 UTC album cache refresh.
@@ -173,6 +175,16 @@ class WorkerSettings:
         cron(
             scan_reports_for_flags,
             hour=3,
+            minute=0,
+            run_at_startup=False,
+        ),
+        # Feature 002-auth-email-flows — daily 04:00 UTC sweep of
+        # consumed/expired email-verification + password-reset tokens
+        # past the 7-day retention window. Shares the 04:00 UTC slot
+        # with the album cache refresh; they touch disjoint collections.
+        cron(
+            cleanup_auth_tokens,
+            hour=4,
             minute=0,
             run_at_startup=False,
         ),

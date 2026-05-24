@@ -23,7 +23,10 @@ assertions).
 
 from __future__ import annotations
 
+import base64
 import contextlib
+import os
+import secrets
 from collections.abc import AsyncIterator
 
 import pytest
@@ -31,7 +34,18 @@ import pytest_asyncio
 from beanie import init_beanie
 from mongomock_motor import AsyncMongoMockClient
 
-from auxd_api.db import ALL_DOCUMENT_MODELS
+# Feature 002-auth-email-flows added ``AUTH_TOKEN_PEPPER`` to the Settings
+# requirements. Most existing tests construct Settings via env vars set
+# inside their own fixtures (SESSION_HMAC_KEY + TOKEN_ENCRYPTION_KEY). To
+# avoid touching every fixture, set a process-level default for
+# AUTH_TOKEN_PEPPER here — tests that need to assert validation behaviour
+# on this field can still override via monkeypatch.setenv / delenv.
+os.environ.setdefault(
+    "AUTH_TOKEN_PEPPER",
+    base64.b64encode(secrets.token_bytes(32)).decode("ascii"),
+)
+
+from auxd_api.db import ALL_DOCUMENT_MODELS  # noqa: E402 — must follow env default above
 
 
 @pytest_asyncio.fixture(scope="session", autouse=True)

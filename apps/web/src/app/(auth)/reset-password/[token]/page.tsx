@@ -1,18 +1,17 @@
-import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
-import { SignupForm } from "./signup-form";
+import { ResetPasswordForm } from "./reset-password-form";
 
-const SESSION_COOKIE = "auxd_session";
-
-export default async function SignupPage() {
-  // Already-logged-in users have no business on /signup. The (auth)
-  // layout used to do this redirect but the email-recovery pages
-  // share the same shell and need to stay reachable while a session
-  // cookie is set.
-  const cookieStore = await cookies();
-  if (cookieStore.get(SESSION_COOKIE)) {
-    redirect("/feed");
-  }
+/**
+ * Public new-password form. The backend issues a fresh session
+ * cookie on success — that's why this page stays reachable while
+ * an old session cookie may still exist; the cookie set on response
+ * supersedes the old one.
+ */
+export default async function ResetPasswordPage({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}) {
+  const { token } = await params;
   return (
     <div className="space-y-8">
       <div className="space-y-3">
@@ -24,7 +23,7 @@ export default async function SignupPage() {
             color: "var(--muted)",
           }}
         >
-          Sign up
+          Reset password
         </div>
         <h1
           className="font-serif font-semibold leading-[1.05] tracking-[-0.02em]"
@@ -34,13 +33,14 @@ export default async function SignupPage() {
             fontFamily: "var(--font-serif)",
           }}
         >
-          Start your diary.
+          Set a new password.
         </h1>
         <p className="font-sans text-[16px] leading-[1.55]" style={{ color: "var(--muted)" }}>
-          Log albums you've actually listened to. See what the people you follow played last night.
+          At least 12 characters, including a letter and a digit. You&rsquo;ll be signed in once the
+          password sticks.
         </p>
       </div>
-      <SignupForm />
+      <ResetPasswordForm token={token} />
     </div>
   );
 }

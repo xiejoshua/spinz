@@ -36,6 +36,7 @@ _ALL_ENV_KEYS = (
     "REDIS_URL",
     "SESSION_HMAC_KEY",
     "TOKEN_ENCRYPTION_KEY",
+    "AUTH_TOKEN_PEPPER",
     "DISCOGS_API_TOKEN",
     "SENTRY_DSN",
     "POSTHOG_API_KEY",
@@ -67,11 +68,12 @@ def _clean_env(monkeypatch: pytest.MonkeyPatch, tmp_path) -> Iterator[None]:  # 
 def _set_minimum_required(monkeypatch: pytest.MonkeyPatch) -> None:
     """Set the smallest env that allows Settings() to construct.
 
-    CR-001: no more Spotify creds — the two crypto keys are the only
-    hard-required env vars at MVP.
+    CR-001: no more Spotify creds. Feature 002-auth-email-flows added
+    ``AUTH_TOKEN_PEPPER`` — three hard-required crypto env vars now.
     """
     monkeypatch.setenv("SESSION_HMAC_KEY", _b64(32))
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", _b64(32))
+    monkeypatch.setenv("AUTH_TOKEN_PEPPER", _b64(32))
 
 
 def test_minimal_local_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -196,8 +198,10 @@ def test_emit_startup_audit_logs_one_line(
     """CR-001: ``spotify_enabled`` replaced by ``discogs_enabled`` on the audit line."""
     session_key = _b64(32)
     token_key = _b64(32)
+    pepper_key = _b64(32)
     monkeypatch.setenv("SESSION_HMAC_KEY", session_key)
     monkeypatch.setenv("TOKEN_ENCRYPTION_KEY", token_key)
+    monkeypatch.setenv("AUTH_TOKEN_PEPPER", pepper_key)
     monkeypatch.setenv("DISCOGS_API_TOKEN", "discogs-pat-example")
     monkeypatch.setenv("SENTRY_DSN", "https://public@sentry.example/1")
 

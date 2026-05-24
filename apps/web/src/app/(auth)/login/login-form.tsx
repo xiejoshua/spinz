@@ -132,8 +132,8 @@ export function LoginForm() {
               </FormControl>
               <FormMessage />
               <div className="pt-1 text-right">
-                <a
-                  href={`mailto:${RECOVERY_EMAIL}`}
+                <Link
+                  href="/forgot-password"
                   className="font-mono uppercase hover:underline"
                   style={{
                     fontSize: "11px",
@@ -142,7 +142,7 @@ export function LoginForm() {
                   }}
                 >
                   Forgot password?
-                </a>
+                </Link>
               </div>
             </FormItem>
           )}

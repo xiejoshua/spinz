@@ -1,0 +1,115 @@
+schema_version: 3
+feature: "002-auth-email-flows"
+created_at: "2026-05-24"
+last_updated: "2026-05-24T18:30:00Z"
+
+feature_mode: "lite"
+backfilled: false
+v2_native: true
+speckit_mode: "classic"
+
+# Lite mode: only product_spec → plan → implement → verify carry gates.
+# Every other phase is `not_applicable` because lite never produces those
+# artifacts (per docs/policy.md §3).
+phases:
+  problem_discovery:
+    status: "not_applicable"
+    notes: "Both flows are well-defined consumer auth patterns; no problem validation needed."
+  research:
+    status: "not_applicable"
+    notes: "Lite mode."
+  product_spec:
+    status: "completed"
+    started_at: "2026-05-24T18:30:00Z"
+    completed_at: "2026-05-24T18:35:00Z"
+    artifact_path: "product-spec.md"
+    detail_level: "lite"
+    user_story_count: 5
+    fr_count: 18
+    open_questions_carried: 0
+    notes: "Lite-mode single-file product-spec covering email verification + forgot-password flows. Token shape, TTLs, rate limits, and security/enumeration posture all locked at draft. Out-of-scope: deleted-account recovery (stays manual), MFA, email-change verification, magic-link, social auth, branded domain."
+  revalidation:
+    status: "not_applicable"
+    notes: "Lite mode."
+  bridge:
+    status: "not_applicable"
+    notes: "Lite mode."
+  i18n_harvest:
+    status: "not_applicable"
+    notes: "English-only at MVP (project-wide decision)."
+  plan:
+    status: "completed"
+    started_at: "2026-05-24T18:36:00Z"
+    completed_at: "2026-05-24T18:45:00Z"
+    artifact_path: "plan.md"
+    sections: 15
+    notes: "Single-doc plan covering schema deltas (User.email_verified additive; two new token collections), token primitive lib, 4 new endpoints + 1 signup change, email-unverified middleware gate, 2 Jinja templates, arq cleanup cron, 3 new frontend routes + verification banner + login-form link swap, full rate-limit table, observability hooks, and pytest/vitest/Playwright(+testmail.app) test layout. Operator checklist: generate AUTH_TOKEN_PEPPER env secret; confirm PUBLIC_APP_URL + RESEND_FROM_ADDRESS; optional TESTMAIL_NAMESPACE/API_KEY for E2E."
+  tasks:
+    status: "not_applicable"
+    notes: "Lite mode — tasks rolled into plan."
+  migration_plan:
+    status: "not_applicable"
+    notes: "Schema changes (User.email_verified + EmailVerificationToken + PasswordResetToken) handled inline in plan; trivial additive migration."
+  pre_impl_review:
+    status: "not_applicable"
+    notes: "Lite mode."
+  implement:
+    status: "completed"
+    started_at: "2026-05-24T18:46:00Z"
+    completed_at: "2026-05-24T19:24:00Z"
+    chunks_completed: 9
+    chunks_total: 9
+    notes: "Backend chunks 1-5 (schema/token-lib/verify-endpoints/forgot-reset/cleanup-cron) delegated to a single sub-agent wave; frontend chunks 6-8 (3 new pages + verification banner + login-form link swap + SanitizedUser type) delegated to a second wave; tests chunk 9 (40 backend pytest + 7 frontend vitest + 3 Playwright/testmail.app specs) delegated to a third wave. Backend gap closed inline: `_public_user_payload` + `get_me_current` now emit `email_verified`. All gates green: ruff/mypy/pytest 1083 pass; biome/tsc/vitest 123 pass. Live route compile verified on dev server."
+  code_review:
+    status: "not_applicable"
+    notes: "Lite mode."
+  verify:
+    status: "completed"
+    started_at: "2026-05-24T19:24:00Z"
+    completed_at: "2026-05-24T19:26:00Z"
+    artifact_path: "verify-report.md"
+    findings: { critical: 0, warning: 0, passed: 26 }
+    verdict: "PASS"
+    notes: "Lite-mode verify across 3 layers (product-spec ↔ plan ↔ code ↔ tests). All FRs traced. All plan sections have code paths. All endpoints have test coverage. Final gate state: backend 1083 pass / 3 skip; frontend 123 pass; biome 164 files clean; tsc 0 errors. Operator MUST set AUTH_TOKEN_PEPPER before next deploy."
+  test_plan:
+    status: "not_applicable"
+    notes: "Lite mode — testmail.app-driven E2E tests written inline during implement."
+  test_run:
+    status: "not_applicable"
+    notes: "Lite mode."
+  release_readiness:
+    status: "not_applicable"
+    notes: "Lite mode — flows ship as part of next deploy; no flag gating needed."
+  monitoring_setup:
+    status: "not_applicable"
+    notes: "Lite mode — observability via existing log_call + PostHog event hooks."
+  experiment_design:
+    status: "not_applicable"
+    notes: "Lite mode — no flag-gated A/B."
+
+testing:
+  final_pass_rate: ""
+  bugs_found: 0
+  bugs_fixed: 0
+  bugs_deferred: 0
+  test_runs_total: 0
+
+task_log: []
+
+gates:
+  - phase: "product_spec"
+    decision: "approved"
+    timestamp: "2026-05-24T18:35:00Z"
+    note: "Approved at draft-1; moving to Phase 5 Plan."
+  - phase: "plan"
+    decision: "approved"
+    timestamp: "2026-05-24T18:46:00Z"
+    note: "Approved at draft-1; starting Phase 6 Implement."
+  - phase: "implement"
+    decision: "completed"
+    timestamp: "2026-05-24T19:24:00Z"
+    note: "All 9 chunks shipped via 3 sub-agent waves + 1 inline backend gap closure."
+  - phase: "verify"
+    decision: "acknowledged"
+    timestamp: "2026-05-24T19:26:00Z"
+    note: "0 CRITICAL · 0 WARNING · 26 PASSED. Feature ready for commit."

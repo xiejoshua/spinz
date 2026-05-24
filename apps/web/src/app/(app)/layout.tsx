@@ -1,4 +1,5 @@
 import { AuthHydrator } from "@/components/auth/auth-hydrator";
+import { VerificationBanner } from "@/components/auth/verification-banner";
 import { LogSheet } from "@/components/log-sheet";
 import { BottomTabs } from "@/components/nav/bottom-tabs";
 import { FloatingThemeToggle } from "@/components/nav/floating-theme-toggle";
@@ -53,6 +54,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         </Link>
         <NotificationBell />
       </header>
+      <VerificationBanner />
       <main className="flex-1">{children}</main>
       <LogFab />
       <LogSheet />

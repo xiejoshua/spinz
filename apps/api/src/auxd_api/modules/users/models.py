@@ -182,6 +182,16 @@ class User(Document):
     # the version at issue time so a bump invalidates all prior sessions.
     session_version: int = 1
 
+    # Email verification (feature 002-auth-email-flows) ---------------------
+    # New signups start unverified; flipped to ``True`` on first successful
+    # consumption of an :class:`EmailVerificationToken`. The middleware
+    # ``email_unverified`` gate uses this flag to 403 state-changing writes
+    # until the user proves ownership of the address. Existing rows (zero in
+    # prod at MVP) default to ``False`` via the Constitution-P2 lazy-upgrade-
+    # on-write pattern; no migration needed.
+    email_verified: bool = False
+    email_verified_at: datetime | None = None
+
     # Timestamps -------------------------------------------------------------
     created_at: datetime = Field(default_factory=_utcnow)
     updated_at: datetime = Field(default_factory=_utcnow)

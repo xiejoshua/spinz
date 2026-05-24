@@ -1,6 +1,18 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { LoginForm } from "./login-form";
 
-export default function LoginPage() {
+const SESSION_COOKIE = "auxd_session";
+
+export default async function LoginPage() {
+  // Already-logged-in users have no business on /login. The (auth)
+  // layout used to do this redirect but the email-recovery pages
+  // share the same shell and need to stay reachable while a session
+  // cookie is set.
+  const cookieStore = await cookies();
+  if (cookieStore.get(SESSION_COOKIE)) {
+    redirect("/feed");
+  }
   return (
     <div className="space-y-8">
       <div className="space-y-3">

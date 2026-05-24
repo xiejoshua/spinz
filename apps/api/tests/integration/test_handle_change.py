@@ -63,12 +63,34 @@ _VALID_PAYLOAD = {
 
 
 def _sign_up(client: TestClient) -> str:
-    """Sign up the default test user and return the CSRF token."""
+    """Sign up the default test user and return the CSRF token.
+
+    Feature 002-auth-email-flows: the middleware now 403s state-changing
+    writes for users with ``email_verified=False``. The async helper
+    below flips the freshly-created user to verified so handle-change
+    tests can exercise their actual subject without colliding with the
+    verification gate.
+    """
     response = client.post("/api/v1/auth/signup", json=_VALID_PAYLOAD)
     assert response.status_code == 201, response.text
     csrf = client.cookies.get("auxd_csrf")
     assert csrf is not None
     return csrf
+
+
+async def _mark_email_verified(handle: str) -> None:
+    """Flip the user identified by ``handle`` to ``email_verified=True``.
+
+    Test-only escape hatch around the feature 002-auth-email-flows
+    write-gate. The plan §14 risk register explicitly allows this
+    pattern for pre-existing E2E flows that don't exercise the
+    verification path.
+    """
+    user = await User.find_one(User.handle == handle)
+    assert user is not None
+    user.email_verified = True
+    user.email_verified_at = datetime.now(UTC)
+    await user.save()
 
 
 async def _force_past_cooldown(handle: str) -> None:
@@ -91,6 +113,7 @@ async def test_change_handle_writes_redirect_and_updates_user(
 ) -> None:
     client = TestClient(_make_app())
     csrf = _sign_up(client)
+    await _mark_email_verified("alice42")
     await _force_past_cooldown("alice42")
 
     response = client.post(
@@ -125,6 +148,7 @@ async def test_change_handle_too_soon_returns_429(
 ) -> None:
     client = TestClient(_make_app())
     csrf = _sign_up(client)
+    await _mark_email_verified("alice42")
     # Don't backdate — the user just signed up so the cooldown is active.
     response = client.post(
         "/api/v1/users/me/handle",
@@ -149,6 +173,7 @@ async def test_change_handle_reserved_returns_422(
 ) -> None:
     client = TestClient(_make_app())
     csrf = _sign_up(client)
+    await _mark_email_verified("alice42")
     await _force_past_cooldown("alice42")
     response = client.post(
         "/api/v1/users/me/handle",
@@ -171,6 +196,7 @@ async def test_change_handle_already_taken_returns_409(
 ) -> None:
     client = TestClient(_make_app())
     csrf = _sign_up(client)
+    await _mark_email_verified("alice42")
     await _force_past_cooldown("alice42")
     # Create a second user that already owns the target handle.
     second = User(

@@ -2,6 +2,8 @@
 
 import { AccountSettings } from "@/components/settings/account-settings";
 import { EditProfileForm } from "@/components/settings/edit-profile-form";
+import { Button } from "@/components/ui/button";
+import { useResendVerification } from "@/hooks/use-resend-verification";
 import { useAuthStore } from "@/stores/auth";
 import Link from "next/link";
 
@@ -36,6 +38,8 @@ export function ProfileSettings() {
         <AccountSettings />
       </Section>
 
+      <EmailVerificationSection />
+
       <Section label="More">
         <ul className="space-y-3">
           <MoreLink
@@ -56,6 +60,62 @@ export function ProfileSettings() {
         </ul>
       </Section>
     </div>
+  );
+}
+
+/**
+ * Email-verification sub-section. Shows the user's email plus either
+ * a small mono ``VERIFIED`` badge or a "Resend verification" button
+ * depending on ``email_verified``. The resend button shares the same
+ * mutation as the (app)-layout banner via ``useResendVerification``.
+ *
+ * Defensive read: treats ``email_verified === undefined`` as
+ * verified, matching the banner's behavior (see verification-banner.tsx).
+ */
+function EmailVerificationSection() {
+  const user = useAuthStore((s) => s.user);
+  const resend = useResendVerification();
+
+  if (!user) return null;
+  const verified = user.email_verified !== false;
+
+  return (
+    <Section
+      label="Email"
+      description={
+        verified
+          ? "Your email is verified. Used for security alerts and password resets."
+          : "Verification is required to log albums, write reviews, and follow people."
+      }
+    >
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+        <span className="font-sans text-[14px]" style={{ color: "var(--foreground)" }}>
+          {user.email}
+        </span>
+        {verified ? (
+          <span
+            className="font-mono uppercase"
+            style={{
+              fontSize: "11px",
+              letterSpacing: "0.18em",
+              color: "var(--foreground)",
+            }}
+          >
+            Verified
+          </span>
+        ) : (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            onClick={() => resend.mutate()}
+            disabled={resend.isPending}
+          >
+            {resend.isPending ? "Sending…" : "Resend verification email"}
+          </Button>
+        )}
+      </div>
+    </Section>
   );
 }
 

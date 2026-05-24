@@ -37,9 +37,11 @@ def test_all_document_models_has_twenty_one_entries() -> None:
     """CR-001 left 16; T060 (handle redirect) bumped to 17;
     T104 adds Suggestion + SuggestionDismissal for nineteen total;
     T136 adds PushSubscription for twenty;
-    T154 adds GdprAuditLog for twenty-one.
+    T154 adds GdprAuditLog for twenty-one;
+    feature 002-auth-email-flows adds EmailVerificationToken +
+    PasswordResetToken for twenty-three.
     """
-    assert len(ALL_DOCUMENT_MODELS) == 21
+    assert len(ALL_DOCUMENT_MODELS) == 23
 
 
 def test_all_document_models_are_beanie_documents() -> None:
@@ -62,6 +64,9 @@ def test_canonical_list_matches_conftest_expectation() -> None:
     expected_names = {
         "User",
         "HandleRedirect",  # T060 (handle redirect resolver).
+        # feature 002-auth-email-flows — verify-email + password-reset tokens.
+        "EmailVerificationToken",
+        "PasswordResetToken",
         "Album",
         "DiaryEntry",
         "Review",

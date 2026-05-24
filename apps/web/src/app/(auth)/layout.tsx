@@ -1,23 +1,18 @@
-import { cookies } from "next/headers";
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-
-const SESSION_COOKIE = "auxd_session";
 
 /**
  * Editorial auth shell — full-bleed --paper, centered narrow form,
  * Newsreader wordmark, hairline footer. Mirrors the landing's chrome
  * register so /login and /signup read as the same product.
  *
- * Already-logged-in users are bounced to /feed — there's no value in
- * letting them re-authenticate while a valid session cookie is set.
+ * The session-cookie redirect that used to live here moved into the
+ * individual /login and /signup pages — the email-recovery routes
+ * (/verify-email, /forgot-password, /reset-password) reuse the same
+ * chrome but must remain reachable while a session cookie is set
+ * (e.g. a freshly-signed-up user clicking the verification link).
  */
-export default async function AuthLayout({ children }: { children: ReactNode }) {
-  const cookieStore = await cookies();
-  if (cookieStore.get(SESSION_COOKIE)) {
-    redirect("/feed");
-  }
+export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col" style={{ background: "var(--surface)" }}>
       <header className="px-6 pt-8">

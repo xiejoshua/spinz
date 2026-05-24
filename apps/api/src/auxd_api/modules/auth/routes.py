@@ -35,8 +35,10 @@ the same signal. Passwords are NEVER logged.
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from typing import Annotated, Any
 
+import sentry_sdk
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, EmailStr, Field
@@ -45,6 +47,23 @@ from auxd_api.lib.observability import emit_event, log_call
 from auxd_api.lib.rate_limit import RateLimit, rate_limit
 from auxd_api.lib.sessions import Session
 from auxd_api.middleware import clear_session_cookies, issue_session
+from auxd_api.modules.auth.email_verification import (
+    VerificationTokenExpiredError,
+    VerificationTokenInvalidError,
+    VerificationTokenUsedError,
+    consume_or_idempotent_verify,
+    issue_verification_token,
+    resend_verification_token,
+    send_verification_email,
+)
+from auxd_api.modules.auth.password_reset import (
+    ResetTokenExpiredError,
+    ResetTokenInvalidError,
+    ResetTokenUsedError,
+    apply_password_reset,
+    consume_reset_token,
+    handle_forgot_password,
+)
 from auxd_api.modules.auth.service import (
     AccountDeletionPendingError,
     AccountSuspendedError,
@@ -58,6 +77,8 @@ from auxd_api.modules.auth.service import (
     authenticate_user,
     create_user_account,
 )
+from auxd_api.modules.notifications.dispatcher import dispatch as dispatch_notification
+from auxd_api.modules.notifications.models import NotificationType
 from auxd_api.modules.users.models import (
     DISPLAY_NAME_MAX_LEN,
     HANDLE_MAX_LEN,
@@ -115,6 +136,18 @@ _ERROR_STATUS_MAP: dict[type[AuthError], int] = {
     InvalidCredentialsError: status.HTTP_401_UNAUTHORIZED,
     AccountSuspendedError: status.HTTP_403_FORBIDDEN,
     AccountDeletionPendingError: status.HTTP_403_FORBIDDEN,
+    # Feature 002-auth-email-flows — verification token states.
+    # Per plan §2 error mapping: invalid + used → 410 Gone (link permanently
+    # invalid), expired → 422 (a fresh resend will recover).
+    VerificationTokenInvalidError: status.HTTP_410_GONE,
+    VerificationTokenExpiredError: status.HTTP_422_UNPROCESSABLE_ENTITY,
+    VerificationTokenUsedError: status.HTTP_410_GONE,
+    # Reset-password token states — all three map to 410 Gone (no
+    # idempotent re-click path; the user already has a fresh session
+    # after the first consume).
+    ResetTokenInvalidError: status.HTTP_410_GONE,
+    ResetTokenExpiredError: status.HTTP_410_GONE,
+    ResetTokenUsedError: status.HTTP_410_GONE,
 }
 
 
@@ -139,6 +172,7 @@ def _public_user_payload(user: User) -> dict[str, Any]:
         "handle": user.handle,
         "email": user.email,
         "display_name": user.display_name,
+        "email_verified": user.email_verified,
     }
 
 
@@ -207,6 +241,32 @@ async def signup(payload: _SignupRequest, response: Response) -> dict[str, Any]:
         event="signup.completed",
         properties={"handle": result.user.handle},
     )
+
+    # Feature 002-auth-email-flows — bootstrap a verification token + dispatch
+    # the welcome verification email. Best-effort: email failure must NOT
+    # block signup (the user can resend from the banner), so we wrap in a
+    # broad try/except and route any failure through Sentry + log_call.
+    try:
+        _token, raw_token = await issue_verification_token(result.user)
+        await send_verification_email(result.user, raw_token)
+    except Exception as exc:  # noqa: BLE001 — best-effort transactional email
+        _LOGGER.exception(
+            "auth.signup.verification_email_failed",
+            extra={
+                "event": "auth.signup.verification_email_failed",
+                "user_id": result.user.id,
+                "error": str(exc),
+            },
+        )
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("subsystem", "auth")
+            scope.set_tag("status", "signup.verification_email_failed")
+            scope.set_extra("user_id", result.user.id)
+            scope.set_extra("error", str(exc))
+            sentry_sdk.capture_message(
+                "signup.verification_email_failed", level="error"
+            )
+
     return _public_user_payload(result.user)
 
 
@@ -391,6 +451,266 @@ async def logout_all_devices(
         properties={"session_version": user.session_version},
     )
     return response
+
+
+# ---------------------------------------------------------------------------
+# Email verification (feature 002-auth-email-flows)
+# ---------------------------------------------------------------------------
+
+
+class _VerifyEmailRequest(BaseModel):
+    """Wire shape for ``POST /auth/verify-email``."""
+
+    token: str = Field(..., min_length=1)
+
+
+class _ResendVerificationResponse(BaseModel):
+    """Wire shape for the resend-verification response body."""
+
+    ok: bool
+    verified: bool
+
+
+_VERIFY_EMAIL_RATE_LIMIT = rate_limit(
+    endpoint="auth.verify_email",
+    per_ip=RateLimit(limit=30, window_seconds=3600),
+)
+
+
+@router.post(
+    "/verify-email",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(_VERIFY_EMAIL_RATE_LIMIT)],
+)
+async def verify_email(payload: _VerifyEmailRequest) -> dict[str, Any]:
+    """Consume a verification token and flip the linked user to verified.
+
+    Anonymous-callable: the email link works even when logged out (the
+    user might click from a different device). Idempotent re-click is
+    explicitly supported — already-verified users receive a benign 200
+    rather than an error.
+
+    Returns ``{verified: true, idempotent: bool}`` on success. Failure
+    modes:
+
+    * ``410 verification_token_invalid`` — unknown or hash-mismatched
+      token. The friendly UI shows "this link is no longer valid".
+    * ``410 verification_token_used`` — token already consumed AND the
+      linked user is NOT already verified. (The idempotent re-click
+      case is handled in :func:`consume_or_idempotent_verify` before
+      we get here.)
+    * ``422 verification_token_expired`` — token row is past its 24h
+      TTL. User can request a fresh one from the banner.
+
+    Rate limit: per-IP 30/hour (FR-132).
+    """
+    try:
+        user, idempotent = await consume_or_idempotent_verify(payload.token)
+    except AuthError as exc:
+        raise _auth_error_response(exc) from exc
+
+    return {
+        "verified": True,
+        "idempotent": idempotent,
+        "user": _public_user_payload(user),
+    }
+
+
+_RESEND_VERIFICATION_RATE_LIMIT = rate_limit(
+    endpoint="auth.resend_verification",
+    per_user=RateLimit(limit=3, window_seconds=3600),
+)
+
+
+@router.post(
+    "/resend-verification",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(_RESEND_VERIFICATION_RATE_LIMIT)],
+)
+async def resend_verification(
+    session: Annotated[Session, Depends(_require_session)],
+) -> _ResendVerificationResponse:
+    """Issue a fresh verification token + send a new verification email.
+
+    Authenticated route. The signup path issues a session even for
+    unverified users, so this endpoint always has a session to key off.
+    The middleware ``email_unverified`` gate explicitly allow-lists this
+    path so unverified users CAN reach it.
+
+    No-op when the user is already verified: returns ``{ok: true,
+    verified: true}`` with no DB write. Otherwise invalidates any prior
+    unused token + writes a fresh one + dispatches the email.
+
+    Rate limit: per-user 3/hour (FR-133). Friendly toast on 429.
+    """
+    user = await User.find_one(User.id == session.user_id)
+    if user is None:
+        # Session decoded but the user row vanished — treat as 401.
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"error": "unauthenticated", "message": "session required"},
+        )
+
+    issued = await resend_verification_token(user)
+    if issued is None:
+        # User already verified — surface as a benign no-op.
+        return _ResendVerificationResponse(ok=True, verified=True)
+
+    _token, raw_token = issued
+    try:
+        await send_verification_email(user, raw_token)
+    except Exception as exc:  # noqa: BLE001 — best-effort transactional email
+        _LOGGER.exception(
+            "auth.resend_verification.email_failed",
+            extra={
+                "event": "auth.resend_verification.email_failed",
+                "user_id": user.id,
+                "error": str(exc),
+            },
+        )
+        with sentry_sdk.push_scope() as scope:
+            scope.set_tag("subsystem", "auth")
+            scope.set_tag("status", "resend_verification.email_failed")
+            scope.set_extra("user_id", user.id)
+            scope.set_extra("error", str(exc))
+            sentry_sdk.capture_message(
+                "resend_verification.email_failed", level="error"
+            )
+
+    return _ResendVerificationResponse(ok=True, verified=False)
+
+
+# ---------------------------------------------------------------------------
+# Password reset (feature 002-auth-email-flows)
+# ---------------------------------------------------------------------------
+
+
+class _ForgotPasswordRequest(BaseModel):
+    """Wire shape for ``POST /auth/forgot-password``.
+
+    Only one field — the user's email. Validated as a syntactically
+    correct address via Pydantic's ``EmailStr``; the no-enumeration
+    posture means we DON'T tell the caller whether the address is
+    actually registered.
+    """
+
+    email: EmailStr
+
+
+class _ResetPasswordRequest(BaseModel):
+    """Wire shape for ``POST /auth/reset-password``."""
+
+    token: str = Field(..., min_length=1)
+    new_password: str = Field(min_length=12)
+
+
+_FORGOT_PASSWORD_RATE_LIMIT = rate_limit(
+    endpoint="auth.forgot_password",
+    per_ip=RateLimit(limit=5, window_seconds=3600),
+)
+
+
+@router.post(
+    "/forgot-password",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(_FORGOT_PASSWORD_RATE_LIMIT)],
+)
+async def forgot_password(payload: _ForgotPasswordRequest) -> dict[str, Any]:
+    """Issue a password-reset email (best-effort) for the supplied address.
+
+    ALWAYS returns 200 with the same generic body regardless of outcome
+    (FR-141 — no enumeration). The internal flow either dispatches a
+    reset email or silently no-ops on a hit-miss / suspended / unverified
+    branch; the caller never learns which.
+
+    Rate limit: per-IP 5/hour (FR-130). The per-email 3/hour limit is
+    not enforced here because doing so would itself be an enumeration
+    oracle — instead, the per-user-id slot kicks in once we resolve a
+    matching user inside :func:`handle_forgot_password` (handled via the
+    rate-limiter's per-user branch attached on a follow-up). At MVP the
+    per-IP cap is the primary guard against probing volume.
+    """
+    await handle_forgot_password(payload.email)
+    return {
+        "ok": True,
+        "message": "If that email is registered, we've sent a reset link.",
+    }
+
+
+_RESET_PASSWORD_RATE_LIMIT = rate_limit(
+    endpoint="auth.reset_password",
+    per_ip=RateLimit(limit=10, window_seconds=3600),
+)
+
+
+@router.post(
+    "/reset-password",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(_RESET_PASSWORD_RATE_LIMIT)],
+)
+async def reset_password(
+    payload: _ResetPasswordRequest, response: Response
+) -> dict[str, Any]:
+    """Consume a reset token, persist the new password, issue a fresh session.
+
+    Anonymous-callable. The reset link is the credential; the caller is
+    NOT logged in when this fires.
+
+    On success: token is consumed, ``user.password_hash`` is updated,
+    ``user.session_version`` is bumped (logging out every other device),
+    a fresh session cookie is set on the response, and the existing
+    ``N017 security.password_changed`` notification fires to confirm
+    the change.
+
+    Failure modes:
+
+    * ``410 reset_token_invalid|expired|used`` — token state is bad;
+      friendly UI sends user back to ``/forgot-password``.
+    * ``422 weak_password`` — new password violates policy (length,
+      letter, digit). Same policy as signup + change-password.
+
+    Rate limit: per-IP 10/hour (FR-131). Token entropy (32 bytes) is
+    the primary guard.
+    """
+    try:
+        user, token = await consume_reset_token(payload.token)
+    except AuthError as exc:
+        raise _auth_error_response(exc) from exc
+
+    try:
+        user = await apply_password_reset(
+            user=user,
+            token=token,
+            new_password=payload.new_password,
+        )
+    except WeakPasswordError as exc:
+        raise _auth_error_response(exc) from exc
+
+    issue_session(response, user_id=user.id, session_version=user.session_version)
+
+    # Fire the existing N017 notification so the user gets the "your
+    # password was changed" email automatically. The dispatcher
+    # tolerates suppression branches gracefully; failure here MUST NOT
+    # block the response.
+    changed_at_iso = datetime.now(UTC).isoformat()
+    try:
+        await dispatch_notification(
+            user_id=user.id,
+            type=NotificationType.N017_SECURITY_PASSWORD_CHANGED,
+            payload={"changed_at_iso": changed_at_iso},
+            actor_id=None,
+        )
+    except Exception as exc:  # noqa: BLE001 — best-effort; never block the reset
+        _LOGGER.exception(
+            "auth.reset_password.notification_failed",
+            extra={
+                "event": "auth.reset_password.notification_failed",
+                "user_id": user.id,
+                "error": str(exc),
+            },
+        )
+
+    return _public_user_payload(user)
 
 
 # Keep the unused symbol referenced so linters see it (UserStatus is

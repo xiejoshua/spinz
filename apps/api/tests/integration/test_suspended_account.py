@@ -147,6 +147,14 @@ async def test_suspended_user_can_still_schedule_deletion(
 async def test_active_user_unaffected(_clean_env: None, _clean_db: None) -> None:
     client = TestClient(_make_app())
     user_id, csrf = _sign_up(client)
+    # Feature 002-auth-email-flows: the middleware now 403s writes for
+    # unverified users; flip via the test-only escape hatch so this
+    # test asserts ACTIVE-state behaviour rather than colliding with
+    # the verification gate.
+    user = await User.get(user_id)
+    assert user is not None
+    user.email_verified = True
+    await user.save()
     # No status change — ACTIVE by default. PATCH /users/me always
     # works for an active user; the route returns 200 with the updated
     # display_name. The relevant assertion is "no account_suspended

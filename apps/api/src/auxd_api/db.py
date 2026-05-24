@@ -21,6 +21,10 @@ from pymongo.errors import ConfigurationError, PyMongoError
 from pymongo.uri_parser import parse_uri
 
 from auxd_api.modules.albums.models import Album
+from auxd_api.modules.auth.tokens_models import (
+    EmailVerificationToken,
+    PasswordResetToken,
+)
 from auxd_api.modules.backlog.models import Backlog, BacklogItem
 from auxd_api.modules.diary.models import DiaryEntry
 from auxd_api.modules.gdpr.models import GdprAuditLog
@@ -40,6 +44,9 @@ ALL_DOCUMENT_MODELS: list[type[Document]] = [
     # users
     User,
     HandleRedirect,
+    # auth tokens (feature 002-auth-email-flows)
+    EmailVerificationToken,
+    PasswordResetToken,
     # albums
     Album,
     # diary + reviews

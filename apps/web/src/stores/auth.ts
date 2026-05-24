@@ -8,6 +8,11 @@ export type SanitizedUser = {
   handle: string;
   email: string;
   display_name: string;
+  // Added in feature 002-auth-email-flows. The backend's
+  // ``_public_user_payload`` ships this on every auth response
+  // (login / signup / users-me / reset-password). The verification
+  // banner in (app)/layout.tsx reads it to decide whether to render.
+  email_verified: boolean;
 };
 
 type AuthState = {

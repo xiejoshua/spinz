@@ -407,6 +407,7 @@ async def get_me_current(
         "handle": user.handle,
         "email": user.email,
         "display_name": user.display_name,
+        "email_verified": user.email_verified,
     }
 
 
