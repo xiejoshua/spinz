@@ -4,6 +4,7 @@ import { CriticBadge } from "@/components/critic-badge";
 import { StarRow } from "@/components/icons/star-row";
 import { LikeButton } from "@/components/review-card/like-button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { renderReviewBody } from "@/lib/review-body";
 import type { Review, ReviewAlbumCard, ReviewUserCard } from "@/lib/review-types";
 import { useAuthStore } from "@/stores/auth";
 import Link from "next/link";
@@ -164,13 +165,18 @@ export function ReviewCard({ review, user, album, showOwnerControls, onEdit, onD
               </div>
             )}
 
-            {/* Body preview */}
-            <p
-              className="mt-3 whitespace-pre-line font-sans text-[14px] leading-[1.55]"
+            {/* Body preview — markdown rendering mirrors the backend
+                sanitization allowlist (bold / italic / inline links).
+                Truncation happens BEFORE rendering, which means a body
+                that ends mid-emphasis renders the trailing markers as
+                literal text. Acceptable for a preview; full read view
+                gets the real markup. */}
+            <div
+              className="mt-3 font-sans text-[14px] leading-[1.55] [&_p]:mt-0 [&_p+p]:mt-2"
               style={{ color: "var(--foreground)" }}
             >
-              {preview}
-            </p>
+              {renderReviewBody(preview)}
+            </div>
 
             {/* Footer — Like + owner controls */}
             <footer className="mt-3 flex items-center gap-4">

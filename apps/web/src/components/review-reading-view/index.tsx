@@ -6,6 +6,7 @@ import { ReadingHero } from "@/components/review-reading-view/hero";
 import { ShareButton } from "@/components/review-reading-view/share-button";
 import { Button } from "@/components/ui/button";
 import type { AlbumPayload, DiaryRow } from "@/lib/album-types";
+import { renderReviewBody } from "@/lib/review-body";
 import type { Review, ReviewUserCard } from "@/lib/review-types";
 import { useAuthStore } from "@/stores/auth";
 import { Pencil } from "lucide-react";
@@ -65,20 +66,24 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
         return (
           <>
             <div
-              className={`review-body mt-10 whitespace-pre-line font-sans${eligibleForDropCap ? " review-body--drop-cap" : ""}`}
+              className={`review-body mt-10 font-sans${eligibleForDropCap ? " review-body--drop-cap" : ""}`}
               style={{
                 fontSize: "18px",
                 lineHeight: 1.65,
                 color: "var(--foreground)",
               }}
             >
-              {review.body}
+              {renderReviewBody(review.body)}
             </div>
             {/* Drop-cap matches the body font family (Inter Tight) so the
                 first letter doesn't read as a different typeface — just
-                a larger, heavier version of the same sans. */}
+                a larger, heavier version of the same sans. Paragraphs
+                are real `<p>` elements now (markdown renderer), so the
+                ::first-letter selector lands on the first paragraph
+                instead of the wrapper div — which is what we want. */}
             <style>{`
-              .review-body--drop-cap::first-letter {
+              .review-body p + p { margin-top: 1.25em; }
+              .review-body--drop-cap p:first-of-type::first-letter {
                 float: left;
                 font-family: inherit;
                 font-size: 3.2em;

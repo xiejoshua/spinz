@@ -2,8 +2,14 @@ import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 // Unit-test config (Node env — no JSDom). The helpers we currently test
-// are pure functions over plain objects; if we add component tests later,
-// switch `environment` to "jsdom" and install @testing-library/react.
+// are mostly pure functions over plain objects, plus the review-body
+// renderer which emits React nodes and is serialised through
+// `react-dom/server.renderToStaticMarkup`. Modules that emit nodes call
+// `createElement` directly (no JSX) so vitest's esbuild doesn't need a
+// JSX transform — tsconfig.json keeps `jsx: preserve` for Next.js.
+// If we add full DOM/component tests later, switch `environment` to
+// "jsdom", install `@testing-library/react`, and add @vitejs/plugin-react
+// (or set `esbuild: { jsx: "automatic", jsxImportSource: "react" }` here).
 //
 // REV-200 (Phase 6B code review): the `include` pattern is intentionally
 // scoped to `tests/unit/**` so Playwright (`tests/e2e/**`),
