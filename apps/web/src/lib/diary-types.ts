@@ -24,8 +24,14 @@ export type DiaryAlbumCard = {
   cover_art_url: string | null;
 };
 
+export type DiaryReviewCard = {
+  id: string;
+  body: string;
+};
+
 export type DiaryListResponse = {
   entries: DiaryEntry[];
   next_cursor: string | null;
   albums: Record<string, DiaryAlbumCard>;
+  reviews: Record<string, DiaryReviewCard>;
 };

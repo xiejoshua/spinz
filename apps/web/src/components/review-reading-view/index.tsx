@@ -66,31 +66,33 @@ export function ReviewReadingView({ review, user, album, viewerEntry, shareUrl }
         return (
           <>
             <div
-              className={`review-body mt-10 font-sans${eligibleForDropCap ? " review-body--drop-cap" : ""}`}
+              className={`review-body mt-10 font-serif${eligibleForDropCap ? " review-body--drop-cap" : ""}`}
               style={{
-                fontSize: "18px",
+                fontFamily: "var(--font-serif)",
+                fontSize: "19px",
                 lineHeight: 1.65,
+                letterSpacing: "-0.003em",
                 color: "var(--foreground)",
+                fontOpticalSizing: "auto",
               }}
             >
               {renderReviewBody(review.body)}
             </div>
-            {/* Drop-cap matches the body font family (Inter Tight) so the
-                first letter doesn't read as a different typeface — just
-                a larger, heavier version of the same sans. Paragraphs
-                are real `<p>` elements now (markdown renderer), so the
-                ::first-letter selector lands on the first paragraph
-                instead of the wrapper div — which is what we want. */}
+            {/* Drop-cap matches the body font family (Newsreader) so the
+                first letter reads as a heavier, larger version of the
+                same serif — true editorial cue. Paragraphs are real
+                `<p>` elements (markdown renderer), so the `::first-letter`
+                selector lands on the first paragraph cleanly. */}
             <style>{`
               .review-body p + p { margin-top: 1.25em; }
               .review-body--drop-cap p:first-of-type::first-letter {
                 float: left;
                 font-family: inherit;
-                font-size: 3.2em;
-                line-height: 0.88;
+                font-size: 3.4em;
+                line-height: 0.86;
                 font-weight: 600;
-                padding-right: 0.1em;
-                padding-top: 0.04em;
+                padding-right: 0.08em;
+                padding-top: 0.02em;
                 color: var(--foreground);
               }
             `}</style>

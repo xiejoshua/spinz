@@ -62,6 +62,7 @@ from auxd_api.modules.diary.service import (
     log_entry,
     restore_entry,
 )
+from auxd_api.modules.reviews.models import Review
 from auxd_api.modules.social.models import Block, Follow, FollowState
 from auxd_api.modules.users.redirect import resolve_handle
 
@@ -559,10 +560,27 @@ async def get_user_diary(
         album_rows = await Album.find({"_id": {"$in": list(album_ids)}}).to_list()
         albums_payload = {album.id: _serialize_album_card(album) for album in album_rows}
 
+    # Reviews sidecar — keyed by review_id so the diary card can render
+    # the review body inline without a per-row roundtrip. Visibility is
+    # transitively gated by the parent diary entry's visibility (already
+    # applied above): a viewer who can see the diary entry can read the
+    # review attached to it, since review.visibility tracks
+    # diary_entry.visibility 1:1. Soft-deleted reviews are excluded.
+    review_ids = [entry.review_id for entry in visible_entries if entry.review_id]
+    reviews_payload: dict[str, dict[str, Any]] = {}
+    if review_ids:
+        review_rows = await Review.find(
+            {"_id": {"$in": review_ids}, "deleted_at": None}
+        ).to_list()
+        reviews_payload = {
+            review.id: {"id": review.id, "body": review.body} for review in review_rows
+        }
+
     return {
         "entries": [_serialize_entry(entry) for entry in visible_entries],
         "next_cursor": next_cursor,
         "albums": albums_payload,
+        "reviews": reviews_payload,
     }
 
 

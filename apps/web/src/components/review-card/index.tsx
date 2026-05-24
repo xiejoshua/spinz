@@ -172,8 +172,14 @@ export function ReviewCard({ review, user, album, showOwnerControls, onEdit, onD
                 literal text. Acceptable for a preview; full read view
                 gets the real markup. */}
             <div
-              className="mt-3 font-sans text-[14px] leading-[1.55] [&_p]:mt-0 [&_p+p]:mt-2"
-              style={{ color: "var(--foreground)" }}
+              className="mt-3 font-serif [&_p+p]:mt-2 [&_p]:mt-0"
+              style={{
+                color: "var(--foreground)",
+                fontFamily: "var(--font-serif)",
+                fontSize: "16px",
+                lineHeight: 1.65,
+                fontOpticalSizing: "auto",
+              }}
             >
               {renderReviewBody(preview)}
             </div>

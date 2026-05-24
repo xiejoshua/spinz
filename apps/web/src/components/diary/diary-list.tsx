@@ -8,7 +8,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToastAction } from "@/components/ui/toast";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, apiClient } from "@/lib/api-client";
-import type { DiaryAlbumCard, DiaryEntry, DiaryListResponse } from "@/lib/diary-types";
+import type {
+  DiaryAlbumCard,
+  DiaryEntry,
+  DiaryListResponse,
+  DiaryReviewCard,
+} from "@/lib/diary-types";
 import { useUiStore } from "@/stores/ui";
 import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
@@ -50,6 +55,16 @@ export function DiaryList({ handle, isOwner }: Props) {
     const map: Record<string, DiaryAlbumCard> = {};
     for (const page of query.data?.pages ?? []) {
       Object.assign(map, page.albums);
+    }
+    return map;
+  }, [query.data]);
+
+  const allReviews = useMemo(() => {
+    const map: Record<string, DiaryReviewCard> = {};
+    for (const page of query.data?.pages ?? []) {
+      // Older cached pages from before the reviews sidecar shipped
+      // come back without the field — guard so the merge never throws.
+      if (page.reviews) Object.assign(map, page.reviews);
     }
     return map;
   }, [query.data]);
@@ -168,12 +183,13 @@ export function DiaryList({ handle, isOwner }: Props) {
       {entries.length === 0 ? (
         <EmptyState filter={filter} isOwner={isOwner} />
       ) : (
-        <ul className="space-y-2">
+        <ul>
           {entries.map((entry) => (
             <DiaryEntryCard
               key={entry.id}
               entry={entry}
               album={allAlbums[entry.album_id]}
+              review={entry.review_id ? allReviews[entry.review_id] : undefined}
               showOwnerControls={isOwner}
               onEdit={isOwner ? handleEdit : undefined}
               onDelete={isOwner ? setPendingDelete : undefined}

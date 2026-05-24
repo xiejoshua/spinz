@@ -555,3 +555,90 @@ async def test_read_albums_sidecar_empty_when_no_entries(_clean_env: None, _clea
     body = response.json()
     assert body["entries"] == []
     assert body["albums"] == {}
+    assert body["reviews"] == {}
+
+
+@pytest.mark.asyncio
+async def test_read_reviews_sidecar_includes_body_for_attached_reviews(
+    _clean_env: None, _clean_db: None
+) -> None:
+    """Diary entries with attached reviews surface body via reviews sidecar."""
+    user = _make_user("user-casey", "casey")
+    await user.insert()
+    album = _make_album()
+    await album.insert()
+    entry = DiaryEntry(
+        user_id=user.id,
+        album_id=album.id,
+        logged_at=datetime.now(UTC),
+        rating=4.5,
+        visibility=Visibility.PUBLIC,
+    )
+    await entry.insert()
+    review = Review(
+        user_id=user.id,
+        album_id=album.id,
+        diary_entry_id=entry.id,
+        body="a personal **favorite**.",
+        visibility=Visibility.PUBLIC,
+    )
+    await review.insert()
+    entry.review_id = review.id
+    await entry.save()
+    # Plain diary entry with no review attached — should not appear in sidecar.
+    bare = DiaryEntry(
+        user_id=user.id,
+        album_id=album.id,
+        logged_at=datetime.now(UTC),
+        rating=3.0,
+        visibility=Visibility.PUBLIC,
+    )
+    await bare.insert()
+
+    client = TestClient(_make_app())
+    response = client.get(f"/api/v1/users/{user.handle}/diary")
+    assert response.status_code == 200
+    body = response.json()
+    assert review.id in body["reviews"]
+    assert body["reviews"][review.id]["body"] == "a personal **favorite**."
+    assert body["reviews"][review.id]["id"] == review.id
+    # Sidecar contains exactly the reviews attached to visible entries.
+    assert set(body["reviews"].keys()) == {review.id}
+
+
+@pytest.mark.asyncio
+async def test_read_reviews_sidecar_excludes_soft_deleted(
+    _clean_env: None, _clean_db: None
+) -> None:
+    """Soft-deleted reviews stay out of the sidecar even when the parent entry is visible."""
+    user = _make_user("user-casey", "casey")
+    await user.insert()
+    album = _make_album()
+    await album.insert()
+    entry = DiaryEntry(
+        user_id=user.id,
+        album_id=album.id,
+        logged_at=datetime.now(UTC),
+        rating=4.0,
+        visibility=Visibility.PUBLIC,
+    )
+    await entry.insert()
+    review = Review(
+        user_id=user.id,
+        album_id=album.id,
+        diary_entry_id=entry.id,
+        body="removed.",
+        visibility=Visibility.PUBLIC,
+        deleted_at=datetime.now(UTC),
+    )
+    await review.insert()
+    entry.review_id = review.id
+    await entry.save()
+
+    client = TestClient(_make_app())
+    response = client.get(f"/api/v1/users/{user.handle}/diary")
+    assert response.status_code == 200
+    body = response.json()
+    # Entry still surfaces; its review row does not.
+    assert any(e["id"] == entry.id for e in body["entries"])
+    assert body["reviews"] == {}
