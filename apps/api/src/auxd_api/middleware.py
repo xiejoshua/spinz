@@ -223,13 +223,22 @@ class SessionMiddleware(BaseHTTPMiddleware):
                         "reason": "expired" if session and session.is_expired(now) else "tampered",
                     },
                 )
-                return JSONResponse(
+                # Evict the broken cookie on the failure response so the
+                # client doesn't stay stuck — without this, the user's
+                # browser keeps sending the same rejected cookie until
+                # someone manually clears it via devtools. With this,
+                # the next request goes anonymous, the frontend layout
+                # check redirects to /login, and the user can sign in
+                # fresh and get a cookie signed by the current HMAC key.
+                response_401 = JSONResponse(
                     status_code=401,
                     content={
                         "error": "invalid_session",
                         "detail": "session cookie was rejected by the signature check",
                     },
                 )
+                clear_session_cookies(response_401)
+                return response_401
 
         # Expose the (possibly None) session to handlers.
         request.state.session = session
