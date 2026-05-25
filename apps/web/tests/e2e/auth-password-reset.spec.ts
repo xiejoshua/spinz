@@ -14,6 +14,15 @@
  *
  * Gated behind `E2E_BACKEND_REACHABLE` + `TESTMAIL_NAMESPACE` +
  * `TESTMAIL_API_KEY` — skips cleanly otherwise.
+ *
+ * Note on local re-runs: the backend enforces a per-IP `5/hr` rate
+ * limit on POST `/auth/forgot-password` (FR-130). Running this spec
+ * together with `auth-forgot-password-no-enumeration.spec.ts` more
+ * than ~5 times in one hour from the same IP will trip the limit and
+ * surface as "Too many attempts" on the page. Either wait an hour,
+ * clear `ratelimit:auth.forgot_password:*` from Redis, or run a
+ * single spec at a time during local iteration. CI is unaffected —
+ * each runner has a fresh IP/window.
  */
 
 import { expect, test } from "@playwright/test";
@@ -79,13 +88,15 @@ test.describe("auth — forgot-password + reset-password happy path", () => {
 
     // 5. Poll testmail.app for the reset email. testmail.app inboxes
     // are scoped per-tag — the reset email lands under the same
-    // signup tag (the To: header is the same address). Use the
-    // verify tag to filter and find the most recent message.
+    // signup tag (the To: header is the same address). Filter by
+    // subject so we don't immediately return the still-cached
+    // verification email from step 2.
     const resetMessage = await pollInbox({
       namespace: NAMESPACE,
       apiKey: API_KEY,
       tag: verifyTag,
       timeoutMs: 60_000,
+      subjectMatches: /reset your auxd password/i,
     });
     // The most-recent message in this tag is the reset (newer than
     // the verification message); fail loudly if the reset HTML's

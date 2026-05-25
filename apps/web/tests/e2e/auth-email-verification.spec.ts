@@ -32,7 +32,6 @@ test.describe("auth — verify-email happy path", () => {
 
   test("signup → testmail.app email arrives → click link → email_verified=true", async ({
     page,
-    request,
   }) => {
     // Unique tag per run so concurrent tests don't share an inbox.
     const tag = `verify-${Date.now()}`;
@@ -72,8 +71,10 @@ test.describe("auth — verify-email happy path", () => {
       timeout: 15_000,
     });
 
-    // 5. Confirm via the API that `email_verified` flipped.
-    const meResponse = await request.get("/api/v1/users/me");
+    // 5. Confirm via the API that `email_verified` flipped. Use
+    //    `page.request` (not the bare `request` fixture) so the call
+    //    inherits the page's session cookies from signup.
+    const meResponse = await page.request.get("/api/v1/users/me");
     expect(meResponse.ok()).toBe(true);
     const me = await meResponse.json();
     expect(me.email).toBe(email);

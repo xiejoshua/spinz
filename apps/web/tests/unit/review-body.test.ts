@@ -39,13 +39,13 @@ describe("renderReviewBody", () => {
 
   it("splits paragraphs on a blank line", () => {
     expect(html("first paragraph\n\nsecond paragraph")).toBe(
-      "<p><span>first paragraph</span></p><p><span>second paragraph</span></p>",
+      "<p><span>first paragraph</span></p><p><span>second paragraph</span></p>"
     );
   });
 
   it("renders single-newline line breaks inside a paragraph", () => {
     expect(html("line one\nline two")).toBe(
-      "<p><span>line one<br/></span><span>line two</span></p>",
+      "<p><span>line one<br/></span><span>line two</span></p>"
     );
   });
 
@@ -57,14 +57,12 @@ describe("renderReviewBody", () => {
     // Backend's sanitizer allows it; renderer follows suit. Standard
     // markdown would consider this no-bold, but the spec's regex shape
     // is non-empty inner (`[^*]+?`), so spaces qualify.
-    expect(html("not ** empty **")).toBe(
-      "<p><span>not <strong> empty </strong></span></p>",
-    );
+    expect(html("not ** empty **")).toBe("<p><span>not <strong> empty </strong></span></p>");
   });
 
   it("normalises CRLF line endings to LF before splitting", () => {
     expect(html("a\r\nb\r\n\r\nc")).toBe(
-      "<p><span>a<br/></span><span>b</span></p><p><span>c</span></p>",
+      "<p><span>a<br/></span><span>b</span></p><p><span>c</span></p>"
     );
   });
 
