@@ -263,9 +263,7 @@ async def signup(payload: _SignupRequest, response: Response) -> dict[str, Any]:
             scope.set_tag("status", "signup.verification_email_failed")
             scope.set_extra("user_id", result.user.id)
             scope.set_extra("error", str(exc))
-            sentry_sdk.capture_message(
-                "signup.verification_email_failed", level="error"
-            )
+            sentry_sdk.capture_message("signup.verification_email_failed", level="error")
 
     return _public_user_payload(result.user)
 
@@ -573,9 +571,7 @@ async def resend_verification(
             scope.set_tag("status", "resend_verification.email_failed")
             scope.set_extra("user_id", user.id)
             scope.set_extra("error", str(exc))
-            sentry_sdk.capture_message(
-                "resend_verification.email_failed", level="error"
-            )
+            sentry_sdk.capture_message("resend_verification.email_failed", level="error")
 
     return _ResendVerificationResponse(ok=True, verified=False)
 
@@ -648,9 +644,7 @@ _RESET_PASSWORD_RATE_LIMIT = rate_limit(
     status_code=status.HTTP_200_OK,
     dependencies=[Depends(_RESET_PASSWORD_RATE_LIMIT)],
 )
-async def reset_password(
-    payload: _ResetPasswordRequest, response: Response
-) -> dict[str, Any]:
+async def reset_password(payload: _ResetPasswordRequest, response: Response) -> dict[str, Any]:
     """Consume a reset token, persist the new password, issue a fresh session.
 
     Anonymous-callable. The reset link is the credential; the caller is

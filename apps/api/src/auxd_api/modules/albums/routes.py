@@ -402,9 +402,7 @@ async def get_album_detail(album_id: str, request: Request) -> dict[str, Any]:
     review_items = [
         (
             _ReviewContent(review),
-            _serialize_review(
-                review, rating=review_rating_map.get(review.diary_entry_id)
-            ),
+            _serialize_review(review, rating=review_rating_map.get(review.diary_entry_id)),
         )
         for review in public_review_rows
     ]

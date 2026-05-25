@@ -288,9 +288,7 @@ async def _load_private_owner_ids(owner_ids: set[str]) -> set[str]:
     return {row.id for row in rows}
 
 
-def _serialize_review(
-    review: Review, *, rating: float | None = None
-) -> dict[str, Any]:
+def _serialize_review(review: Review, *, rating: float | None = None) -> dict[str, Any]:
     """Return the wire shape for a review.
 
     Includes the author's rating from the joined DiaryEntry when the

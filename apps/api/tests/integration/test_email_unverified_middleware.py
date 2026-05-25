@@ -118,9 +118,7 @@ async def _flip_verified(user_id: str, *, verified: bool) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_users_me_passes_when_unverified(
-    _clean_env: None, _clean_db: None
-) -> None:
+async def test_get_users_me_passes_when_unverified(_clean_env: None, _clean_db: None) -> None:
     """``GET /api/v1/users/me`` works even when the user is unverified."""
     client = TestClient(_make_app())
     signup = client.post("/api/v1/auth/signup", json=_VALID_PAYLOAD)
@@ -136,9 +134,7 @@ async def test_get_users_me_passes_when_unverified(
 
 
 @pytest.mark.asyncio
-async def test_state_changing_route_403s_when_unverified(
-    _clean_env: None, _clean_db: None
-) -> None:
+async def test_state_changing_route_403s_when_unverified(_clean_env: None, _clean_db: None) -> None:
     client = TestClient(_make_app())
     signup = client.post("/api/v1/auth/signup", json=_VALID_PAYLOAD)
     assert signup.status_code == 201
@@ -184,9 +180,7 @@ async def test_resend_verification_bypasses_gate_when_unverified(
 
 
 @pytest.mark.asyncio
-async def test_logout_bypasses_gate_when_unverified(
-    _clean_env: None, _clean_db: None
-) -> None:
+async def test_logout_bypasses_gate_when_unverified(_clean_env: None, _clean_db: None) -> None:
     """POST /auth/logout is allow-listed so the user can walk away."""
     client = TestClient(_make_app())
     signup = client.post("/api/v1/auth/signup", json=_VALID_PAYLOAD)
@@ -255,9 +249,7 @@ async def test_anonymous_post_returns_401_not_email_unverified(
 
 
 @pytest.mark.asyncio
-async def test_verify_email_bypasses_gate(
-    _clean_env: None, _clean_db: None
-) -> None:
+async def test_verify_email_bypasses_gate(_clean_env: None, _clean_db: None) -> None:
     """POST /auth/verify-email is allow-listed so the user can complete the flow.
 
     The exact verification body is exercised in the verify-email suite;

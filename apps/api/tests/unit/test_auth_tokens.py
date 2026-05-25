@@ -107,9 +107,7 @@ def test_hash_token_is_deterministic(_clean_env: None) -> None:
     assert all(ch in "0123456789abcdef" for ch in first)
 
 
-def test_hash_token_is_sensitive_to_pepper(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Any
-) -> None:
+def test_hash_token_is_sensitive_to_pepper(monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
     """Different pepper → different hash for the same raw token.
 
     Pepper is loaded fresh on every call via the lru_cached

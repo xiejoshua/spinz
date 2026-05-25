@@ -63,6 +63,8 @@ def _parse_discogs_duration(value: object) -> int | None:
         return (minutes * 60 + seconds) * 1000
     hours, minutes, seconds = nums
     return (hours * 3600 + minutes * 60 + seconds) * 1000
+
+
 from auxd_api.providers.errors import ProviderRateLimited, ProviderUnavailable
 from auxd_api.providers.transport import build_async_client
 from auxd_api.settings import get_settings

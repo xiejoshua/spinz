@@ -144,9 +144,7 @@ _UNVERIFIED_ALLOWED_PATHS: Final[frozenset[str]] = frozenset(
 
 # Methods that the unverified-gate checks. Mirrors RFC 9110 §9.2.1's
 # unsafe methods; reads always pass.
-_UNVERIFIED_GATED_METHODS: Final[frozenset[str]] = frozenset(
-    {"POST", "PATCH", "PUT", "DELETE"}
-)
+_UNVERIFIED_GATED_METHODS: Final[frozenset[str]] = frozenset({"POST", "PATCH", "PUT", "DELETE"})
 
 
 def _path_allowed_when_unverified(path: str) -> bool:

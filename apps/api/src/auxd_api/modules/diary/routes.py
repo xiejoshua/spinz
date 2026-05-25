@@ -569,9 +569,7 @@ async def get_user_diary(
     review_ids = [entry.review_id for entry in visible_entries if entry.review_id]
     reviews_payload: dict[str, dict[str, Any]] = {}
     if review_ids:
-        review_rows = await Review.find(
-            {"_id": {"$in": review_ids}, "deleted_at": None}
-        ).to_list()
+        review_rows = await Review.find({"_id": {"$in": review_ids}, "deleted_at": None}).to_list()
         reviews_payload = {
             review.id: {"id": review.id, "body": review.body} for review in review_rows
         }

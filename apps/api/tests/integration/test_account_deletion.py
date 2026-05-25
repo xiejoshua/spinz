@@ -196,6 +196,6 @@ async def test_schedule_deletion_clears_session_cookies(
     assert response.status_code == 200
     cookie_headers = response.headers.get_list("set-cookie")
     # The clearing Set-Cookie header has max-age=0 for the session cookie.
-    assert any(
-        SESSION_COOKIE_NAME in h and "max-age=0" in h.lower() for h in cookie_headers
-    ), cookie_headers
+    assert any(SESSION_COOKIE_NAME in h and "max-age=0" in h.lower() for h in cookie_headers), (
+        cookie_headers
+    )

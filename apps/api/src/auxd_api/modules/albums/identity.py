@@ -90,9 +90,7 @@ def _materialize_album(
     # when every track has one; otherwise leave None so the UI shows "—".
     durations = [t.duration_ms for t in catalog.tracklist if t.duration_ms]
     duration_ms: int | None = (
-        sum(durations)
-        if durations and len(durations) == len(catalog.tracklist)
-        else None
+        sum(durations) if durations and len(durations) == len(catalog.tracklist) else None
     )
     return Album(
         mbid=catalog.mbid,

@@ -122,6 +122,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/forgot-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Forgot Password
+         * @description Issue a password-reset email (best-effort) for the supplied address.
+         *
+         *     ALWAYS returns 200 with the same generic body regardless of outcome
+         *     (FR-141 — no enumeration). The internal flow either dispatches a
+         *     reset email or silently no-ops on a hit-miss / suspended / unverified
+         *     branch; the caller never learns which.
+         *
+         *     Rate limit: per-IP 5/hour (FR-130). The per-email 3/hour limit is
+         *     not enforced here because doing so would itself be an enumeration
+         *     oracle — instead, the per-user-id slot kicks in once we resolve a
+         *     matching user inside :func:`handle_forgot_password` (handled via the
+         *     rate-limiter's per-user branch attached on a follow-up). At MVP the
+         *     per-IP cap is the primary guard against probing volume.
+         */
+        post: operations["forgot_password_api_v1_auth_forgot_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/login": {
         parameters: {
             query?: never;
@@ -135,11 +167,25 @@ export interface paths {
          * Login
          * @description Verify credentials and issue a session cookie.
          *
-         *     Returns ``200`` with the public-user payload on success and ``401``
-         *     with a generic ``invalid_credentials`` error code on any failure
-         *     path. The route logs which sub-case fired internally so ops can
-         *     distinguish "unknown email" from "wrong password" without leaking
-         *     the distinction to the client.
+         *     Returns ``200`` with the public-user payload on success. Failure
+         *     modes:
+         *
+         *     * ``401 invalid_credentials`` — unknown email OR wrong password.
+         *       The two sub-cases are deliberately collapsed so the route cannot
+         *       be used to enumerate registered emails.
+         *     * ``403 account_suspended`` — password correct but the account is
+         *       suspended. Only fires after password verification; never leaks
+         *       for wrong-password attempts.
+         *     * ``403 account_deletion_pending`` — password correct but the
+         *       account is inside the 30-day deletion grace window. Detail body
+         *       carries ``scheduled_for`` (ISO timestamp) so the frontend can
+         *       surface it on the login banner alongside a "cancel deletion and
+         *       sign in" CTA that re-submits with ``cancel_deletion: true``.
+         *
+         *     When ``cancel_deletion=true`` is set and the matched user is in
+         *     ``DELETION_PENDING`` state, the route cancels the pending deletion
+         *     via :func:`cancel_account_deletion` BEFORE issuing the session so
+         *     the cookie lands against an ``ACTIVE`` user.
          */
         post: operations["login_api_v1_auth_login_post"];
         delete?: never;
@@ -207,6 +253,76 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/resend-verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resend Verification
+         * @description Issue a fresh verification token + send a new verification email.
+         *
+         *     Authenticated route. The signup path issues a session even for
+         *     unverified users, so this endpoint always has a session to key off.
+         *     The middleware ``email_unverified`` gate explicitly allow-lists this
+         *     path so unverified users CAN reach it.
+         *
+         *     No-op when the user is already verified: returns ``{ok: true,
+         *     verified: true}`` with no DB write. Otherwise invalidates any prior
+         *     unused token + writes a fresh one + dispatches the email.
+         *
+         *     Rate limit: per-user 3/hour (FR-133). Friendly toast on 429.
+         */
+        post: operations["resend_verification_api_v1_auth_resend_verification_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/reset-password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reset Password
+         * @description Consume a reset token, persist the new password, issue a fresh session.
+         *
+         *     Anonymous-callable. The reset link is the credential; the caller is
+         *     NOT logged in when this fires.
+         *
+         *     On success: token is consumed, ``user.password_hash`` is updated,
+         *     ``user.session_version`` is bumped (logging out every other device),
+         *     a fresh session cookie is set on the response, and the existing
+         *     ``N017 security.password_changed`` notification fires to confirm
+         *     the change.
+         *
+         *     Failure modes:
+         *
+         *     * ``410 reset_token_invalid|expired|used`` — token state is bad;
+         *       friendly UI sends user back to ``/forgot-password``.
+         *     * ``422 weak_password`` — new password violates policy (length,
+         *       letter, digit). Same policy as signup + change-password.
+         *
+         *     Rate limit: per-IP 10/hour (FR-131). Token entropy (32 bytes) is
+         *     the primary guard.
+         */
+        post: operations["reset_password_api_v1_auth_reset_password_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/auth/signup": {
         parameters: {
             query?: never;
@@ -229,6 +345,45 @@ export interface paths {
          *     * ``409`` — handle or email already in use.
          */
         post: operations["signup_api_v1_auth_signup_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/verify-email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Verify Email
+         * @description Consume a verification token and flip the linked user to verified.
+         *
+         *     Anonymous-callable: the email link works even when logged out (the
+         *     user might click from a different device). Idempotent re-click is
+         *     explicitly supported — already-verified users receive a benign 200
+         *     rather than an error.
+         *
+         *     Returns ``{verified: true, idempotent: bool}`` on success. Failure
+         *     modes:
+         *
+         *     * ``410 verification_token_invalid`` — unknown or hash-mismatched
+         *       token. The friendly UI shows "this link is no longer valid".
+         *     * ``410 verification_token_used`` — token already consumed AND the
+         *       linked user is NOT already verified. (The idempotent re-click
+         *       case is handled in :func:`consume_or_idempotent_verify` before
+         *       we get here.)
+         *     * ``422 verification_token_expired`` — token row is past its 24h
+         *       TTL. User can request a fresh one from the banner.
+         *
+         *     Rate limit: per-IP 30/hour (FR-132).
+         */
+        post: operations["verify_email_api_v1_auth_verify_email_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -716,7 +871,24 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Get Me Current
+         * @description Return the SanitizedUser payload for the current session.
+         *
+         *     MUST be declared before ``GET /{handle}`` — otherwise FastAPI's
+         *     path-match-first-wins routing captures "me" as a handle parameter
+         *     and dispatches to :func:`get_user_profile`, which then 404s with
+         *     ``user_not_found`` because no user has the handle "me".
+         *
+         *     Mirrors the response shape of ``POST /api/v1/auth/login`` so the
+         *     frontend can rehydrate ``useAuthStore`` on cold boot via a single
+         *     server-side fetch in ``app/(app)/layout.tsx``. Without this the
+         *     auth store relied entirely on the in-memory state from the prior
+         *     login flow, which meant a hard reload could leave the BottomTabs
+         *     Profile link pointing at /login (and then bouncing to /feed via
+         *     the (auth) shell's logged-in redirect).
+         */
+        get: operations["get_me_current_api_v1_users_me_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -932,6 +1104,13 @@ export interface paths {
         /**
          * Post Schedule Deletion
          * @description Schedule account deletion 30 days from now (idempotent).
+         *
+         *     Side-effect: clears the caller's session cookies on the response so
+         *     the browser is signed out the moment the deletion is scheduled.
+         *     ``schedule_account_deletion`` also bumps ``session_version`` to
+         *     invalidate cookies on other devices (best-effort — middleware
+         *     re-validates at refresh time, not per request, per the documented
+         *     trade-off in ``auth/routes.py:logout_all_devices``).
          */
         post: operations["post_schedule_deletion_api_v1_users_me_delete_post"];
         /**
@@ -1645,6 +1824,22 @@ export interface components {
             source?: string | null;
         };
         /**
+         * _ForgotPasswordRequest
+         * @description Wire shape for ``POST /auth/forgot-password``.
+         *
+         *     Only one field — the user's email. Validated as a syntactically
+         *     correct address via Pydantic's ``EmailStr``; the no-enumeration
+         *     posture means we DON'T tell the caller whether the address is
+         *     actually registered.
+         */
+        _ForgotPasswordRequest: {
+            /**
+             * Email
+             * Format: email
+             */
+            email: string;
+        };
+        /**
          * _HandleChangeRequest
          * @description Wire shape for ``POST /users/me/handle``.
          */
@@ -1676,6 +1871,11 @@ export interface components {
          * @description Wire shape for ``POST /auth/login``.
          */
         _LoginRequest: {
+            /**
+             * Cancel Deletion
+             * @default false
+             */
+            cancel_deletion: boolean;
             /**
              * Email
              * Format: email
@@ -1918,6 +2118,26 @@ export interface components {
             item_ids: string[];
         };
         /**
+         * _ResendVerificationResponse
+         * @description Wire shape for the resend-verification response body.
+         */
+        _ResendVerificationResponse: {
+            /** Ok */
+            ok: boolean;
+            /** Verified */
+            verified: boolean;
+        };
+        /**
+         * _ResetPasswordRequest
+         * @description Wire shape for ``POST /auth/reset-password``.
+         */
+        _ResetPasswordRequest: {
+            /** New Password */
+            new_password: string;
+            /** Token */
+            token: string;
+        };
+        /**
          * _ReviewReportRequest
          * @description Wire shape for ``POST /reports/review``.
          */
@@ -1962,6 +2182,14 @@ export interface components {
             user_id: string;
         };
         /**
+         * _VerifyEmailRequest
+         * @description Wire shape for ``POST /auth/verify-email``.
+         */
+        _VerifyEmailRequest: {
+            /** Token */
+            token: string;
+        };
+        /**
          * Visibility
          * @description Content visibility level chosen by the owner.
          * @enum {string}
@@ -1994,6 +2222,7 @@ export type EditEntryRequest = components['schemas']['_EditEntryRequest'];
 export type EditReviewRequest = components['schemas']['_EditReviewRequest'];
 export type EmailChangeRequest = components['schemas']['_EmailChangeRequest'];
 export type FollowRequestBody = components['schemas']['_FollowRequestBody'];
+export type ForgotPasswordRequest = components['schemas']['_ForgotPasswordRequest'];
 export type HandleChangeRequest = components['schemas']['_HandleChangeRequest'];
 export type LogEntryRequest = components['schemas']['_LogEntryRequest'];
 export type LoginRequest = components['schemas']['_LoginRequest'];
@@ -2011,10 +2240,13 @@ export type PushSubscriptionRequest = components['schemas']['_PushSubscriptionRe
 export type PushSubscriptionResponse = components['schemas']['_PushSubscriptionResponse'];
 export type QuietHoursIo = components['schemas']['_QuietHoursIO'];
 export type ReorderRequest = components['schemas']['_ReorderRequest'];
+export type ResendVerificationResponse = components['schemas']['_ResendVerificationResponse'];
+export type ResetPasswordRequest = components['schemas']['_ResetPasswordRequest'];
 export type ReviewReportRequest = components['schemas']['_ReviewReportRequest'];
 export type SignupRequest = components['schemas']['_SignupRequest'];
 export type UnreadCountResponse = components['schemas']['_UnreadCountResponse'];
 export type UserReportRequest = components['schemas']['_UserReportRequest'];
+export type VerifyEmailRequest = components['schemas']['_VerifyEmailRequest'];
 export type AuxdApiLibVisibilityVisibility = components['schemas']['auxd_api__lib__visibility__Visibility'];
 export type AuxdApiModulesDiaryModelsVisibility = components['schemas']['auxd_api__modules__diary__models__Visibility'];
 export type $defs = Record<string, never>;
@@ -2122,6 +2354,41 @@ export interface operations {
             };
         };
     };
+    forgot_password_api_v1_auth_forgot_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_ForgotPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_v1_auth_login_post: {
         parameters: {
             query?: never;
@@ -2197,6 +2464,61 @@ export interface operations {
             };
         };
     };
+    resend_verification_api_v1_auth_resend_verification_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["_ResendVerificationResponse"];
+                };
+            };
+        };
+    };
+    reset_password_api_v1_auth_reset_password_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     signup_api_v1_auth_signup_post: {
         parameters: {
             query?: never;
@@ -2212,6 +2534,41 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    verify_email_api_v1_auth_verify_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["_VerifyEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2924,6 +3281,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_me_current_api_v1_users_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

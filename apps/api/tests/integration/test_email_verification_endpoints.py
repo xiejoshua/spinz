@@ -167,9 +167,7 @@ async def test_signup_bootstraps_verification_token(
     user_id = response.json()["id"]
 
     # Exactly one verification token row exists, linked to this user.
-    tokens = await EmailVerificationToken.find(
-        EmailVerificationToken.user_id == user_id
-    ).to_list()
+    tokens = await EmailVerificationToken.find(EmailVerificationToken.user_id == user_id).to_list()
     assert len(tokens) == 1, tokens
     token = tokens[0]
     assert token.used_at is None
@@ -219,9 +217,7 @@ async def test_verify_email_happy_path_marks_user_verified(
     assert user.email_verified_at is not None
 
     # Token row marked consumed.
-    token = await EmailVerificationToken.find_one(
-        EmailVerificationToken.user_id == user_id
-    )
+    token = await EmailVerificationToken.find_one(EmailVerificationToken.user_id == user_id)
     assert token is not None
     assert token.used_at is not None
 
@@ -274,9 +270,7 @@ async def test_verify_email_expired_token_returns_422(
     client.cookies.clear()
 
     # Reach into the DB and back-date expires_at to the past.
-    token = await EmailVerificationToken.find_one(
-        EmailVerificationToken.user_id == user_id
-    )
+    token = await EmailVerificationToken.find_one(EmailVerificationToken.user_id == user_id)
     assert token is not None
     token.expires_at = datetime.now(UTC) - timedelta(hours=1)
     await token.save()
@@ -305,9 +299,7 @@ async def test_verify_email_used_token_returns_410(
     raw_token = _verification_token_spy.captured[-1]
     client.cookies.clear()
 
-    token = await EmailVerificationToken.find_one(
-        EmailVerificationToken.user_id == user_id
-    )
+    token = await EmailVerificationToken.find_one(EmailVerificationToken.user_id == user_id)
     assert token is not None
     token.used_at = datetime.now(UTC)
     await token.save()
@@ -368,9 +360,7 @@ async def test_resend_verification_invalidates_prior_and_issues_fresh(
 
     # The prior unused token now has used_at set (invalidated as
     # superseded). A fresh, unused token also exists.
-    tokens = await EmailVerificationToken.find(
-        EmailVerificationToken.user_id == user_id
-    ).to_list()
+    tokens = await EmailVerificationToken.find(EmailVerificationToken.user_id == user_id).to_list()
     assert len(tokens) == 2, tokens
     used = [t for t in tokens if t.used_at is not None]
     unused = [t for t in tokens if t.used_at is None]
@@ -416,9 +406,7 @@ async def test_resend_verification_already_verified_noop(
     # No fresh token was issued — the spy's captured list is unchanged.
     assert _verification_token_spy.captured == initial_raws
     # And the DB still holds exactly the signup-time token.
-    tokens = await EmailVerificationToken.find(
-        EmailVerificationToken.user_id == user_id
-    ).to_list()
+    tokens = await EmailVerificationToken.find(EmailVerificationToken.user_id == user_id).to_list()
     assert len(tokens) == 1, tokens
 
 

@@ -185,9 +185,7 @@ async def consume_reset_token(raw_token: str) -> tuple[User, PasswordResetToken]
             ``expires_at``.
     """
     expected_hash = hash_token(raw_token)
-    token = await PasswordResetToken.find_one(
-        PasswordResetToken.token_hash == expected_hash
-    )
+    token = await PasswordResetToken.find_one(PasswordResetToken.token_hash == expected_hash)
     if token is None:
         log_call(
             provider="auxd",

@@ -175,9 +175,7 @@ async def test_forgot_password_happy_path_issues_token(
     assert "If that email is registered" in body["message"]
 
     # Exactly one unused PasswordResetToken now exists for this user.
-    tokens = await PasswordResetToken.find(
-        PasswordResetToken.user_id == user.id
-    ).to_list()
+    tokens = await PasswordResetToken.find(PasswordResetToken.user_id == user.id).to_list()
     assert len(tokens) == 1, tokens
     assert tokens[0].used_at is None
     assert len(_reset_token_spy.captured) == 1
@@ -287,9 +285,7 @@ async def test_forgot_password_invalidates_prior_unused_token(
     second = client.post("/api/v1/auth/forgot-password", json={"email": user.email})
     assert second.status_code == 200
 
-    tokens = await PasswordResetToken.find(
-        PasswordResetToken.user_id == user.id
-    ).to_list()
+    tokens = await PasswordResetToken.find(PasswordResetToken.user_id == user.id).to_list()
     assert len(tokens) == 2, tokens
     used = [t for t in tokens if t.used_at is not None]
     unused = [t for t in tokens if t.used_at is None]
@@ -375,9 +371,7 @@ async def test_reset_password_expired_token_returns_410(
     raw = _reset_token_spy.captured[-1]
 
     # Manually expire the token.
-    token = await PasswordResetToken.find_one(
-        PasswordResetToken.user_id == user.id
-    )
+    token = await PasswordResetToken.find_one(PasswordResetToken.user_id == user.id)
     assert token is not None
     token.expires_at = datetime.now(UTC) - timedelta(minutes=5)
     await token.save()
@@ -403,9 +397,7 @@ async def test_reset_password_used_token_returns_410(
     raw = _reset_token_spy.captured[-1]
 
     # Manually mark used.
-    token = await PasswordResetToken.find_one(
-        PasswordResetToken.user_id == user.id
-    )
+    token = await PasswordResetToken.find_one(PasswordResetToken.user_id == user.id)
     assert token is not None
     token.used_at = datetime.now(UTC)
     await token.save()
