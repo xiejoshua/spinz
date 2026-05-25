@@ -263,10 +263,10 @@ class Settings(BaseSettings):
         ),
     )
     RESEND_FROM_ADDRESS: str = Field(
-        default="auxd <noreply@accounts.xiejoshua.com>",
+        default="auxd <updates@accounts.xiejoshua.com>",
         description=(
             "Default 'from' address used by the Resend email adapter. Format follows "
-            "RFC-5322 (e.g. ``auxd <noreply@accounts.xiejoshua.com>``). The mailbox's "
+            "RFC-5322 (e.g. ``auxd <updates@accounts.xiejoshua.com>``). The mailbox's "
             "domain MUST be verified on Resend; ``accounts.xiejoshua.com`` is the "
             "canonical auth/transactional subdomain so reputation isn't tied to the "
             "marketing apex."

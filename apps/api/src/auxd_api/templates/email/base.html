@@ -1,69 +1,121 @@
+{#-
+  Editorial email chrome. Shared by every transactional template.
+
+  Design conventions (match the web app):
+    * Newsreader serif (italic wordmark, regular headlines), fallback Georgia
+    * JetBrains Mono for eyebrows + footer chrome, fallback Menlo
+    * System sans for body text (Inter Tight isn't reliably available in
+      mail clients; Helvetica/Arial is the safe default)
+    * --accent burgundy (~oklch(0.40 0.12 25) → #7a2828) for CTAs + links
+    * Hairline rule in --separator (#ededed) instead of card borders
+    * No rounded corners — rectilinear matches the editorial print pattern
+
+  Rendering quirks accounted for:
+    * Inline CSS everywhere — Gmail strips <style> blocks
+    * Tables for layout — Outlook's Word engine needs them
+    * Web fonts via <link> work in Apple Mail / iOS; Outlook desktop +
+      Gmail strip them and fall back to Georgia / serif via the
+      font-family chain — graceful degradation
+    * `bgcolor=` attribute on the CTA TD so Outlook gets the burgundy
+      fill even when it ignores the background inline CSS
+-#}
 <!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <meta name="color-scheme" content="light only" />
+    <meta name="supported-color-schemes" content="light" />
     <title>{{ subject }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body
-    style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont,
-    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #1a1a1a;
-    background: #fafafa;"
+    style="margin: 0; padding: 0; background: #fafafa; color: #1a1a1a;
+    font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial,
+    sans-serif; -webkit-font-smoothing: antialiased;"
   >
     <table
       role="presentation"
       width="100%"
       cellpadding="0"
       cellspacing="0"
+      border="0"
       style="background: #fafafa;"
     >
       <tr>
-        <td align="center" style="padding: 32px 16px;">
+        <td align="center" style="padding: 40px 16px;">
           <table
             role="presentation"
             width="100%"
             cellpadding="0"
             cellspacing="0"
-            style="max-width: 560px; background: #ffffff; border-radius: 12px;
-            border: 1px solid #ececec;"
+            border="0"
+            style="max-width: 560px; background: #ffffff;
+            border: 1px solid #ededed;"
           >
-            <!-- Header -->
+            <!-- Wordmark -->
             <tr>
-              <td
-                style="padding: 24px 32px; border-bottom: 1px solid #ececec;"
-              >
+              <td style="padding: 32px 40px 24px 40px;">
                 <a
                   href="{{ public_app_url }}"
-                  style="color: #1a1a1a; font-size: 18px; font-weight: 600;
-                  text-decoration: none; letter-spacing: -0.02em;"
+                  style="display: inline-block; text-decoration: none;
+                  font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
+                  font-style: italic; font-weight: 400; font-size: 28px;
+                  line-height: 1; letter-spacing: -0.015em; color: #1a1a1a;"
                   >auxd</a
                 >
+                <div
+                  style="height: 1px; background: #ededed; margin-top: 24px;
+                  font-size: 0; line-height: 0;"
+                >
+                  &nbsp;
+                </div>
               </td>
             </tr>
             <!-- Body -->
             <tr>
-              <td style="padding: 32px;">
+              <td style="padding: 8px 40px 40px 40px;">
                 {% block body %}{% endblock %}
               </td>
             </tr>
             <!-- Footer -->
             <tr>
+              <td style="padding: 0 40px;">
+                <div
+                  style="height: 1px; background: #ededed; font-size: 0;
+                  line-height: 0;"
+                >
+                  &nbsp;
+                </div>
+              </td>
+            </tr>
+            <tr>
               <td
-                style="padding: 20px 32px; border-top: 1px solid #ececec;
-                color: #6b6b6b; font-size: 12px; line-height: 1.5;"
+                style="padding: 24px 40px 32px 40px;
+                font-family: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+                font-size: 11px; letter-spacing: 0.12em; line-height: 1.6;
+                color: #717171; text-transform: uppercase;"
               >
-                Sent to {{ recipient_handle }}.
+                Sent to {{ recipient_handle }}
                 <br />
                 <a
                   href="{{ unsubscribe_url }}"
-                  style="color: #6b6b6b; text-decoration: underline;"
+                  style="color: #717171; text-decoration: underline;
+                  text-decoration-color: #cccccc;"
                   >Unsubscribe</a
                 >
                 &nbsp;·&nbsp;
                 <a
                   href="{{ manage_url }}"
-                  style="color: #6b6b6b; text-decoration: underline;"
-                  >Manage all notifications</a
+                  style="color: #717171; text-decoration: underline;
+                  text-decoration-color: #cccccc;"
+                  >Manage notifications</a
                 >
               </td>
             </tr>
