@@ -57,10 +57,14 @@
     --success-foreground: var(--ink);
     --warning: oklch(0.78 0.16 72);
     --warning-foreground: var(--ink);
-    /* Oxblood — same red-orange hue family as --accent but darker.
-       Replaces the bright fire-engine red that clashed with the editorial
-       restraint everywhere else. ~10:1 contrast on white surface. */
-    --danger: oklch(0.32 0.14 22);
+    /* Brick — same red-orange hue as --accent (25°) but lifted +0.10 L
+       and slightly more saturated. Keeps the brand red family while
+       reading clearly as "destructive" against the burgundy accent's
+       primary-action treatment. Replaces an earlier oxblood
+       (oklch(0.32 0.14 22)) that was visually indistinguishable from
+       the accent — same hue family, just darker. ~4.8:1 contrast on
+       white (passes WCAG AA for button text). */
+    --danger: oklch(0.50 0.16 25);
     --danger-foreground: var(--white);
 
     /* misc */
@@ -154,10 +158,11 @@
     --success-foreground: oklch(0.13 0.003 80);
     --warning: oklch(0.82 0.14 76);
     --warning-foreground: oklch(0.13 0.003 80);
-    /* Dark-mode oxblood — lifted +0.25 L vs light mode (same lift the
-       accent uses across themes) so it stays visible on the dark
-       background while reading as the same red-orange family. */
-    --danger: oklch(0.57 0.16 22);
+    /* Dark-mode brick — keeps the same +0.10 L lift over the
+       dark-mode accent (0.65 → 0.75) that light mode uses (0.40 →
+       0.50), so the primary-vs-destructive contrast holds across
+       themes. Slightly muted to 0.72 to avoid going pastel-pink. */
+    --danger: oklch(0.72 0.18 25);
     --danger-foreground: var(--ink-light);
 
     --segment: oklch(0.38 0.01 80);
