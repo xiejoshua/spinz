@@ -256,10 +256,11 @@ class Settings(BaseSettings):
 
     # --- Public app URL --------------------------------------------------
     PUBLIC_APP_URL: str = Field(
-        default="https://auxd.xiejoshua.com",
+        default="https://www.xiejoshua.com",
         description=(
             "Public frontend base URL used to build click-action deep-links in "
-            "push payloads and email CTAs. Override per environment."
+            "push payloads and email CTAs. Override per environment. The Vercel "
+            "deploy serves auxd at https://www.xiejoshua.com (apex 307s to www)."
         ),
     )
     RESEND_FROM_ADDRESS: str = Field(
