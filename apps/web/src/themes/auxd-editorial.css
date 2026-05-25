@@ -57,7 +57,10 @@
     --success-foreground: var(--ink);
     --warning: oklch(0.78 0.16 72);
     --warning-foreground: var(--ink);
-    --danger: oklch(0.62 0.21 25);
+    /* Oxblood — same red-orange hue family as --accent but darker.
+       Replaces the bright fire-engine red that clashed with the editorial
+       restraint everywhere else. ~10:1 contrast on white surface. */
+    --danger: oklch(0.32 0.14 22);
     --danger-foreground: var(--white);
 
     /* misc */
@@ -151,7 +154,10 @@
     --success-foreground: oklch(0.13 0.003 80);
     --warning: oklch(0.82 0.14 76);
     --warning-foreground: oklch(0.13 0.003 80);
-    --danger: oklch(0.59 0.2 25);
+    /* Dark-mode oxblood — lifted +0.25 L vs light mode (same lift the
+       accent uses across themes) so it stays visible on the dark
+       background while reading as the same red-orange family. */
+    --danger: oklch(0.57 0.16 22);
     --danger-foreground: var(--ink-light);
 
     --segment: oklch(0.38 0.01 80);
