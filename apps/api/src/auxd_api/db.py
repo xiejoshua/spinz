@@ -26,6 +26,7 @@ from auxd_api.modules.auth.tokens_models import (
     PasswordResetToken,
 )
 from auxd_api.modules.backlog.models import Backlog, BacklogItem
+from auxd_api.modules.catalog_seed.models import SeedRun
 from auxd_api.modules.diary.models import DiaryEntry
 from auxd_api.modules.gdpr.models import GdprAuditLog
 from auxd_api.modules.moderation.models import Report
@@ -76,6 +77,8 @@ ALL_DOCUMENT_MODELS: list[type[Document]] = [
     # (see import above) but not registered with Beanie at MVP.
     SuggestedFollow,
     CriticSeed,
+    # catalog seed pipeline (feature 003 — Bundle Y essentials ingest)
+    SeedRun,
 ]
 
 

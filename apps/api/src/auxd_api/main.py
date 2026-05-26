@@ -44,6 +44,7 @@ from auxd_api.lib.observability import init_sentry
 from auxd_api.lib.otel import init_otel
 from auxd_api.middleware import SessionMiddleware
 from auxd_api.migrations import run_migrations
+from auxd_api.modules.mb_mirror.client import TursoClient
 from auxd_api.redis_client import (
     JobEnqueueUnavailable,
     close_arq_pool,
@@ -79,6 +80,23 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await run_migrations(get_database(settings.MONGODB_URI))
     await init_redis(settings.REDIS_URL)
     await init_arq_pool(settings.REDIS_URL)
+
+    # MusicBrainz mirror — read-only Turso/libSQL cache of ~1.3M
+    # release-groups. Optional: when ``TURSO_DATABASE_URL`` is unset
+    # the constructor returns ``None`` and downstream consumers
+    # (``resolve_identity``, ``search_albums``, ``filter_only_search``)
+    # silently fall through to Atlas + Discogs + MB API as they did
+    # pre-mirror. When configured, the client owns its own httpx
+    # connection pool for the lifetime of the process; we open it once
+    # here at lifespan boot rather than per-request so the connection
+    # pool, SSL handshake, and any keep-alive savings amortize across
+    # every request. Stored on ``app.state.mirror_client`` so the
+    # dependency in :mod:`auxd_api.dependencies` can hand the same
+    # instance to every route. Closed on shutdown.
+    app.state.mirror_client = TursoClient.from_settings(settings)
+    if app.state.mirror_client is not None:
+        await app.state.mirror_client.__aenter__()
+
     init_sentry(
         dsn=settings.SENTRY_DSN,
         environment=settings.ENVIRONMENT.value,
@@ -88,6 +106,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     try:
         yield
     finally:
+        if app.state.mirror_client is not None:
+            await app.state.mirror_client.aclose()
         await close_arq_pool()
         await close_redis()
         await close_db()

@@ -43,6 +43,15 @@ dev = [
   "respx>=0.21",                                 # T048/T049a httpx route mocking for provider contract tests
   "fakeredis>=2.0",                              # T133 in-memory Redis for coalescer + rate-limit tests
 ]
+# CSV-generation scripts for feature 003 / Bundle Y — install separately via
+#   uv sync --extra seed-scripts
+# These are not pulled in for normal dev/test runs because the parser pin
+# (selectolax) wants a recent libxml2 and we don't want CI to carry it.
+seed-scripts = [
+  "selectolax>=0.3",                             # fast lxml-backed HTML parser for the scraper modules
+  "certifi>=2024.7",                             # pinned CA bundle (Python's bundled trust store is too narrow)
+  "truststore>=0.10",                            # uses the OS native trust store (incl. corp TLS-MITM roots on macOS Keychain)
+]
 
 [build-system]
 requires = ["hatchling"]

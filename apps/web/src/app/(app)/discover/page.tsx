@@ -1,21 +1,22 @@
-import { DiscoverTabs } from "@/components/discover/discover-tabs";
+import { DiscoverFrontPage } from "@/components/discover/discover-front-page";
 import { PageHeader } from "@/components/nav/page-header";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Discover — auxd",
-  description: "Find people whose taste you trust, and browse the catalog for albums to log.",
+  description:
+    "Find people worth following, albums popular this week, and what your follows are listening to — all on one editorial page.",
 };
 
 export default function DiscoverPage() {
   return (
-    <article className="container max-w-3xl space-y-8 py-10">
+    <article className="container max-w-5xl space-y-10 py-10">
       <PageHeader
         eyebrow="Discover"
         title="What's good."
-        subtitle="People worth following, and albums worth opening — both in one place."
+        subtitle="Find people. Find albums. One newspaper, two columns."
       />
-      <DiscoverTabs />
+      <DiscoverFrontPage />
     </article>
   );
 }

@@ -105,6 +105,44 @@ class Settings(BaseSettings):
         description="Redis connection URL used for sessions, queues, and rate limiting.",
     )
 
+    # --- Catalog seed cron (feature 003 — Bundle Y essentials ingest) ----
+    CATALOG_SEED_CRON_ENABLED: bool = Field(
+        default=False,
+        description=(
+            "When true, the worker runs the quarterly catalog-seed cron "
+            "(every registered source in catalog_seed.sources.SOURCES). "
+            "Off by default — the first run can take hours due to MB's "
+            "1 req/sec etiquette; the operator opts in once they're "
+            "comfortable with the seed pipeline. See "
+            "apps/api/src/auxd_api/workers/catalog_seed_job.py."
+        ),
+    )
+
+    # --- MusicBrainz mirror via Turso (feature 003 / MB DB integration) --
+    # Turso's free tier hosts a 9GB libSQL (SQLite-protocol) database we
+    # use as a read-only mirror of the MusicBrainz release-group catalog.
+    # When configured, the search pipeline checks the mirror BEFORE the
+    # Atlas/Discogs/MB-API tiers — fast (<10ms) and free of provider rate
+    # limits. Leave the URL unset to disable mirror lookups; the search
+    # path falls through to the existing 3-tier flow unchanged.
+    TURSO_DATABASE_URL: str | None = Field(
+        default=None,
+        description=(
+            "Turso libSQL connection URL. Accepts either ``libsql://...`` "
+            "or ``https://...`` form. When unset, the MB mirror is "
+            "disabled and search falls through to Atlas/Discogs/MB API "
+            "as it does today."
+        ),
+    )
+    TURSO_AUTH_TOKEN: str | None = Field(
+        default=None,
+        description=(
+            "Auth token for the Turso database. Required when "
+            "TURSO_DATABASE_URL is set. Get from the Turso CLI via "
+            "``turso db tokens create <db-name>``."
+        ),
+    )
+
     # --- Crypto secrets (no defaults — fail loud) ------------------------
     SESSION_HMAC_KEY: Annotated[
         str,

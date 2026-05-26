@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import io
 import logging
+import re
 import time
 from datetime import UTC, datetime
 from typing import Annotated, Any
@@ -58,6 +59,7 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Query,
     Request,
     Response,
     UploadFile,
@@ -103,6 +105,7 @@ from auxd_api.modules.users.models import (
     HANDLE_MAX_LEN,
     HANDLE_MIN_LEN,
     User,
+    UserStatus,
 )
 from auxd_api.modules.users.redirect import resolve_handle
 from auxd_api.modules.users.service import (
@@ -408,6 +411,118 @@ async def get_me_current(
         "email": user.email,
         "display_name": user.display_name,
         "email_verified": user.email_verified,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Discover-rehaul (003) — user search above suggestions
+# ---------------------------------------------------------------------------
+
+# Per-user budget for the people-search input — generous enough for fast
+# typing + debounce on the client (200ms) but strict enough to cap a
+# pathological key-mash loop. Per-IP guards against unauthenticated
+# scraping.
+_USERS_SEARCH_RATE_LIMIT = rate_limit(
+    endpoint="users.search",
+    per_user=RateLimit(limit=30, window_seconds=60),
+    per_ip=RateLimit(limit=60, window_seconds=60),
+)
+
+
+@router.get(
+    "/search",
+    status_code=status.HTTP_200_OK,
+    dependencies=[Depends(_USERS_SEARCH_RATE_LIMIT)],
+)
+async def search_users(
+    request: Request,
+    q: Annotated[str, Query(min_length=2, max_length=80)],
+    limit: Annotated[int, Query(ge=1, le=20)] = 8,
+) -> dict[str, Any]:
+    """Find users by handle or display name (003 / FR-001..FR-004).
+
+    Prefix-matches the handle (case-insensitive) and substring-matches the
+    display name. Falls back to a Mongo regex query rather than Atlas
+    ``$search`` so the endpoint works on every environment — the user
+    catalog at MVP is small enough that the regex pass is bounded.
+
+    Privacy contract:
+
+    * Only ``status == ACTIVE`` users surface.
+    * Users blocked by the viewer (or who have blocked the viewer) are
+      filtered out — same existence-leak semantics as
+      :func:`get_user_profile`.
+    * The viewer's own row is excluded from the result list.
+    """
+    session = _require_session(request)
+    viewer_id = session.user_id
+
+    query = q.strip()
+    if not query:
+        return {"results": []}
+
+    escaped = re.escape(query)
+
+    candidates = (
+        await User.find(
+            {
+                "status": UserStatus.ACTIVE.value,
+                "$or": [
+                    {"handle": {"$regex": f"^{escaped}", "$options": "i"}},
+                    {"display_name": {"$regex": escaped, "$options": "i"}},
+                ],
+            }
+        )
+        .limit(limit * 3)
+        .to_list()
+    )
+
+    if not candidates:
+        return {"results": []}
+
+    # Block-cascade filter — pull every block touching this viewer in a
+    # single round trip rather than N+1 per result.
+    candidate_ids = [u.id for u in candidates if u.id != viewer_id]
+    block_rows = await Block.find(
+        {
+            "$or": [
+                {"blocker_id": viewer_id, "blockee_id": {"$in": candidate_ids}},
+                {"blocker_id": {"$in": candidate_ids}, "blockee_id": viewer_id},
+            ]
+        }
+    ).to_list()
+    blocked_ids = {b.blocker_id for b in block_rows} | {b.blockee_id for b in block_rows}
+
+    # Score: exact handle match > handle prefix > display-name match.
+    # Cheap deterministic ordering — the catalog is small enough that
+    # we don't need a Lucene-grade scorer.
+    q_lower = query.lower()
+
+    def _score(u: User) -> tuple[int, int, str]:
+        h = u.handle.lower()
+        dn = (u.display_name or "").lower()
+        if h == q_lower:
+            return (0, 0, h)
+        if h.startswith(q_lower):
+            return (1, len(h), h)
+        if dn.startswith(q_lower):
+            return (2, len(dn), h)
+        return (3, len(dn), h)
+
+    filtered = [u for u in candidates if u.id != viewer_id and u.id not in blocked_ids]
+    filtered.sort(key=_score)
+    top = filtered[:limit]
+
+    return {
+        "results": [
+            {
+                "id": u.id,
+                "handle": u.handle,
+                "display_name": u.display_name,
+                "avatar_url": u.avatar_url,
+            }
+            for u in top
+        ]
     }
 
 

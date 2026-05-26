@@ -33,7 +33,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from auxd_api import settings as settings_module
+from auxd_api.dependencies import get_mirror_service
 from auxd_api.modules.albums.models import Album, AlbumSource
+from auxd_api.modules.mb_mirror.service import AlbumMirrorService
+from auxd_api.modules.mb_mirror.types import MirrorRow
 from auxd_api.modules.search.routes import (
     _discogs_provider,
     _mb_provider,
@@ -79,6 +82,7 @@ def _make_app(
     *,
     mb_provider: CatalogProvider,
     discogs_provider: CatalogProvider,
+    mirror_service: AlbumMirrorService | None = None,
 ) -> FastAPI:
     app = FastAPI()
     app.include_router(search_router, prefix="/api/v1")
@@ -91,7 +95,85 @@ def _make_app(
 
     app.dependency_overrides[_mb_provider] = _override_mb
     app.dependency_overrides[_discogs_provider] = _override_discogs
+    if mirror_service is not None:
+        # Feature 004 — most legacy tests run the mirror-disabled path
+        # (default dep returns a service wrapping ``app.state.mirror_client``
+        # which the bare ``FastAPI()`` test app never sets). New TC-1..TC-6
+        # need an enabled mirror, so they pass a stub here.
+        def _override_mirror() -> AlbumMirrorService:
+            return mirror_service
+
+        app.dependency_overrides[get_mirror_service] = _override_mirror
     return app
+
+
+class _StubMirrorService(AlbumMirrorService):
+    """Test-friendly mirror that returns a pre-seeded ``(rows, total)``
+    tuple without touching Turso.
+
+    The real service's ``search_text_with_filters`` does both the FTS5
+    SELECT and the COUNT(*) over the mirror. Here we just hand back
+    the rows + total the test wants to assert on.
+    """
+
+    def __init__(
+        self,
+        *,
+        rows: list[MirrorRow] | None = None,
+        total: int | None = None,
+    ) -> None:
+        super().__init__(client=None)
+        self._stub_rows = rows or []
+        self._stub_total = total if total is not None else len(self._stub_rows)
+
+    @property
+    def enabled(self) -> bool:
+        return True
+
+    async def search_text_with_filters(  # type: ignore[override]
+        self,
+        *,
+        query: str,
+        year_min: int | None,
+        year_max: int | None,
+        decade_buckets: set[int] | None,
+        genre: str | None,
+        sort_key: str,
+        limit: int,
+        offset: int,
+    ) -> tuple[list[MirrorRow], int]:
+        from auxd_api.modules.mb_mirror.service import _TOTAL_DISPLAY_CAP
+
+        return self._stub_rows, min(self._stub_total, _TOTAL_DISPLAY_CAP)
+
+    async def search_text(  # type: ignore[override]
+        self,
+        query: str,
+        *,
+        limit: int = 10,
+    ) -> list[MirrorRow]:
+        # Used by legacy ``search_albums`` thin-mirror tier. Returns the
+        # same stubbed rows so the orchestrator's mode-2 path materialises
+        # them correctly.
+        return self._stub_rows[:limit]
+
+
+def _mirror_row(
+    *,
+    title: str,
+    artist: str,
+    mbid: str | None = None,
+    release_year: int | None = 2015,
+) -> MirrorRow:
+    return MirrorRow(
+        mbid=mbid or f"mb-{title.lower().replace(' ', '-')}",
+        title=title,
+        artist_credit=artist,
+        release_year=release_year,
+        primary_type="Album",
+        genres="hip hop",
+        cover_art_url=None,
+    )
 
 
 def _ok_computer_mb_hit() -> CatalogAlbum:
@@ -464,12 +546,421 @@ async def test_query_type_unsupported_returns_422(_clean_env: None) -> None:
     assert response.status_code == 422
 
 
+# ---------------------------------------------------------------------------
+# Feature 004 — discover sort + counts (TC-1..TC-7)
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
-async def test_query_required(_clean_env: None) -> None:
-    """``q`` is a required Query parameter."""
+async def test_tc1_query_with_decade_reports_true_total(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-1 (US-001) — q='kanye' + decade=2010s, mirror reports 218 → response total == 218."""
+    rows = [
+        _mirror_row(
+            title=f"Kanye Album {i}",
+            artist="Kanye West",
+            mbid=f"mb-kanye-{i}",
+            release_year=2015,
+        )
+        for i in range(50)
+    ]
+    mirror = _StubMirrorService(rows=rows, total=218)
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+
+    app = _make_app(
+        mb_provider=mb_provider,
+        discogs_provider=discogs_provider,
+        mirror_service=mirror,
+    )
+    client = TestClient(app)
+    response = client.get(
+        "/api/v1/search",
+        params={"q": "kanye", "decade": "2010s", "limit": 50},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total"] == 218
+    assert body["has_more"] is True  # 50 returned, 168 more available
+
+
+@pytest.mark.asyncio
+async def test_tc2_kanye_west_ranks_jesus_is_king_above_igor(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-2 (US-002) — composite reranker lifts Kanye's own album above Igor."""
+    rows = [
+        _mirror_row(title="Igor", artist="Tyler, the Creator", mbid="mb-igor"),
+        _mirror_row(title="Jesus Is King", artist="Kanye West", mbid="mb-jik"),
+        # Need ≥5 rows to trigger mode-1 (skip legacy fallback).
+        _mirror_row(title="Graduation", artist="Kanye West", mbid="mb-grad"),
+        _mirror_row(title="808s & Heartbreak", artist="Kanye West", mbid="mb-808s"),
+        _mirror_row(
+            title="My Beautiful Dark Twisted Fantasy",
+            artist="Kanye West",
+            mbid="mb-mbdtf",
+        ),
+    ]
+    mirror = _StubMirrorService(rows=rows, total=len(rows))
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+
+    app = _make_app(
+        mb_provider=mb_provider,
+        discogs_provider=discogs_provider,
+        mirror_service=mirror,
+    )
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "kanye west"})
+    assert response.status_code == 200
+    results = response.json()["results"]
+    # First hit is a Kanye West album, not Igor.
+    assert results[0]["artist_name"] == "Kanye West"
+    # Igor is below every Kanye West hit.
+    artists = [hit["artist_name"] for hit in results]
+    igor_idx = artists.index("Tyler, the Creator")
+    last_kanye_idx = max(i for i, a in enumerate(artists) if a == "Kanye West")
+    assert last_kanye_idx < igor_idx
+
+
+@pytest.mark.asyncio
+async def test_tc3_kanye_west_top5_has_at_least_4_kanye_albums(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-3 (US-002 broader) — success criterion: ≥4 Kanye-authored in top-5."""
+    rows = [
+        _mirror_row(title="Igor", artist="Tyler, the Creator", mbid="mb-igor"),
+        _mirror_row(title="Compilation", artist="Various Artists", mbid="mb-comp"),
+        _mirror_row(title="Graduation", artist="Kanye West", mbid="mb-grad"),
+        _mirror_row(title="808s & Heartbreak", artist="Kanye West", mbid="mb-808s"),
+        _mirror_row(title="Jesus Is King", artist="Kanye West", mbid="mb-jik"),
+        _mirror_row(title="MBDTF", artist="Kanye West", mbid="mb-mbdtf"),
+    ]
+    mirror = _StubMirrorService(rows=rows, total=len(rows))
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+
+    app = _make_app(
+        mb_provider=mb_provider,
+        discogs_provider=discogs_provider,
+        mirror_service=mirror,
+    )
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "kanye west", "limit": 5})
+    assert response.status_code == 200
+    top5 = response.json()["results"]
+    kanye_count = sum(1 for hit in top5 if hit["artist_name"] == "Kanye West")
+    assert kanye_count >= 4
+
+
+@pytest.mark.asyncio
+async def test_tc4_mixed_query_returns_specific_album_first(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-4 (US-003) — q='kanye graduation' → Graduation at top.
+
+    Mirror's FTS5 multi-token AND already places Graduation (the row
+    matching BOTH tokens) at BM25 rank 0; the reranker preserves that.
+    """
+    rows = [
+        _mirror_row(title="Graduation", artist="Kanye West", mbid="mb-grad"),
+        _mirror_row(title="MBDTF", artist="Kanye West", mbid="mb-mbdtf"),
+        _mirror_row(title="808s & Heartbreak", artist="Kanye West", mbid="mb-808s"),
+        _mirror_row(title="Jesus Is King", artist="Kanye West", mbid="mb-jik"),
+        _mirror_row(title="Yeezus", artist="Kanye West", mbid="mb-yeezus"),
+    ]
+    mirror = _StubMirrorService(rows=rows, total=len(rows))
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+
+    app = _make_app(
+        mb_provider=mb_provider,
+        discogs_provider=discogs_provider,
+        mirror_service=mirror,
+    )
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "kanye graduation"})
+    assert response.status_code == 200
+    results = response.json()["results"]
+    assert results[0]["title"] == "Graduation"
+
+
+@pytest.mark.asyncio
+async def test_tc5_total_capped_at_10000(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-5 (FR-008) — mirror reports 12,500 → response total == 10,000."""
+    rows = [_mirror_row(title=f"Album {i}", artist="Artist", mbid=f"mb-{i}") for i in range(50)]
+    mirror = _StubMirrorService(rows=rows, total=12_500)
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+
+    app = _make_app(
+        mb_provider=mb_provider,
+        discogs_provider=discogs_provider,
+        mirror_service=mirror,
+    )
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "anything"})
+    assert response.status_code == 200
+    assert response.json()["total"] == 10_000
+
+
+@pytest.mark.asyncio
+async def test_tc6_thin_mirror_appends_discogs_below(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-6 (FR-005) — mirror returns 2 hits, Discogs has 8 → mirror first."""
+    mirror_rows = [
+        _mirror_row(title="Mirror Hit A", artist="Kanye West", mbid="mb-a"),
+        _mirror_row(title="Mirror Hit B", artist="Kanye West", mbid="mb-b"),
+    ]
+    mirror = _StubMirrorService(rows=mirror_rows, total=2)
+
+    # 8 Discogs masters; legacy search_albums will materialise them.
+    discogs_hits = [
+        CatalogAlbum(
+            mbid=None,
+            discogs_release_id=None,
+            discogs_master_id=f"master-{i}",
+            title=f"Discogs Hit {i}",
+            artist_name="Kanye West",
+            release_year=2020,
+            external_ids={"discogs_master": f"master-{i}"},
+        )
+        for i in range(8)
+    ]
+    by_master = {hit.discogs_master_id: hit for hit in discogs_hits if hit.discogs_master_id}
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = []
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = discogs_hits
+    discogs_provider.get_album_by_external_id.side_effect = lambda provider, external_id: (
+        by_master.get(external_id) if provider == "discogs_master" else None
+    )
+
+    app = _make_app(
+        mb_provider=mb_provider,
+        discogs_provider=discogs_provider,
+        mirror_service=mirror,
+    )
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "kanye", "limit": 10})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    # Mirror rows come first; Discogs appended below.
+    assert titles[:2] == ["Mirror Hit A", "Mirror Hit B"]
+    # At least some Discogs hits appended.
+    assert any(t.startswith("Discogs Hit") for t in titles[2:])
+
+
+@pytest.mark.asyncio
+async def test_tc7_mirror_disabled_falls_back_to_legacy_path(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-7 (Q3) — mirror unreachable → legacy Discogs-primary flow preserved."""
+    discogs_hit = _ok_computer_master_hit()
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = []
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = [discogs_hit]
+    discogs_provider.get_album_by_external_id.return_value = discogs_hit
+
+    # No mirror_service argument → app uses the disabled default dep.
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "ok computer"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    assert titles == ["OK Computer"]
+
+
+@pytest.mark.asyncio
+async def test_tc8_empty_mirror_discogs_returns_igor_first_kanye_still_wins(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-8 (004 follow-up) — empty mirror + Discogs returning Igor before
+    Jesus Is King → reranker on the combined path must still lift the
+    Kanye-authored result to the top. This is the bug the user hit in
+    real-world testing after the original 004 ship: the mirror tier is
+    sparse for many artists on first browse, Mode 2 fires with mirror
+    rows = 0, and Discogs's popularity-driven order (Igor #1) bled
+    through unchanged. The composite rerank now runs on the COMBINED
+    mirror + legacy list, so artist-match (+10) beats credit-only-match.
+    """
+    # Mirror returns nothing (cold catalog for this artist).
+    mirror = _StubMirrorService(rows=[], total=0)
+
+    # Discogs returns Igor first (popularity-ordered), Jesus Is King second.
+    igor = CatalogAlbum(
+        mbid=None,
+        discogs_release_id=None,
+        discogs_master_id="master-igor",
+        title="Igor",
+        artist_name="Tyler, The Creator",
+        release_year=2019,
+        external_ids={"discogs_master": "master-igor"},
+    )
+    jik = CatalogAlbum(
+        mbid=None,
+        discogs_release_id=None,
+        discogs_master_id="master-jik",
+        title="Jesus Is King",
+        artist_name="Kanye West",
+        release_year=2019,
+        external_ids={"discogs_master": "master-jik"},
+    )
+    by_master = {hit.discogs_master_id: hit for hit in (igor, jik) if hit.discogs_master_id}
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = []
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = [igor, jik]
+    discogs_provider.get_album_by_external_id.side_effect = lambda provider, external_id: (
+        by_master.get(external_id) if provider == "discogs_master" else None
+    )
+
+    app = _make_app(
+        mb_provider=mb_provider,
+        discogs_provider=discogs_provider,
+        mirror_service=mirror,
+    )
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "kanye west"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    artists = [hit["artist_name"] for hit in response.json()["results"]]
+    # Jesus Is King must rank above Igor even though Discogs returned
+    # Igor first. The +10 artist-match boost on Jesus Is King's "Kanye
+    # West" entry beats Igor's "Tyler, The Creator" (which doesn't
+    # match the "kanye west" query tokens at all).
+    jik_idx = titles.index("Jesus Is King")
+    igor_idx = titles.index("Igor")
+    assert jik_idx < igor_idx, (
+        f"Expected Jesus Is King above Igor, got order: {list(zip(titles, artists, strict=False))}"
+    )
+
+
+@pytest.mark.asyncio
+async def test_tc9_mirror_disabled_discogs_igor_first_kanye_still_wins(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-9 (004 follow-up) — mirror disabled (no env wired up; Mode 3
+    degraded path) + Discogs returning Igor before Jesus Is King → the
+    rerank-on-degraded-path branch must still surface Kanye first.
+    Covers the dev/local case where the Turso mirror isn't seeded yet.
+    """
+    igor = CatalogAlbum(
+        mbid=None,
+        discogs_release_id=None,
+        discogs_master_id="master-igor",
+        title="Igor",
+        artist_name="Tyler, The Creator",
+        release_year=2019,
+        external_ids={"discogs_master": "master-igor"},
+    )
+    jik = CatalogAlbum(
+        mbid=None,
+        discogs_release_id=None,
+        discogs_master_id="master-jik",
+        title="Jesus Is King",
+        artist_name="Kanye West",
+        release_year=2019,
+        external_ids={"discogs_master": "master-jik"},
+    )
+    by_master = {hit.discogs_master_id: hit for hit in (igor, jik) if hit.discogs_master_id}
+
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    mb_provider.search_albums.return_value = []
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider.search_albums.return_value = [igor, jik]
+    discogs_provider.get_album_by_external_id.side_effect = lambda provider, external_id: (
+        by_master.get(external_id) if provider == "discogs_master" else None
+    )
+
+    # No mirror_service arg → app uses the disabled default dep.
+    app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "kanye west"})
+    assert response.status_code == 200
+    titles = [hit["title"] for hit in response.json()["results"]]
+    jik_idx = titles.index("Jesus Is King")
+    igor_idx = titles.index("Igor")
+    assert jik_idx < igor_idx
+
+
+@pytest.mark.asyncio
+async def test_tc10_tyler_the_creator_query_demotes_channel_orange(
+    _clean_env: None,
+    _clean_albums: None,
+) -> None:
+    """TC-10 (004 follow-up #2) — q='tyler the creator' must lift Tyler's
+    own albums above Channel Orange (Frank Ocean, where Tyler is a
+    credited producer). Bug surfaced post-ship: punctuation in
+    'Tyler, The Creator' (the comma) broke the tokenizer, dropping
+    coverage below the 0.8 threshold and disabling the rerank boost.
+    Fix: tokenizer strips punctuation; rerank is now a hard partition,
+    not a soft boost.
+    """
+    rows = [
+        # Mirror has Channel Orange (Frank Ocean) + 4 Tyler albums.
+        # Source order deliberately puts Channel Orange first to
+        # simulate a Discogs-style popularity ranking.
+        _mirror_row(title="Channel Orange", artist="Frank Ocean", mbid="mb-co"),
+        _mirror_row(title="Igor", artist="Tyler, The Creator", mbid="mb-igor"),
+        _mirror_row(title="Flower Boy", artist="Tyler, The Creator", mbid="mb-fb"),
+        _mirror_row(
+            title="Call Me If You Get Lost",
+            artist="Tyler, The Creator",
+            mbid="mb-cmiygl",
+        ),
+        _mirror_row(title="Goblin", artist="Tyler, The Creator", mbid="mb-goblin"),
+    ]
+    mirror = _StubMirrorService(rows=rows, total=len(rows))
+    mb_provider = AsyncMock(spec=CatalogProvider)
+    discogs_provider = AsyncMock(spec=CatalogProvider)
+
+    app = _make_app(
+        mb_provider=mb_provider,
+        discogs_provider=discogs_provider,
+        mirror_service=mirror,
+    )
+    client = TestClient(app)
+    response = client.get("/api/v1/search", params={"q": "tyler the creator"})
+    assert response.status_code == 200
+    artists = [hit["artist_name"] for hit in response.json()["results"]]
+    # All Tyler albums come first; Channel Orange last.
+    tyler_count = sum(1 for a in artists if a == "Tyler, The Creator")
+    assert tyler_count == 4
+    assert artists[:4] == ["Tyler, The Creator"] * 4
+    assert artists[-1] == "Frank Ocean"
+
+
+@pytest.mark.asyncio
+async def test_query_or_filter_required(_clean_env: None) -> None:
+    """Calling /search with neither a query nor any filter yields 400.
+
+    Feature 003: ``q`` is no longer strictly required — the route also
+    accepts a "browse" mode where the user supplies at least one
+    structured filter (decade / year_min / year_max / genre). When
+    neither is provided the route rejects with a 400, not the 422 that
+    a missing-required-param would have raised pre-003.
+    """
     mb_provider = AsyncMock(spec=CatalogProvider)
     discogs_provider = AsyncMock(spec=CatalogProvider)
     app = _make_app(mb_provider=mb_provider, discogs_provider=discogs_provider)
     client = TestClient(app)
     response = client.get("/api/v1/search")
-    assert response.status_code == 422
+    assert response.status_code == 400
+    assert response.json()["detail"] == "provide_query_or_filter"

@@ -64,7 +64,7 @@
        (oklch(0.32 0.14 22)) that was visually indistinguishable from
        the accent — same hue family, just darker. ~4.8:1 contrast on
        white (passes WCAG AA for button text). */
-    --danger: oklch(0.50 0.16 25);
+    --danger: oklch(0.5 0.16 25);
     --danger-foreground: var(--white);
 
     /* misc */

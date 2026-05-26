@@ -41,6 +41,7 @@ from auxd_api.modules.albums.routes import router as albums_router
 from auxd_api.modules.auth.routes import router as auth_router
 from auxd_api.modules.backlog.routes import router as backlog_router
 from auxd_api.modules.diary.routes import router as diary_router
+from auxd_api.modules.discover.routes import router as discover_router
 from auxd_api.modules.feed.routes import router as feed_router
 from auxd_api.modules.notifications.routes import router as notifications_router
 from auxd_api.modules.reports.routes import router as reports_router
@@ -55,6 +56,7 @@ router.include_router(albums_router)
 router.include_router(auth_router)
 router.include_router(backlog_router)
 router.include_router(diary_router)
+router.include_router(discover_router)
 router.include_router(feed_router)
 router.include_router(notifications_router)
 router.include_router(reports_router)

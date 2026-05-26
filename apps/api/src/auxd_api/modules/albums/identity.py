@@ -48,6 +48,8 @@ from auxd_api.modules.albums.models import (
     ArtistRefSubDoc,
     TrackSubDoc,
 )
+from auxd_api.modules.mb_mirror.service import AlbumMirrorService
+from auxd_api.modules.mb_mirror.types import MirrorRow
 from auxd_api.providers.base import CatalogAlbum, CatalogProvider
 
 # Cache TTL — plan §3.1 mandates a 7-day window for lazy refresh. Identity
@@ -110,6 +112,43 @@ def _materialize_album(
     )
 
 
+def _materialize_album_from_mirror(row: MirrorRow) -> Album:
+    """Translate a :class:`MirrorRow` into a fresh :class:`Album`.
+
+    The mirror carries the four columns we care about (mbid, title,
+    artist_credit, release_year) plus a CSV of genre tags. It does
+    NOT carry tracklist, cover art URL, or any of the richer fields
+    that the MB / Discogs providers surface. That's fine for the
+    initial materialisation — once a user actually engages with the
+    album the row will get refreshed via the existing
+    :data:`_CACHE_TTL` lazy-refresh worker (T064), which calls the
+    MB provider for the full payload.
+
+    Setting ``source=MUSICBRAINZ`` because every mirrored row
+    originated from MB's JSON dump; ``candidate=False`` because the
+    MBID is canonical (the dump doesn't ship rows without one).
+    """
+    artists: list[ArtistRefSubDoc] = []
+    if row.artist_credit:
+        artists.append(ArtistRefSubDoc(name=row.artist_credit))
+    return Album(
+        mbid=row.mbid,
+        discogs_release_id=None,
+        discogs_master_id=None,
+        title=row.title,
+        artist_credit=row.artist_credit,
+        artists=artists,
+        release_year=row.release_year,
+        cover_art_url=row.cover_art_url,  # None today; cover proxy resolves at render time
+        genres=row.genres_list,
+        tracklist=[],
+        duration_ms=None,
+        source=AlbumSource.MUSICBRAINZ,
+        cache_expires_at=_cache_expiry(),
+        candidate=False,
+    )
+
+
 async def resolve_identity(
     *,
     mbid: str | None = None,
@@ -117,6 +156,7 @@ async def resolve_identity(
     discogs_master_id: str | None = None,
     mb_provider: CatalogProvider,
     discogs_provider: CatalogProvider,
+    mirror_service: AlbumMirrorService | None = None,
 ) -> Album:
     """Return the canonical :class:`Album` for the supplied identifier(s).
 
@@ -136,6 +176,14 @@ async def resolve_identity(
             post-search-fix-v4 (2026-05-24).
         mb_provider: Injected MusicBrainz :class:`CatalogProvider`.
         discogs_provider: Injected Discogs :class:`CatalogProvider`.
+        mirror_service: Optional MB-mirror service (Turso libSQL cache
+            of ~1.3M release-groups). When supplied and the MBID path
+            misses the local catalog, we consult the mirror BEFORE the
+            slow MB web API. A mirror hit materialises into the local
+            ``Album`` collection directly — skipping the MB round trip
+            entirely. Pass ``None`` (default) to preserve pre-mirror
+            behaviour; the catalog-seed CLI and worker paths use this
+            default to avoid coupling batch tools to the live mirror.
 
     Returns:
         The canonical :class:`Album` document — either freshly fetched
@@ -151,6 +199,19 @@ async def resolve_identity(
         cached = await Album.find_one(Album.mbid == mbid)
         if cached is not None:
             return cached
+
+        # Tier 0.5: MB mirror. Cheaper than calling MB directly
+        # (sub-10ms libSQL hit vs ~1s MB API round-trip + provider
+        # rate-limit etiquette). Mirror returns ``None`` when disabled
+        # or when the MBID isn't in our 1.3M-row slice — both cases
+        # fall through to the MB provider unchanged.
+        if mirror_service is not None and mirror_service.enabled:
+            mirror_row = await mirror_service.find_by_mbid(mbid)
+            if mirror_row is not None:
+                album = _materialize_album_from_mirror(mirror_row)
+                await album.insert()
+                return album
+
         fetched = await mb_provider.get_album_by_mbid(mbid)
         if fetched is None:
             raise AlbumNotFoundError(f"musicbrainz: no release-group for mbid={mbid!r}")

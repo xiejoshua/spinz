@@ -49,6 +49,7 @@ from auxd_api.modules.users.workers import process_scheduled_deletions
 from auxd_api.providers.musicbrainz import MusicBrainzCatalogProvider
 from auxd_api.settings import get_settings
 from auxd_api.workers.auth_tokens_cleanup import cleanup_auth_tokens
+from auxd_api.workers.catalog_seed_job import run_catalog_seed_quarterly
 from auxd_api.workers.digest_dispatch import dispatch_weekly_digests
 from auxd_api.workers.gdpr_export import generate_user_data_export
 from auxd_api.workers.moderation_scan import scan_reports_for_flags
@@ -137,6 +138,7 @@ class WorkerSettings:
         scan_reports_for_flags,
         generate_user_data_export,
         cleanup_auth_tokens,
+        run_catalog_seed_quarterly,
     ]
     cron_jobs = [
         # T064 — daily 04:00 UTC album cache refresh.
@@ -187,6 +189,20 @@ class WorkerSettings:
             hour=4,
             minute=0,
             run_at_startup=False,
+        ),
+        # Feature 003 — quarterly catalog seed (Bundle Y essentials).
+        # Fires on the 1st of Jan / Apr / Jul / Oct at 05:00 UTC. Gated
+        # behind ``CATALOG_SEED_CRON_ENABLED`` (defaults off) so the
+        # operator opts in deliberately — first runs can take hours
+        # bounded by MB's 1 req/sec etiquette.
+        cron(
+            run_catalog_seed_quarterly,
+            month={1, 4, 7, 10},
+            day=1,
+            hour=5,
+            minute=0,
+            run_at_startup=False,
+            unique=True,
         ),
     ]
     redis_settings: RedisSettings = _redis_settings_from_env()

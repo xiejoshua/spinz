@@ -462,6 +462,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/discover/from-follows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * From Follows
+         * @description Recent public album activity from the viewer's follow graph
+         *     (003 / FR-010..FR-012).
+         *
+         *     Each item carries an annotation byline (e.g. "@lily rated · 4/5")
+         *     derived from the followee's most recent diary entry for the album.
+         *     Empty list when the viewer follows nobody.
+         */
+        get: operations["from_follows_api_v1_discover_from_follows_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/discover/popular-this-week": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Popular This Week
+         * @description Top public album logs in the trailing 7 days (003 / FR-007..FR-009).
+         *
+         *     Excludes albums the viewer has already logged. Response cached
+         *     per-viewer for 5 minutes inside the service layer.
+         */
+        get: operations["popular_this_week_api_v1_discover_popular_this_week_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/feed": {
         parameters: {
             query?: never;
@@ -842,18 +890,33 @@ export interface paths {
         };
         /**
          * Search
-         * @description Search the catalog with progressive provider fallback.
+         * @description Search the catalog with optional filtering, sorting, and pagination
+         *     (003 / FR-015..FR-020).
+         *
+         *     Three-tier provider fallback (Atlas → Discogs masters → MusicBrainz)
+         *     runs first to assemble a candidate set, then the filter/sort/paginate
+         *     pass narrows it down to the requested window. Post-filter sorting is
+         *     in-memory because the candidate set is bounded (≤50 from each tier).
          *
          *     Args:
          *         q: Free-text search term. Required, 1..200 chars.
          *         type: Currently only ``"album"`` is supported.
-         *         limit: Maximum hits to return (1..25). Default 10.
-         *         mb_provider: Injected MusicBrainz :class:`CatalogProvider`.
-         *         discogs_provider: Injected Discogs :class:`CatalogProvider`.
+         *         limit: Page size (1..50). Default 10.
+         *         offset: 0-indexed pagination offset (0..500). Default 0.
+         *         decade: Optional ``YYYYs``-bucket filter, comma-separated. A
+         *             release-year of ``2025`` falls in ``2020s``. Albums missing a
+         *             release year are excluded from any decade-filtered result.
+         *         year_min / year_max: Inclusive numeric year-range filter, applied
+         *             in addition to ``decade`` when both are present.
+         *         sort: ``relevance`` (default — preserves merged provider order),
+         *             ``popularity`` (Discogs+MB don't expose a count, falls back
+         *             to relevance when the field is absent), ``year_newest`` or
+         *             ``year_oldest`` (numeric on ``release_year``).
          *
          *     Returns:
-         *         ``{results: [...], report_missing_album_url: str | None}``. The
-         *         report URL is non-null only when the merged result list is empty.
+         *         ``{results: [...], total: int, has_more: bool,
+         *         report_missing_album_url?: str}``. The report URL is non-null
+         *         only when the merged + filtered result list is empty.
          */
         get: operations["search_api_v1_search_get"];
         put?: never;
@@ -1431,6 +1494,39 @@ export interface paths {
          *     doesn't show the dismissed candidate before the next worker run.
          */
         post: operations["post_dismiss_suggestion_api_v1_users_me_suggestions__suggested_user_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Users
+         * @description Find users by handle or display name (003 / FR-001..FR-004).
+         *
+         *     Prefix-matches the handle (case-insensitive) and substring-matches the
+         *     display name. Falls back to a Mongo regex query rather than Atlas
+         *     ``$search`` so the endpoint works on every environment — the user
+         *     catalog at MVP is small enough that the regex pass is bounded.
+         *
+         *     Privacy contract:
+         *
+         *     * Only ``status == ACTIVE`` users surface.
+         *     * Users blocked by the viewer (or who have blocked the viewer) are
+         *       filtered out — same existence-leak semantics as
+         *       :func:`get_user_profile`.
+         *     * The viewer's own row is excluded from the result list.
+         */
+        get: operations["search_users_api_v1_users_search_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2723,6 +2819,72 @@ export interface operations {
             };
         };
     };
+    from_follows_api_v1_discover_from_follows_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    popular_this_week_api_v1_discover_popular_this_week_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_home_feed_api_v1_feed_get: {
         parameters: {
             query?: {
@@ -3252,10 +3414,21 @@ export interface operations {
     };
     search_api_v1_search_get: {
         parameters: {
-            query: {
-                q: string;
+            query?: {
+                q?: string;
                 type?: string;
                 limit?: number;
+                offset?: number;
+                /** @description Comma-separated list of decade buckets to include. Each value must be of the form ``YYYYs`` (e.g. ``2010s,2020s``). */
+                decade?: string | null;
+                year_min?: number | null;
+                year_max?: number | null;
+                /** @description Optional substring match against an album's genre tags. Matches case-insensitively against any tag in ``Album.genres`` (provider-supplied + curator-edited). Albums missing genre tags are excluded when this filter is set. */
+                genre?: string | null;
+                /** @description Sort key. ``relevance`` preserves provider/Atlas merged order (text quality + Discogs popularity) when a query is present, and falls back to ``popular_on_auxd`` when filter-only. ``popular_on_auxd`` ranks by Album.rating_count desc. ``recently_added`` by Album.created_at desc. ``surprise`` returns a random sample (single page; no pagination — re-issue the request to reshuffle). */
+                sort?: string;
+                /** @description When true, exclude results that have neither an MBID nor an explicit ``cover_art_url`` — i.e. cover art is definitely unavailable. Defaults to false so the Log sheet (which needs to surface obscure releases even without art) keeps full coverage. Discover surfaces opt in. */
+                require_cover?: boolean;
             };
             header?: never;
             path?: never;
@@ -4036,6 +4209,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_users_api_v1_users_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
             };
             /** @description Validation Error */
             422: {

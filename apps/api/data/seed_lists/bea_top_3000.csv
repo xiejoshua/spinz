@@ -1,0 +1,3001 @@
+artist,title,year,source_rank
+Radiohead,OK Computer,,1
+Pink Floyd,The Dark Side Of The Moon,,2
+The Beatles,Abbey Road,,3
+The Beatles,Revolver,,4
+Pink Floyd,Wish You Were Here,,5
+Radiohead,In Rainbows,,6
+The Beatles,Sgt. Pepper's Lonely Hearts Club Band,,7
+David Bowie,The Rise And Fall Of Ziggy Stardust And The Spiders From Mars,,8
+Radiohead,Kid A,,9
+The Velvet Underground & Nico,The Velvet Underground & Nico,,10
+The Beach Boys,Pet Sounds,,11
+Led Zeppelin,Untitled (Led Zeppelin IV),,12
+Nirvana,Nevermind,,13
+The Beatles,The Beatles (The White Album),,14
+Arcade Fire,Funeral,,15
+The Smiths,The Queen Is Dead,,16
+Neutral Milk Hotel,In The Aeroplane Over The Sea,,17
+Pixies,Doolittle,,18
+Fleetwood Mac,Rumours,,19
+Kendrick Lamar,To Pimp A Butterfly,,20
+The Clash,London Calling,,21
+Radiohead,The Bends,,22
+The Strokes,Is This It,,23
+My Bloody Valentine,Loveless,,24
+King Crimson,In The Court Of The Crimson King (An Observation By King Crimson),,25
+Talking Heads,Remain In Light,,26
+The Doors,The Doors,,27
+The Cure,Disintegration,,28
+Bob Dylan,Highway 61 Revisited,,29
+The Beatles,Rubber Soul,,30
+Bob Dylan,Blonde On Blonde,,31
+Pink Floyd,The Wall,,32
+The Stone Roses,The Stone Roses,,33
+Kanye West,My Beautiful Dark Twisted Fantasy,,34
+Pink Floyd,Animals,,35
+Kendrick Lamar,"Good Kid, M.A.A.D City",,36
+Miles Davis,Kind Of Blue,,37
+The Jimi Hendrix Experience,Are You Experienced,,38
+Joy Division,Unknown Pleasures,,39
+The Who,Who's Next,,40
+Led Zeppelin,Led Zeppelin II,,41
+Bob Dylan,Blood On The Tracks,,42
+Sufjan Stevens,Illinois,,43
+Television,Marquee Moon,,44
+R.E.M.,Automatic For The People,,45
+The Rolling Stones,Exile On Main St.,,46
+David Bowie,Hunky Dory,,47
+Marvin Gaye,What's Going On,,48
+Arcade Fire,The Suburbs,,49
+Black Sabbath,Paranoid,,50
+U2,The Joshua Tree,,51
+Kate Bush,Hounds Of Love,,52
+Pearl Jam,Ten,,53
+Jeff Buckley,Grace,,54
+The Smashing Pumpkins,Siamese Dream,,55
+Oasis,(What's The Story) Morning Glory?,,56
+Nick Drake,Pink Moon,,57
+Nirvana,In Utero,,58
+The Jimi Hendrix Experience,Electric Ladyland,,59
+The Rolling Stones,Let It Bleed,,60
+Led Zeppelin,Led Zeppelin,,61
+Wilco,Yankee Hotel Foxtrot,,62
+David Bowie,Low,,63
+The Rolling Stones,Sticky Fingers,,64
+Portishead,Dummy,,65
+Michael Jackson,Thriller,,66
+Nas,Illmatic,,67
+Van Morrison,Astral Weeks,,68
+Arctic Monkeys,"Whatever People Say I Am, That's What I'm Not",,69
+Stevie Wonder,Songs In The Key Of Life,,70
+Joni Mitchell,Blue,,71
+Sufjan Stevens,Carrie & Lowell,,72
+Prince And The Revolution,Purple Rain,,73
+Sonic Youth,Daydream Nation,,74
+Love,Forever Changes,,75
+John Coltrane,A Love Supreme,,76
+The Beatles,Magical Mystery Tour,,77
+Joy Division,Closer,,78
+Bruce Springsteen,Born To Run,,79
+Radiohead,A Moon Shaped Pool,,80
+Sigur Rós,Ágætis Byrjun,,81
+Weezer,Weezer (Blue Album),,82
+Neil Young,After The Gold Rush,,83
+The Smashing Pumpkins,Mellon Collie And The Infinite Sadness,,84
+Tame Impala,Lonerism,,85
+Madvillain,Madvillainy,,86
+Yes,Close To The Edge,,87
+The Zombies,Odessey And Oracle,,88
+Interpol,Turn On The Bright Lights,,89
+Björk,Homogenic,,90
+Charles Mingus,The Black Saint And The Sinner Lady,,91
+Metallica,Master Of Puppets,,92
+Godspeed You! Black Emperor,Lift Your Skinny Fists Like Antennas To Heaven,,93
+Frank Ocean,Blond,,94
+David Bowie,★ [Blackstar],,95
+The Velvet Underground,The Velvet Underground,,96
+Wu-Tang Clan,Enter The Wu-Tang (36 Chambers),,97
+Stevie Wonder,Innervisions,,98
+Pixies,Surfer Rosa,,99
+Depeche Mode,Violator,,100
+George Harrison,All Things Must Pass,,101
+Neil Young,Harvest,,102
+Led Zeppelin,Physical Graffiti,,103
+Simon & Garfunkel,Bridge Over Troubled Water,,104
+Slint,Spiderland,,105
+Coldplay,A Rush Of Blood To The Head,,106
+David Bowie,Station To Station,,107
+LCD Soundsystem,Sound Of Silver,,108
+Queen,A Night At The Opera,,109
+U2,Achtung Baby,,110
+Tom Waits,Rain Dogs,,111
+Bob Dylan,Bringing It All Back Home,,112
+Rage Against The Machine,Rage Against The Machine,,113
+The White Stripes,Elephant,,114
+Led Zeppelin,Houses Of The Holy,,115
+Oasis,Definitely Maybe,,116
+Guns N' Roses,Appetite For Destruction,,117
+The Flaming Lips,Yoshimi Battles The Pink Robots,,118
+Bon Iver,"For Emma, Forever Ago",,119
+The Flaming Lips,The Soft Bulletin,,120
+Paul Simon,Graceland,,121
+Slowdive,Souvlaki,,122
+The National,High Violet,,123
+Sex Pistols,"Never Mind The Bollocks, Here's The Sex Pistols",,124
+Genesis,Selling England By The Pound,,125
+Fleet Foxes,Fleet Foxes,,126
+Queens Of The Stone Age,Songs For The Deaf,,127
+Beach House,Teen Dream,,128
+Talk Talk,Spirit Of Eden,,129
+Vampire Weekend,Modern Vampires Of The City,,130
+Elliott Smith,Either/Or,,131
+Daft Punk,Discovery,,132
+AC/DC,Back In Black,,133
+A Tribe Called Quest,The Low End Theory,,134
+Belle And Sebastian,If You're Feeling Sinister,,135
+Radiohead,Amnesiac,,136
+Massive Attack,Mezzanine,,137
+R.E.M.,Murmur,,138
+King Crimson,Red,,139
+Leonard Cohen,Songs Of Leonard Cohen,,140
+Cocteau Twins,Heaven Or Las Vegas,,141
+Tame Impala,Currents,,142
+Weezer,Pinkerton,,143
+Gorillaz,Demon Days,,144
+Lou Reed,Transformer,,145
+The National,Boxer,,146
+Björk,Vespertine,,147
+Green Day,American Idiot,,148
+The Kinks,The Kinks Are The Village Green Preservation Society,,149
+Steely Dan,Aja,,150
+John Lennon,John Lennon/Plastic Ono Band,,151
+DJ Shadow,Endtroducing.....,,152
+Metallica,Ride The Lightning,,153
+Arcade Fire,Neon Bible,,154
+Can,Tago Mago,,155
+Miles Davis,Bitches Brew,,156
+Nine Inch Nails,The Downward Spiral,,157
+Pink Floyd,The Piper At The Gates Of Dawn,,158
+Nirvana,MTV Unplugged In New York,,159
+The Rolling Stones,Beggars Banquet,,160
+Rush,Moving Pictures,,161
+Animal Collective,Merriweather Post Pavilion,,162
+The Velvet Underground,White Light/White Heat,,163
+The War On Drugs,Lost In The Dream,,164
+Pink Floyd,Meddle,,165
+Modest Mouse,The Moon & Antarctica,,166
+Van Morrison,Moondance,,167
+Nick Drake,Five Leaves Left,,168
+Pulp,Different Class,,169
+Prince,"Sign ""O"" The Times",,170
+Tool,Lateralus,,171
+Kanye West,The College Dropout,,172
+Pavement,"Crooked Rain, Crooked Rain",,173
+Frank Ocean,Channel Orange,,174
+Talk Talk,Laughing Stock,,175
+Fleet Foxes,Helplessness Blues,,176
+Joanna Newsom,Ys,,177
+Soundgarden,Superunknown,,178
+Bon Iver,"Bon Iver, Bon Iver",,179
+Creedence Clearwater Revival,Cosmo's Factory,,180
+Neil Young & Crazy Horse,Everybody Knows This Is Nowhere,,181
+"Black Country, New Road",Ants From Up There,,182
+Red Hot Chili Peppers,Blood Sugar Sex Magik,,183
+Radiohead,Hail To The Thief,,184
+Led Zeppelin,Led Zeppelin III,,185
+Arctic Monkeys,AM,,186
+Violent Femmes,Violent Femmes,,187
+Muse,Absolution,,188
+Bruce Springsteen,Born In The U.S.A.,,189
+The Smiths,The Smiths,,190
+Bob Dylan,The Freewheelin' Bob Dylan,,191
+Amy Winehouse,Back To Black,,192
+Daft Punk,Random Access Memories,,193
+The Doors,L.A. Woman,,194
+Beach House,Bloom,,195
+Lana Del Rey,Norman Fucking Rockwell!,,196
+Patti Smith,Horses,,197
+The Avalanches,Since I Left You,,198
+Eno,Another Green World,,199
+Miles Davis,In A Silent Way,,200
+Modest Mouse,The Lonesome Crowded West,,201
+LCD Soundsystem,This Is Happening,,202
+Blur,Parklife,,203
+Elton John,Goodbye Yellow Brick Road,,204
+The Microphones,The Glow Pt. 2,,205
+The Replacements,Let It Be,,206
+The Stooges,Fun House,,207
+Alice In Chains,Dirt,,208
+Muse,Origin Of Symmetry,,209
+Neil Young,On The Beach,,210
+Bruce Springsteen,Darkness On The Edge Of Town,,211
+Peter Gabriel,So,,212
+Red Hot Chili Peppers,Californication,,213
+The Killers,Hot Fuss,,214
+The Jimi Hendrix Experience,Axis: Bold As Love,,215
+The Beatles,Let It Be,,216
+Kanye West,Yeezus,,217
+Coldplay,Parachutes,,218
+Metallica,Metallica,,219
+Green Day,Dookie,,220
+Queens Of The Stone Age,...Like Clockwork,,221
+Dire Straits,Brothers In Arms,,222
+Arcade Fire,Reflektor,,223
+The Who,Quadrophenia,,224
+Pavement,Slanted And Enchanted,,225
+The Doors,Strange Days,,226
+The Beatles,A Hard Day's Night,,227
+Ramones,Ramones,,228
+Charles Mingus,Mingus Ah Um,,229
+Frank Zappa,Hot Rats,,230
+Death Grips,The Money Store,,231
+Car Seat Headrest,Teens Of Denial,,232
+The Beatles,Help!,,233
+Billy Joel,The Stranger,,234
+Public Enemy,It Takes A Nation Of Millions To Hold Us Back,,235
+Air,Moon Safari,,236
+Talking Heads,Fear Of Music,,237
+Aphex Twin,Selected Ambient Works 85-92,,238
+Kendrick Lamar,Damn.,,239
+"Tyler, The Creator",Igor,,240
+Godspeed You! Black Emperor,"F♯ A♯ ∞ [F-Sharp, A-Sharp, Infinity]",,241
+The Who,Tommy,,242
+Vampire Weekend,Vampire Weekend,,243
+Carole King,Tapestry,,244
+System Of A Down,Toxicity,,245
+Tool,Ænima,,246
+Björk,Post,,247
+Beastie Boys,Paul's Boutique,,248
+Black Sabbath,Black Sabbath,,249
+New Order,"Power, Corruption & Lies",,250
+The Smiths,Meat Is Murder,,251
+Genesis,The Lamb Lies Down On Broadway,,252
+The Dave Brubeck Quartet,Time Out,,253
+Deep Purple,Machine Head,,254
+Spiritualized®,Ladies And Gentlemen We Are Floating In Space,,255
+The Band,The Band,,256
+Supertramp,Crime Of The Century,,257
+Bob Marley & The Wailers,Exodus,,258
+Blondie,Parallel Lines,,259
+Paul McCartney & Wings,Band On The Run,,260
+Kate Bush,The Dreaming,,261
+Muse,Black Holes And Revelations,,262
+Eagles,Hotel California,,263
+The Smiths,Hatful Of Hollow,,264
+alt-J,An Awesome Wave,,265
+Swans,To Be Kind,,266
+Beck,Odelay,,267
+Yes,Fragile,,268
+Iron Maiden,The Number Of The Beast,,269
+Captain Beefheart & His Magic Band,Trout Mask Replica,,270
+The Velvet Underground,Loaded,,271
+Gorillaz,Plastic Beach,,272
+The Strokes,Room On Fire,,273
+Lauryn Hill,The Miseducation Of Lauryn Hill,,274
+David Bowie,"""Heroes""",,275
+Cream,Disraeli Gears,,276
+OutKast,Aquemini,,277
+PJ Harvey,Let England Shake,,278
+Built To Spill,Perfect From Now On,,279
+The Clash,The Clash,,280
+Simon & Garfunkel,Bookends,,281
+The White Stripes,White Blood Cells,,282
+The Cure,Pornography,,283
+Bruce Springsteen,Nebraska,,284
+The Beach Boys,The Smile Sessions,,285
+Deerhunter,Halcyon Digest,,286
+The Strokes,The New Abnormal,,287
+The National,Trouble Will Find Me,,288
+Weyes Blood,Titanic Rising,,289
+The Smiths,"Strangeways, Here We Come",,290
+The Band,Music From Big Pink,,291
+Boston,Boston,,292
+The Verve,Urban Hymns,,293
+The Jesus And Mary Chain,Psychocandy,,294
+Jefferson Airplane,Surrealistic Pillow,,295
+Arctic Monkeys,Favourite Worst Nightmare,,296
+The Police,Synchronicity,,297
+Car Seat Headrest,Twin Fantasy (2018),,298
+The Cars,The Cars,,299
+Kanye West,Late Registration,,300
+Danny Brown,Atrocity Exhibition,,301
+U2,War,,302
+Portishead,Third,,303
+Black Sabbath,Master Of Reality,,304
+Derek & The Dominos,Layla And Other Assorted Love Songs,,305
+Lorde,Melodrama,,306
+John Coltrane,Blue Train,,307
+David Bowie,Scary Monsters,,308
+Nick Drake,Bryter Layter,,309
+GZA/Genius,Liquid Swords,,310
+David Bowie,Aladdin Sane,,311
+フィッシュマンズ [Fishmans],Long Season,,312
+Kraftwerk,Trans Europa Express,,313
+Broken Social Scene,You Forgot It In People,,314
+Dinosaur,You're Living All Over Me,,315
+Iggy And The Stooges,Raw Power,,316
+Jethro Tull,Aqualung,,317
+Eminem,The Marshall Mathers LP,,318
+Johnny Cash,At Folsom Prison,,319
+Björk,Debut,,320
+Alanis Morissette,Jagged Little Pill,,321
+Elvis Costello,This Year's Model,,322
+Father John Misty,"I Love You, Honeybear",,323
+The Notorious B.I.G.,Ready To Die,,324
+Metallica,...And Justice For All,,325
+Tears For Fears,Songs From The Big Chair,,326
+Primal Scream,Screamadelica,,327
+"Crosby, Stills, Nash & Young",Déjà Vu,,328
+The Antlers,Hospice,,329
+Pearl Jam,Vs.,,330
+Massive Attack,Blue Lines,,331
+MGMT,Oracular Spectacular,,332
+Fiona Apple,The Idler Wheel Is Wiser Than The Driver Of The Screw And Whipping Cords Will Serve You More Than Ropes Will Ever Do,,333
+Burial,Untrue,,334
+Can,Ege Bamyası,,335
+Elvis Presley,Elvis Presley,,336
+OutKast,Stankonia,,337
+My Chemical Romance,The Black Parade,,338
+Beck,Sea Change,,339
+Talking Heads,Speaking In Tongues,,340
+Wire,Pink Flag,,341
+Jethro Tull,Thick As A Brick,,342
+Genesis,Foxtrot,,343
+Boards Of Canada,Music Has The Right To Children,,344
+Paul & Linda McCartney,Ram,,345
+Coldplay,Viva La Vida Or Death And All His Friends,,346
+The xx,XX,,347
+The Moody Blues,Days Of Future Passed,,348
+Michael Jackson,Off The Wall,,349
+PJ Harvey,"Stories From The City, Stories From The Sea",,350
+Franz Ferdinand,Franz Ferdinand,,351
+The Kinks,Arthur Or The Decline And Fall Of The British Empire,,352
+John Lennon,Imagine,,353
+Can,Future Days,,354
+Supertramp,Breakfast In America,,355
+Gang Of Four,Entertainment!,,356
+The Shins,Chutes Too Narrow,,357
+T. Rex,Electric Warrior,,358
+Frank Sinatra,In The Wee Small Hours,,359
+Otis Redding,Otis Blue / Otis Redding Sings Soul,,360
+Bloc Party,Silent Alarm,,361
+Dead Kennedys,Fresh Fruit For Rotting Vegetables,,362
+Minutemen,Double Nickels On The Dime,,363
+R.E.M.,Document,,364
+Joanna Newsom,Have One On Me,,365
+Tom Waits,Swordfishtrombones,,366
+Radiohead,The King Of Limbs,,367
+Foo Fighters,The Colour And The Shape,,368
+The Cure,The Head On The Door,,369
+Ride,Nowhere,,370
+フィッシュマンズ [Fishmans],98.12.28 男達の別れ [98.12.28 Otokotachi No Wakare],,371
+The Stooges,The Stooges,,372
+XTC,Skylarking,,373
+R.E.M.,Out Of Time,,374
+Sufjan Stevens,The Age Of Adz,,375
+Sigur Rós,Takk...,,376
+Van Halen,Van Halen,,377
+Stan Getz & João Gilberto,Getz/Gilberto,,378
+"Crosby, Stills & Nash","Crosby, Stills & Nash",,379
+Kraftwerk,Die Mensch·Maschine,,380
+Nick Cave & The Bad Seeds,Skeleton Tree,,381
+Sigur Rós,( ) [Svigaplatan],,382
+"Tyler, The Creator",Flower Boy,,383
+Talking Heads,Stop Making Sense,,384
+The Rolling Stones,Aftermath,,385
+The Black Keys,Brothers,,386
+Funkadelic,Maggot Brain,,387
+The War On Drugs,A Deeper Understanding,,388
+Grateful Dead,American Beauty,,389
+Sun Kil Moon,Benji,,390
+Michael Jackson,Bad,,391
+Tame Impala,Innerspeaker,,392
+Aretha Franklin,"I Never Loved A Man, The Way I Love You",,393
+Little Richard,Here's Little Richard,,394
+Simon & Garfunkel,Sounds Of Silence,,395
+Bon Iver,"22, A Million",,396
+Modest Mouse,Good News For People Who Love Bad News,,397
+Kids See Ghosts,Kids See Ghosts,,398
+Have A Nice Life,Deathconsciousness,,399
+A Tribe Called Quest,Midnight Marauders,,400
+Creedence Clearwater Revival,Green River,,401
+Cocteau Twins,Treasure,,402
+The Postal Service,Give Up,,403
+The Black Keys,El Camino,,404
+AC/DC,Highway To Hell,,405
+Bob Dylan,Desire,,406
+Neil Young & Crazy Horse,Rust Never Sleeps,,407
+Red Hot Chili Peppers,By The Way,,408
+Talk Talk,The Colour Of Spring,,409
+J Dilla,Donuts,,410
+Megadeth,Rust In Peace,,411
+Peter Gabriel,Peter Gabriel (1980),,412
+Bright Eyes,"I'm Wide Awake, It's Morning",,413
+Grizzly Bear,Veckatimest,,414
+Hüsker Dü,Zen Arcade,,415
+Sly & The Family Stone,There's A Riot Goin' On,,416
+The Kinks,Something Else By The Kinks,,417
+Kanye West,Graduation,,418
+Tracy Chapman,Tracy Chapman,,419
+Milton Nascimento / Lô Borges,Clube Da Esquina,,420
+Nick Cave & The Bad Seeds,The Boatman's Call,,421
+De La Soul,3 Feet High And Rising,,422
+Little Simz,Sometimes I Might Be Introvert,,423
+Iron Maiden,Powerslave,,424
+Fiona Apple,Fetch The Bolt Cutters,,425
+Miles Davis,Sketches Of Spain,,426
+Fiona Apple,When The Pawn...,,427
+The Replacements,Tim,,428
+Lana Del Rey,Born To Die,,429
+Elliott Smith,XO,,430
+Big Thief,Dragon New Warm Mountain I Believe In You,,431
+Phoebe Bridgers,Punisher,,432
+Galaxie 500,On Fire,,433
+"Black Country, New Road",For The First Time,,434
+Pixies,Bossanova,,435
+The Beatles,Please Please Me,,436
+Echo & The Bunnymen,Ocean Rain,,437
+Blur,13,,438
+Kanye West,The Life Of Pablo,,439
+Bruce Springsteen,The River,,440
+Ornette Coleman,The Shape Of Jazz To Come,,441
+Brand New,The Devil And God Are Raging Inside Me,,442
+Run The Jewels,Run The Jewels 2,,443
+Deftones,White Pony,,444
+Big Star,#1 Record,,445
+Built To Spill,Keep It Like A Secret,,446
+Beyoncé,Lemonade,,447
+Joni Mitchell,Hejira,,448
+Death Cab For Cutie,Transatlanticism,,449
+Songs: Ohia,The Magnolia Electric Co.,,450
+Grimes,Art Angels,,451
+Rush,2112,,452
+Mac DeMarco,Salad Days,,453
+Porcupine Tree,Fear Of A Blank Planet,,454
+Destroyer,Kaputt,,455
+Robert Wyatt,Rock Bottom,,456
+Sly & The Family Stone,Stand!,,457
+Animal Collective,Strawberry Jam,,458
+Phoenix,Wolfgang Amadeus Phoenix,,459
+John Coltrane,Giant Steps,,460
+Lynyrd Skynyrd,(Pronounced 'Lĕh-'Nérd 'Skin-'Nérd),,461
+Slowdive,Slowdive,,462
+Wilco,Summerteeth,,463
+Prefab Sprout,Steve McQueen,,464
+Swans,Soundtracks For The Blind,,465
+The National,Alligator,,466
+Slayer,Reign In Blood,,467
+Suede,Dog Man Star,,468
+Deafheaven,Sunbather,,469
+Prince,1999,,470
+My Bloody Valentine,Isn't Anything,,471
+Vampire Weekend,Contra,,472
+U2,The Unforgettable Fire,,473
+Yo La Tengo,I Can Hear The Heart Beating As One,,474
+Dr. Dre,The Chronic,,475
+Depeche Mode,Music For The Masses,,476
+Courtney Barnett,"Sometimes I Sit And Think, And Sometimes I Just Sit",,477
+The Allman Brothers Band,At Fillmore East,,478
+PJ Harvey,To Bring You My Love,,479
+At The Drive-In,Relationship Of Command,,480
+R.E.M.,Green,,481
+Deep Purple,Deep Purple In Rock,,482
+Chuck Berry,Berry Is On Top,,483
+Santana,Abraxas,,484
+D'Angelo,Voodoo,,485
+The Modern Lovers,The Modern Lovers,,486
+Nirvana,Bleach,,487
+Interpol,Antics,,488
+Sonic Youth,Goo,,489
+Roxy Music,For Your Pleasure,,490
+Janelle Monáe,The ArchAndroid,,491
+Freddie Gibbs & Madlib,Piñata,,492
+R.E.M.,Lifes Rich Pageant,,493
+Art Blakey & The Jazz Messengers,Art Blakey And The Jazz Messengers,,494
+Creedence Clearwater Revival,Willy And The Poor Boys,,495
+Swans,The Seer,,496
+Nine Inch Nails,Pretty Hate Machine,,497
+Yes,The Yes Album,,498
+St. Vincent,St. Vincent,,499
+The Mars Volta,De-Loused In The Comatorium,,500
+The Dismemberment Plan,Emergency & I,,501
+The Who,The Who Sell Out,,502
+Simon & Garfunkel,"Parsley, Sage, Rosemary And Thyme",,503
+Kraftwerk,Computerwelt,,504
+Bob Dylan,The Times They Are A-Changin',,505
+Roxy Music,Avalon,,506
+Panda Bear,Person Pitch,,507
+Leonard Cohen,Songs Of Love And Hate,,508
+American Football,American Football (1999),,509
+A Tribe Called Quest,We Got It From Here... Thank You 4 Your Service,,510
+The Magnetic Fields,69 Love Songs,,511
+The Prodigy,The Fat Of The Land,,512
+Boards Of Canada,Geogaddi,,513
+Steely Dan,Can't Buy A Thrill,,514
+The Mothers Of Invention,Freak Out!,,515
+Mike Oldfield,Tubular Bells,,516
+Elvis Costello,My Aim Is True,,517
+Nick Cave & The Bad Seeds,Let Love In,,518
+M83,"Hurry Up, We're Dreaming",,519
+Manic Street Preachers,The Holy Bible,,520
+Idles,Joy As An Act Of Resistance.,,521
+Electric Light Orchestra,Out Of The Blue,,522
+Joni Mitchell,Court And Spark,,523
+Captain Beefheart & His Magic Band,Safe As Milk,,524
+Linkin Park,Hybrid Theory,,525
+Iggy Pop,Lust For Life,,526
+D'Angelo And The Vanguard,Black Messiah,,527
+Beastie Boys,Licensed To Ill,,528
+Jay-Z,The Blueprint,,529
+Carly Rae Jepsen,E•Mo•Tion,,530
+Mount Eerie,A Crow Looked At Me,,531
+N.W.A,Straight Outta Compton,,532
+Tom Petty,Full Moon Fever,,533
+King Crimson,Discipline,,534
+Bob Marley & The Wailers,Legend: The Best Of Bob Marley And The Wailers,,535
+Sonic Youth,Sister,,536
+Coldplay,X&Y,,537
+Steve Reich,Music For 18 Musicians,,538
+MF DOOM,Mm..Food,,539
+Herbie Hancock,Head Hunters,,540
+R.E.M.,Reckoning,,541
+Billie Holiday,Lady In Satin,,542
+Kate Bush,The Kick Inside,,543
+Porcupine Tree,In Absentia,,544
+Moby,Play,,545
+Beach House,7,,546
+Curtis Mayfield,Super Fly,,547
+Metallica,Kill 'Em All,,548
+My Bloody Valentine,MBV,,549
+Adele,21,,550
+Suede,Suede,,551
+Guided By Voices,Bee Thousand,,552
+Elbow,The Seldom Seen Kid,,553
+Faith No More,Angel Dust,,554
+Nina Simone,Pastel Blues,,555
+Neil Young,Tonight's The Night,,556
+Kendrick Lamar,Mr. Morale & The Big Steppers,,557
+Magdalena Bay,Imaginal Disk,,558
+The Rolling Stones,Some Girls,,559
+Tom Waits,Closing Time,,560
+Siouxsie And The Banshees,Juju,,561
+Duran Duran,Rio,,562
+Alice In Chains,Jar Of Flies,,563
+Tool,"10,000 Days",,564
+Talking Heads,Talking Heads: 77,,565
+TV On The Radio,Dear Science,,566
+Ween,The Mollusk,,567
+Cat Stevens,Tea For The Tillerman,,568
+"Floating Points, Pharoah Sanders & The London Symphony Orchestra",Promises,,569
+Rush,Permanent Waves,,570
+The Pogues,Rum Sodomy & The Lash,,571
+Electric Light Orchestra,A New World Record,,572
+Red Hot Chili Peppers,Stadium Arcadium,,573
+of Montreal,"Hissing Fauna, Are You The Destroyer?",,574
+Parquet Courts,Wide Awake!,,575
+Ramones,Rocket To Russia,,576
+Steven Wilson,Hand. Cannot. Erase.,,577
+Kamasi Washington,The Epic,,578
+The Doors,Morrison Hotel,,579
+Cannonball Adderley,Somethin' Else,,580
+Queens Of The Stone Age,Rated R,,581
+Grimes,Visions,,582
+Pretenders,Pretenders,,583
+Bruce Springsteen,"The Wild, The Innocent & The E Street Shuffle",,584
+Lou Reed,Berlin,,585
+Frank Sinatra,Songs For Swingin' Lovers!,,586
+New Order,Substance,,587
+Novos Baianos,Acabou Chorare,,588
+Thelonious Monk,Brilliant Corners,,589
+The Libertines,Up The Bracket,,590
+Serge Gainsbourg,Histoire De Melody Nelson,,591
+Pink Floyd,The Division Bell,,592
+The National,Sleep Well Beast,,593
+The Crickets,"The ""Chirping"" Crickets",,594
+Eno,Here Come The Warm Jets,,595
+David Bowie,Let's Dance,,596
+The Cure,Kiss Me Kiss Me Kiss Me,,597
+Animal Collective,Feels,,598
+Elliott Smith,Elliott Smith,,599
+The Doors,Waiting For The Sun,,600
+Daughters,You Won't Get What You Want,,601
+Def Leppard,Hysteria,,602
+Blur,Blur,,603
+John Coltrane,My Favorite Things,,604
+Stevie Wonder,Talking Book,,605
+Tori Amos,Little Earthquakes,,606
+Julia Holter,Have You In My Wilderness,,607
+Talking Heads,More Songs About Buildings And Food,,608
+Kanye West,808s & Heartbreak,,609
+Pharoah Sanders,Karma,,610
+The Cure,Seventeen Seconds,,611
+Dire Straits,Love Over Gold,,612
+Pink Floyd,A Saucerful Of Secrets,,613
+Genesis,A Trick Of The Tail,,614
+Jane's Addiction,Ritual De Lo Habitual,,615
+Madonna,Ray Of Light,,616
+David Bowie,Diamond Dogs,,617
+Flying Lotus,Cosmogramma,,618
+Beach House,Depression Cherry,,619
+The Shins,"Oh, Inverted World",,620
+INXS,Kick,,621
+Marillion,Misplaced Childhood,,622
+Dire Straits,Making Movies,,623
+Nico,Chelsea Girl,,624
+Sonny Rollins,Saxophone Colossus,,625
+Nick Cave & The Bad Seeds,Push The Sky Away,,626
+Jorge Ben,A Tábua De Esmeralda,,627
+Stone Temple Pilots,Purple,,628
+Queen,Sheer Heart Attack,,629
+James Brown,James Brown Live At The Apollo,,630
+Lana Del Rey,Ultraviolence,,631
+Aretha Franklin,Lady Soul,,632
+LCD Soundsystem,American Dream,,633
+The Kinks,"Lola Versus Powerman And The Moneygoround, Part One",,634
+Janis Joplin,Pearl,,635
+Rush,Hemispheres,,636
+Suicide,Suicide,,637
+Mercury Rev,Deserter's Songs,,638
+Dire Straits,Dire Straits,,639
+Pink Floyd,Atom Heart Mother,,640
+Thin Lizzy,Jailbreak,,641
+Pearl Jam,Vitalogy,,642
+The Who,My Generation,,643
+Hole,Live Through This,,644
+Buddy Holly,Buddy Holly,,645
+Depeche Mode,Black Celebration,,646
+The Feelies,Crazy Rhythms,,647
+Brian Eno & David Byrne,My Life In The Bush Of Ghosts,,648
+King Gizzard & The Lizard Wizard,Nonagon Infinity,,649
+Rainbow,Rising,,650
+Explosions In The Sky,The Earth Is Not A Cold Dead Place,,651
+St. Vincent,Strange Mercy,,652
+Muse,The Resistance,,653
+The Police,Reggatta De Blanc,,654
+Sade,Diamond Life,,655
+Charli XCX,Brat,,656
+Chet Baker,Chet Baker Sings,,657
+Counting Crows,August And Everything After,,658
+Manic Street Preachers,Everything Must Go,,659
+OutKast,ATLiens,,660
+Fugazi,Repeater,,661
+FKA Twigs,Magdalene,,662
+Foo Fighters,Wasting Light,,663
+Fleetwood Mac,Fleetwood Mac,,664
+New Order,Low-Life,,665
+The Killers,Sam's Town,,666
+Lorde,Pure Heroine,,667
+Soundgarden,Badmotorfinger,,668
+Gorillaz,Gorillaz,,669
+The Breeders,Last Splash,,670
+Nine Inch Nails,The Fragile,,671
+Buena Vista Social Club,Buena Vista Social Club,,672
+Jamie xx,In Colour,,673
+MGMT,Congratulations,,674
+Alvvays,Alvvays,,675
+MGMT,Little Dark Age,,676
+Fleetwood Mac,Tusk,,677
+Meat Loaf,Bat Out Of Hell,,678
+The Mothers Of Invention,We're Only In It For The Money,,679
+Antony & The Johnsons,I Am A Bird Now,,680
+Miles Davis,Birth Of The Cool,,681
+Elliott Smith,Figure 8,,682
+Eminem,The Eminem Show,,683
+Iron Maiden,Seventh Son Of A Seventh Son,,684
+Johnny Cash,American IV: The Man Comes Around,,685
+Public Enemy,Fear Of A Black Planet,,686
+Live,Throwing Copper,,687
+Spoon,They Want My Soul,,688
+Alvvays,Blue Rev,,689
+Santana,Santana,,690
+The Clash,Sandinista!,,691
+Black Midi,Schlagenheim,,692
+OutKast,Speakerboxxx/The Love Below,,693
+Grizzly Bear,Shields,,694
+Joanna Newsom,The Milk-Eyed Mender,,695
+Fleet Foxes,Crack-Up,,696
+Father John Misty,Pure Comedy,,697
+Keane,Hopes And Fears,,698
+The La's,The La's,,699
+Spoon,Ga Ga Ga Ga Ga,,700
+Belle And Sebastian,Tigermilk,,701
+Yeah Yeah Yeahs,Fever To Tell,,702
+Lou Reed,New York,,703
+Red House Painters,Red House Painters (Rollercoaster),,704
+Marvin Gaye,Let's Get It On,,705
+Mac DeMarco,2,,706
+Bob Dylan,Time Out Of Mind,,707
+The Knife,Silent Shout,,708
+Sufjan Stevens,Javelin,,709
+Pescado Rabioso,Artaud,,710
+The Beatles,Beatles For Sale,,711
+Howlin' Wolf,Moanin' In The Moonlight,,712
+Parliament,Mothership Connection,,713
+Angel Olsen,My Woman,,714
+Dusty Springfield,Dusty In Memphis,,715
+Townes Van Zandt,Townes Van Zandt,,716
+Snoop Doggy Dogg,Doggystyle,,717
+Donald Fagen,The Nightfly,,718
+Mobb Deep,The Infamous,,719
+Eels,Electro-Shock Blues,,720
+Camel,Mirage,,721
+Queen,Queen II,,722
+Curtis Mayfield,Curtis,,723
+The Tallest Man On Earth,The Wild Hunt,,724
+Nick Cave & The Bad Seeds,Abattoir Blues / The Lyre Of Orpheus,,725
+Joni Mitchell,The Hissing Of Summer Lawns,,726
+Billie Eilish,"When We All Fall Asleep, Where Do We Go?",,727
+Porcupine Tree,Deadwing,,728
+Isaac Hayes,Hot Buttered Soul,,729
+Genesis,Nursery Cryme,,730
+Brian Wilson,Brian Wilson Presents Smile,,731
+Linkin Park,Meteora,,732
+Sun Kil Moon,Ghosts Of The Great Highway,,733
+The Smiths,Louder Than Bombs,,734
+Pavement,Wowee Zowee,,735
+Nina Simone,Little Girl Blue,,736
+Florence + The Machine,Lungs,,737
+The Cure,Wish,,738
+Opeth,Blackwater Park,,739
+The Byrds,The Notorious Byrd Brothers,,740
+The Beatles,With The Beatles,,741
+The Police,Outlandos D'Amour,,742
+Iggy Pop,The Idiot,,743
+Electric Light Orchestra,Time,,744
+Mazzy Star,So Tonight That I Might See,,745
+David Bowie,David Bowie (Space Oddity),,746
+Nina Simone,Wild Is The Wind,,747
+Beastie Boys,Ill Communication,,748
+King Crimson,Larks' Tongues In Aspic,,749
+Simple Minds,New Gold Dream (81-82-83-84),,750
+The Jam,All Mod Cons,,751
+Sufjan Stevens,Michigan,,752
+Black Sabbath,Sabbath Bloody Sabbath,,753
+Björk,Vulnicura,,754
+Childish Gambino,"""Awaken, My Love!""",,755
+Lucinda Williams,Car Wheels On A Gravel Road,,756
+Black Midi,Hellfire,,757
+John Cale,Paris 1919,,758
+Vampire Weekend,Only God Was Above Us,,759
+Sonic Youth,Evol,,760
+Alvvays,Antisocialites,,761
+Blink-182,Enema Of The State,,762
+FKA Twigs,LP1,,763
+Fugees,The Score,,764
+PJ Harvey,Rid Of Me,,765
+The Beach Boys,Surf's Up,,766
+The Shins,Wincing The Night Away,,767
+The Decemberists,The Crane Wife,,768
+Liz Phair,Exile In Guyville,,769
+Electric Wizard,Dopethrone,,770
+Deerhunter,Microcastle,,771
+Wire,Chairs Missing,,772
+Arctic Monkeys,Tranquility Base Hotel & Casino,,773
+Sufjan Stevens,Seven Swans,,774
+The Clash,Combat Rock,,775
+Big Brother And The Holding Company,Cheap Thrills,,776
+Dream Theater,Metropolis Pt. 2: Scenes From A Memory,,777
+Godspeed You! Black Emperor,Slow Riot For New Zerø Kanada,,778
+Wilco,A Ghost Is Born,,779
+The Cure,Songs Of A Lost World,,780
+Pink Floyd,The Final Cut,,781
+Death Cab For Cutie,Plans,,782
+Tom Petty And The Heartbreakers,Damn The Torpedoes,,783
+The Chameleons,Script Of The Bridge,,784
+The Wailers,Catch A Fire,,785
+The Kinks,Face To Face,,786
+Blur,Modern Life Is Rubbish,,787
+Big Star,3rd,,788
+Aerosmith,Toys In The Attic,,789
+Leonard Cohen,I'm Your Man,,790
+M.I.A.,Kala,,791
+Scott Walker,Scott 4,,792
+Charly García,Clics Modernos,,793
+Lana Del Rey,Did You Know That There's A Tunnel Under Ocean Blvd,,794
+The Smile,A Light For Attracting Attention,,795
+Anderson .Paak,Malibu,,796
+Foo Fighters,Foo Fighters,,797
+Jay-Z,Reasonable Doubt,,798
+Kacey Musgraves,Golden Hour,,799
+Arctic Monkeys,Humbug,,800
+Jessie Ware,What's Your Pleasure?,,801
+The Who,Live At Leeds,,802
+Charli XCX,How I'm Feeling Now,,803
+The Jesus And Mary Chain,Darklands,,804
+Muse,Showbiz,,805
+Jane's Addiction,Nothing's Shocking,,806
+LCD Soundsystem,LCD Soundsystem,,807
+Os Mutantes,Os Mutantes,,808
+Motörhead,Ace Of Spades,,809
+Elvis Costello And The Attractions,Imperial Bedroom,,810
+Van Halen,1984,,811
+My Morning Jacket,Z,,812
+Joanna Newsom,Divers,,813
+Michael Jackson,Dangerous,,814
+Daft Punk,Homework,,815
+Garbage,Garbage,,816
+The Offspring,Smash,,817
+Taylor Swift,Folklore,,818
+Placebo,Without You I'm Nothing,,819
+New Order,Technique,,820
+Etta James,At Last!,,821
+Madonna,Like A Prayer,,822
+Ween,Quebec,,823
+Nick Cave & The Bad Seeds,Murder Ballads,,824
+Black Sabbath,Heaven And Hell,,825
+The Cure,Faith,,826
+The Streets,Original Pirate Material,,827
+Unwound,Leaves Turn Inside You,,828
+Tom Waits,Bone Machine,,829
+Cream,Wheels Of Fire,,830
+Brian Eno,Ambient 1: Music For Airports,,831
+The Traveling Wilburys,"Traveling Wilburys, Vol. 1",,832
+Thom Yorke,The Eraser,,833
+The Mars Volta,Frances The Mute,,834
+Red House Painters,Down Colorful Hill,,835
+Black Flag,Damaged,,836
+Devo,Q: Are We Not Men? A: We Are Devo!,,837
+Pixies,Come On Pilgrim,,838
+Rage Against The Machine,The Battle Of Los Angeles,,839
+System Of A Down,Mezmerize,,840
+U2,Boy,,841
+Chico Buarque,Construção,,842
+Fleet Foxes,Shore,,843
+Drake,Take Care,,844
+Mitski,Be The Cowboy,,845
+The Byrds,Sweetheart Of The Rodeo,,846
+Black Sabbath,Vol 4,,847
+Pixies,Trompe Le Monde,,848
+U2,All That You Can't Leave Behind,,849
+Wilco,Sky Blue Sky,,850
+Earl Sweatshirt,Some Rap Songs,,851
+The Human League,Dare,,852
+Kendrick Lamar,Untitled Unmastered.,,853
+Nick Cave & The Bad Seeds,The Good Son,,854
+The Weeknd,After Hours,,855
+Aphex Twin,Richard D. James Album,,856
+R.E.M.,New Adventures In Hi-Fi,,857
+The Beach Boys,The Beach Boys Today!,,858
+Bob Dylan,John Wesley Harding,,859
+Keith Jarrett,The Köln Concert,,860
+David Bowie,The Next Day,,861
+Sweet Trip,Velocity : Design : Comfort,,862
+Beach House,Once Twice Melody,,863
+The Allman Brothers Band,Eat A Peach,,864
+Run The Jewels,RTJ4,,865
+Eels,Beautiful Freak,,866
+James Blake,James Blake,,867
+Nick Cave & The Bad Seeds,Ghosteen,,868
+Sonic Youth,Dirty,,869
+Faith No More,The Real Thing,,870
+Public Image Ltd.,Metal Box,,871
+Aphex Twin,Selected Ambient Works Volume II,,872
+13th Floor Elevators,The Psychedelic Sounds Of The 13th Floor Elevators,,873
+Kings Of Leon,Only By The Night,,874
+Steely Dan,Countdown To Ecstasy,,875
+Dream Theater,Images And Words,,876
+Kendrick Lamar,Section.80,,877
+The Waterboys,This Is The Sea,,878
+Death Grips,Exmilitary,,879
+Mos Def,Black On Both Sides,,880
+Eric Dolphy,Out To Lunch!,,881
+Prince,Dirty Mind,,882
+The Smashing Pumpkins,Adore,,883
+Pulp,This Is Hardcore,,884
+Third Eye Blind,Third Eye Blind,,885
+Sublime,Sublime,,886
+Neil Young,Harvest Moon,,887
+Tim Buckley,Goodbye And Hello,,888
+Temple Of The Dog,Temple Of The Dog,,889
+The B-52's,The B-52's,,890
+SZA,Ctrl,,891
+Elvis Costello And The Attractions,Armed Forces,,892
+Guns N' Roses,Use Your Illusion II,,893
+R.E.M.,Monster,,894
+Dirty Projectors,Bitte Orca,,895
+Jack White,Blunderbuss,,896
+The Byrds,Younger Than Yesterday,,897
+Grandaddy,The Sophtware Slump,,898
+Animal Collective,Sung Tongs,,899
+Big Star,Radio City,,900
+Bob Dylan,Another Side Of Bob Dylan,,901
+Florence + The Machine,Ceremonials,,902
+The Roots,Things Fall Apart,,903
+Bon Jovi,Slippery When Wet,,904
+Aphex Twin,Syro,,905
+Chance The Rapper,Acid Rap,,906
+Pantera,Vulgar Display Of Power,,907
+Pere Ubu,The Modern Dance,,908
+Bob Dylan,Nashville Skyline,,909
+Stone Temple Pilots,Core,,910
+Charles Mingus,Pithecanthropus Erectus,,911
+Solange,A Seat At The Table,,912
+Fela Kuti & Africa 70,Zombie,,913
+Fontaines D.C.,Skinty Fia,,914
+Mogwai,Mogwai Young Team,,915
+Vince Guaraldi,A Charlie Brown Christmas,,916
+Queen,A Day At The Races,,917
+Steely Dan,Gaucho,,918
+Depeche Mode,Songs Of Faith And Devotion,,919
+Janelle Monáe,Dirty Computer,,920
+Neu!,Neu!,,921
+The Byrds,Mr. Tambourine Man,,922
+Nico,Desertshore,,923
+Hüsker Dü,New Day Rising,,924
+Jean Michel Jarre,Oxygène,,925
+Midnight Oil,Diesel And Dust,,926
+Queensrÿche,Operation: Mindcrime,,927
+The Fall,This Nation's Saving Grace,,928
+Steely Dan,Pretzel Logic,,929
+Wishbone Ash,Argus,,930
+Tom Waits,Mule Variations,,931
+Brian Eno,Before And After Science,,932
+Pusha T,Daytona,,933
+Miles Davis,'Round About Midnight,,934
+Radiohead,Pablo Honey,,935
+Tricky,Maxinquaye,,936
+Raekwon,Only Built 4 Cuban Linx...,,937
+"Tyler, The Creator",Call Me If You Get Lost,,938
+The Weeknd,House Of Balloons,,939
+Elvis Costello And The Attractions,Get Happy!!,,940
+TV On The Radio,Return To Cookie Mountain,,941
+Nick Cave & The Bad Seeds,No More Shall We Part,,942
+The The,Soul Mining,,943
+Deep Purple,Made In Japan,,944
+Squid (2020s),Bright Green Field,,945
+Eric B. & Rakim,Paid In Full,,946
+Genesis,Duke,,947
+Sade,Love Deluxe,,948
+St. Vincent,Masseduction,,949
+Beastie Boys,Check Your Head,,950
+Eminem,The Slim Shady LP,,951
+Dr. Dre,2001,,952
+Lloyd Cole And The Commotions,Rattlesnakes,,953
+Roxy Music,Roxy Music,,954
+Japanese Breakfast,Jubilee,,955
+Ariel Pink,Pom Pom,,956
+Kraftwerk,Autobahn,,957
+The Pogues,If I Should Fall From Grace With God,,958
+Tears For Fears,The Hurting,,959
+The Specials,Specials,,960
+Mercury Rev,Yerself Is Steam,,961
+Jay-Z,The Black Album,,962
+Little Simz,Grey Area,,963
+Tame Impala,The Slow Rush,,964
+This Heat,Deceit,,965
+The Sundays,"Reading, Writing And Arithmetic",,966
+Iron Maiden,Iron Maiden,,967
+Buffalo Springfield,Buffalo Springfield Again,,968
+Bonnie 'Prince' Billy,I See A Darkness,,969
+Royal Blood,Royal Blood,,970
+Mumford & Sons,Sigh No More,,971
+Damien Rice,O,,972
+The Jam,Sound Affects,,973
+The Pretty Things,S.F. Sorrow,,974
+Julia Holter,Loud City Song,,975
+The Gun Club,Fire Of Love,,976
+Leonard Cohen,Songs From A Room,,977
+The Police,Ghost In The Machine,,978
+Atoms For Peace,Amok,,979
+The Rolling Stones,Tattoo You,,980
+Fairport Convention,Liege & Lief,,981
+Faust,Faust IV,,982
+Built To Spill,There's Nothing Wrong With Love,,983
+Wipers,Youth Of America,,984
+Neil Young & Crazy Horse,Zuma,,985
+R.E.M.,Fables Of The Reconstruction,,986
+Brockhampton,Saturation III,,987
+Queen,News Of The World,,988
+Wilco,Being There,,989
+Belle And Sebastian,The Boy With The Arab Strap,,990
+Meat Puppets,Meat Puppets II,,991
+Portishead,Portishead,,992
+Kate Bush,Aerial,,993
+Crowded House,Woodface,,994
+Tom Petty,Wildflowers,,995
+Neutral Milk Hotel,On Avery Island,,996
+Ray Charles,The Genius Of Ray Charles,,997
+X (US),Los Angeles,,998
+Travis,The Man Who,,999
+Alice Coltrane,Journey In Satchidananda,,1000
+The United States Of America,The United States Of America,,1001
+Soda Stereo,Canción Animal,,1002
+Robert Johnson,King Of The Delta Blues Singers,,1003
+Refused,The Shape Of Punk To Come (A Chimerical Bombination In 12 Bursts),,1004
+Arctic Monkeys,Suck It And See,,1005
+Weezer,Weezer (White Album),,1006
+Stereolab,Emperor Tomato Ketchup,,1007
+Stereolab,Dots And Loops,,1008
+The Jam,Setting Sons,,1009
+Peter Gabriel,Peter Gabriel (1982),,1010
+Beyoncé,Renaissance,,1011
+Jimi Hendrix,Band Of Gypsys,,1012
+Yeah Yeah Yeahs,It's Blitz!,,1013
+Vampire Weekend,Father Of The Bride,,1014
+Iron Maiden,Piece Of Mind,,1015
+The White Stripes,De Stijl,,1016
+Sparks,Kimono My House,,1017
+New York Dolls,New York Dolls,,1018
+Evanescence,Fallen,,1019
+Kid Cudi,Man On The Moon: The End Of Day,,1020
+Beck,Morning Phase,,1021
+Steven Wilson,The Raven That Refused To Sing (And Other Stories),,1022
+No Doubt,Tragic Kingdom,,1023
+Tim Buckley,Starsailor,,1024
+MC5,Kick Out The Jams,,1025
+Ozzy Osbourne,Blizzard Of Ozz,,1026
+Chicago Transit Authority,Chicago Transit Authority,,1027
+Godspeed You! Black Emperor,'Allelujah! Don't Bend! Ascend!,,1028
+Audioslave,Audioslave,,1029
+The Congos,Heart Of The Congos,,1030
+Yo La Tengo,And Then Nothing Turned Itself Inside-Out,,1031
+Steely Dan,The Royal Scam,,1032
+SOPHIE,Oil Of Every Pearl's Un-Insides,,1033
+Fleetwood Mac,Tango In The Night,,1034
+Small Faces,Ogdens' Nut Gone Flake,,1035
+Caravan,In The Land Of Grey And Pink,,1036
+The Decemberists,Picaresque,,1037
+Creedence Clearwater Revival,Bayou Country,,1038
+Syd Barrett,The Madcap Laughs,,1039
+Miles Davis,On The Corner,,1040
+Johnny Cash,With His Hot And Blue Guitar,,1041
+John Coltrane,Ascension,,1042
+Jeff Rosenstock,Worry.,,1043
+Erykah Badu,Baduizm,,1044
+Leonard Cohen,You Want It Darker,,1045
+Queen,Innuendo,,1046
+Foster The People,Torches,,1047
+David Bowie,Young Americans,,1048
+Purple Mountains,Purple Mountains,,1049
+Vashti Bunyan,Just Another Diamond Day,,1050
+Sinéad O'Connor,I Do Not Want What I Haven't Got,,1051
+David Bowie,The Man Who Sold The World,,1052
+The Flaming Lips,Clouds Taste Metallic,,1053
+Café Tacvba,Re,,1054
+Duke Ellington And His Orchestra,Ellington At Newport,,1055
+Modest Mouse,This Is A Long Drive For Someone With Nothing To Think About,,1056
+Rush,A Farewell To Kings,,1057
+Blur,The Magic Whip,,1058
+The Prodigy,Music For The Jilted Generation,,1059
+Fela Kuti & Africa 70,Expensive Shit,,1060
+2Pac,All Eyez On Me,,1061
+Def Leppard,Pyromania,,1062
+Buzzcocks,Singles Going Steady,,1063
+Bo Diddley,Bo Diddley,,1064
+Black Midi,Cavalcade,,1065
+JPEGMAFIA x Danny Brown,Scaring The Hoes,,1066
+The Ronettes,Presenting The Fabulous Ronettes Featuring Veronica,,1067
+Ella Fitzgerald & Louis Armstrong,Ella & Louis,,1068
+The White Stripes,Get Behind Me Satan,,1069
+Marty Robbins,Gunfighter Ballads And Trail Songs,,1070
+Fiona Apple,Tidal,,1071
+The Go-Betweens,16 Lovers Lane,,1072
+Jorge Ben,África Brasil,,1073
+Gene Clark,No Other,,1074
+Low,Hey What,,1075
+Elton John,Madman Across The Water,,1076
+Flying Lotus,You're Dead!,,1077
+Foxygen,We Are The 21st Century Ambassadors Of Peace And Magic,,1078
+The Cranberries,No Need To Argue,,1079
+Judas Priest,British Steel,,1080
+Rod Stewart,Every Picture Tells A Story,,1081
+Massive Attack,Protection,,1082
+Fever Ray,Fever Ray,,1083
+Bruce Springsteen,The Rising,,1084
+Prince And The Revolution,Parade,,1085
+Elton John,Captain Fantastic And The Brown Dirt Cowboy,,1086
+Mastodon,Crack The Skye,,1087
+Wire,154,,1088
+Paul Simon,Paul Simon,,1089
+Happy Mondays,Pills 'N' Thrills And Bellyaches,,1090
+Tool,Fear Inoculum,,1091
+Magazine,Real Life,,1092
+Dua Lipa,Future Nostalgia,,1093
+Denzel Curry,Ta13oo,,1094
+Janet Jackson,Rhythm Nation 1814,,1095
+Angelo Badalamenti,Soundtrack From Twin Peaks,,1096
+Laurie Anderson,Big Science,,1097
+Sigur Rós,Með Suð Í Eyrum Við Spilum Endalaust,,1098
+The Smashing Pumpkins,Gish,,1099
+Brockhampton,Saturation II,,1100
+The Police,Zenyatta Mondatta,,1101
+The 1975,A Brief Inquiry Into Online Relationships,,1102
+Teenage Fanclub,Bandwagonesque,,1103
+Low,Double Negative,,1104
+Justice (FR),† [Cross],,1105
+Sleater-Kinney,The Woods,,1106
+Aerosmith,"""Rocks""",,1107
+Cloud Nothings,Attack On Memory,,1108
+Kate Bush,Never For Ever,,1109
+Yuck,Yuck,,1110
+Deltron 3030,Deltron 3030,,1111
+Dio,Holy Diver,,1112
+XTC,Black Sea,,1113
+XTC,English Settlement,,1114
+Guns N' Roses,Use Your Illusion I,,1115
+Queen,The Game,,1116
+Megadeth,Peace Sells... But Who's Buying?,,1117
+U2,Zooropa,,1118
+Roxy Music,Country Life,,1119
+Death (Metal),Symbolic,,1120
+Taylor Swift,1989,,1121
+Ryan Adams,Heartbreaker,,1122
+System Of A Down,System Of A Down,,1123
+King Gizzard & The Lizard Wizard,Polygondwanaland,,1124
+Goldfrapp,Felt Mountain,,1125
+Bob Dylan,"""Love And Theft""",,1126
+Jimmy Eat World,Bleed American,,1127
+Black Sabbath,Sabotage,,1128
+The Strokes,Angles,,1129
+Belle And Sebastian,Dear Catastrophe Waitress,,1130
+Weezer,OK Human,,1131
+Mitski,Puberty 2,,1132
+Tool,Undertow,,1133
+Richard & Linda Thompson,I Want To See The Bright Lights Tonight,,1134
+Soft Machine,Third,,1135
+The Sonics,Here Are The Sonics!!!,,1136
+Kate Bush,The Sensual World,,1137
+Iron Maiden,Somewhere In Time,,1138
+ZZ Top,Eliminator,,1139
+Sugar,Copper Blue,,1140
+Bob Dylan & The Band,The Basement Tapes,,1141
+Fontaines D.C.,Romance,,1142
+Tortoise,TNT,,1143
+Muse,The 2nd Law,,1144
+Darkside,Psychic,,1145
+Tortoise,Millions Now Living Will Never Die,,1146
+Glenn Branca,The Ascension,,1147
+The Antlers,Burst Apart,,1148
+Stevie Wonder,Fulfillingness' First Finale,,1149
+The Flying Burrito Brothers,The Gilded Palace Of Sin,,1150
+Julee Cruise,Floating Into The Night,,1151
+Kyuss,Welcome To Sky Valley,,1152
+Blur,Think Tank,,1153
+Robyn,Body Talk,,1154
+AC/DC,Powerage,,1155
+Dexys Midnight Runners,Searching For The Young Soul Rebels,,1156
+Miles Davis,Milestones,,1157
+Caroline Polachek,"Desire, I Want To Turn Into You",,1158
+Marillion,Script For A Jester's Tear,,1159
+Geese,Getting Killed,,1160
+Comus,First Utterance,,1161
+Modest Mouse,We Were Dead Before The Ship Even Sank,,1162
+George Michael,Faith,,1163
+ABC,The Lexicon Of Love,,1164
+AC/DC,Let There Be Rock,,1165
+Ray Charles,Modern Sounds In Country And Western Music,,1166
+Judas Priest,Screaming For Vengeance,,1167
+Grateful Dead,Workingman's Dead,,1168
+Nick Cave & The Bad Seeds,Tender Prey,,1169
+Blind Faith,Blind Faith,,1170
+The Fall,Hex Enduction Hour,,1171
+The Mamas And The Papas,If You Can Believe Your Eyes And Ears,,1172
+My Chemical Romance,Three Cheers For Sweet Revenge,,1173
+Bruce Springsteen,Tunnel Of Love,,1174
+Low,I Could Live In Hope,,1175
+Jason Isbell,Southeastern,,1176
+Echo & The Bunnymen,Heaven Up Here,,1177
+Popol Vuh (DE),Hosianna Mantra,,1178
+Blur,The Great Escape,,1179
+Cream,Fresh Cream,,1180
+Weyes Blood,"And In The Darkness, Hearts Aglow",,1181
+Aphex Twin,Drukqs,,1182
+Sting,...Nothing Like The Sun,,1183
+Beck,Midnite Vultures,,1184
+Talking Heads,Little Creatures,,1185
+The Microphones,Mount Eerie,,1186
+Converge,Jane Doe,,1187
+Brand New,Deja Entendu,,1188
+Chuck Berry,After School Session,,1189
+Van Der Graaf Generator,Pawn Hearts,,1190
+Morrissey,Viva Hate,,1191
+Iron & Wine,Our Endless Numbered Days,,1192
+John Martyn,Solid Air,,1193
+The Church,Starfish,,1194
+Elton John,Tumbleweed Connection,,1195
+Norah Jones,Come Away With Me,,1196
+John Mayer,Continuum,,1197
+Perfume Genius,Set My Heart On Fire Immediately,,1198
+Frank Zappa,Apostrophe ('),,1199
+Kurt Vile,Wakin On A Pretty Daze,,1200
+The Strokes,First Impressions Of Earth,,1201
+Danger Mouse & Black Thought,Cheat Codes,,1202
+Crystal Castles,Crystal Castles,,1203
+Camel,Moonmadness,,1204
+Vince Staples,Big Fish Theory,,1205
+Stevie Ray Vaughan & Double Trouble,Texas Flood,,1206
+Bad Brains,Bad Brains,,1207
+The Rolling Stones,Out Of Our Heads,,1208
+Magdalena Bay,Mercurial World,,1209
+Black Star,Mos Def & Talib Kweli Are Black Star,,1210
+Run The Jewels,Run The Jewels 3,,1211
+Deftones,Around The Fur,,1212
+Fugazi,13 Songs,,1213
+Erykah Badu,Mama's Gun,,1214
+The Rolling Stones,Their Satanic Majesties Request,,1215
+Vangelis,Blade Runner,,1216
+Tangerine Dream,Phaedra,,1217
+Exuma,Exuma,,1218
+The Libertines,The Libertines,,1219
+The Chemical Brothers,Dig Your Own Hole,,1220
+King Gizzard & The Lizard Wizard,Flying Microtonal Banana,,1221
+Laura Nyro,Eli And The Thirteenth Confession,,1222
+Death Grips,The Powers That B,,1223
+The Rolling Stones,Between The Buttons,,1224
+Billie Holiday,Lady Sings The Blues,,1225
+Oneohtrix Point Never,Replica,,1226
+The Smile,Wall Of Eyes,,1227
+alt-J,This Is All Yours,,1228
+Monks (US),Black Monk Time,,1229
+Perfume Genius,No Shape,,1230
+Elvis Presley,Elvis,,1231
+Jay-Z & Kanye West,Watch The Throne,,1232
+Run-D.M.C.,Raising Hell,,1233
+The Replacements,Pleased To Meet Me,,1234
+Bob Dylan,Oh Mercy,,1235
+The Unicorns,Who Will Cut Our Hair When We're Gone?,,1236
+Phoebe Bridgers,Stranger In The Alps,,1237
+Miles Davis,Ascenseur Pour L'échafaud,,1238
+Elvis Presley,From Elvis In Memphis,,1239
+U2,Rattle And Hum,,1240
+Viet Cong,Viet Cong,,1241
+T. Rex,The Slider,,1242
+The Byrds,Fifth Dimension,,1243
+Bauhaus,In The Flat Field,,1244
+The Weeknd,Dawn FM,,1245
+Sleater-Kinney,Dig Me Out,,1246
+Everything Everything,Get To Heaven,,1247
+Angel Olsen,All Mirrors,,1248
+Kendrick Lamar,GNX,,1249
+Prince And The Revolution,Around The World In A Day,,1250
+Guided By Voices,Alien Lanes,,1251
+Cyndi Lauper,She's So Unusual,,1252
+Brand New,Science Fiction,,1253
+The Cranberries,"Everybody Else Is Doing It, So Why Can't We?",,1254
+Pulp,His 'N' Hers,,1255
+Common,Be,,1256
+CHVRCHES,The Bones Of What You Believe,,1257
+Nujabes,Modal Soul,,1258
+Cannibal Ox,The Cold Vein,,1259
+Sharon Van Etten,Are We There,,1260
+ABBA,Arrival,,1261
+Charles Mingus,Blues & Roots,,1262
+The Knife,Shaking The Habitual,,1263
+The Moody Blues,In Search Of The Lost Chord,,1264
+The Soft Boys,Underwater Moonlight,,1265
+Neil Young & Crazy Horse,Ragged Glory,,1266
+João Gilberto,Chega De Saudade,,1267
+Wolfmother,Wolfmother,,1268
+Tom Waits,Small Change,,1269
+Yes,90125,,1270
+Tim Hecker,Virgins,,1271
+Ghostface Killah,Supreme Clientele,,1272
+Electric Light Orchestra,"Eldorado, A Symphony By The Electric Light Orchestra",,1273
+The Avalanches,Wildflower,,1274
+The Afghan Whigs,Gentlemen,,1275
+Judas Priest,Painkiller,,1276
+The Doors,The Soft Parade,,1277
+Van Morrison,Veedon Fleece,,1278
+Eddie Vedder,Into The Wild (Music For The Motion Picture),,1279
+The Notwist,Neon Golden,,1280
+Tim Hecker,"Ravedeath, 1972",,1281
+The Blue Nile,Hats,,1282
+Tim Buckley,Happy Sad,,1283
+Genesis,Wind & Wuthering,,1284
+Can,Monster Movie Made In A Castle With Better Equipment,,1285
+Girls,"Father, Son, Holy Ghost",,1286
+The War On Drugs,I Don't Live Here Anymore,,1287
+John Lennon & Yoko Ono,Double Fantasy,,1288
+Sufjan Stevens,The Ascension,,1289
+Bob Dylan,Rough And Rowdy Ways,,1290
+Vince Staples,Summertime '06,,1291
+Jethro Tull,Stand Up,,1292
+Madonna,Madonna,,1293
+Gillian Welch,Time (The Revelator),,1294
+The Allman Brothers Band,The Allman Brothers Band,,1295
+Travis Scott,Rodeo,,1296
+Future Islands,Singles,,1297
+Yes,Going For The One,,1298
+Belle And Sebastian,The Life Pursuit,,1299
+Beyoncé,Beyoncé,,1300
+Alice In Chains,Facelift,,1301
+Bob Marley & The Wailers,Uprising,,1302
+Faust,Faust,,1303
+Silk Sonic,An Evening With Silk Sonic,,1304
+Judas Priest,Sad Wings Of Destiny,,1305
+"Dr. John, The Night Tripper",Gris-Gris,,1306
+Fontaines D.C.,Dogrel,,1307
+Mastodon,Leviathan,,1308
+Garbage,Version 2.0,,1309
+The Pop Group,Y,,1310
+Bob Marley & The Wailers,Natty Dread,,1311
+Sinéad O'Connor,The Lion And The Cobra,,1312
+PJ Harvey,Dry,,1313
+Wolf Alice,Blue Weekend,,1314
+The Last Dinner Party,Prelude To Ecstasy,,1315
+M.I.A.,Arular,,1316
+Eno,Taking Tiger Mountain (By Strategy),,1317
+Dead Can Dance,Within The Realm Of A Dying Sun,,1318
+Injury Reserve,By The Time I Get To Phoenix,,1319
+Led Zeppelin,Presence,,1320
+Joy Division,Substance,,1321
+Foals,Total Life Forever,,1322
+Yes,Relayer,,1323
+The Red Crayola With The Familiar Ugly,The Parable Of Arable Land,,1324
+Paramore,Riot!,,1325
+Agalloch,The Mantle,,1326
+The Waterboys,Fisherman's Blues,,1327
+Genesis,Genesis,,1328
+They Might Be Giants,Flood,,1329
+Death Grips,Bottomless Pit,,1330
+Nico,The Marble Index,,1331
+Elliott Smith,From A Basement On The Hill,,1332
+Opeth,Damnation,,1333
+Sharon Van Etten,Remind Me Tomorrow,,1334
+The Beach Boys,Smiley Smile,,1335
+Depeche Mode,Ultra,,1336
+Pink Floyd,Ummagumma,,1337
+Deftones,Koi No Yokan,,1338
+Geordie Greep,The New Sound,,1339
+Warren Zevon,Excitable Boy,,1340
+Young Marble Giants,Colossal Youth,,1341
+Julia Holter,Aviary,,1342
+Sunny Day Real Estate,Diary,,1343
+King Gizzard & The Lizard Wizard,I'm In Your Mind Fuzz,,1344
+Phil Collins,Face Value,,1345
+The Cult,Love,,1346
+The White Stripes,Icky Thump,,1347
+Todd Rundgren,Something/Anything?,,1348
+Sam Cooke,Night Beat,,1349
+Suede,Coming Up,,1350
+Blink-182,Blink-182,,1351
+Supertramp,Even In The Quietest Moments...,,1352
+Bob Dylan,Modern Times,,1353
+Mac DeMarco,This Old Dog,,1354
+Waxahatchee,Saint Cloud,,1355
+Sleigh Bells,Treats,,1356
+Genesis,Invisible Touch,,1357
+Against All Logic,2012-2017,,1358
+Grateful Dead,Live/Dead,,1359
+Pavement,Brighten The Corners,,1360
+Frank Sinatra,Frank Sinatra Sings For Only The Lonely,,1361
+J.I.D,The Forever Story,,1362
+Midlake,The Trials Of Van Occupanther,,1363
+The Black Crowes,Shake Your Money Maker,,1364
+Battles,Mirrored,,1365
+St. Vincent,Actor,,1366
+XTC,Drums And Wires,,1367
+Yo La Tengo,Painful,,1368
+Fairport Convention,Unhalfbricking,,1369
+Joni Mitchell,Ladies Of The Canyon,,1370
+Pearl Jam,Yield,,1371
+Howlin' Wolf,Howlin' Wolf,,1372
+The Jesus Lizard,Goat,,1373
+Bright Eyes,"Lifted Or The Story Is In The Soil, Keep Your Ear To The Ground",,1374
+Billy Joel,Glass Houses,,1375
+Doves (UK),The Last Broadcast,,1376
+NoMeansNo,Wrong,,1377
+David Sylvian,Secrets Of The Beehive,,1378
+The Beach Boys,Sunflower,,1379
+Opeth,Still Life,,1380
+Fugazi,The Argument,,1381
+Queens Of The Stone Age,Lullabies To Paralyze,,1382
+The Gaslight Anthem,The '59 Sound,,1383
+Bill Evans Trio,Waltz For Debby,,1384
+Primal Scream,Exterminator (XTRMNTR),,1385
+Spoon,Kill The Moonlight,,1386
+Manuel Göttsching,E2-E4,,1387
+Pet Shop Boys,Actually,,1388
+Ben Folds Five,Whatever And Ever Amen,,1389
+Billy Joel,52nd Street,,1390
+Duster,Stratosphere,,1391
+Beck,Mellow Gold,,1392
+The Clash,Give 'Em Enough Rope,,1393
+Neil Young & Crazy Horse,Live Rust,,1394
+Japandroids,Celebration Rock,,1395
+Stereolab,Transient Random-Noise Bursts With Announcements,,1396
+Mr. Bungle,California,,1397
+Steely Dan,Katy Lied,,1398
+Björk,Medúlla,,1399
+Ramones,Leave Home,,1400
+Mike Oldfield,Ommadawn,,1401
+Crystal Castles,Crystal Castles (II),,1402
+Childish Gambino,Because The Internet,,1403
+Ella Fitzgerald,Ella Fitzgerald Sings The Cole Porter Song Book,,1404
+Big Thief,U.F.O.F.,,1405
+Deep Purple,Burn,,1406
+Big Black,Atomizer,,1407
+David Bowie,Lodger,,1408
+Supergrass,In It For The Money,,1409
+Genesis,Trespass,,1410
+Miles Davis,Jack Johnson (Original Soundtrack Recording),,1411
+2Pac,Me Against The World,,1412
+James Blake,Overgrown,,1413
+Jackson C. Frank,Jackson C. Frank,,1414
+Albert Ayler Trio,Spiritual Unity,,1415
+Janet,The Velvet Rope,,1416
+Ray Charles,Ray Charles,,1417
+Peter Gabriel,Peter Gabriel (1977),,1418
+Queens Of The Stone Age,Queens Of The Stone Age,,1419
+Lisa Germano,Geek The Girl,,1420
+The Streets,A Grand Don't Come For Free,,1421
+The Horrors (UK),Primary Colours,,1422
+Green Day,Nimrod.,,1423
+Cage The Elephant,Melophobia,,1424
+Car Seat Headrest,Twin Fantasy (2011),,1425
+Rodriguez,Cold Fact,,1426
+The Beatles,Let It Be... Naked,,1427
+Gil Scott-Heron,Pieces Of A Man,,1428
+"Emerson, Lake & Palmer",Brain Salad Surgery,,1429
+Aerosmith,Pump,,1430
+Harry Nilsson,Nilsson Schmilsson,,1431
+Boris,Flood,,1432
+Avey Tare & Panda Bear,"Spirit They're Gone, Spirit They've Vanished",,1433
+Bon Iver,"I,I",,1434
+Lingua Ignota,Sinner Get Ready,,1435
+The Strokes,Comedown Machine,,1436
+Silver Apples,Silver Apples,,1437
+Interpol,Our Love To Admire,,1438
+Kate Bush,50 Words For Snow,,1439
+The Damned,"Damned, Damned, Damned",,1440
+Taylor Swift,Red,,1441
+Jon Hopkins,Immunity,,1442
+Oasis,The Masterplan,,1443
+Bark Psychosis,Hex,,1444
+Opeth,Ghost Reveries,,1445
+Florence + The Machine,"How Big, How Blue, How Beautiful",,1446
+Cat Power,You Are Free,,1447
+The Mountain Goats,The Sunset Tree,,1448
+Brian Eno With Daniel Lanois & Roger Eno,Apollo: Atmospheres & Soundtracks,,1449
+Adrianne Lenker,Songs,,1450
+Gram Parsons,Grievous Angel,,1451
+The Black Crowes,The Southern Harmony And Musical Companion,,1452
+Deftones,Diamond Eyes,,1453
+Cat Stevens,Teaser And The Firecat,,1454
+Sarah Vaughan,Sarah Vaughan,,1455
+Spellling,The Turning Wheel,,1456
+Morrissey,You Are The Quarry,,1457
+Boygenius,The Record,,1458
+Swans,Children Of God,,1459
+Iron Maiden,Brave New World,,1460
+Gustavo Cerati,Bocanada,,1461
+Little Richard,Little Richard,,1462
+Turnstile,Glow On,,1463
+Temples,Sun Structures,,1464
+Jens Lekman,Night Falls Over Kortedala,,1465
+Billie Eilish,Happier Than Ever,,1466
+Ween,Chocolate And Cheese,,1467
+King Krule,The Ooz,,1468
+Madonna,True Blue,,1469
+Clap Your Hands Say Yeah,Clap Your Hands Say Yeah,,1470
+Bryan Adams,Reckless,,1471
+Justin Timberlake,FutureSex/LoveSounds,,1472
+Slayer,Seasons In The Abyss,,1473
+Susanne Sundfør,Ten Love Songs,,1474
+Donovan,Sunshine Superman,,1475
+Iron Maiden,Killers,,1476
+Foo Fighters,"Echoes, Silence, Patience & Grace",,1477
+Broken Bells,Broken Bells,,1478
+Slowdive,Everything Is Alive,,1479
+Morphine,Cure For Pain,,1480
+The Flaming Lips,Embryonic,,1481
+Keith Jarrett / Gidon Kremer; Dennis Russell Davies /  Staatsorchester Stuttgart; The 12 Cellists Of The Berlin Philharmonic Orchestra; Saulius Sondeckis / Lithuanian Chamber Orchestra / Alfred Schnittke,Arvo Pärt: Tabula Rasa,,1482
+The Chemical Brothers,Surrender,,1483
+Wayne Shorter,Speak No Evil,,1484
+Danny Brown,XXX,,1485
+Dinosaur Jr.,Bug,,1486
+Thom Yorke,Anima,,1487
+Todd Terje,It's Album Time,,1488
+Love,Da Capo,,1489
+Neil Young,Freedom,,1490
+Muse,Drones,,1491
+Dirty Projectors,Swing Lo Magellan,,1492
+Rosalía,El Mal Querer,,1493
+Sparklehorse,It's A Wonderful Life,,1494
+Big Thief,Capacity,,1495
+The Wrens,The Meadowlands,,1496
+Sigur Rós,Kveikur,,1497
+Pearl Jam,No Code,,1498
+JPEGMAFIA,Veteran,,1499
+Beck,Guero,,1500
+Gorillaz,"Song Machine, Season One: Strange Timez",,1501
+Spiritualized®,Lazer Guided Melodies,,1502
+Grizzly Bear,Yellow House,,1503
+The xx,Coexist,,1504
+Oasis,Be Here Now,,1505
+Neu!,Neu! '75,,1506
+Kings Of Leon,Aha Shake Heartbreak,,1507
+Tom Waits,The Heart Of Saturday Night,,1508
+Caribou,Swim,,1509
+ボアダムス [Boredoms],Vision Creation Newsun,,1510
+Supergrass,I Should Coco,,1511
+John Grant,Queen Of Denmark,,1512
+The Raconteurs,Consolers Of The Lonely,,1513
+Big Black,Songs About Fucking,,1514
+Band Of Horses,Cease To Begin,,1515
+A Tribe Called Quest,People's Instinctive Travels And The Paths Of Rhythm,,1516
+MF DOOM,Operation: Doomsday,,1517
+Cocteau Twins,Head Over Heels,,1518
+Grace Jones,Nightclubbing,,1519
+Pink Floyd,A Momentary Lapse Of Reason,,1520
+John Prine,John Prine,,1521
+Doves (UK),Lost Souls,,1522
+Elton John,Honky Château,,1523
+U2,How To Dismantle An Atomic Bomb,,1524
+Arcade Fire,We,,1525
+Jeff Beck,Truth,,1526
+Earl Sweatshirt,"I Don't Like Shit, I Don't Go Outside: An Album By Earl Sweatshirt",,1527
+Rage Against The Machine,Evil Empire,,1528
+Gary Numan,The Pleasure Principle,,1529
+Kings Of Leon,Because Of The Times,,1530
+Rosalía,Motomami,,1531
+Weezer,Weezer (Green Album),,1532
+Dirty Three,Ocean Songs,,1533
+Band Of Horses,Everything All The Time,,1534
+Keane,Under The Iron Sea,,1535
+Tori Amos,Under The Pink,,1536
+The Sisters Of Mercy,Floodland,,1537
+Queen,Jazz,,1538
+Rush,Signals,,1539
+The National,I Am Easy To Find,,1540
+Faith No More,King For A Day... Fool For A Lifetime,,1541
+Ryan Adams,Gold,,1542
+Judas Priest,Defenders Of The Faith,,1543
+Paramore,Brand New Eyes,,1544
+The Incredible String Band,The Hangman's Beautiful Daughter,,1545
+James Taylor,Sweet Baby James,,1546
+Blue Öyster Cult,Secret Treaties,,1547
+The Voidz,Virtue,,1548
+Herbie Hancock,Maiden Voyage,,1549
+Emmylou Harris,Wrecking Ball,,1550
+Titus Andronicus,The Monitor,,1551
+Eels,Daisies Of The Galaxy,,1552
+Tim Buckley,Lorca,,1553
+Earl Sweatshirt,Doris,,1554
+Morrissey,Vauxhall And I,,1555
+Pink Floyd,Obscured By Clouds,,1556
+Paul McCartney,McCartney,,1557
+Four Tet,Rounds,,1558
+Mac Miller,Circles,,1559
+Haim,Days Are Gone,,1560
+The Black Keys,Turn Blue,,1561
+Caetano Veloso,Transa,,1562
+Parquet Courts,Light Up Gold,,1563
+Electric Light Orchestra,Discovery,,1564
+John Mayall & Eric Clapton,Blues Breakers,,1565
+The Black Keys,Rubber Factory,,1566
+Bruce Springsteen,"Greetings From Asbury Park, N.J.",,1567
+Daft Punk,Alive 2007,,1568
+Mac Miller,Swimming,,1569
+Nine Inch Nails,With Teeth,,1570
+The Cure,Three Imaginary Boys,,1571
+Wolf Parade,Apologies To The Queen Mary,,1572
+Grouper,Dragging A Dead Deer Up A Hill,,1573
+Marilyn Manson,Mechanical Animals,,1574
+Lady Gaga,The Fame Monster,,1575
+Godspeed You! Black Emperor,Yanqui U.X.O.,,1576
+Godspeed You! Black Emperor,G_d's Pee At State's End!,,1577
+The Mothers Of Invention,Uncle Meat,,1578
+Dinosaur Jr.,Where You Been,,1579
+Nina Simone,I Put A Spell On You,,1580
+A Perfect Circle,Thirteenth Step,,1581
+New Order,Movement,,1582
+Rihanna,Anti,,1583
+Richard & Linda Thompson,Shoot Out The Lights,,1584
+Tears For Fears,The Seeds Of Love,,1585
+Panic! At The Disco,A Fever You Can't Sweat Out,,1586
+Various Artists,The Harder They Come,,1587
+R.E.M.,Up,,1588
+David Gray,White Ladder,,1589
+Kasabian,West Ryder Pauper Lunatic Asylum,,1590
+Robert Plant & Alison Krauss,Raising Sand,,1591
+"Tyler, The Creator",Chromakopia,,1592
+Wet Leg,Wet Leg,,1593
+Underworld,Dubnobasswithmyheadman,,1594
+The The,Infected,,1595
+Santana,Caravanserai,,1596
+Chance The Rapper,Coloring Book,,1597
+Billie Eilish,Hit Me Hard And Soft,,1598
+Slowdive,Just For A Day,,1599
+William Basinski,The Disintegration Loops I,,1600
+The Avalanches,We Will Always Love You,,1601
+Ennio Morricone,"Il Buono, Il Brutto, Il Cattivo",,1602
+Sufjan Stevens & Angelo De Augustine,A Beginner's Mind,,1603
+Eric Clapton,Unplugged,,1604
+Frank Zappa And The Mothers Of Invention,One Size Fits All,,1605
+Nicolas Jaar,Space Is Only Noise,,1606
+Nick Cave & The Bad Seeds,Your Funeral... My Trial,,1607
+Kevin Rowland & Dexys Midnight Runners,Too-Rye-Ay,,1608
+Fontaines D.C.,A Hero's Death,,1609
+Cowboy Junkies,The Trinity Session,,1610
+Jim Croce,You Don't Mess Around With Jim,,1611
+The Stranglers,Stranglers IV (Rattus Norvegicus),,1612
+Brockhampton,Saturation,,1613
+Beck,Mutations,,1614
+The Alan Parsons Project,I Robot,,1615
+Various Artists,Saturday Night Fever (The Original Movie Sound Track),,1616
+Perfume Genius,Too Bright,,1617
+Adrianne Lenker,Bright Future,,1618
+Peter Gabriel,Us,,1619
+Suzanne Vega,Solitude Standing,,1620
+Cocteau Twins,Victorialand,,1621
+The Decemberists,The King Is Dead,,1622
+Slayer,South Of Heaven,,1623
+Orchestral Manoeuvres In The Dark,Architecture & Morality,,1624
+Beach House,Devotion,,1625
+Al Green,Call Me,,1626
+Rancid,...And Out Come The Wolves,,1627
+Laura Marling,Song For Our Daughter,,1628
+Sting,The Dream Of The Blue Turtles,,1629
+Willie Nelson,Red Headed Stranger,,1630
+Mark Hollis,Mark Hollis,,1631
+Lana Del Rey,Honeymoon,,1632
+Extremoduro,La Ley Innata,,1633
+Real Estate,Days,,1634
+Tune-Yards,Whokill,,1635
+Green Day,Insomniac,,1636
+The Roots,How I Got Over,,1637
+Cat Power,Moon Pix,,1638
+Motörhead,Overkill,,1639
+Them Crooked Vultures,Them Crooked Vultures,,1640
+Waxahatchee,Tigers Blood,,1641
+Yves Tumor,Heaven To A Tortured Mind,,1642
+Fall Out Boy,From Under The Cork Tree,,1643
+The Mahavishnu Orchestra With John McLaughlin,The Inner Mounting Flame,,1644
+Pretenders,Learning To Crawl,,1645
+Cindy Lee,Diamond Jubilee,,1646
+Alice Cooper,Billion Dollar Babies,,1647
+The Lemonheads,It's A Shame About Ray,,1648
+Journey,Escape,,1649
+Ariel Pink's Haunted Graffiti,Before Today,,1650
+Tom Waits,Heartattack And Vine,,1651
+Siouxsie And The Banshees,The Scream,,1652
+Echo & The Bunnymen,Porcupine,,1653
+Tubeway Army,Replicas,,1654
+The Slits,Cut,,1655
+Teenage Fanclub,Grand Prix,,1656
+The New Pornographers,Twin Cinema,,1657
+Talk Talk,It's My Life,,1658
+The Decemberists,The Hazards Of Love,,1659
+Silver Jews,American Water,,1660
+Feist,The Reminder,,1661
+ZZ Top,Tres Hombres,,1662
+Tom Waits,Franks Wild Years,,1663
+Manu Chao,Clandestino,,1664
+Father John Misty,God's Favorite Customer,,1665
+Queen,The Works,,1666
+Wolf Alice,My Love Is Cool,,1667
+The Radio Dept.,Clinging To A Scheme,,1668
+Johnny Cash,American Recordings,,1669
+Sparklehorse,Vivadixiesubmarinetransmissionplot,,1670
+Judas Priest,Stained Class,,1671
+The Who,A Quick One,,1672
+Chromatics,Kill For Love,,1673
+Roxy Music,Stranded,,1674
+Paul Simon,The Rhythm Of The Saints,,1675
+Alice Cooper,Killer,,1676
+Jessie Ware,That! Feels Good!,,1677
+Metronomy,The English Riviera,,1678
+The White Stripes,The White Stripes,,1679
+The Pharcyde,Bizarre Ride II The Pharcyde,,1680
+Low,Things We Lost In The Fire,,1681
+Johnny Cash,American III: Solitary Man,,1682
+The Thelonious Monk Quartet,Monk's Dream,,1683
+The Olivia Tremor Control,Music From The Unrealized Film Script: Dusk At Cubist Castle,,1684
+Bill Evans Trio,Sunday At The Village Vanguard,,1685
+Tindersticks,The First Tindersticks Album,,1686
+The Mountain Goats,All Hail West Texas,,1687
+The Sound,From The Lion's Mouth,,1688
+Death Cab For Cutie,Narrow Stairs,,1689
+Foo Fighters,There Is Nothing Left To Lose,,1690
+Freddie Gibbs & Madlib,Bandana,,1691
+Sonic Youth,Washing Machine,,1692
+Manic Street Preachers,This Is My Truth Tell Me Yours,,1693
+Tom Waits,Bad As Me,,1694
+Noel Gallagher's High Flying Birds,Noel Gallagher's High Flying Birds,,1695
+Sam Cooke,"Live At The Harlem Square Club, 1963",,1696
+Iceage,Plowing Into The Field Of Love,,1697
+Janis Joplin,I Got Dem Ol' Kozmic Blues Again Mama!,,1698
+Lynyrd Skynyrd,Second Helping,,1699
+J. Cole,2014 Forest Hills Drive,,1700
+Ornette Coleman Double Quartet,Free Jazz,,1701
+Blondie,Eat To The Beat,,1702
+The Jayhawks,Tomorrow The Green Grass,,1703
+Father John Misty,Mahashmashana,,1704
+The xx,I See You,,1705
+Galaxie 500,Today,,1706
+Editors,The Back Room,,1707
+George Michael,Listen Without Prejudice Vol. 1,,1708
+Dave Matthews Band,Crash,,1709
+Van Der Graaf Generator,Godbluff,,1710
+The Microphones,Microphones In 2020,,1711
+Billy Joel,An Innocent Man,,1712
+Andrew Bird,Andrew Bird & The Mysterious Production Of Eggs,,1713
+The Roots,Undun,,1714
+PJ Harvey,White Chalk,,1715
+Randy Newman,Sail Away,,1716
+Franz Ferdinand,You Could Have It So Much Better,,1717
+Van Morrison,Saint Dominic's Preview,,1718
+Drive Like Jehu,Yank Crime,,1719
+Elastica,Elastica,,1720
+Todd Rundgren,"A Wizard, A True Star",,1721
+"Black Country, New Road",Live At Bush Hall,,1722
+Sam Cooke,Ain't That Good News,,1723
+Boards Of Canada,The Campfire Headphase,,1724
+Nirvana,Incesticide,,1725
+Otis Redding,The Dock Of The Bay,,1726
+Johnny Cash,Johnny Cash At San Quentin,,1727
+Primus,Sailing The Seas Of Cheese,,1728
+Charli XCX,Charli,,1729
+Led Zeppelin,In Through The Out Door,,1730
+파란노을 [Parannoul],To See The Next Part Of The Dream,,1731
+The Supremes,Where Did Our Love Go,,1732
+The Tragically Hip,Fully Completely,,1733
+Peggy Lee,Black Coffee With Peggy Lee,,1734
+フィッシュマンズ [Fishmans],宇宙 日本 世田谷 [Uchū Nippon Setagaya],,1735
+Marillion,Clutching At Straws,,1736
+Lady Gaga,Born This Way,,1737
+Editors,An End Has A Start,,1738
+Idles,Brutalism,,1739
+Drake,Nothing Was The Same,,1740
+The Offspring,Americana,,1741
+Joni Mitchell,Clouds,,1742
+David Crosby,If I Could Only Remember My Name,,1743
+Father John Misty,Fear Fun,,1744
+The Rolling Stones,Goats Head Soup,,1745
+Patti Smith Group,Easter,,1746
+Cocteau Twins,Blue Bell Knoll,,1747
+Bush,Sixteen Stone,,1748
+Depeche Mode,Some Great Reward,,1749
+Beth Gibbons,Lives Outgrown,,1750
+Air,Talkie Walkie,,1751
+Iron & Wine,The Shepherd's Dog,,1752
+The Dandy Warhols,Thirteen Tales From Urban Bohemia,,1753
+Dizzee Rascal,Boy In Da Corner,,1754
+Arcade Fire,Everything Now,,1755
+AC/DC,Dirty Deeds Done Dirt Cheap,,1756
+Procol Harum,A Salty Dog,,1757
+The Verve,A Northern Soul,,1758
+Paul McCartney,Chaos And Creation In The Backyard,,1759
+The Flaming Lips,At War With The Mystics,,1760
+Jimmy Eat World,Clarity,,1761
+Kiss,Destroyer,,1762
+Nick Cave & Warren Ellis,Carnage,,1763
+Philip Glass,Glassworks,,1764
+"Emerson, Lake & Palmer","Emerson, Lake & Palmer",,1765
+Echo & The Bunnymen,Crocodiles,,1766
+Thin Lizzy,Live And Dangerous,,1767
+Slowdive,Pygmalion,,1768
+Kansas,Leftoverture,,1769
+Angel Olsen,Burn Your Fire For No Witness,,1770
+Twenty One Pilots,Vessel,,1771
+Joe Jackson,Night And Day,,1772
+Throbbing Gristle,20 Jazz Funk Greats,,1773
+The 1975,"I Like It When You Sleep, For You Are So Beautiful Yet So Unaware Of It",,1774
+B.B. King,Live At The Regal,,1775
+Spacemen 3,The Perfect Prescription,,1776
+The Wailers,Burnin',,1777
+50 Cent,Get Rich Or Die Tryin',,1778
+Charli XCX,Pop 2,,1779
+St. Vincent,Daddy's Home,,1780
+Camera Obscura (UK),Let's Get Out Of This Country,,1781
+Rammstein,Mutter,,1782
+Tom Waits,Blue Valentine,,1783
+Kurt Vile,Smoke Ring For My Halo,,1784
+Janet Jackson,Control,,1785
+Cake,Fashion Nugget,,1786
+Viktor Vaughn,Vaudeville Villain,,1787
+Lana Del Rey,Chemtrails Over The Country Club,,1788
+Jim O'Rourke,Eureka,,1789
+The Last Shadow Puppets,The Age Of The Understatement,,1790
+Caribou,Our Love,,1791
+Pixies,Surfer Rosa & Come On Pilgrim,,1792
+Coldplay,Mylo Xyloto,,1793
+Eagles,One Of These Nights,,1794
+Midnight Oil,"10, 9, 8, 7, 6, 5, 4, 3, 2, 1",,1795
+Frankie Goes To Hollywood,Welcome To The Pleasuredome,,1796
+Nick Cave & The Bad Seeds,From Her To Eternity,,1797
+Linda Perhacs,Parallelograms,,1798
+Jay-Z,4:44,,1799
+Fatboy Slim,"You've Come A Long Way, Baby",,1800
+Antônio Carlos Jobim,Wave,,1801
+Aretha Franklin,Aretha Now,,1802
+Kanye West,Donda,,1803
+Stiff Little Fingers,Inflammable Material,,1804
+Chuck Berry,One Dozen Berrys,,1805
+New Order,Brotherhood,,1806
+David Bowie,Heathen,,1807
+Creedence Clearwater Revival,Creedence Clearwater Revival,,1808
+Hüsker Dü,Warehouse: Songs And Stories,,1809
+Sigur Rós,Valtari,,1810
+Run The Jewels,Run The Jewels,,1811
+Misfits,Walk Among Us,,1812
+Phil Collins,No Jacket Required,,1813
+Stone Temple Pilots,Tiny Music... Songs From The Vatican Gift Shop,,1814
+Charles Mingus,Let My Children Hear Music,,1815
+Uriah Heep,Demons & Wizards,,1816
+Rosalía,Lux,,1817
+Suzanne Vega,Suzanne Vega,,1818
+Spoon,Lucifer On The Sofa,,1819
+Frank Sinatra,Come Fly With Me,,1820
+Glenn Gould,J.S. Bach: The Goldberg Variations (1956),,1821
+Aztec Camera,"High Land, Hard Rain",,1822
+The Radio Dept.,Lesser Matters,,1823
+a-ha,Hunting High And Low,,1824
+The Alan Parsons Project,Eye In The Sky,,1825
+Coldplay,Ghost Stories,,1826
+U.S. Girls,In A Poem Unlimited,,1827
+Dead Kennedys,Plastic Surgery Disasters,,1828
+Joe Jackson,Look Sharp!,,1829
+Travis Scott,Astroworld,,1830
+The Killers,Day & Age,,1831
+Sampha,Process,,1832
+Buffalo Springfield,Buffalo Springfield,,1833
+The Flaming Lips,Transmissions From The Satellite Heart,,1834
+The Sugarcubes,Life's Too Good,,1835
+Kamasi Washington,Heaven And Earth,,1836
+A Perfect Circle,Mer De Noms,,1837
+Four Tet,There Is Love In You,,1838
+Ozzy Osbourne,Diary Of A Madman,,1839
+The Vaccines,What Did You Expect From The Vaccines?,,1840
+The Hotelier,"Home, Like Noplace Is There",,1841
+My Bloody Valentine,You Made Me Realise,,1842
+The Band,The Last Waltz,,1843
+Elliott Smith,Roman Candle,,1844
+Amon Düül II,Yeti,,1845
+Sturgill Simpson,A Sailor's Guide To Earth,,1846
+Moondog,Moondog (1969),,1847
+Iron Butterfly,In-A-Gadda-Da-Vida,,1848
+Whitney,Light Upon The Lake,,1849
+Pet Shop Boys,Behaviour,,1850
+Patti Smith Group,Radio Ethiopia,,1851
+Queens Of The Stone Age,Villains,,1852
+Two Door Cinema Club,Tourist History,,1853
+The Raconteurs,Broken Boy Soldiers,,1854
+Alice In Chains,Alice In Chains,,1855
+Broadcast,Tender Buttons,,1856
+Enya,Watermark,,1857
+The Everly Brothers,The Everly Brothers,,1858
+Ride,Going Blank Again,,1859
+The Beach Boys,Friends,,1860
+System Of A Down,Hypnotize,,1861
+Various Artists,A Christmas Gift For You From Phil Spector,,1862
+The Mothers Of Invention,Absolutely Free,,1863
+Soft Cell,Non-Stop Erotic Cabaret,,1864
+The Who,The Who By Numbers,,1865
+The Undertones,The Undertones,,1866
+Madonna,Music,,1867
+Placebo,Sleeping With Ghosts,,1868
+PJ Harvey,Is This Desire?,,1869
+Clipping.,Visions Of Bodies Being Burned,,1870
+Death Cab For Cutie,We Have The Facts And We're Voting Yes,,1871
+Mastodon,Blood Mountain,,1872
+Kanye West,Ye,,1873
+Van Morrison,Into The Music,,1874
+Beastie Boys,Hello Nasty,,1875
+Porcupine Tree,Stupid Dream,,1876
+Jethro Tull,Songs From The Wood,,1877
+Paul Weller,Stanley Road,,1878
+Neko Case,Fox Confessor Brings The Flood,,1879
+Röyksopp,Melody A.M.,,1880
+Ramones,Road To Ruin,,1881
+Swans,The Glowing Man,,1882
+Death From Above 1979,"You're A Woman, I'm A Machine",,1883
+Fall Out Boy,Folie À Deux,,1884
+Fleetwood Mac,Then Play On,,1885
+Charlie Parker & Dizzy Gillespie,Bird & Diz,,1886
+Courtney Barnett,Tell Me How You Really Feel,,1887
+The Cars,Heartbeat City,,1888
+Jerry Lee Lewis,Jerry Lee Lewis,,1889
+Unknown Mortal Orchestra,II,,1890
+Foals,Holy Fire,,1891
+Procol Harum,Procol Harum,,1892
+Super Furry Animals,Rings Around The World,,1893
+John Cougar Mellencamp,Scarecrow,,1894
+Digable Planets,Blowout Comb,,1895
+The Cure,Boys Don't Cry,,1896
+Blink-182,Take Off Your Pants And Jacket,,1897
+Michael Kiwanuka,Kiwanuka,,1898
+Elvis Presley,Elvis Is Back!,,1899
+The Hold Steady,Boys And Girls In America,,1900
+Funkadelic,One Nation Under A Groove,,1901
+Nick Cave & The Bad Seeds,Henry's Dream,,1902
+Pet Shop Boys,Please,,1903
+Shabazz Palaces,Black Up,,1904
+Paul Simon,Still Crazy After All These Years,,1905
+Grouper,A I A : Alien Observer,,1906
+Bob Dylan,Bob Dylan,,1907
+青葉市子 [Ichiko Aoba],アダンの風 [Adan No Kaze],,1908
+...And You Will Know Us By The Trail Of Dead,Source Tags & Codes,,1909
+Paul Simon,There Goes Rhymin' Simon,,1910
+Roger Waters,Is This The Life We Really Want?,,1911
+The Dream Syndicate,The Days Of Wine And Roses,,1912
+JPEGMAFIA,LP!,,1913
+Jacques Brel,N° 4,,1914
+Paramore,Paramore,,1915
+The Weeknd,Beauty Behind The Madness,,1916
+Leftfield,Leftism,,1917
+Alabama Shakes,Sound & Color,,1918
+Tori Amos,Boys For Pele,,1919
+Clifford Brown & Max Roach,Clifford Brown And Max Roach,,1920
+Kings Of Leon,Youth & Young Manhood,,1921
+The Moody Blues,To Our Children's Children's Children,,1922
+Disclosure,Settle,,1923
+Massive Attack,Heligoland,,1924
+Marilyn Manson,Antichrist Superstar,,1925
+The Descendents,Milo Goes To College,,1926
+Styx,The Grand Illusion,,1927
+Grizzly Bear,Painted Ruins,,1928
+The Breeders,Pod,,1929
+Shame,Drunk Tank Pink,,1930
+The Yardbirds,Yardbirds (Roger The Engineer),,1931
+Nick Cave & The Bad Seeds,Wild God,,1932
+Misfits,Static Age,,1933
+Michael Jackson,"HIStory: Past, Present And Future, Book I",,1934
+Natalia Lafourcade,De Todas Las Flores,,1935
+Scorpions,Love At First Sting,,1936
+The Psychedelic Furs,Talk Talk Talk,,1937
+16 Horsepower,Sackcloth 'N' Ashes,,1938
+Count Basie And His Orchestra & Neal Hefti,Basie,,1939
+Freddie Gibbs & The Alchemist,Alfredo,,1940
+Elbow,Build A Rocket Boys!,,1941
+Men At Work,Business As Usual,,1942
+Red Hot Chili Peppers,One Hot Minute,,1943
+Clipse,Hell Hath No Fury,,1944
+Badly Drawn Boy,The Hour Of Bewilderbeast,,1945
+The Damned,Machine Gun Etiquette,,1946
+Scott Walker,The Drift,,1947
+Scorpions,Blackout,,1948
+Peter Gabriel,Passion: Music For The Last Temptation Of Christ,,1949
+Thin Lizzy,Black Rose: A Rock Legend,,1950
+Cut Copy,In Ghost Colours,,1951
+Wilco,The Whole Love,,1952
+Clipse,Let God Sort Em Out,,1953
+Led Zeppelin,The Soundtrack From The Film The Song Remains The Same,,1954
+The Housemartins,London 0 Hull 4,,1955
+The Residents,Not Available,,1956
+The Beta Band,The Three E.P.'s,,1957
+Damon Albarn,Everyday Robots,,1958
+Drake,If You're Reading This It's Too Late,,1959
+Soda Stereo,Dynamo,,1960
+Yes,Tales From Topographic Oceans,,1961
+Dry Cleaning,New Long Leg,,1962
+Manic Street Preachers,Generation Terrorists,,1963
+Jefferson Airplane,After Bathing At Baxter's,,1964
+The Sound,Jeopardy,,1965
+Foals,Antidotes,,1966
+Kasabian,Kasabian,,1967
+Kraftwerk,Radio-Aktivität,,1968
+Frightened Rabbit,The Midnight Organ Fight,,1969
+Iron & Wine,The Creek Drank The Cradle,,1970
+Nightwish,Once,,1971
+Ought,More Than Any Other Day,,1972
+Gang Starr,Moment Of Truth,,1973
+Snow Patrol,Final Straw,,1974
+Arlo Parks,Collapsed In Sunbeams,,1975
+Savages,Silence Yourself,,1976
+Arctic Monkeys,The Car,,1977
+Philip Glass,Koyaanisqatsi,,1978
+Ray Charles,What'd I Say,,1979
+Spoon,Gimme Fiction,,1980
+Bill Callahan,Sometimes I Wish We Were An Eagle,,1981
+The Isley Brothers,3 + 3,,1982
+Whitesnake,Whitesnake,,1983
+Weezer,Everything Will Be Alright In The End,,1984
+Gas,Pop,,1985
+Yazoo,Upstairs At Eric's,,1986
+"Emerson, Lake & Palmer",Tarkus,,1987
+Caetano Veloso,Caetano Veloso (1968),,1988
+Japan,Tin Drum,,1989
+Bad Company,Bad Company,,1990
+Interpol,El Pintor,,1991
+Olivia Rodrigo,Sour,,1992
+Sweet Trip,You Will Never Know Why,,1993
+Rush,Grace Under Pressure,,1994
+Jockstrap,I Love You Jennifer B,,1995
+A Silver Mt. Zion,He Has Left Us Alone But Shafts Of Light Sometimes Grace The Corner Of Our Rooms...,,1996
+Fuck Buttons,Tarot Sport,,1997
+Girls,Album,,1998
+JPEGMAFIA,All My Heroes Are Cornballs,,1999
+Ghostface Killah,Fishscale,,2000
+Roger Waters,Amused To Death,,2001
+The Beat (UK),I Just Can't Stop It,,2002
+Traffic,John Barleycorn Must Die,,2003
+Swans,White Light From The Mouth Of Infinity,,2004
+Dire Straits,Communiqué,,2005
+Terry Riley,A Rainbow In Curved Air,,2006
+Billy Woods & Kenny Segal,Maps,,2007
+Isis,Panopticon,,2008
+Jackson Browne,Running On Empty,,2009
+Jellyfish,Spilt Milk,,2010
+The Byrds,Turn! Turn! Turn!,,2011
+Regina Spektor,Soviet Kitsch,,2012
+X-Ray Spex,Germfree Adolescents,,2013
+Jefferson Airplane,Volunteers,,2014
+Louis Prima,The Wildest!,,2015
+Gerry Rafferty,City To City,,2016
+Moby Grape,Moby Grape,,2017
+Madonna,Confessions On A Dance Floor,,2018
+King Krule,6 Feet Beneath The Moon,,2019
+U2,Pop,,2020
+Carissa's Wierd,Songs About Leaving,,2021
+Janelle Monáe,The Electric Lady,,2022
+Lingua Ignota,Caligula,,2023
+Sturgill Simpson,Metamodern Sounds In Country Music,,2024
+Gentle Giant,Octopus,,2025
+Amy Winehouse,Frank,,2026
+Billy Idol,Rebel Yell,,2027
+Spoon,Hot Thoughts,,2028
+Neil Young & Crazy Horse,Psychedelic Pill,,2029
+Red Hot Chili Peppers,Mother's Milk,,2030
+Gnarls Barkley,St. Elsewhere,,2031
+Green Day,21st Century Breakdown,,2032
+Sons Of Kemet,Your Queen Is A Reptile,,2033
+Regina Spektor,Begin To Hope,,2034
+Bill Haley And His Comets,Rock Around The Clock,,2035
+Broken Social Scene,Broken Social Scene,,2036
+Laura Marling,Once I Was An Eagle,,2037
+Mdou Moctar,Afrique Victime,,2038
+Tom Waits,Alice,,2039
+Billy Woods,Aethiopes,,2040
+Big Thief,Two Hands,,2041
+Life Without Buildings,Any Other City,,2042
+Scott Walker,Scott 3,,2043
+Harmonium,Les Cinq Saisons,,2044
+James,Laid,,2045
+The B-52's,Cosmic Thing,,2046
+Son Volt,Trace,,2047
+Rina Sawayama,Sawayama,,2048
+Avril Lavigne,Let Go,,2049
+Sleep (US),Dopesmoker,,2050
+The Kinks,Kinks,,2051
+Playboi Carti,Die Lit,,2052
+D'Angelo,Brown Sugar,,2053
+Arthur Russell,World Of Echo,,2054
+Albert King,Born Under A Bad Sign,,2055
+Sleater-Kinney,No Cities To Love,,2056
+Porcupine Tree,Lightbulb Sun,,2057
+Fats Domino,This Is Fats Domino!,,2058
+Jack White,Lazaretto,,2059
+Playboi Carti,Whole Lotta Red,,2060
+The Stone Roses,Second Coming,,2061
+Thundercat,Drunk,,2062
+Stereophonics,Word Gets Around,,2063
+Sublime,40 Oz. To Freedom,,2064
+Deerhunter,Monomania,,2065
+Aerosmith,Get A Grip,,2066
+Klaus Schulze,Irrlicht,,2067
+The Cure,Bloodflowers,,2068
+山下達郎 [Tatsuro Yamashita],For You,,2069
+The National,First Two Pages Of Frankenstein,,2070
+Boards Of Canada,Tomorrow's Harvest,,2071
+Blind Melon,Blind Melon,,2072
+Blur,The Ballad Of Darren,,2073
+Ghost (SE),Meliora,,2074
+Jack Johnson,In Between Dreams,,2075
+Morrissey,Your Arsenal,,2076
+Neil Young & Crazy Horse,Weld,,2077
+Muddy Waters,The Best Of Muddy Waters,,2078
+공중도둑 [Mid-Air Thief],무너지기 [Crumbling],,2079
+Anthrax,Among The Living,,2080
+Stevie Nicks,Bella Donna,,2081
+Kyuss,Blues For The Red Sun,,2082
+Alabama Shakes,Boys & Girls,,2083
+The Kinks,Muswell Hillbillies,,2084
+Laura Nyro,New York Tendaberry,,2085
+Fiona Apple,Extraordinary Machine,,2086
+Aphex Twin,...I Care Because You Do,,2087
+Metric,Fantasies,,2088
+Pink Floyd,The Endless River,,2089
+Billy Bragg & Wilco,Mermaid Avenue,,2090
+Paul Weller,Wild Wood,,2091
+Adele,25,,2092
+Múm,Finally We Are No One,,2093
+George Michael,Older,,2094
+Go-Go's,Beauty And The Beat,,2095
+Chappell Roan,The Rise And Fall Of A Midwest Princess,,2096
+Deep Purple,Fireball,,2097
+Syd Barrett,Barrett,,2098
+Midnight Oil,Blue Sky Mining,,2099
+Pinegrove,Cardinal,,2100
+CHVRCHES,Every Open Eye,,2101
+Geese,3D Country,,2102
+Aerosmith,Aerosmith,,2103
+Mitski,Bury Me At Make Out Creek,,2104
+The Notorious B.I.G.,Life After Death,,2105
+Genesis Owusu,Smiling With No Teeth,,2106
+Jean Michel Jarre,Equinoxe,,2107
+This Heat,This Heat,,2108
+Paul McCartney,Tug Of War,,2109
+Crowded House,Together Alone,,2110
+Paramore,After Laughter,,2111
+Fennesz,Endless Summer,,2112
+John Fahey,Fare Forward Voyagers (Soldier's Choice),,2113
+Miles Davis Quintet,Cookin' With The Miles Davis Quintet,,2114
+Buzzcocks,Another Music In A Different Kitchen,,2115
+Peter Frampton,Frampton Comes Alive!,,2116
+Bob Marley & The Wailers,Live!,,2117
+King Crimson,Starless And Bible Black,,2118
+AC/DC,High Voltage (International),,2119
+John Cale,Music For A New Society,,2120
+Charles Mingus,Mingus Mingus Mingus Mingus Mingus,,2121
+Orange Juice,You Can't Hide Your Love Forever,,2122
+Spirit,Twelve Dreams Of Dr. Sardonicus,,2123
+Soundgarden,Down On The Upside,,2124
+Nick Cave & The Bad Seeds,"Dig, Lazarus, Dig!!!",,2125
+The Mothers,Over-Nite Sensation,,2126
+Kasabian,Velociraptor!,,2127
+Cat Power,The Greatest,,2128
+The Field (SE),From Here We Go Sublime,,2129
+Black Sabbath,Mob Rules,,2130
+Alice In Chains,MTV Unplugged,,2131
+Supertramp,Crisis? What Crisis?,,2132
+Miles Davis,Porgy And Bess,,2133
+Silversun Pickups,Carnavas,,2134
+Michael Kiwanuka,Love & Hate,,2135
+Boz Scaggs,Silk Degrees,,2136
+Foo Fighters,One By One,,2137
+Roger Waters,The Pros And Cons Of Hitch Hiking,,2138
+Autechre,Tri Repetae,,2139
+XTC,Apple Venus Volume 1,,2140
+ABBA,The Visitors,,2141
+Lou Reed,The Blue Mask,,2142
+Ocean Colour Scene,Moseley Shoals,,2143
+Robyn,Honey,,2144
+Genesis,Abacab,,2145
+The Shins,Port Of Morrow,,2146
+Bruce Springsteen,Magic,,2147
+Soft Machine,The Soft Machine,,2148
+Kali Uchis,Isolation,,2149
+Beirut,The Flying Club Cup,,2150
+Django Django,Django Django,,2151
+Goo Goo Dolls,Dizzy Up The Girl,,2152
+Sun Ra,Lanquidity,,2153
+FKA Twigs,Eusexua,,2154
+Grimes,Miss Anthropocene,,2155
+Foals,What Went Down,,2156
+Traffic,Mr. Fantasy,,2157
+Violent Femmes,Hallowed Ground,,2158
+Placebo,Placebo,,2159
+Jackson Browne,Late For The Sky,,2160
+Destroyer,Destroyer's Rubies,,2161
+Daniel Johnston,"Hi, How Are You: The Unfinished Album",,2162
+Maroon 5,Songs About Jane,,2163
+Deafheaven,New Bermuda,,2164
+Anohni,Hopelessness,,2165
+Snow Patrol,Eyes Open,,2166
+Grouper,Ruins,,2167
+OutKast,Southernplayalisticadillacmuzik,,2168
+Roy Harper,Stormcock,,2169
+Megadeth,Countdown To Extinction,,2170
+Johnny Burnette & The Rock 'n Roll Trio,Johnny Burnette And The Rock N' Roll Trio,,2171
+Noname,Room 25,,2172
+The Costello Show Featuring The Attractions And Confederates,King Of America,,2173
+Candy Claws,Ceres & Calypso In The Deep Time,,2174
+My Morning Jacket,It Still Moves,,2175
+Opeth,Watershed,,2176
+Elvis Presley,Elvis' Golden Records,,2177
+MJ Lenderman,Manning Fireworks,,2178
+Lianne La Havas,Lianne La Havas,,2179
+The Beatles,1967-1970,,2180
+Steve Miller Band,Fly Like An Eagle,,2181
+Uncle Tupelo,Anodyne,,2182
+Toto,Toto IV,,2183
+Tom Petty And The Heartbreakers,Tom Petty And The Heartbreakers,,2184
+Beirut,Gulag Orkestar,,2185
+Lush,Split,,2186
+Heart,Dreamboat Annie,,2187
+Blue Öyster Cult,Fire Of Unknown Origin,,2188
+J.J. Cale,Naturally,,2189
+The Jayhawks,Hollywood Town Hall,,2190
+Tina Turner,Private Dancer,,2191
+Townes Van Zandt,Our Mother The Mountain,,2192
+The Sisters Of Mercy,First And Last And Always,,2193
+U2,October,,2194
+Queen,A Kind Of Magic,,2195
+Drive-By Truckers,The Dirty South,,2196
+Mission Of Burma,Vs.,,2197
+Denzel Curry,Melt My Eyez See Your Future,,2198
+Yeah Yeah Yeahs,Show Your Bones,,2199
+Sheryl Crow,Sheryl Crow,,2200
+Portishead,Roseland NYC Live,,2201
+Minor Threat,Complete Discography,,2202
+Sting,Ten Summoner's Tales,,2203
+They Might Be Giants,Lincoln,,2204
+The Weather Station,Ignorance,,2205
+13th Floor Elevators,Easter Everywhere,,2206
+The Pains Of Being Pure At Heart,The Pains Of Being Pure At Heart,,2207
+The Comet Is Coming,Trust In The Lifeforce Of The Deep Mystery,,2208
+Snail Mail,Lush,,2209
+The Rolling Stones,It's Only Rock 'N' Roll,,2210
+Modest Mouse,Building Nothing Out Of Something,,2211
+Eagles,Desperado,,2212
+The Moody Blues,On The Threshold Of A Dream,,2213
+Eurythmics,Sweet Dreams (Are Made Of This),,2214
+Aerosmith,Get Your Wings,,2215
+Alanis Morissette,Supposed Former Infatuation Junkie,,2216
+Yes,Yes,,2217
+The Triffids,Born Sandy Devotional,,2218
+Screaming Trees,Dust,,2219
+Primus,Frizzle Fry,,2220
+Pet Shop Boys,Introspective,,2221
+Don McLean,American Pie,,2222
+Electric Light Orchestra,Face The Music,,2223
+Invisible,El Jardín De Los Presentes,,2224
+The Rapture,Echoes,,2225
+The Go! Team,"Thunder, Lightning, Strike",,2226
+Killing Joke,Killing Joke,,2227
+The Beach Boys,Wild Honey,,2228
+Captain Beefheart & The Magic Band,"Lick My Decals Off, Baby",,2229
+Bob Seger & The Silver Bullet Band,Stranger In Town,,2230
+Marvin Gaye,"Here, My Dear",,2231
+Big K.R.I.T.,4eva Is A Mighty Long Time,,2232
+Olivia Rodrigo,Guts,,2233
+Neurosis,Through Silver In Blood,,2234
+Tim Hecker,Harmony In Ultraviolet,,2235
+Bert Jansch,Bert Jansch,,2236
+Thelonious Monk Septet,Monk's Music,,2237
+Ben Folds,Rockin' The Suburbs,,2238
+XTC,Nonsuch,,2239
+The Residents,Meet The Residents,,2240
+Jeff Buckley,Sketches For My Sweetheart The Drunk,,2241
+Jack White,No Name,,2242
+Crowded House,Crowded House,,2243
+Mad Season,Above,,2244
+Neil Young,Comes A Time,,2245
+Prefab Sprout,Jordan: The Comeback,,2246
+Tom Waits,"Orphans: Brawlers, Bawlers & Bastards",,2247
+Joan Baez,Joan Baez,,2248
+Madness,One Step Beyond...,,2249
+The Books,The Lemon Of Pink,,2250
+Streetlight Manifesto,Everything Goes Numb,,2251
+Haim,Women In Music Pt. III,,2252
+Alice Cooper,Love It To Death,,2253
+Incubus,Morning View,,2254
+Slipknot,Slipknot,,2255
+Zero 7,Simple Things,,2256
+Idles,Ultra Mono,,2257
+Al Stewart,Year Of The Cat,,2258
+The Verve,A Storm In Heaven,,2259
+Lou Reed / John Cale,Songs For Drella,,2260
+Stevie Ray Vaughan & Double Trouble,Couldn't Stand The Weather,,2261
+ABBA,The Album,,2262
+Ween,White Pepper,,2263
+Genesis,...And Then There Were Three,,2264
+Lee Morgan,The Sidewinder,,2265
+Sonic Youth,Bad Moon Rising,,2266
+Glasvegas,Glasvegas,,2267
+Television Personalities,...And Don't The Kids Just Love It,,2268
+Death (Metal),Human,,2269
+Santana,Santana (III),,2270
+Spiritualized®,Let It Come Down,,2271
+Lou Reed,Rock N Roll Animal,,2272
+Biffy Clyro,Only Revolutions,,2273
+Roxy Music,Siren,,2274
+Matchbox Twenty,Yourself Or Someone Like You,,2275
+David Bowie,1. Outside,,2276
+Jake Bugg,Jake Bugg,,2277
+파란노을 [Parannoul],After The Magic,,2278
+Bruce Springsteen,Wrecking Ball,,2279
+Portugal. The Man,Evil Friends,,2280
+Genesis,We Can't Dance,,2281
+David Zinman / London Sinfonietta / Dawn Upshaw,Henryk Górecki: Symphony No. 3,,2282
+Godspeed You! Black Emperor,"No​ ​Title As Of 13 February 2024 28​,​340 Dead",,2283
+Julie London,Julie Is Her Name,,2284
+Sun Ra And His Arkestra,Jazz In Silhouette,,2285
+Terence Trent D'Arby,Introducing The Hardline According To Terence Trent D'Arby,,2286
+Cage The Elephant,Cage The Elephant,,2287
+Judee Sill,Judee Sill,,2288
+The Horrors (UK),Skying,,2289
+Foreigner,4,,2290
+Eric Clapton,Slowhand,,2291
+The Flaming Lips,American Head,,2292
+Mercury Rev,All Is Dream,,2293
+Beck,Modern Guilt,,2294
+Jorge Ben,Força Bruta,,2295
+Cornelius,Fantasma,,2296
+Beach House,Thank Your Lucky Stars,,2297
+The Last Shadow Puppets,Everything You've Come To Expect,,2298
+Big L,Lifestylez Ov Da Poor & Dangerous,,2299
+Pantera,Cowboys From Hell,,2300
+Miles Davis + 19,Miles Ahead,,2301
+Brian Eno,Ambient 4: On Land,,2302
+Dr. Octagon,Dr. Octagon,,2303
+Twenty One Pilots,Trench,,2304
+Max Roach,We Insist! Max Roach's Freedom Now Suite,,2305
+Tom Petty And The Heartbreakers,Into The Great Wide Open,,2306
+Hank Williams,Moanin' The Blues,,2307
+Queen,Queen,,2308
+Charles Mingus,The Clown,,2309
+The Cars,Candy-O,,2310
+Al Green,Let's Stay Together,,2311
+Talking Heads,The Name Of This Band Is Talking Heads,,2312
+Booker T. & The M.G.'s,Green Onions,,2313
+Hot Chip,The Warning,,2314
+Grant Lee Buffalo,Fuzzy,,2315
+Chicago,Chicago,,2316
+Siouxsie And The Banshees,Kaleidoscope,,2317
+The Black Keys,Attack & Release,,2318
+Judee Sill,Heart Food,,2319
+The KLF,Chill Out,,2320
+Grateful Dead,Europe '72,,2321
+Panic! At The Disco,Pretty. Odd.,,2322
+dEUS,"In A Bar, Under The Sea",,2323
+Herbie Hancock,Empyrean Isles,,2324
+Ritchie Valens,Ritchie Valens,,2325
+The Walkmen,Bows + Arrows,,2326
+The Rolling Stones,Hot Rocks 1964–1971,,2327
+Ben Folds Five,Ben Folds Five,,2328
+Miles Davis,Get Up With It,,2329
+Madonna,Like A Virgin,,2330
+Led Zeppelin,How The West Was Won,,2331
+Foo Fighters,But Here We Are,,2332
+Magma (FR),Mekanïk Destruktïw Kommandöh,,2333
+Nas,It Was Written,,2334
+Of Monsters And Men,My Head Is An Animal,,2335
+Camel,Music Inspired By The Snow Goose,,2336
+Panda Bear,Panda Bear Meets The Grim Reaper,,2337
+Stereophonics,Performance And Cocktails,,2338
+Adam And The Ants,Kings Of The Wild Frontier,,2339
+Yma Sumac,Voice Of The Xtabay,,2340
+Lil Yachty,Let's Start Here,,2341
+Metallica,Death Magnetic,,2342
+The Caretaker,Everywhere At The End Of Time,,2343
+Kula Shaker,K,,2344
+"The Good, The Bad & The Queen","The Good, The Bad & The Queen",,2345
+Beyoncé,Cowboy Carter,,2346
+Gal Costa,Gal Costa,,2347
+Carl Perkins,Dance Album,,2348
+Elbow,Asleep In The Back,,2349
+Cloud Nothings,Here And Nowhere Else,,2350
+Lupe Fiasco,Lupe Fiasco's Food & Liquor,,2351
+Wings (UK),Venus And Mars,,2352
+King Crimson,Lizard,,2353
+Ravi Shankar,Music Of India (Three Classical Ragas),,2354
+Duke Ellington & John Coltrane,Duke Ellington & John Coltrane,,2355
+Hüsker Dü,Flip Your Wig,,2356
+Iggy Pop,Post Pop Depression,,2357
+Killer Mike,R.A.P. Music,,2358
+Alice Cooper,Welcome To My Nightmare,,2359
+Eels,Blinking Lights And Other Revelations,,2360
+Popol Vuh (DE),In Den Gärten Pharaos,,2361
+Pantera,Far Beyond Driven,,2362
+The Alan Parsons Project,The Turn Of A Friendly Card,,2363
+Mitski,The Land Is Inhospitable And So Are We,,2364
+Yellow Magic Orchestra,Solid State Survivor,,2365
+Shame,Songs Of Praise,,2366
+John Coltrane,Olé Coltrane,,2367
+Queens Of The Stone Age,Era Vulgaris,,2368
+Wild Nothing,Nocturne,,2369
+The Caretaker,An Empty Bliss Beyond This World,,2370
+Muddy Waters,Folk Singer,,2371
+Eric Clapton,461 Ocean Boulevard,,2372
+Sade,Promise,,2373
+Solange,When I Get Home,,2374
+Violeta Parra,Las Últimas Composiciones De Violeta Parra,,2375
+Bo Diddley,Go Bo Diddley,,2376
+Melvins,Houdini,,2377
+R.E.M.,Chronic Town,,2378
+Stars Of The Lid,And Their Refinement Of The Decline,,2379
+Pulp,More,,2380
+Aesop Rock,The Impossible Kid,,2381
+M83,"Dead Cities, Red Seas & Lost Ghosts",,2382
+This Mortal Coil,It'll End In Tears,,2383
+King Crimson,In The Wake Of Poseidon,,2384
+Bob Dylan,Street-Legal,,2385
+Various Artists,Tropicália Ou Panis Et Circencis,,2386
+Fugazi,Red Medicine,,2387
+Caroline Polachek,Pang,,2388
+The Peter Brötzmann Octet,Machine Gun,,2389
+Tegan And Sara,The Con,,2390
+George Harrison,Cloud Nine,,2391
+Ian Dury,New Boots And Panties!!,,2392
+The Orb,The Orb's Adventures Beyond The Ultraworld,,2393
+Cassandra Jenkins,An Overview On Phenomenal Nature,,2394
+Yeasayer,Odd Blood,,2395
+Pavement,Terror Twilight,,2396
+Jeff Wayne,Jeff Wayne's Musical Version Of The War Of The Worlds,,2397
+Badfinger,Straight Up,,2398
+The Animals,The Animals,,2399
+Ethel Cain,Preacher's Daughter,,2400
+Paramore,This Is Why,,2401
+Stevie Ray Vaughan & Double Trouble,In Step,,2402
+Manic Street Preachers,Gold Against The Soul,,2403
+Santana,Supernatural,,2404
+Chet Baker,Chet,,2405
+Flying Lotus,Los Angeles,,2406
+Björk,Biophilia,,2407
+Green Day,Warning,,2408
+TLC,CrazySexyCool,,2409
+The Chameleons,Strange Times,,2410
+Protomartyr,Relatives In Descent,,2411
+Yves Tumor,Safe In The Hands Of Love,,2412
+Dream Theater,Octavarium,,2413
+Free,Fire And Water,,2414
+The Smashing Pumpkins,Machina/The Machines Of God,,2415
+The B-52's,Wild Planet,,2416
+Bad Religion,Stranger Than Fiction,,2417
+Bob Dylan,"The Bootleg Series Vol. 4: Bob Dylan Live 1966, The ""Royal Albert Hall"" Concert",,2418
+Depeche Mode,Playing The Angel,,2419
+Simple Minds,Once Upon A Time,,2420
+Moses Sumney,Græ,,2421
+Broadcast,Haha Sound,,2422
+Def Leppard,High 'N' Dry,,2423
+Robbie Băsho,Visions Of The Country,,2424
+Dinosaur Jr.,Green Mind,,2425
+Tori Amos,From The Choirgirl Hotel,,2426
+Phil Collins,...But Seriously,,2427
+Prince,Controversy,,2428
+Genesis,Seconds Out,,2429
+Bob Dylan,Tempest,,2430
+Pusha T,It's Almost Dry,,2431
+Hole,Celebrity Skin,,2432
+Van Halen,Fair Warning,,2433
+Hum,You'd Prefer An Astronaut,,2434
+The Gun Club,Miami,,2435
+Wolf Alice,Visions Of A Life,,2436
+Almendra,Almendra,,2437
+Rainbow,Ritchie Blackmore's Rainbow,,2438
+Youth Lagoon,The Year Of Hibernation,,2439
+Opeth,Deliverance,,2440
+Rainbow,Long Live Rock 'N' Roll,,2441
+Leonard Cohen,The Future,,2442
+Noname,Telefone,,2443
+Susanne Sundfør,Music For People In Trouble,,2444
+Franco Battiato,La Voce Del Padrone,,2445
+Young Fathers,Heavy Heavy,,2446
+Deafheaven,Ordinary Corrupt Human Love,,2447
+Lupe Fiasco,Tetsuo & Youth,,2448
+ABBA,Super Trouper,,2449
+dEUS,The Ideal Crash,,2450
+Elvis Costello And The Attractions,Trust,,2451
+Joe Cocker,With A Little Help From My Friends,,2452
+CunninLynguists,A Piece Of Strange,,2453
+PJ Harvey,I Inside The Old Year Dying,,2454
+Ash,1977,,2455
+The Lemon Twigs,Everything Harmony,,2456
+Coil,The Ape Of Naples,,2457
+Kings Of Leon,Come Around Sundown,,2458
+Sky Ferreira,"Night Time, My Time",,2459
+Slipknot,Vol. 3: (The Subliminal Verses),,2460
+Van Halen,Van Halen II,,2461
+John Cale,Fear,,2462
+First Aid Kit,The Lion's Roar,,2463
+Travis,The Invisible Band,,2464
+Red House Painters,Songs For A Blue Guitar,,2465
+Hawkwind,Space Ritual,,2466
+Van Der Graaf Generator,Still Life,,2467
+Queensrÿche,Empire,,2468
+AC/DC,For Those About To Rock (We Salute You),,2469
+Natural Snow Buildings,The Dance Of The Moon And The Sun,,2470
+Placebo,Black Market Music,,2471
+New Radicals,Maybe You've Been Brainwashed Too,,2472
+King Gizzard & The Lizard Wizard,Infest The Rats' Nest,,2473
+Swans,The Great Annihilator,,2474
+Nina Simone,Nina Simone Sings The Blues,,2475
+The Presidents Of The United States Of America,The Presidents Of The United States Of America,,2476
+Dexter Gordon,Go,,2477
+Beth Gibbons & Rustin Man,Out Of Season,,2478
+Queen,The Miracle,,2479
+Real Estate,Atlas,,2480
+M83,Saturdays = Youth,,2481
+a-ha,Scoundrel Days,,2481
+The Allman Brothers Band,Brothers And Sisters,,2483
+Brian Eno,Discreet Music,,2484
+Dream Theater,Train Of Thought,,2485
+Little Simz,Lotus,,2486
+Marcel Cellier Présente: Le Mystère Des Voix Bulgares,Le Mystère Des Voix Bulgares Volume 1,,2487
+Blonde Redhead,Misery Is A Butterfly,,2488
+The Millennium,Begin,,2489
+Jorge Ben,Samba Esquema Novo,,2490
+Linkin Park,Minutes To Midnight,,2491
+Cardiacs,Sing To God,,2492
+Ministry,Κεφαληξθ [Psalm 69: The Way To Succeed And The Way To Suck Eggs],,2493
+The Beatles,Meet The Beatles!,,2494
+James Blake,Assume Form,,2495
+UFO,Strangers In The Night,,2496
+Viagra Boys,Cave World,,2497
+Black Flag,My War,,2498
+Meredith Monk,Dolmen Music,,2499
+The Raincoats,The Raincoats,,2500
+Jenny Hval,Blood Bitch,,2501
+The Go-Betweens,Liberty Belle And The Black Diamond Express,,2502
+Blu & Exile,Below The Heavens,,2503
+fun.,Aim And Ignite,,2504
+Duran Duran,Duran Duran,,2505
+Lambchop,Nixon,,2506
+Dido,No Angel,,2507
+Scraping Foetus Off The Wheel,Nail,,2508
+Gomez,Bring It On,,2509
+Oneohtrix Point Never,Garden Of Delete,,2510
+Tom Waits,Blood Money,,2511
+Wednesday (US),Rat Saw God,,2512
+Simon & Garfunkel,The Concert In Central Park,,2513
+The Rolling Stones,Get Yer Ya-Ya's Out!,,2514
+King Gizzard & The Lizard Wizard,Omnium Gatherum,,2515
+Frank Ocean,"Nostalgia, Ultra.",,2516
+Wishbone Ash,Wishbone Ash,,2517
+Van Dyke Parks,Song Cycle,,2518
+AFI,Sing The Sorrow,,2519
+100 Gecs,1000 Gecs,,2520
+Mazzy Star,She Hangs Brightly,,2521
+Bon Iver,"Sable, Fable",,2522
+Rickie Lee Jones,Pirates,,2523
+Death Grips,No Love Deep Web,,2524
+Aphrodite's Child,666,,2525
+Joni Mitchell,For The Roses,,2526
+Lykke Li,Wounded Rhymes,,2527
+Scissor Sisters,Scissor Sisters,,2528
+Andrew Bird,Armchair Apocrypha,,2529
+Captain Beefheart & The Magic Band,Doc At The Radar Station,,2530
+Moby,18,,2531
+Swans,Filth,,2532
+Pentangle,Basket Of Light,,2533
+Marillion,Fugazi,,2534
+2814,新しい日の誕生 [Birth Of A New Day],,2535
+dEUS,Worst Case Scenario,,2536
+Benny Goodman,The Famous 1938 Carnegie Hall Jazz Concert,,2537
+Ultravox,Vienna,,2538
+Steven Wilson,Insurgentes,,2539
+Amyl And The Sniffers,Comfort To Me,,2540
+Songs: Ohia,The Lioness,,2541
+Prince & The New Power Generation,Diamonds And Pearls,,2542
+The Alan Parsons Project,Tales Of Mystery And Imagination - Edgar Allan Poe,,2543
+JPEGMAFIA,I Lay Down My Life For You,,2544
+Thelonious Monk,Genius Of Modern Music,,2545
+Mumford & Sons,Babel,,2546
+Huey Lewis & The News,Sports,,2547
+King Crimson,Islands,,2548
+These New Puritans,Field Of Reeds,,2549
+Van Morrison,Tupelo Honey,,2550
+Mark Kozelek & Jimmy Lavalle,Perils From The Sea,,2551
+Bloc Party,A Weekend In The City,,2552
+Gillian Welch,The Harrow & The Harvest,,2553
+AC/DC,The Razors Edge,,2554
+Gojira,From Mars To Sirius,,2555
+Dire Straits,Alchemy,,2556
+Nancy Sinatra & Lee Hazlewood,Nancy & Lee,,2557
+Unknown Mortal Orchestra,Multi-Love,,2558
+St. Vincent,Marry Me,,2559
+Dennis Wilson,Pacific Ocean Blue,,2560
+Morphine,Good,,2561
+Caribou,Suddenly,,2562
+Siouxsie And The Banshees,A Kiss In The Dreamhouse,,2563
+Screaming Trees,Sweet Oblivion,,2564
+Alcest,Souvenirs D'un Autre Monde,,2565
+Steppenwolf,Steppenwolf,,2566
+The Smile,Cutouts,,2567
+Big Country,The Crossing,,2568
+"Blood, Sweat & Tears","Blood, Sweat & Tears",,2569
+ABBA,ABBA,,2570
+John Coltrane Quartet,Africa/Brass,,2571
+Kansas,Point Of Know Return,,2572
+Iron Maiden,The Book Of Souls,,2573
+cLOUDDEAD,cLOUDDEAD,,2574
+Blood Orange,Negro Swan,,2575
+Turnover,Peripheral Vision,,2576
+Foreigner,Foreigner,,2577
+Depeche Mode,Memento Mori,,2578
+Future (Rap),DS2,,2579
+Bob Marley & The Wailers,Kaya,,2580
+Dream Theater,Six Degrees Of Inner Turbulence,,2581
+Duke Ellington / Charlie Mingus / Max Roach,Money Jungle,,2582
+Burial,Kindred EP,,2583
+Mission Of Burma,"Signals, Calls, And Marches",,2584
+Lana Del Rey,Lust For Life,,2585
+Jenny Hval,"Apocalypse, Girl",,2586
+Warren Zevon,Warren Zevon,,2587
+Lizzo,Cuz I Love You,,2588
+King Gizzard & The Lizard Wizard,PetroDragonic Apocalypse; Or Dawn Of Eternal Night: An Annihilation Of Planet Earth And The Beginning Of Merciless Damnation,,2589
+Jeff Beck,Blow By Blow,,2590
+Traffic,The Low Spark Of High Heeled Boys,,2591
+David Sylvian,Brilliant Trees,,2592
+Phil Collins,"Hello, I Must Be Going!",,2593
+The Velvet Underground,VU,,2594
+Andy Stott,Luxury Problems,,2595
+Tangerine Dream,Zeit,,2596
+John Cougar Mellencamp,The Lonesome Jubilee,,2597
+Ennio Morricone,C'Era Una Volta Il West [Once Upon A Time In The West],,2598
+Propaganda (DE),A Secret Wish,,2599
+Rammstein,Sehnsucht,,2600
+Wilco,Star Wars,,2601
+Air,"10,000 Hz Legend",,2602
+Mariah Carey,Butterfly,,2603
+Makaveli,The Don Killuminati: The 7 Day Theory,,2604
+The War On Drugs,Slave Ambient,,2605
+Coil,Horse Rotorvator,,2606
+Kurt Vile,B'lieve I'm Goin Down...,,2607
+Amon Tobin,Bricolage,,2608
+NOFX,Punk In Drublic,,2609
+Oneohtrix Point Never,R Plus Seven,,2610
+Sudan Archives,Natural Brown Prom Queen,,2611
+CHVRCHES,Screen Violence,,2612
+Blonde Redhead,23,,2613
+Deerhunter,Fading Frontier,,2614
+The Tallest Man On Earth,Shallow Grave,,2615
+Mogwai,Come On Die Young,,2616
+Big Boi,Sir Lucious Left Foot: The Son Of Chico Dusty,,2617
+The Allman Brothers Band,Idlewild South,,2618
+Dream Theater,Black Clouds & Silver Linings,,2619
+Miles Davis Quintet,Workin' With The Miles Davis Quintet,,2620
+Grateful Dead,Anthem Of The Sun,,2621
+Matthew Sweet,Girlfriend,,2622
+John Zorn,Naked City,,2623
+Arca,Arca,,2624
+Boris,Pink,,2625
+The Beach Boys,Summer Days (And Summer Nights!!),,2626
+Prince & The New Power Generation,Love Symbol,,2627
+AC/DC,T.N.T.,,2628
+Jerry Lee Lewis,"""Live"" At The Star-Club, Hamburg",,2629
+Foo Fighters,Sonic Highways,,2630
+Frank Zappa,Sheik Yerbouti,,2631
+Fugazi,In On The Kill Taker,,2632
+Captain Beefheart & The Magic Band,Shiny Beast (Bat Chain Puller),,2633
+Giles Corey,Giles Corey,,2634
+James Brown And His Famous Flames,Please Please Please,,2635
+Robin Trower,Bridge Of Sighs,,2636
+Joey Bada$$,1999,,2637
+Danzig,Danzig,,2638
+Cecil Taylor,Unit Structures,,2639
+Kacey Musgraves,Same Trailer Different Park,,2640
+Ghostface Killah,Ironman,,2641
+The Doobie Brothers,The Captain And Me,,2642
+Slipknot,Iowa,,2643
+Roni Size And Reprazent,New Forms,,2644
+Hot Chip,In Our Heads,,2645
+The Divine Comedy,Casanova,,2646
+Scott Walker,Tilt,,2647
+Various Artists,The Rocky Horror Picture Show,,2648
+Sonic Youth,Murray Street,,2649
+William Basinski,The Disintegration Loops,,2650
+The Quintet,Jazz At Massey Hall,,2651
+Neil Young & Crazy Horse,Sleeps With Angels,,2652
+Anna Von Hausswolff,Dead Magic,,2653
+Therapy?,Troublegum,,2654
+The Cure,Standing On A Beach - The Singles,,2655
+Joni Mitchell,Song To A Seagull,,2656
+"Black Country, New Road",Forever Howlong,,2657
+Nightwish,Dark Passion Play,,2658
+ABBA,Voulez-Vous,,2659
+Prince,Lovesexy,,2660
+Television,Adventure,,2661
+Colin Stetson,New History Warfare Vol. 2: Judges,,2662
+Helloween,Keeper Of The Seven Keys Part 1,,2663
+Mogwai,"Hardcore Will Never Die, But You Will",,2664
+The 1975,The 1975,,2665
+Elbow,The Take Off And Landing Of Everything,,2666
+Mac Miller,Faces,,2667
+Donovan,A Gift From A Flower To A Garden,,2668
+Stevie Wonder,Music Of My Mind,,2669
+Scott Walker,Bish Bosch,,2670
+Miles Davis Quintet,Relaxin' With The Miles Davis Quintet,,2671
+White Noise,An Electric Storm,,2672
+Radiohead,I Might Be Wrong: Live Recordings,,2673
+Kenny Burrell,Midnight Blue,,2674
+Type O Negative,October Rust,,2675
+King Gizzard & The Lizard Wizard,"Ice, Death, Planets, Lungs, Mushrooms And Lava",,2676
+UFO,Lights Out,,2677
+St. Vincent,All Born Screaming,,2678
+Paul McCartney,Flaming Pie,,2679
+Destroyer,Poison Season,,2680
+Tito Puente,Dance Mania,,2681
+The Wedding Present,George Best,,2682
+Gang Of Youths,Go Farther In Lightness,,2683
+Foo Fighters,In Your Honor,,2684
+Massive Attack,100th Window,,2685
+Ella Fitzgerald,Ella Fitzgerald Sings The George And Ira Gershwin Songbook,,2686
+Kid Cudi,Man On The Moon II: The Legend Of Mr. Rager,,2687
+山岡晃 [Akira Yamaoka],Silent Hill 2 Original Soundtracks,,2688
+Mew,Frengers,,2689
+Kate Bush,Lionheart,,2690
+Billy Joel,Turnstiles,,2691
+Aesop Rock,Labor Days,,2692
+Pearl Jam,Backspacer,,2693
+The Kooks,Inside In/Inside Out,,2694
+Sebadoh,Bakesale,,2695
+Jacques Brel,Ces Gens-Là,,2696
+Simon & Garfunkel,"Wednesday Morning, 3AM",,2697
+Rush,Power Windows,,2698
+Renaissance,Ashes Are Burning,,2699
+Super Furry Animals,Radiator,,2700
+Squeeze,East Side Story,,2701
+Sparklehorse,Good Morning Spider,,2702
+Band Of Horses,Infinite Arms,,2703
+"10,000 Maniacs",In My Tribe,,2704
+Black Rebel Motorcycle Club,B.R.M.C.,,2705
+Prefab Sprout,Swoon,,2706
+Nine Inch Nails,Year Zero,,2707
+Françoise Hardy,Françoise Hardy (Tous Les Garçons Et Les Filles),,2708
+Within Temptation,Mother Earth,,2709
+XTC,Oranges & Lemons,,2710
+Soccer Mommy,Clean,,2711
+The Upsetters,Super Ape,,2712
+Stevie Wonder,Hotter Than July,,2713
+Nat King Cole,After Midnight,,2714
+Donna Summer,Bad Girls,,2715
+The Hives,Veni Vidi Vicious,,2716
+Spacemen 3,Playing With Fire,,2717
+Killing Joke,Night Time,,2718
+Starsailor,Love Is Here,,2719
+The Teardrop Explodes,Kilimanjaro,,2720
+Katy Perry,Teenage Dream,,2721
+America,America,,2722
+Kaiser Chiefs,Employment,,2723
+Burial,Burial,,2724
+Broadcast,The Noise Made By People,,2725
+Frank Sinatra,Songs For Young Lovers,,2726
+Mogwai,Rock Action,,2727
+Ice Cube,AmeriKKKa's Most Wanted,,2728
+Blondie,Blondie,,2729
+James Taylor,Mud Slide Slim And The Blue Horizon,,2730
+Lift To Experience,The Texas - Jerusalem Crossroads,,2731
+Animal Collective,Centipede Hz,,2732
+Epica,Design Your Universe,,2733
+Unwound,Fake Train,,2734
+The Saints,(I'm) Stranded,,2735
+Manic Street Preachers,Journal For Plague Lovers,,2736
+Kylie,Fever,,2737
+Lenny Kravitz,Mama Said,,2738
+The Darkness,Permission To Land,,2739
+Green Day,Kerplunk!,,2740
+Marianne Faithfull,Broken English,,2741
+Augustus Pablo,King Tubbys Meets Rockers Uptown,,2742
+Van Halen,5150,,2743
+Stars Of The Lid,The Tired Sounds Of Stars Of The Lid,,2744
+Townes Van Zandt,"Live At The Old Quarter, Houston, Texas",,2745
+Laura Marling,Semper Femina,,2746
+Dead Can Dance,The Serpent's Egg,,2747
+Jack White,Fear Of The Dawn,,2748
+Gentle Giant,The Power And The Glory,,2749
+Elvis Costello And The Attractions,Blood & Chocolate,,2750
+Chris Stapleton,Traveller,,2751
+Shania Twain,Come On Over,,2752
+The Beths,Future Me Hates Me,,2753
+Clipping.,CLPPNG,,2754
+The Rolling Stones,The Rolling Stones,,2755
+Bill Callahan,Dream River,,2756
+Godflesh,Streetcleaner,,2757
+Philip Glass Ensemble,Einstein On The Beach,,2758
+Nightwish,Century Child,,2759
+Creedence Clearwater Revival,Chronicle: The 20 Greatest Hits,,2760
+U2,"Live ""Under A Blood Red Sky""",,2761
+Renaissance,Scheherazade And Other Stories,,2762
+Sault,Untitled (Black Is),,2763
+Young Fathers,Cocoa Sugar,,2764
+The Cramps,Songs The Lord Taught Us,,2765
+Country Joe And The Fish,Electric Music For The Mind And Body,,2766
+Mötley Crüe,Dr. Feelgood,,2767
+Danny Brown,Old,,2768
+Saint Etienne,Foxbase Alpha,,2769
+Asia,Asia,,2770
+Elvis Presley,King Creole,,2771
+Peter Gabriel,I/O,,2772
+Richard Hell & The Voidoids,Blank Generation,,2773
+Frank Zappa,"Joe's Garage Act I, II & III",,2774
+Gene Vincent,Bluejean Bop,,2775
+The Killers,Pressure Machine,,2776
+Broken Social Scene,Forgiveness Rock Record,,2777
+Common,Like Water For Chocolate,,2778
+The Beach Boys,All Summer Long,,2779
+The New Pornographers,Mass Romantic,,2780
+Billy Joel,Piano Man,,2781
+Sam Cooke & Bumps Blackwell Orchestra,Songs By Sam Cooke,,2782
+Death (Metal),The Sound Of Perseverance,,2783
+Madonna,Bedtime Stories,,2784
+Oasis,Don't Believe The Truth,,2785
+Andrew Jackson Jihad,Knife Man,,2786
+The Original Broadway Cast,Hamilton: An American Musical,,2787
+Tangerine Dream,Rubycon,,2788
+Lankum,False Lankum,,2789
+Unwound,New Plastic Ideas,,2790
+Incubus,Make Yourself,,2791
+The Tallest Man On Earth,There's No Leaving Now,,2792
+The Chemical Brothers,Come With Us,,2793
+Fela Kuti & Africa 70,Music Of Fela - Roforofo Fight,,2794
+Metallica,Hardwired... To Self-Destruct,,2795
+Soul Glo,Diaspora Problems,,2796
+Weather Report,Heavy Weather,,2797
+Powderfinger,Odyssey Number Five,,2798
+The House Of Love,The House Of Love (The Butterfly Album),,2799
+Burzum,Filosofem,,2800
+Fela Kuti & Africa 70,Sorrow Tears And Blood,,2801
+Hozier,Hozier,,2802
+Everything But The Girl,Walking Wounded,,2803
+Brockhampton,Iridescence,,2804
+Jon Hopkins,Singularity,,2805
+Smokey Robinson And The Miracles,Going To A Go-Go,,2806
+Split Enz,True Colours,,2807
+Avenged Sevenfold,Nightmare,,2808
+Passion Pit,Manners,,2809
+The Olivia Tremor Control,Black Foliage: Animation Music Volume 1,,2810
+TV On The Radio,"Desperate Youth, Blood Thirsty Babes",,2811
+Sonny Clark,Cool Struttin',,2812
+Little Feat,Dixie Chicken,,2813
+Morrissey,Bona Drag,,2814
+Explosions In The Sky,"Those Who Tell The Truth Shall Die, Those Who Tell The Truth Shall Live Forever",,2815
+Scorpions,Lovedrive,,2816
+Against Me!,Transgender Dysphoria Blues,,2817
+Dave Matthews Band,Under The Table And Dreaming,,2818
+The Psychedelic Furs,The Psychedelic Furs,,2819
+Meat Puppets,Up On The Sun,,2820
+Duke Ellington And His Orchestra,Ellington Uptown,,2821
+Sheryl Crow,Tuesday Night Music Club,,2822
+Throwing Muses,The Real Ramona,,2823
+シートベルツ [Seatbelts],Cowboy Bebop,,2824
+Hüsker Dü,Candy Apple Grey,,2825
+Harry Belafonte,Calypso,,2826
+Julia Holter,Ekstasis,,2827
+Taylor Swift,Speak Now,,2828
+Leonard Cohen,Various Positions,,2829
+Mclusky,Mclusky Do Dallas,,2830
+Eric B. & Rakim,Follow The Leader,,2831
+Dead Can Dance,Into The Labyrinth,,2832
+Leonard Cohen,New Skin For The Old Ceremony,,2833
+The The,Dusk,,2834
+Elvis Presley,Elvis (TV Special),,2835
+Jai Paul,Leak 04-13 (Bait Ones),,2836
+Charly García,Piano Bar,,2837
+Oliver Nelson,The Blues And The Abstract Truth,,2838
+Panda Bear,Tomboy,,2839
+Butthole Surfers,Locust Abortion Technician,,2840
+Neil Young,Neil Young,,2841
+Van Der Graaf Generator,"H To He, Who Am The Only One",,2842
+Mano Negra,Puta's Fever,,2843
+System Of A Down,Steal This Album!,,2844
+The Cribs,"Mens Needs, Womens Needs, Whatever",,2845
+Royal Trux,Twin Infinitives,,2846
+Khruangbin,Con Todo El Mundo,,2847
+Anohni And The Johnsons,My Back Was A Bridge For You To Cross,,2848
+Alex G,God Save The Animals,,2849
+Santigold,Santigold,,2850
+Built To Spill,You In Reverse,,2851
+Pink Floyd,"Soundtrack From The Film ""More""",,2852
+Goldfrapp,Seventh Tree,,2853
+Cameron Winter,Heavy Metal,,2854
+The Avett Brothers,I And Love And You,,2855
+Rickie Lee Jones,Rickie Lee Jones,,2856
+Hop Along,Painted Shut,,2857
+Mos Def,The Ecstatic,,2858
+Ozzy Osbourne,No More Tears,,2859
+Sharon Van Etten,Tramp,,2860
+Wes Montgomery,The Incredible Jazz Guitar Of Wes Montgomery,,2861
+Mount Eerie,Now Only,,2862
+Jack White,Boarding House Reach,,2863
+Fabrizio De André,Crêuza De Mä,,2864
+The Antlers,Familiars,,2865
+Taking Back Sunday,Tell All Your Friends,,2866
+Dinosaur Jr.,Beyond,,2867
+Public Image Ltd.,The Flowers Of Romance,,2868
+Sepultura,Roots,,2869
+Quasimoto,The Unseen,,2870
+Flying Lotus,Until The Quiet Comes,,2871
+Oval,94diskont.,,2872
+Tuxedomoon,Desire,,2873
+The New Pornographers,Electric Version,,2874
+Bruno Mars,Doo-Wops And Hooligans,,2875
+The Auteurs,New Wave,,2876
+Otis Redding,The Otis Redding Dictionary Of Soul - Complete & Unbelievable,,2877
+Faces,A Nod Is As Good As A Wink... To A Blind Horse,,2878
+Opeth,Morningrise,,2879
+Aretha Franklin,"Young, Gifted And Black",,2880
+Digable Planets,Reachin' (A New Refutation Of Time And Space),,2881
+Diana Ross,Diana,,2882
+Oasis,Dig Out Your Soul,,2883
+Sonic Youth,Rather Ripped,,2884
+The Prodigy,Experience,,2885
+Weezer,Maladroit,,2886
+Adele,19,,2887
+Bad Bunny,Un Verano Sin Ti,,2888
+Mercyful Fate,Don't Break The Oath,,2889
+Lily Allen,"Alright, Still",,2890
+Wipers,Over The Edge,,2891
+Beck,The Information,,2892
+Willie Nelson,Stardust,,2893
+Prefab Sprout,From Langley Park To Memphis,,2894
+Junior Wells' Chicago Blues Band,Hoodoo Man Blues,,2895
+Queens Of The Stone Age,In Times New Roman…,,2896
+Courtney Barnett,The Double EP: A Sea Of Split Peas,,2897
+alt-J,Relaxer,,2898
+Queen,Greatest Hits,,2899
+Herbie Hancock,Sextant,,2900
+R.E.M.,Reveal,,2901
+福居良 [Ryo Fukui],Scenery,,2902
+Best Coast,Crazy For You,,2903
+The Fratellis,Costello Music,,2904
+Chuck Berry,The Great Twenty-Eight,,2905
+Chic,C'est Chic,,2906
+Spiritualized®,Sweet Heart Sweet Light,,2907
+Iron Maiden,Live After Death,,2908
+Women,Public Strain,,2909
+Sampha,Lahai,,2910
+Missy Elliott,Supa Dupa Fly,,2911
+Social Distortion,Social Distortion,,2912
+The Thelonious Monk Quartet,Misterioso,,2913
+Randy Newman,Good Old Boys,,2914
+The Wallflowers,Bringing Down The Horse,,2915
+Failure,Fantastic Planet,,2916
+Minor Threat,Minor Threat (Compilation),,2917
+Dio,The Last In Line,,2918
+Twenty One Pilots,Blurryface,,2919
+Wild Beasts,Two Dancers,,2920
+10cc,The Original Soundtrack,,2921
+The Roots,Phrenology,,2922
+The Levellers,Levelling The Land,,2923
+Elizabeth Cotten,Folksongs And Instrumentals With Guitar,,2924
+Taylor Swift,Midnights,,2925
+The Weeknd,Starboy,,2926
+The House Of Love,The House Of Love,,2927
+Chuck Berry,St. Louis To Liverpool,,2928
+Lil Wayne,Tha Carter III,,2929
+Unkle,Psyence Fiction,,2930
+Harmonium,L'Heptade,,2931
+Rammstein,"Reise, Reise",,2932
+The Beatles,Love,,2933
+Simple Minds,Street Fighting Years,,2934
+Noel Gallagher's High Flying Birds,Chasing Yesterday,,2935
+Calexico,Feast Of Wire,,2936
+Quicksilver Messenger Service,Happy Trails,,2937
+Little Simz,No Thank You,,2938
+The Blue Nile,A Walk Across The Rooftops,,2939
+Doves (UK),Some Cities,,2940
+Bee Gees,Odessa,,2941
+Boris,Boris At Last -Feedbacker-,,2942
+Underworld,Second Toughest In The Infants,,2943
+John Coltrane,Meditations,,2944
+Toots & The Maytals,Funky Kingston,,2945
+Lana Del Rey,Blue Banisters,,2946
+Parquet Courts,Sunbathing Animal,,2947
+The Last Dinner Party,From The Pyre,,2948
+Woody Guthrie,Dust Bowl Ballads,,2949
+The Tragically Hip,Day For Night,,2950
+Europe,The Final Countdown,,2951
+Sly & The Family Stone,Fresh,,2952
+Taylor Swift,Evermore,,2953
+James Blake,The Colour In Anything,,2954
+Bauhaus,Burning From The Inside,,2955
+Enigma (DE),MCMXC a.D.,,2956
+Oscar Peterson Trio,Night Train,,2957
+Jet,Get Born,,2958
+William Onyeabor,Atomic Bomb,,2959
+Gin Blossoms,New Miserable Experience,,2960
+The Kills,Midnight Boom,,2961
+Angel Olsen,Big Time,,2962
+Simple Minds,Sparkle In The Rain,,2963
+Soccer Mommy,Color Theory,,2964
+Superorganism,Superorganism,,2965
+Clarence Clarity,No Now,,2966
+Nujabes,Metaphorical Music,,2967
+Lady Gaga,The Fame,,2968
+Catherine Wheel,Chrome,,2969
+Sparks,Propaganda,,2970
+Iron Maiden,A Matter Of Life And Death,,2971
+The Chemical Brothers,Exit Planet Dust,,2972
+Alexander Spence,Oar,,2973
+Mogwai,Happy Songs For Happy People,,2974
+青葉市子 [Ichiko Aoba],0,,2975
+Beirut,The Rip Tide,,2976
+Einstürzende Neubauten,½ Mensch,,2977
+Porcupine Tree,Signify,,2978
+Art Blakey & The Jazz Messengers,Free For All,,2979
+Britney Spears,Blackout,,2980
+Hot Chip,One Life Stand,,2981
+X (US),Wild Gift,,2982
+Destroyer,Labyrinthitis,,2983
+Let's Eat Grandma,I'm All Ears,,2984
+Gavin Bryars,The Sinking Of The Titanic (1975),,2985
+George Harrison,Brainwashed,,2986
+Robbie Robertson,Robbie Robertson,,2987
+The Jayhawks,Rainy Day Music,,2988
+Premiata Forneria Marconi,Per Un Amico,,2989
+Procol Harum,Shine On Brightly,,2990
+TV On The Radio,Nine Types Of Light,,2991
+Jethro Tull,Benefit,,2992
+Blondie,Plastic Letters,,2993
+Whiskeytown,Strangers Almanac,,2994
+Billy Bragg,Talking With The Taxman About Poetry,,2995
+Robert Johnson,The Complete Recordings,,2996
+Red Hot Chili Peppers,I'm With You,,2997
+Toto,Toto,,2998
+A$AP Rocky,Long.Live.A$AP,,2999
+Silvio Rodriguez,Al Final De Este Viaje,,3000
