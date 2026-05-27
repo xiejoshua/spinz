@@ -103,9 +103,10 @@ async def get_popular_this_week(*, viewer_id: str, limit: int) -> list[dict[str,
     cached = await cache_get(cache_key)
     if cached is not None:
         try:
-            payload = json.loads(cached)
-            if isinstance(payload, list):
-                return payload[:limit]
+            cached_payload = json.loads(cached)
+            if isinstance(cached_payload, list):
+                hits: list[dict[str, Any]] = cached_payload[:limit]
+                return hits
         except (json.JSONDecodeError, ValueError):
             # Stale / corrupt cache row — fall through to recompute.
             _LOGGER.info(
@@ -220,9 +221,10 @@ async def get_from_follows(*, viewer_id: str, limit: int) -> list[dict[str, Any]
     cached = await cache_get(cache_key)
     if cached is not None:
         try:
-            payload = json.loads(cached)
-            if isinstance(payload, list):
-                return payload[:limit]
+            cached_payload = json.loads(cached)
+            if isinstance(cached_payload, list):
+                hits: list[dict[str, Any]] = cached_payload[:limit]
+                return hits
         except (json.JSONDecodeError, ValueError):
             _LOGGER.info(
                 "discover.from_follows.cache_parse_error",

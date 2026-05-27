@@ -51,6 +51,8 @@ import random
 import re
 from typing import Any
 
+from beanie.odm.enums import SortDirection
+
 from auxd_api.modules.albums.errors import AlbumNotFoundError
 from auxd_api.modules.albums.identity import (
     _materialize_album_from_mirror,
@@ -433,19 +435,25 @@ def _build_filter_only_match(
     return {"$and": clauses}
 
 
-def _filter_only_sort_spec(sort_key: str) -> list[tuple[str, int]]:
+def _filter_only_sort_spec(sort_key: str) -> list[tuple[str, SortDirection]]:
     """Translate a UI sort key into a Mongo sort spec for filter-only mode."""
     if sort_key == "year_newest":
-        return [("release_year", -1)]
+        return [("release_year", SortDirection.DESCENDING)]
     if sort_key == "year_oldest":
-        return [("release_year", 1)]
+        return [("release_year", SortDirection.ASCENDING)]
     if sort_key == "recently_added":
-        return [("created_at", -1)]
+        return [("created_at", SortDirection.DESCENDING)]
     if sort_key == "popular_on_auxd":
-        return [("rating_count", -1), ("created_at", -1)]
+        return [
+            ("rating_count", SortDirection.DESCENDING),
+            ("created_at", SortDirection.DESCENDING),
+        ]
     # ``relevance`` (and anything unexpected) falls back to platform-
     # popular ordering when there's no query to score against.
-    return [("rating_count", -1), ("created_at", -1)]
+    return [
+        ("rating_count", SortDirection.DESCENDING),
+        ("created_at", SortDirection.DESCENDING),
+    ]
 
 
 async def filter_only_search(

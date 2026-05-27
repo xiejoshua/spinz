@@ -116,7 +116,7 @@ class AlbumMirrorService:
         """
         if self._client is None:
             raise RuntimeError("initialize_schema called on a disabled mirror")
-        statements = [(ddl, []) for ddl in all_ddl()]
+        statements: list[tuple[str, list[Any]]] = [(ddl, []) for ddl in all_ddl()]
         statements.append(self._meta_upsert_statement())
         await self._client.execute_batch(statements)
 
@@ -130,7 +130,7 @@ class AlbumMirrorService:
         """
         if self._client is None:
             raise RuntimeError("initialize_core_schema called on a disabled mirror")
-        statements = [(ddl, []) for ddl in core_ddl()]
+        statements: list[tuple[str, list[Any]]] = [(ddl, []) for ddl in core_ddl()]
         statements.append(self._meta_upsert_statement())
         await self._client.execute_batch(statements)
 
@@ -149,7 +149,7 @@ class AlbumMirrorService:
         """
         if self._client is None:
             raise RuntimeError("prepare_for_bulk_load called on a disabled mirror")
-        statements = [(sql, []) for sql in drop_fts_statements()]
+        statements: list[tuple[str, list[Any]]] = [(sql, []) for sql in drop_fts_statements()]
         await self._client.execute_batch(statements)
         _LOGGER.info(
             "mb_mirror.bulk_load.fts_dropped",
@@ -693,6 +693,9 @@ class AlbumMirrorService:
         """
         if not batch:
             return
+        # Invariant: callers (upsert_many + recursive self-call) only reach
+        # this point after the disabled-mirror early-return upstream.
+        assert self._client is not None
         sql = self._build_multi_row_upsert(len(batch))
         params: list[Any] = []
         for row in batch:
